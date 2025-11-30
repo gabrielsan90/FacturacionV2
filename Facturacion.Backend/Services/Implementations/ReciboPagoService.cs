@@ -285,7 +285,7 @@ public class ReciboPagoService : IReciboPagoService
             try
             {
                 var certificado = await _firmaDigital.ObtenerCertificadoAsync(empresa.Id);
-                var xmlFirmado = await _firmaDigital.FirmarXmlAsync(xml, certificado);
+                var xmlFirmado = await _firmaDigital.FirmarXmlAsync(xml, certificado, empresa.PinCertificado);
                 documentoREP.XmlFirmado = xmlFirmado;
                 documentoREP.FechaFirma = DateTime.Now;
                 documentoREP.Estado = EstadoDocumento.Pendiente;

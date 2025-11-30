@@ -115,15 +115,17 @@ public class MensajeReceptorService : IMensajeReceptorService
             var xmlGenerado = await _xmlGeneradorService.GenerarMensajeReceptorAsync(mensaje, documentoOriginal);
             mensaje.XmlGenerado = xmlGenerado;
 
-            // 8. Firmar digitalmente el XML
-            var certificado = await _firmaDigitalService.ObtenerCertificadoAsync(documentoOriginal.EmpresaId);
-            var xmlFirmado = await _firmaDigitalService.FirmarXmlAsync(xmlGenerado, certificado);
-            mensaje.XmlFirmado = xmlFirmado;
-            mensaje.FechaFirma = DateTime.UtcNow;
-
             // 9. Obtener credenciales de Hacienda de la empresa
             var empresa = await _context.Set<Empresa>()
                 .FirstOrDefaultAsync(e => e.Id == documentoOriginal.EmpresaId);
+
+            // 8. Firmar digitalmente el XML
+            var certificado = await _firmaDigitalService.ObtenerCertificadoAsync(documentoOriginal.EmpresaId);
+            var xmlFirmado = await _firmaDigitalService.FirmarXmlAsync(xmlGenerado, certificado, empresa.PinCertificado);
+            mensaje.XmlFirmado = xmlFirmado;
+            mensaje.FechaFirma = DateTime.UtcNow;
+
+            
 
             if (empresa == null)
                 throw new InvalidOperationException("Empresa no encontrada");
