@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Sistema de Facturación Electrónica</title>
+
+    <!-- Google Fonts - Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css" rel="stylesheet">
+
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <!-- Laxom Custom Theme -->
+    <link href="~/css/laxom-theme.css" rel="stylesheet" asp-append-version="true" />
+
+    <!-- Site CSS -->
+    <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    @Html.AntiForgeryToken()
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- Brand Logo -->
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="brand-text">
+                Facturación CR
+                <span class="brand-version">Versión 4.4</span>
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <ul class="sidebar-nav" data-simplebar>
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Index">
+                    <i class="fas fa-chart-line nav-icon"></i>
+                    Dashboard
+                </a>
+            </li>
+
+            <!-- FACTURACIÓN Section -->
+            <li class="nav-title">FACTURACIÓN</li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Facturacion">
+                    <i class="fas fa-file-invoice nav-icon"></i>
+                    Facturación
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Documentos">
+                    <i class="fas fa-file-alt nav-icon"></i>
+                    Documentos
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/RecibosPago">
+                    <i class="fas fa-money-check-alt nav-icon"></i>
+                    Recibo Electrónico de Pago
+                    <span class="badge bg-success text-white ms-auto">v4.4</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Recepciones">
+                    <i class="fas fa-inbox nav-icon"></i>
+                    Recepciones
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Gasto">
+                    <i class="fas fa-receipt nav-icon"></i>
+                    Gasto
+                </a>
+            </li>
+
+            <!-- CATÁLOGO Section -->
+            <li class="nav-title">CATÁLOGO</li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Clientes">
+                    <i class="fas fa-user-tie nav-icon"></i>
+                    Clientes
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Productos">
+                    <i class="fas fa-box nav-icon"></i>
+                    Productos
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Proveedores">
+                    <i class="fas fa-truck nav-icon"></i>
+                    Proveedor
+                </a>
+            </li>
+
+            <!-- Catálogos Hacienda Group -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#catalogosHaciendaGroup" aria-expanded="false">
+                    <i class="fas fa-book nav-icon"></i>
+                    Catálogos Hacienda
+                </a>
+                <ul class="nav-group-items collapse" id="catalogosHaciendaGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Monedas">
+                            <i class="fas fa-coins"></i>
+                            Monedas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/FormasPago">
+                            <i class="fas fa-credit-card"></i>
+                            Formas de Pago
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/TiposDocumentos">
+                            <i class="fas fa-file-alt"></i>
+                            Tipos de Documentos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/TiposReferencias">
+                            <i class="fas fa-link"></i>
+                            Tipos de Referencias
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/TiposOtrosCargos">
+                            <i class="fas fa-plus-circle"></i>
+                            Tipos de Otros Cargos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/TiposCodigosProducto">
+                            <i class="fas fa-barcode"></i>
+                            Tipos de Códigos Producto
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/CondicionesVenta">
+                            <i class="fas fa-handshake"></i>
+                            Condiciones de Venta
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/UnidadesMedidaPage">
+                            <i class="fas fa-ruler"></i>
+                            Unidades de Medida
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/TiposIdentificacion">
+                            <i class="fas fa-id-card"></i>
+                            Tipos de Identificación
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ImpuestosPage">
+                            <i class="fas fa-percent"></i>
+                            Impuestos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/CodigosTarifasIVA">
+                            <i class="fas fa-percentage"></i>
+                            Códigos de Tarifas IVA
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/TiposExoneracion">
+                            <i class="fas fa-file-contract"></i>
+                            Tipos de Exoneración
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- INVENTARIO Section -->
+            <li class="nav-title">INVENTARIO</li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Inventario">
+                    <i class="fas fa-warehouse nav-icon"></i>
+                    Inventario
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/AsignarProductosSucursal">
+                    <i class="fas fa-cubes nav-icon"></i>
+                    Asignar Productos a Sucursal
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Movimientos">
+                    <i class="fas fa-exchange-alt nav-icon"></i>
+                    Traslado de inventario
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/MantenimientoCabys">
+                    <i class="fas fa-tools nav-icon"></i>
+                    Mantenimiento Cabys
+                </a>
+            </li>
+
+            <!-- REPORTES Section -->
+            <li class="nav-title">REPORTES</li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/ReporteDocumentosEmitidos">
+                    <i class="fas fa-file-export nav-icon"></i>
+                    Documentos Emitidos
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/ReporteDocumentosRecibidos">
+                    <i class="fas fa-file-import nav-icon"></i>
+                    Documentos Recibidos
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/ReporteProductos">
+                    <i class="fas fa-boxes nav-icon"></i>
+                    Productos
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/ReporteVentas">
+                    <i class="fas fa-chart-line nav-icon"></i>
+                    Ventas
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/ReporteGastos">
+                    <i class="fas fa-receipt nav-icon"></i>
+                    Gastos
+                </a>
+            </li>
+
+            <!-- SISTEMA Section -->
+            <li class="nav-title">SISTEMA</li>
+
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#configuracionGroup" aria-expanded="false">
+                    <i class="fas fa-cog nav-icon"></i>
+                    Configuración
+                </a>
+                <ul class="nav-group-items collapse" id="configuracionGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Empresas">
+                            <i class="fas fa-building"></i>
+                            Empresas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Categorias">
+                            <i class="fas fa-tags"></i>
+                            Categorías
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Usuarios">
+                    <i class="fas fa-users nav-icon"></i>
+                    Usuarios
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Roles">
+                    <i class="fas fa-user-shield nav-icon"></i>
+                    Roles
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Seguridad">
+                    <i class="fas fa-shield-alt nav-icon"></i>
+                    Seguridad
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/ConfiguracionCorreo">
+                    <i class="fas fa-envelope-open-text nav-icon"></i>
+                    Configuración de correo
+                </a>
+            </li>
+        </ul>
+
+        <!-- User Profile in Sidebar -->
+        <div class="user-profile">
+            <div class="d-flex align-items-center">
+                <div class="avatar">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        @User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value?.Substring(0, 1).ToUpper()
+                    }
+                    else
+                    {
+                        <text>U</text>
+                    }
+                </div>
+                <div class="user-info">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="user-name">@User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value</div>
+                        <div class="user-email">@User.Identity.Name</div>
+                    }
+                    else
+                    {
+                        <div class="user-name">Invitado</div>
+                    }
+                </div>
+                <a href="#" onclick="logout(); return false;" class="logout-btn ms-2" title="Cerrar Sesión">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="wrapper">
+        <!-- Header -->
+        <header class="header">
+            <div class="container-fluid">
+                <!-- Sidebar Toggle Button -->
+                <button class="header-toggler" type="button" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <!-- Breadcrumb Navigation -->
+                <nav aria-label="breadcrumb" class="d-none d-md-block">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item">
+                            <a asp-page="/Index">
+                                <i class="fas fa-home me-1"></i>Inicio
+                            </a>
+                        </li>
+                        @if (ViewData["Breadcrumb"] != null)
+                        {
+                            <li class="breadcrumb-item active" aria-current="page">@ViewData["Breadcrumb"]</li>
+                        }
+                    </ol>
+                </nav>
+
+                <!-- Header Right Navigation -->
+                <ul class="header-nav ms-auto">
+                    <!-- Language Selector (Optional) -->
+                    <li class="nav-item dropdown d-none d-lg-block me-2">
+                        <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-globe"></i>
+                            <span class="d-none d-lg-inline ms-2">Español</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item active" href="#"><i class="fas fa-check me-2"></i> Español</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="far fa-circle me-2"></i> English</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Company Selector -->
+                    <li class="nav-item dropdown d-none d-md-block me-2">
+                        <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="companySelector">
+                            <i class="fas fa-building"></i>
+                            <span class="d-none d-lg-inline ms-2" id="currentCompanyName">
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    @(User.Claims.FirstOrDefault(c => c.Type == "EmpresaNombre")?.Value ?? "Seleccione Empresa")
+                                }
+                                else
+                                {
+                                    <text>Seleccione Empresa</text>
+                                }
+                            </span>
+                            <i class="fas fa-chevron-down ms-1" style="font-size: 0.75rem;"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" id="companyList">
+                            <li class="px-3 py-2 text-muted small">
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                Cargando empresas...
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Notifications -->
+                    <li class="nav-item dropdown me-2">
+                        <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="notificationDropdown">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge-notification" id="notificationBadge">3</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                            <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                <strong>Notificaciones</strong>
+                                <a href="#" class="text-primary small" onclick="markAllAsRead(); return false;">
+                                    Marcar todas
+                                </a>
+                            </div>
+                            <div id="notificationList">
+                                <div class="notification-item d-flex">
+                                    <div class="notification-icon success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">Documento Aceptado</div>
+                                        <div class="small text-muted">Factura FE-00001 aceptada por Hacienda</div>
+                                        <div class="small text-muted">Hace 5 minutos</div>
+                                    </div>
+                                </div>
+                                <div class="notification-item d-flex">
+                                    <div class="notification-icon warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">Stock Bajo</div>
+                                        <div class="small text-muted">Producto XYZ tiene stock bajo</div>
+                                        <div class="small text-muted">Hace 1 hora</div>
+                                    </div>
+                                </div>
+                                <div class="notification-item d-flex">
+                                    <div class="notification-icon info">
+                                        <i class="fas fa-info-circle"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">Nuevo Cliente</div>
+                                        <div class="small text-muted">Cliente ABC S.A. registrado</div>
+                                        <div class="small text-muted">Hace 2 horas</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-footer text-center border-top py-2">
+                                <a asp-page="/Notificaciones" class="small">Ver todas las notificaciones</a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- Messages (Optional) -->
+                    <li class="nav-item dropdown me-2 d-none d-lg-block">
+                        <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-envelope"></i>
+                            <span class="badge-notification">2</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end" style="width: 320px;">
+                            <div class="dropdown-header">
+                                <strong>Mensajes</strong>
+                            </div>
+                            <div class="notification-item d-flex">
+                                <div class="notification-icon info">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">Juan Pérez</div>
+                                    <div class="small text-muted">Consulta sobre factura...</div>
+                                    <div class="small text-muted">Hace 30 minutos</div>
+                                </div>
+                            </div>
+                            <div class="notification-item d-flex">
+                                <div class="notification-icon success">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">María González</div>
+                                    <div class="small text-muted">Pedido confirmado</div>
+                                    <div class="small text-muted">Hace 1 hora</div>
+                                </div>
+                            </div>
+                            <div class="dropdown-footer text-center border-top py-2">
+                                <a href="#" class="small">Ver todos los mensajes</a>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- User Profile Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link py-0" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar">
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    @User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value?.Substring(0, 1).ToUpper()
+                                }
+                                else
+                                {
+                                    <text>U</text>
+                                }
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <div class="dropdown-header">
+                                    <strong>
+                                        @if (User.Identity?.IsAuthenticated == true)
+                                        {
+                                            @User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value
+                                        }
+                                    </strong>
+                                    <div class="small text-muted">
+                                        @User.Identity?.Name
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-wallet me-2"></i> Mi Billetera</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="#" onclick="logout(); return false;">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="body">
+            <div class="container-fluid">
+                @RenderBody()
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div>
+                Sistema de Facturación Electrónica v4.4 - Costa Rica &copy; 2025
+            </div>
+            <div class="mt-1">
+                <small class="text-muted">Desarrollado con <i class="fas fa-heart text-danger"></i> por su equipo de desarrollo</small>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
+
+    <!-- Site JS -->
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Toggle Sidebar Function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('show');
+        }
+
+        // Logout Function
+        function logout() {
+            Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: '¿Está seguro que desea salir del sistema?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, cerrar sesión',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#667eea',
+                cancelButtonColor: '#6c757d',
+                customClass: {
+                    popup: 'swal-custom-popup'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/Auth/Logout';
+                }
+            });
+        }
+
+        // Mark all notifications as read
+        function markAllAsRead() {
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                badge.textContent = '0';
+                badge.style.display = 'none';
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Notificaciones marcadas',
+                text: 'Todas las notificaciones han sido marcadas como leídas',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        }
+
+        // Show "Coming Soon" message
+        function showComingSoon() {
+            Swal.fire({
+                icon: 'info',
+                title: 'Próximamente',
+                text: 'Esta funcionalidad estará disponible próximamente.',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#667eea'
+            });
+        }
+
+        // Active menu highlighting and group expansion
+        $(document).ready(function() {
+            var currentPath = window.location.pathname;
+
+            // Remove any existing active classes
+            $('.sidebar-nav .nav-link').removeClass('active');
+
+            // Find and activate the current menu item
+            $('.sidebar-nav .nav-link').each(function() {
+                var linkPath = $(this).attr('href');
+
+                // Check if this is an external link or page link
+                if (linkPath && (linkPath === currentPath || currentPath.includes(linkPath))) {
+                    $(this).addClass('active');
+
+                    // If this link is inside a nav-group, expand the group
+                    var parentGroup = $(this).closest('.nav-group-items');
+                    if (parentGroup.length) {
+                        parentGroup.addClass('show');
+                        parentGroup.prev('.nav-group-toggle').attr('aria-expanded', 'true');
+                    }
+                }
+            });
+
+            // Handle group toggle clicks
+            $('.nav-group-toggle').on('click', function(e) {
+                e.preventDefault();
+                var targetId = $(this).data('bs-target');
+                var target = $(targetId);
+
+                if (target.hasClass('show')) {
+                    target.removeClass('show');
+                    $(this).attr('aria-expanded', 'false');
+                } else {
+                    target.addClass('show');
+                    $(this).attr('aria-expanded', 'true');
+                }
+            });
+
+            // Close sidebar when clicking outside on mobile
+            $(document).on('click', function(event) {
+                if (window.innerWidth < 992) {
+                    var sidebar = $('#sidebar');
+                    var toggler = $('.header-toggler');
+
+                    if (!sidebar.is(event.target) && sidebar.has(event.target).length === 0 &&
+                        !toggler.is(event.target) && toggler.has(event.target).length === 0) {
+                        sidebar.removeClass('show');
+                    }
+                }
+            });
+
+            // Load user companies for company selector
+            function loadUserCompanies() {
+                $.ajax({
+                    url: '/Shared/CompanySelector?handler=Companies',
+                    type: 'GET',
+                    success: function(response) {
+                        const companyList = $('#companyList');
+                        companyList.empty();
+
+                        if (response.companies && response.companies.length > 0) {
+                            response.companies.forEach(function(company) {
+                                const isActive = company.id === response.currentEmpresaId;
+                                const icon = isActive ? 'fas fa-check' : 'far fa-circle';
+                                const activeClass = isActive ? 'active' : '';
+
+                                const displayName = company.cedulaJuridica
+                                    ? company.nombreComercial + ' (' + company.cedulaJuridica + ')'
+                                    : company.nombreComercial;
+
+                                const item = $('<li>').append(
+                                    $('<a>')
+                                        .addClass('dropdown-item ' + activeClass)
+                                        .attr('href', '#')
+                                        .attr('data-empresa-id', company.id)
+                                        .attr('data-empresa-nombre', company.nombreComercial)
+                                        .html('<i class="' + icon + ' me-2"></i> ' + displayName)
+                                        .on('click', function(e) {
+                                            e.preventDefault();
+                                            if (!isActive) {
+                                                switchCompany(company.id, company.nombreComercial);
+                                            }
+                                        })
+                                );
+
+                                companyList.append(item);
+                            });
+
+                            // Add divider and manage link
+                            companyList.append('<li><hr class="dropdown-divider"></li>');
+                            companyList.append(
+                                $('<li>').append(
+                                    $('<a>')
+                                        .addClass('dropdown-item')
+                                        .attr('href', '/Empresas')
+                                        .html('<i class="fas fa-cog me-2"></i> Administrar Empresas')
+                                )
+                            );
+                        } else {
+                            companyList.append(
+                                $('<li>').addClass('px-3 py-2 text-muted small').text('No hay empresas disponibles')
+                            );
+                        }
+                    },
+                    error: function() {
+                        const companyList = $('#companyList');
+                        companyList.empty();
+                        companyList.append(
+                            $('<li>').addClass('px-3 py-2 text-danger small').text('Error al cargar empresas')
+                        );
+                    }
+                });
+            }
+
+            // Switch to a different company
+            function switchCompany(empresaId, empresaNombre) {
+                Swal.fire({
+                    title: 'Cambiando empresa...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '/Shared/CompanySelector?handler=SwitchCompany',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ empresaId: empresaId }),
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Empresa cambiada',
+                                text: 'La empresa ha sido cambiada exitosamente',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Reload the page to refresh all data
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'No se pudo cambiar de empresa',
+                                confirmButtonColor: '#667eea'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al cambiar de empresa. Intente nuevamente.',
+                            confirmButtonColor: '#667eea'
+                        });
+                    }
+                });
+            }
+
+            // Load companies when page loads
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <text>
+                loadUserCompanies();
+                </text>
+            }
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,238 @@
+@page
+@model Facturacion.Frontend.Pages.CategoriasModel
+@{
+    ViewData["Title"] = "Categorías";
+    ViewData["Breadcrumb"] = "Categorías";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-tags me-2"></i>Categorías de Productos
+        </h5>
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+            <i class="fas fa-plus me-1"></i> Nueva Categoría
+        </button>
+    </div>
+    <div class="card-body">
+        <table id="tableCategorias" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th style="width: 120px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalCategoria" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nueva Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCategoria">
+                <div class="modal-body">
+                    <input type="hidden" id="Categoria_Id" value="0" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Categoria_Nombre" maxlength="100" required />
+                        <div class="invalid-feedback">El nombre es obligatorio.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="Categoria_Descripcion" rows="3" maxlength="300"></textarea>
+                        <small class="text-muted">Descripción opcional de la categoría.</small>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Categoria_Activa" checked />
+                        <label class="form-check-label" for="Categoria_Activa">
+                            Categoría Activa
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableCategorias', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: '',
+                error: function(xhr, error, code) {
+                    console.error('Error loading categorias:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'id', visible: false },
+                { data: 'nombre' },
+                {
+                    data: 'descripcion',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activa</span>'
+                            : '<span class="badge bg-secondary">Inactiva</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}', '${row.nombre}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[1, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formCategoria').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formCategoria')[0].reset();
+        $('#formCategoria').removeClass('was-validated');
+        $('#Categoria_Id').val('0');
+        $('#Categoria_Activa').prop('checked', true);
+        $('#modalTitle').text('Nueva Categoría');
+        $('#modalCategoria').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                if (data && !data.error) {
+                    $('#Categoria_Id').val(data.id);
+                    $('#Categoria_Nombre').val(data.nombre);
+                    $('#Categoria_Descripcion').val(data.descripcion || '');
+                    $('#Categoria_Activa').prop('checked', data.activo);
+                    $('#modalTitle').text('Editar Categoría');
+                    $('#formCategoria').removeClass('was-validated');
+                    $('#modalCategoria').modal('show');
+                } else {
+                    showError('Error al cargar la categoría');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function save() {
+        const data = {
+            id: $('#Categoria_Id').val() || '00000000-0000-0000-0000-000000000000',
+            nombre: $('#Categoria_Nombre').val(),
+            descripcion: $('#Categoria_Descripcion').val() || null,
+            activo: $('#Categoria_Activa').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalCategoria').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar la categoría');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id, nombre) {
+        confirmDelete(`¿Está seguro de eliminar la categoría "${nombre}"?`, function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar la categoría');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+</script>
+}

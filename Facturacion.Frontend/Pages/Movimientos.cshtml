@@ -1,0 +1,677 @@
+@page
+@model Facturacion.Frontend.Pages.MovimientosModel
+@{
+    ViewData["Title"] = "Historial de Movimientos de Inventario";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-history"></i> Historial de Movimientos de Inventario</h2>
+                <div>
+                    <button class="btn btn-success" id="btnExportExcel" style="display:none;">
+                        <i class="fas fa-file-excel"></i> Exportar a Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Movimientos</h6>
+                    <h3 id="statTotalMovimientos" class="text-primary mb-0">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Entradas</h6>
+                    <h3 id="statTotalEntradas" class="text-success mb-0">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Salidas</h6>
+                    <h3 id="statTotalSalidas" class="text-danger mb-0">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Cantidad Neta</h6>
+                    <h3 id="statCantidadNeta" class="text-info mb-0">0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form id="formFiltros">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="filterFechaInicio" class="form-label">Fecha Inicio</label>
+                                    <input type="date" class="form-control" id="filterFechaInicio" />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="filterFechaFin" class="form-label">Fecha Fin</label>
+                                    <input type="date" class="form-control" id="filterFechaFin" />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="filterTipoMovimiento" class="form-label">Tipo de Movimiento</label>
+                                    <select class="form-select" id="filterTipoMovimiento">
+                                        <option value="">Todos</option>
+                                        <option value="1">Compra</option>
+                                        <option value="2">Venta</option>
+                                        <option value="3">Ajuste Entrada</option>
+                                        <option value="4">Ajuste Salida</option>
+                                        <option value="5">Traslado Entrada</option>
+                                        <option value="6">Traslado Salida</option>
+                                        <option value="7">Devolución Cliente</option>
+                                        <option value="8">Devolución Proveedor</option>
+                                        <option value="9">Merma</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="filterProducto" class="form-label">Producto</label>
+                                    <select class="form-select" id="filterProducto">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="filterSucursal" class="form-label">Sucursal</label>
+                                    <select class="form-select" id="filterSucursal">
+                                        <option value="">Todas</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-primary me-2" onclick="aplicarFiltros()">
+                                            <i class="fas fa-search"></i> Filtrar
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="limpiarFiltros()">
+                                            <i class="fas fa-times"></i> Limpiar Filtros
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DataTable -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="tableMovimientos" class="table table-striped table-hover table-bordered" style="width:100%">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Producto</th>
+                                    <th>Sucursal</th>
+                                    <th>Tipo Movimiento</th>
+                                    <th>Cantidad</th>
+                                    <th>Cant. Anterior</th>
+                                    <th>Cant. Nueva</th>
+                                    <th>Referencia</th>
+                                    <th>Usuario</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="modalDetallesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetallesLabel">
+                    <i class="fas fa-info-circle"></i> Detalles del Movimiento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fecha y Hora</label>
+                            <p id="detFecha" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tipo de Movimiento</label>
+                            <p id="detTipoMovimiento"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Producto</label>
+                            <p id="detProducto" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sucursal</label>
+                            <p id="detSucursal" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cantidad Movida</label>
+                            <p id="detCantidad" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cambio de Stock</label>
+                            <p id="detCambioStock" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Referencia</label>
+                            <p id="detReferencia" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Usuario</label>
+                            <p id="detUsuario" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Observaciones</label>
+                            <p id="detObservaciones" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optional Fields (shown only if not null) -->
+                <div id="detSucursalOrigen" class="row" style="display:none;">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sucursal Origen</label>
+                            <p id="detSucursalOrigenText" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detSucursalDestino" class="row" style="display:none;">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sucursal Destino</label>
+                            <p id="detSucursalDestinoText" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detCliente" class="row" style="display:none;">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cliente</label>
+                            <p id="detClienteText" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detProveedor" class="row" style="display:none;">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Proveedor</label>
+                            <p id="detProveedorText" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detDocumento" class="row" style="display:none;">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Documento Relacionado</label>
+                            <p id="detDocumentoText" class="form-control-plaintext"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let table;
+
+        $(document).ready(function () {
+            // Set default date range (last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+
+            $('#filterFechaInicio').val(thirtyDaysAgo.toISOString().split('T')[0]);
+            $('#filterFechaFin').val(today.toISOString().split('T')[0]);
+
+            // Load filter dropdowns
+            loadProductosFilter();
+            loadSucursalesFilter();
+
+            // Initialize DataTable
+            loadDataTable();
+        });
+
+        function loadDataTable() {
+            if ($.fn.DataTable.isDataTable('#tableMovimientos')) {
+                table.destroy();
+            }
+
+            table = $('#tableMovimientos').DataTable({
+                ajax: {
+                    url: function() {
+                        return buildHandlerUrl();
+                    },
+                    type: 'GET',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataSrc: function(json) {
+                        updateStatistics(json.data);
+                        return json.data;
+                    },
+                    error: function(xhr, error, code) {
+                        console.error('Error loading data:', error);
+                        Swal.fire('Error', 'No se pudieron cargar los movimientos', 'error');
+                    }
+                },
+                columns: [
+                    {
+                        data: 'fecha',
+                        render: function (data) {
+                            return formatDateTime(data);
+                        }
+                    },
+                    {
+                        data: 'inventario.producto.nombre',
+                        defaultContent: 'N/A'
+                    },
+                    {
+                        data: 'inventario.sucursal.nombre',
+                        defaultContent: 'N/A'
+                    },
+                    {
+                        data: 'tipoMovimiento',
+                        render: function (data) {
+                            return getTipoMovimientoBadge(data);
+                        }
+                    },
+                    {
+                        data: 'cantidad',
+                        render: function (data) {
+                            return parseFloat(data).toFixed(2);
+                        },
+                        className: 'text-end'
+                    },
+                    {
+                        data: 'cantidadAnterior',
+                        render: function (data) {
+                            return parseFloat(data).toFixed(2);
+                        },
+                        className: 'text-end'
+                    },
+                    {
+                        data: 'cantidadNueva',
+                        render: function (data) {
+                            return parseFloat(data).toFixed(2);
+                        },
+                        className: 'text-end'
+                    },
+                    {
+                        data: 'referencia',
+                        defaultContent: '-',
+                        render: function(data) {
+                            return data ? data : '-';
+                        }
+                    },
+                    {
+                        data: 'usuarioCreacion.userName',
+                        defaultContent: 'N/A'
+                    },
+                    {
+                        data: 'id',
+                        orderable: false,
+                        render: function (data) {
+                            return `
+                                <button class="btn btn-sm btn-info" onclick="viewDetails('${data}')" title="Ver Detalles">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                            `;
+                        },
+                        className: 'text-center'
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                },
+                responsive: true,
+                order: [[0, 'desc']], // Sort by fecha descending
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'copy',
+                        text: '<i class="fas fa-copy"></i> Copiar',
+                        className: 'btn btn-sm btn-secondary'
+                    },
+                    {
+                        extend: 'csv',
+                        text: '<i class="fas fa-file-csv"></i> CSV',
+                        className: 'btn btn-sm btn-success'
+                    },
+                    {
+                        extend: 'excel',
+                        text: '<i class="fas fa-file-excel"></i> Excel',
+                        className: 'btn btn-sm btn-success'
+                    },
+                    {
+                        extend: 'pdf',
+                        text: '<i class="fas fa-file-pdf"></i> PDF',
+                        className: 'btn btn-sm btn-danger'
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Imprimir',
+                        className: 'btn btn-sm btn-info'
+                    }
+                ]
+            });
+        }
+
+        function buildHandlerUrl() {
+            const fechaInicio = $('#filterFechaInicio').val();
+            const fechaFin = $('#filterFechaFin').val();
+            const tipoMovimiento = $('#filterTipoMovimiento').val();
+            const productoId = $('#filterProducto').val();
+            const sucursalId = $('#filterSucursal').val();
+
+            const params = ['handler=Data'];
+
+            if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+            if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+            if (tipoMovimiento) params.push(`tipoMovimiento=${tipoMovimiento}`);
+            if (productoId) params.push(`productoId=${productoId}`);
+            if (sucursalId) params.push(`sucursalId=${sucursalId}`);
+
+            return '?' + params.join('&');
+        }
+
+        function loadProductosFilter() {
+            $.ajax({
+                url: '?handler=Productos',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    const select = $('#filterProducto');
+                    select.empty();
+                    select.append('<option value="">Todos</option>');
+
+                    if (data && Array.isArray(data)) {
+                        data.forEach(producto => {
+                            select.append(`<option value="${producto.id}">${producto.codigo} - ${producto.nombre}</option>`);
+                        });
+                    }
+                },
+                error: function (xhr, error) {
+                    console.error('Error loading productos:', error);
+                }
+            });
+        }
+
+        function loadSucursalesFilter() {
+            $.ajax({
+                url: '?handler=Sucursales',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    const select = $('#filterSucursal');
+                    select.empty();
+                    select.append('<option value="">Todas</option>');
+
+                    if (data && Array.isArray(data)) {
+                        data.forEach(sucursal => {
+                            select.append(`<option value="${sucursal.id}">${sucursal.nombre}</option>`);
+                        });
+                    }
+                },
+                error: function (xhr, error) {
+                    console.error('Error loading sucursales:', error);
+                }
+            });
+        }
+
+        function aplicarFiltros() {
+            table.ajax.reload();
+        }
+
+        function limpiarFiltros() {
+            $('#formFiltros')[0].reset();
+
+            // Reset date range to last 30 days
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+
+            $('#filterFechaInicio').val(thirtyDaysAgo.toISOString().split('T')[0]);
+            $('#filterFechaFin').val(today.toISOString().split('T')[0]);
+
+            table.ajax.reload();
+        }
+
+        function viewDetails(id) {
+            $.ajax({
+                url: '?handler=Details&id=' + id,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        const movimiento = response.data;
+                        // Fill basic information
+                        $('#detFecha').text(formatDateTime(movimiento.fecha));
+                        $('#detTipoMovimiento').html(getTipoMovimientoBadge(movimiento.tipoMovimiento));
+                        $('#detProducto').text(movimiento.inventario?.producto?.codigo + ' - ' + movimiento.inventario?.producto?.nombre || 'N/A');
+                        $('#detSucursal').text(movimiento.inventario?.sucursal?.nombre || 'N/A');
+                        $('#detCantidad').text(parseFloat(movimiento.cantidad).toFixed(2));
+
+                        // Format stock change with arrow
+                        const stockChange = `
+                            <span class="badge bg-secondary">${parseFloat(movimiento.cantidadAnterior).toFixed(2)}</span>
+                            <i class="fas fa-arrow-right mx-2"></i>
+                            <span class="badge ${movimiento.cantidadNueva > movimiento.cantidadAnterior ? 'bg-success' : 'bg-danger'}">
+                                ${parseFloat(movimiento.cantidadNueva).toFixed(2)}
+                            </span>
+                        `;
+                        $('#detCambioStock').html(stockChange);
+
+                        $('#detReferencia').text(movimiento.referencia || 'N/A');
+                        $('#detUsuario').text(movimiento.usuarioCreacion?.userName || 'N/A');
+                        $('#detObservaciones').text(movimiento.observaciones || 'Sin observaciones');
+
+                        // Show/hide optional fields
+                        if (movimiento.sucursalOrigen) {
+                            $('#detSucursalOrigenText').text(movimiento.sucursalOrigen.nombre);
+                            $('#detSucursalOrigen').show();
+                        } else {
+                            $('#detSucursalOrigen').hide();
+                        }
+
+                        if (movimiento.sucursalDestino) {
+                            $('#detSucursalDestinoText').text(movimiento.sucursalDestino.nombre);
+                            $('#detSucursalDestino').show();
+                        } else {
+                            $('#detSucursalDestino').hide();
+                        }
+
+                        if (movimiento.cliente) {
+                            $('#detClienteText').text(movimiento.cliente.nombre);
+                            $('#detCliente').show();
+                        } else {
+                            $('#detCliente').hide();
+                        }
+
+                        if (movimiento.proveedor) {
+                            $('#detProveedorText').text(movimiento.proveedor.nombre);
+                            $('#detProveedor').show();
+                        } else {
+                            $('#detProveedor').hide();
+                        }
+
+                        if (movimiento.documentoId) {
+                            $('#detDocumentoText').text(movimiento.documentoId);
+                            $('#detDocumento').show();
+                        } else {
+                            $('#detDocumento').hide();
+                        }
+
+                        $('#modalDetalles').modal('show');
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudieron cargar los detalles', 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Error', 'No se pudieron cargar los detalles del movimiento', 'error');
+                }
+            });
+        }
+
+        function getTipoMovimientoBadge(tipo) {
+            const tipos = {
+                1: { text: 'Compra', class: 'success' },
+                2: { text: 'Venta', class: 'danger' },
+                3: { text: 'Ajuste Entrada', class: 'success' },
+                4: { text: 'Ajuste Salida', class: 'danger' },
+                5: { text: 'Traslado Entrada', class: 'success' },
+                6: { text: 'Traslado Salida', class: 'danger' },
+                7: { text: 'Devolución Cliente', class: 'success' },
+                8: { text: 'Devolución Proveedor', class: 'danger' },
+                9: { text: 'Merma', class: 'danger' }
+            };
+
+            const tipoInfo = tipos[tipo] || { text: 'Desconocido', class: 'secondary' };
+            return `<span class="badge bg-${tipoInfo.class}">${tipoInfo.text}</span>`;
+        }
+
+        function updateStatistics(data) {
+            if (!data || !Array.isArray(data)) {
+                return;
+            }
+
+            let totalEntradas = 0;
+            let totalSalidas = 0;
+
+            data.forEach(movimiento => {
+                const cantidad = parseFloat(movimiento.cantidad);
+                // Positive movement types: 1, 3, 5, 7
+                if ([1, 3, 5, 7].includes(movimiento.tipoMovimiento)) {
+                    totalEntradas += Math.abs(cantidad);
+                }
+                // Negative movement types: 2, 4, 6, 8, 9
+                else if ([2, 4, 6, 8, 9].includes(movimiento.tipoMovimiento)) {
+                    totalSalidas += Math.abs(cantidad);
+                }
+            });
+
+            const cantidadNeta = totalEntradas - totalSalidas;
+
+            $('#statTotalMovimientos').text(data.length);
+            $('#statTotalEntradas').text(totalEntradas.toFixed(2));
+            $('#statTotalSalidas').text(totalSalidas.toFixed(2));
+            $('#statCantidadNeta').text(cantidadNeta.toFixed(2));
+
+            // Change color based on net quantity
+            if (cantidadNeta > 0) {
+                $('#statCantidadNeta').removeClass('text-danger').addClass('text-success');
+            } else if (cantidadNeta < 0) {
+                $('#statCantidadNeta').removeClass('text-success').addClass('text-danger');
+            } else {
+                $('#statCantidadNeta').removeClass('text-success text-danger').addClass('text-info');
+            }
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return 'N/A';
+
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        }
+    </script>
+}

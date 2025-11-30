@@ -1,0 +1,351 @@
+@page
+@model Facturacion.Frontend.Pages.GastoModel
+@{
+    ViewData["Title"] = "Gastos";
+    ViewData["Breadcrumb"] = "Gastos";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-receipt me-2"></i>Gestión de Gastos
+        </h5>
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+            <i class="fas fa-plus me-1"></i> Nuevo Gasto
+        </button>
+    </div>
+    <div class="card-body">
+        <table id="tableGastos" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo Documento</th>
+                    <th>Número</th>
+                    <th>Proveedor</th>
+                    <th>Categoría</th>
+                    <th>Descripción</th>
+                    <th>Monto</th>
+                    <th style="width: 120px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalGasto" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Gasto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formGasto" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Gasto_Id" value="0" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Gasto_Fecha" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Proveedor <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Gasto_ProveedorId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo Documento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Gasto_TipoDocumento" required>
+                                <option value="">Seleccione...</option>
+                                <option value="Factura">Factura</option>
+                                <option value="Tiquete">Tiquete</option>
+                                <option value="Recibo">Recibo</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Número Documento</label>
+                            <input type="text" class="form-control" id="Gasto_NumeroDocumento" maxlength="50" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Gasto_Categoria" required>
+                                <option value="">Seleccione...</option>
+                                <option value="Servicios">Servicios</option>
+                                <option value="Suministros">Suministros</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                                <option value="Transporte">Transporte</option>
+                                <option value="Publicidad">Publicidad</option>
+                                <option value="Alquiler">Alquiler</option>
+                                <option value="Salarios">Salarios</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Monto <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="Gasto_Monto" step="0.01" min="0" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="Gasto_Descripcion" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Método de Pago</label>
+                            <select class="form-select" id="Gasto_MetodoPago">
+                                <option value="">Seleccione...</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Tarjeta">Tarjeta</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Referencia de Pago</label>
+                            <input type="text" class="form-control" id="Gasto_ReferenciaPago" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Gasto_Deducible" />
+                                <label class="form-check-label" for="Gasto_Deducible">
+                                    Gasto Deducible de Impuestos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableGastos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return moment(data).format('DD/MM/YYYY');
+                    }
+                },
+                { data: 'tipoDocumento' },
+                {
+                    data: 'numeroDocumento',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                },
+                { data: 'proveedorNombre' },
+                { data: 'categoria' },
+                {
+                    data: 'descripcion',
+                    render: function(data) {
+                        return data ? (data.length > 50 ? data.substring(0, 50) + '...' : data) : '-';
+                    }
+                },
+                {
+                    data: 'monto',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formGasto').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function loadProveedores() {
+        return $.ajax({
+            url: '?handler=Proveedores',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#Gasto_ProveedorId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                data.forEach(prov => {
+                    select.append(`<option value="${prov.id}">${prov.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formGasto')[0].reset();
+        $('#formGasto').removeClass('was-validated');
+        $('#Gasto_Id').val('0');
+        $('#Gasto_Fecha').val(new Date().toISOString().split('T')[0]);
+        $('#Gasto_Deducible').prop('checked', true);
+        $('#modalTitle').text('Nuevo Gasto');
+
+        loadProveedores().done(function() {
+            $('#modalGasto').modal('show');
+        });
+    }
+
+    function edit(id) {
+        loadProveedores().done(function() {
+            $.ajax({
+                url: '?handler=Details&id=' + id,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(data) {
+                    $('#Gasto_Id').val(data.id);
+                    $('#Gasto_Fecha').val(moment(data.fecha).format('YYYY-MM-DD'));
+                    $('#Gasto_ProveedorId').val(data.proveedorId);
+                    $('#Gasto_TipoDocumento').val(data.tipoDocumento);
+                    $('#Gasto_NumeroDocumento').val(data.numeroDocumento || '');
+                    $('#Gasto_Categoria').val(data.categoria);
+                    $('#Gasto_Monto').val(data.monto);
+                    $('#Gasto_Descripcion').val(data.descripcion || '');
+                    $('#Gasto_MetodoPago').val(data.metodoPago || '');
+                    $('#Gasto_ReferenciaPago').val(data.referenciaPago || '');
+                    $('#Gasto_Deducible').prop('checked', data.deducible);
+
+                    $('#modalTitle').text('Editar Gasto');
+                    $('#formGasto').removeClass('was-validated');
+                    $('#modalGasto').modal('show');
+                },
+                error: function() {
+                    showError('Error al cargar el gasto');
+                }
+            });
+        });
+    }
+
+    function save() {
+        const gastoData = {
+            id: $('#Gasto_Id').val() === '0' ? '00000000-0000-0000-0000-000000000000' : $('#Gasto_Id').val(),
+            fecha: $('#Gasto_Fecha').val(),
+            proveedorId: $('#Gasto_ProveedorId').val(),
+            tipoDocumento: $('#Gasto_TipoDocumento').val(),
+            numeroDocumento: $('#Gasto_NumeroDocumento').val() || null,
+            categoria: $('#Gasto_Categoria').val(),
+            monto: parseFloat($('#Gasto_Monto').val()),
+            descripcion: $('#Gasto_Descripcion').val() || null,
+            metodoPago: $('#Gasto_MetodoPago').val() || null,
+            referenciaPago: $('#Gasto_ReferenciaPago').val() || null,
+            deducible: $('#Gasto_Deducible').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(gastoData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalGasto').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function() {
+                showError('Error al guardar el gasto');
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function() {
+                    showError('Error al eliminar el gasto');
+                }
+            });
+        });
+    }
+</script>
+}

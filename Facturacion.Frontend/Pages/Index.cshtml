@@ -1,0 +1,435 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Breadcrumb"] = "Dashboard";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Metric Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- Total Ventas Hoy -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-white-50 small text-uppercase fw-semibold">Ventas Hoy</div>
+                        <div class="fs-4 fw-semibold" id="ventasHoy">₡0.00</div>
+                    </div>
+                    <div>
+                        <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/Documentos" class="text-white small">Ver documentos <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentos Pendientes -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-white-50 small text-uppercase fw-semibold">Docs Pendientes</div>
+                        <div class="fs-4 fw-semibold" id="docsPendientes">0</div>
+                    </div>
+                    <div>
+                        <i class="fas fa-file-invoice fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/Documentos" class="text-white small">Ver pendientes <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos Bajo Stock -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-white-50 small text-uppercase fw-semibold">Stock Bajo</div>
+                        <div class="fs-4 fw-semibold" id="stockBajo">0</div>
+                    </div>
+                    <div>
+                        <i class="fas fa-box fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/Inventario" class="text-white small">Ver inventario <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagos Pendientes -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-white-50 small text-uppercase fw-semibold">Pagos Pendientes</div>
+                        <div class="fs-4 fw-semibold" id="pagosPendientes">₡0.00</div>
+                    </div>
+                    <div>
+                        <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/Gastos" class="text-white small">Ver gastos <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <!-- Ventas últimos 7 días -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-2"></i>
+                <strong>Ventas Últimos 7 Días</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="chartVentas" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentos por Tipo -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i>
+                <strong>Documentos por Tipo</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="chartDocumentos"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Documents Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-list me-2"></i>
+                    <strong>Documentos Recientes</strong>
+                </div>
+                <a href="/CrearDocumento" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i> Nuevo Documento
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tableDocumentosRecientes">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Consecutivo</th>
+                                <th>Cliente</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data loaded via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let chartVentas;
+    let chartDocumentos;
+
+    $(document).ready(function() {
+        loadDashboardData();
+        loadRecentDocuments();
+    });
+
+    function loadDashboardData() {
+        // Load dashboard metrics via PageModel handler
+        $.ajax({
+            url: '?handler=Resumen',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response) {
+                    // Update metric cards
+                    $('#ventasHoy').text(formatCurrency(response.ventasHoy || 0));
+                    $('#docsPendientes').text(response.documentosPendientes || 0);
+                    $('#stockBajo').text(response.productosBajoStock || 0);
+                    $('#pagosPendientes').text(formatCurrency(response.pagosPendientes || 0));
+
+                    // Load charts
+                    loadVentasChart(response.ventasUltimos7Dias || []);
+                    loadDocumentosChart(response.documentosPorTipo || []);
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading dashboard data:', xhr);
+                // Show default data
+                loadVentasChart([]);
+                loadDocumentosChart([]);
+            }
+        });
+    }
+
+    function loadVentasChart(data) {
+        const ctx = document.getElementById('chartVentas');
+
+        // Destroy existing chart if it exists
+        if (chartVentas) {
+            chartVentas.destroy();
+        }
+
+        const labels = data.map(d => formatDate(d.fecha));
+        const values = data.map(d => d.total);
+
+        chartVentas = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.length > 0 ? labels : ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                datasets: [{
+                    label: 'Ventas (₡)',
+                    data: values.length > 0 ? values : [0, 0, 0, 0, 0, 0, 0],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return 'Ventas: ' + formatCurrency(context.parsed.y);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₡' + value.toLocaleString('es-CR');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function loadDocumentosChart(data) {
+        const ctx = document.getElementById('chartDocumentos');
+
+        // Destroy existing chart if it exists
+        if (chartDocumentos) {
+            chartDocumentos.destroy();
+        }
+
+        const labels = data.map(d => d.tipo);
+        const values = data.map(d => d.cantidad);
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a'];
+
+        chartDocumentos = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.length > 0 ? labels : ['FE', 'TE', 'NC', 'ND'],
+                datasets: [{
+                    data: values.length > 0 ? values : [10, 5, 2, 1],
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function loadRecentDocuments() {
+        $('#tableDocumentosRecientes').DataTable({
+            ajax: {
+                url: '?handler=DocumentosRecientes',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(d) {
+                    // Only get last 10 documents
+                    return {
+                        pageSize: 10,
+                        pageNumber: 1
+                    };
+                },
+                dataSrc: function(json) {
+                    return json.data || json;
+                },
+                error: function(xhr, error, code) {
+                    console.error('Error loading documents:', error);
+                    return [];
+                }
+            },
+            columns: [
+                {
+                    data: 'fechaEmision',
+                    render: function(data) {
+                        return formatDateTime(data);
+                    }
+                },
+                {
+                    data: 'tipoDocumento',
+                    render: function(data) {
+                        const badges = {
+                            'FE': '<span class="badge bg-primary">FE</span>',
+                            'TE': '<span class="badge bg-info">TE</span>',
+                            'NC': '<span class="badge bg-warning">NC</span>',
+                            'ND': '<span class="badge bg-danger">ND</span>',
+                            'FEE': '<span class="badge bg-success">FEE</span>',
+                            'REP': '<span class="badge bg-secondary">REP</span>'
+                        };
+                        return badges[data] || data;
+                    }
+                },
+                {
+                    data: 'consecutivo',
+                    render: function(data) {
+                        return '<code class="text-primary">' + data + '</code>';
+                    }
+                },
+                {
+                    data: 'receptor',
+                    render: function(data) {
+                        return data ? data.nombre : 'N/A';
+                    }
+                },
+                {
+                    data: 'total',
+                    render: function(data) {
+                        return '<strong>' + formatCurrency(data) + '</strong>';
+                    },
+                    className: 'text-end'
+                },
+                {
+                    data: 'estadoHacienda',
+                    render: function(data) {
+                        const badges = {
+                            'Aceptado': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Aceptado</span>',
+                            'Rechazado': '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Rechazado</span>',
+                            'Pendiente': '<span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pendiente</span>',
+                            'Procesando': '<span class="badge bg-info"><i class="fas fa-spinner me-1"></i>Procesando</span>'
+                        };
+                        return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-primary" onclick="verDocumento(${data})" title="Ver Detalle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-success" onclick="descargarPDF(${data})" title="Descargar PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            ],
+            pageLength: 10,
+            ordering: true,
+            searching: false,
+            lengthChange: false,
+            paging: false,
+            info: false,
+            order: [[0, 'desc']],
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json'
+            }
+        });
+    }
+
+    function verDocumento(id) {
+        window.location.href = '/DocumentoDetalle?id=' + id;
+    }
+
+    function descargarPDF(id) {
+        // Use direct link for file download via PageModel handler
+        // This avoids AJAX complexity with blob responses
+        window.location.href = '?handler=DocumentoPdf&id=' + id;
+    }
+</script>
+}

@@ -1,0 +1,337 @@
+@page
+@model Facturacion.Frontend.Pages.AsignarProductosSucursalModel
+@{
+    ViewData["Title"] = "Asignar Productos a Sucursal";
+    ViewData["Breadcrumb"] = "Asignar Productos a Sucursal";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-cubes me-2"></i>Asignar Productos a Sucursal
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Sucursal Selector -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label">Sucursal <span class="text-danger">*</span></label>
+                <select class="form-select" id="sucursalId">
+                    <option value="">Seleccione una sucursal...</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <button class="btn btn-primary" onclick="cargarProductosAsignados()">
+                    <i class="fas fa-search me-1"></i> Cargar Productos
+                </button>
+            </div>
+        </div>
+
+        <div id="productsSection" style="display: none;">
+            <hr />
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <h6>Productos Disponibles</h6>
+                    <p class="text-muted">Seleccione los productos y asigne cantidades iniciales</p>
+                </div>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" id="searchProducto" placeholder="Buscar producto..." />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filterCategoria">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-success w-100" onclick="asignarSeleccionados()">
+                        <i class="fas fa-check me-1"></i> Asignar Seleccionados
+                    </button>
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <table id="tableProductos" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" />
+                        </th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Precio Venta</th>
+                        <th>Asignado</th>
+                        <th>Stock Actual</th>
+                        <th style="width: 150px;">Cantidad Inicial</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <hr />
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h6>Productos Asignados a esta Sucursal</h6>
+                    <table id="tableAsignados" class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Stock</th>
+                                <th>Stock Mínimo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let sucursalSeleccionada = null;
+
+    $(document).ready(function() {
+        cargarSucursales();
+        cargarCategorias();
+        setupSearchFilter();
+    });
+
+    function cargarSucursales() {
+        $.ajax({
+            url: '?handler=Sucursales',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#sucursalId');
+                select.empty().append('<option value="">Seleccione una sucursal...</option>');
+                data.forEach(suc => {
+                    select.append(`<option value="${suc.id}">${suc.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function cargarCategorias() {
+        $.ajax({
+            url: '?handler=Categorias',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#filterCategoria');
+                select.empty().append('<option value="">Todas las categorías</option>');
+                data.forEach(cat => {
+                    select.append(`<option value="${cat.id}">${cat.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function cargarProductosAsignados() {
+        sucursalSeleccionada = $('#sucursalId').val();
+        if (!sucursalSeleccionada) {
+            showError('Debe seleccionar una sucursal');
+            return;
+        }
+
+        $('#productsSection').show();
+        loadDataTable();
+        cargarListaAsignados();
+    }
+
+    function loadDataTable() {
+        if (table) {
+            table.destroy();
+        }
+
+        table = initDataTable('#tableProductos', {
+            ajax: {
+                url: `?handler=ProductosDisponibles&sucursalId=${sucursalSeleccionada}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `<input type="checkbox" class="producto-checkbox" value="${data}" />`;
+                    }
+                },
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'categoria',
+                    render: function(data) {
+                        return data ? data.nombre : '-';
+                    }
+                },
+                {
+                    data: 'precioVenta',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'asignado',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Sí</span>'
+                            : '<span class="badge bg-secondary">No</span>';
+                    }
+                },
+                {
+                    data: 'stockActual',
+                    render: function(data) {
+                        return data || 0;
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `<input type="number" class="form-control form-control-sm cantidad-input"
+                                       data-producto-id="${data}" min="0" step="0.01" value="0" />`;
+                    }
+                }
+            ],
+            paging: true,
+            searching: false,
+            order: [[1, 'asc']]
+        });
+    }
+
+    function cargarListaAsignados() {
+        $.ajax({
+            url: `?handler=ProductosAsignados&sucursalId=${sucursalSeleccionada}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const tbody = $('#tableAsignados tbody');
+                tbody.empty();
+
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="4" class="text-center">No hay productos asignados</td></tr>');
+                } else {
+                    data.forEach(item => {
+                        tbody.append(`
+                            <tr>
+                                <td>${item.producto.nombre}</td>
+                                <td>${item.stock}</td>
+                                <td>${item.stockMinimo || '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="desasignar('${item.id}')">
+                                        <i class="fas fa-times"></i> Desasignar
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                }
+            }
+        });
+    }
+
+    function setupSearchFilter() {
+        $('#searchProducto, #filterCategoria').on('keyup change', function() {
+            if (table) {
+                table.search($('#searchProducto').val()).draw();
+            }
+        });
+    }
+
+    function toggleSelectAll() {
+        const checked = $('#selectAll').prop('checked');
+        $('.producto-checkbox').prop('checked', checked);
+    }
+
+    function asignarSeleccionados() {
+        const productosSeleccionados = [];
+
+        $('.producto-checkbox:checked').each(function() {
+            const productoId = $(this).val();
+            const cantidad = $(`.cantidad-input[data-producto-id="${productoId}"]`).val();
+
+            productosSeleccionados.push({
+                productoId: productoId,
+                cantidadInicial: parseFloat(cantidad) || 0
+            });
+        });
+
+        if (productosSeleccionados.length === 0) {
+            showError('Debe seleccionar al menos un producto');
+            return;
+        }
+
+        const asignacionData = {
+            sucursalId: sucursalSeleccionada,
+            productos: productosSeleccionados
+        };
+
+        $.ajax({
+            url: '?handler=Asignar',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(asignacionData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#selectAll').prop('checked', false);
+                    table.ajax.reload();
+                    cargarListaAsignados();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function() {
+                showError('Error al asignar productos');
+            }
+        });
+    }
+
+    function desasignar(asignacionId) {
+        confirmDelete('¿Desea desasignar este producto de la sucursal?', function() {
+            $.ajax({
+                url: `?handler=Desasignar&asignacionId=${asignacionId}`,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                        cargarListaAsignados();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function() {
+                    showError('Error al desasignar producto');
+                }
+            });
+        });
+    }
+</script>
+}

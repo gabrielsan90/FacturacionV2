@@ -1,0 +1,442 @@
+@page
+@model Facturacion.Frontend.Pages.ProveedoresModel
+@{
+    ViewData["Title"] = "Proveedores";
+    ViewData["Breadcrumb"] = "Proveedores";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-truck me-2"></i>Proveedores
+        </h5>
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+            <i class="fas fa-plus me-1"></i> Nuevo Proveedor
+        </button>
+    </div>
+    <div class="card-body">
+        <table id="tableProveedores" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Tipo ID</th>
+                    <th>Identificación</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th style="width: 120px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalProveedor" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formProveedor">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Proveedor_Id" value="0" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo Identificación <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Proveedor_TipoIdentificacion" required>
+                                <option value="">Seleccione...</option>
+                                <option value="01">Física</option>
+                                <option value="02">Jurídica</option>
+                                <option value="03">DIMEX</option>
+                                <option value="04">NITE</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un tipo.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número Identificación <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Proveedor_NumeroIdentificacion" maxlength="20" required />
+                            <div class="invalid-feedback">El número es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Proveedor_Nombre" maxlength="200" required />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre Comercial</label>
+                            <input type="text" class="form-control" id="Proveedor_NombreComercial" maxlength="200" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email Principal</label>
+                            <input type="email" class="form-control" id="Proveedor_EmailPrincipal" maxlength="100" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono Principal</label>
+                            <input type="tel" class="form-control" id="Proveedor_TelefonoPrincipal" maxlength="20" />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-map-marker-alt me-2"></i>Dirección</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Provincia <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Proveedor_Provincia" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una provincia.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantón <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Proveedor_Canton" required disabled>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un cantón.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Distrito <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Proveedor_Distrito" required disabled>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un distrito.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Otras Señas</label>
+                            <textarea class="form-control" id="Proveedor_OtrasSenas" rows="2" maxlength="500"></textarea>
+                            <small class="text-muted">Dirección adicional, referencias, etc.</small>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Proveedor_Activo" checked />
+                        <label class="form-check-label" for="Proveedor_Activo">
+                            Proveedor Activo
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        setupEventHandlers();
+        loadProvincias();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableProveedores', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: ''
+            },
+            columns: [
+                {
+                    data: 'tipoIdentificacion',
+                    render: function(data) {
+                        const tipos = {'01': 'Física', '02': 'Jurídica', '03': 'DIMEX', '04': 'NITE'};
+                        return tipos[data] || data;
+                    }
+                },
+                { data: 'numeroIdentificacion' },
+                { data: 'nombre' },
+                {
+                    data: 'emailPrincipal',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'telefonoPrincipal',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activo</span>'
+                            : '<span class="badge bg-secondary">Inactivo</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[2, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formProveedor').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupEventHandlers() {
+        $('#Proveedor_Provincia').on('change', function() {
+            const provinciaId = $(this).val();
+            if (provinciaId) {
+                loadCantones(provinciaId);
+            } else {
+                resetCascade('#Proveedor_Canton', '#Proveedor_Distrito');
+            }
+        });
+
+        $('#Proveedor_Canton').on('change', function() {
+            const cantonId = $(this).val();
+            if (cantonId) {
+                loadDistritos(cantonId);
+            } else {
+                resetSelect('#Proveedor_Distrito');
+            }
+        });
+    }
+
+    function loadProvincias() {
+        $.ajax({
+            url: '?handler=Provincias',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#Proveedor_Provincia');
+                select.empty().append('<option value="">Seleccione...</option>');
+                data.forEach(item => {
+                    select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                });
+            },
+            error: function(xhr) {
+                console.error('Error loading provincias:', xhr);
+            }
+        });
+    }
+
+    function loadCantones(provinciaId) {
+        $.ajax({
+            url: '?handler=Cantones&provinciaId=' + provinciaId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#Proveedor_Canton');
+                select.empty().append('<option value="">Seleccione...</option>');
+                data.forEach(item => {
+                    select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                });
+                select.prop('disabled', false);
+                resetSelect('#Proveedor_Distrito');
+            },
+            error: function(xhr) {
+                console.error('Error loading cantones:', xhr);
+            }
+        });
+    }
+
+    function loadDistritos(cantonId) {
+        const provinciaId = $('#Proveedor_Provincia').val();
+
+        // Extraer solo los últimos 2 dígitos del código del cantón
+        // cantonId puede ser 101 (de "0101"), necesitamos solo "01"
+        const cantonIdSoloDigitos = String(cantonId).padStart(4, '0').slice(-2);
+        const cantonIdNumerico = parseInt(cantonIdSoloDigitos, 10);
+
+        $.ajax({
+            url: '?handler=Distritos&provinciaId=' + provinciaId + '&cantonId=' + cantonIdNumerico,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Proveedor_Distrito');
+                select.empty().append('<option value="">Seleccione...</option>');
+
+                // Backend returns { success: true, data: [...] }
+                const distritos = response.data || response;
+                distritos.forEach(item => {
+                    select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                });
+                select.prop('disabled', false);
+            },
+            error: function(xhr) {
+                console.error('Error loading distritos:', xhr);
+            }
+        });
+    }
+
+    function resetSelect(selector) {
+        $(selector).empty().append('<option value="">Seleccione...</option>').prop('disabled', true);
+    }
+
+    function resetCascade(selector1, selector2) {
+        resetSelect(selector1);
+        if (selector2) resetSelect(selector2);
+    }
+
+    function openCreateModal() {
+        $('#formProveedor')[0].reset();
+        $('#formProveedor').removeClass('was-validated');
+        $('#Proveedor_Id').val('0');
+        $('#Proveedor_Activo').prop('checked', true);
+        resetCascade('#Proveedor_Canton', '#Proveedor_Distrito');
+        $('#modalTitle').text('Nuevo Proveedor');
+        $('#modalProveedor').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#Proveedor_Id').val(data.id);
+                $('#Proveedor_TipoIdentificacion').val(data.tipoIdentificacion);
+                $('#Proveedor_NumeroIdentificacion').val(data.numeroIdentificacion);
+                $('#Proveedor_Nombre').val(data.nombre);
+                $('#Proveedor_NombreComercial').val(data.nombreComercial || '');
+                $('#Proveedor_EmailPrincipal').val(data.emailPrincipal || '');
+                $('#Proveedor_TelefonoPrincipal').val(data.telefonoPrincipal || '');
+                $('#Proveedor_OtrasSenas').val(data.otrasSenas || '');
+                $('#Proveedor_Activo').prop('checked', data.activo);
+
+                $('#Proveedor_Provincia').val(data.provincia);
+                loadCantones(data.provincia);
+
+                setTimeout(function() {
+                    $('#Proveedor_Canton').val(data.canton);
+                    loadDistritos(data.canton);
+
+                    setTimeout(function() {
+                        $('#Proveedor_Distrito').val(data.distrito);
+                    }, 300);
+                }, 300);
+
+                $('#modalTitle').text('Editar Proveedor');
+                $('#formProveedor').removeClass('was-validated');
+                $('#modalProveedor').modal('show');
+            },
+            error: function(xhr) {
+                showError('Error al cargar el proveedor');
+            }
+        });
+    }
+
+    function save() {
+        const proveedorData = {
+            id: $('#Proveedor_Id').val(),
+            tipoIdentificacion: $('#Proveedor_TipoIdentificacion').val(),
+            numeroIdentificacion: $('#Proveedor_NumeroIdentificacion').val(),
+            nombre: $('#Proveedor_Nombre').val(),
+            nombreComercial: $('#Proveedor_NombreComercial').val() || null,
+            emailPrincipal: $('#Proveedor_EmailPrincipal').val() || null,
+            telefonoPrincipal: $('#Proveedor_TelefonoPrincipal').val() || null,
+            provincia: parseInt($('#Proveedor_Provincia').val()),
+            canton: parseInt($('#Proveedor_Canton').val()),
+            distrito: parseInt($('#Proveedor_Distrito').val()),
+            otrasSenas: $('#Proveedor_OtrasSenas').val() || null,
+            activo: $('#Proveedor_Activo').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(proveedorData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalProveedor').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar el proveedor');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar el proveedor');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+</script>
+}

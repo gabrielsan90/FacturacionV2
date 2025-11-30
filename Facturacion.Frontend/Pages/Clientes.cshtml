@@ -1,0 +1,676 @@
+@page
+@model Facturacion.Frontend.Pages.ClientesModel
+@{
+    ViewData["Title"] = "Clientes";
+    ViewData["Breadcrumb"] = "Clientes";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-user-tie me-2"></i>Clientes
+        </h5>
+        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+            <i class="fas fa-plus me-1"></i> Nuevo Cliente
+        </button>
+    </div>
+    <div class="card-body">
+        <table id="tableClientes" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Tipo ID</th>
+                    <th>Identificación</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th style="width: 120px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalCliente" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCliente" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Cliente_Id" value="0" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo Identificación <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_TipoIdentificacion" required>
+                                <option value="">Seleccione...</option>
+                                <option value="1">Física</option>
+                                <option value="2">Jurídica</option>
+                                <option value="3">DIMEX</option>
+                                <option value="4">NITE</option>
+                                <option value="5">Pasaporte</option>
+                                <option value="6">Extranjera</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un tipo.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número Identificación <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Cliente_NumeroIdentificacion" maxlength="20" required />
+                            <div class="invalid-feedback">El número es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Cliente_Nombre" maxlength="200" required />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre Comercial</label>
+                            <input type="text" class="form-control" id="Cliente_NombreComercial" maxlength="200" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email Principal</label>
+                            <input type="email" class="form-control" id="Cliente_EmailPrincipal" maxlength="100" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono Principal</label>
+                            <input type="tel" class="form-control" id="Cliente_TelefonoPrincipal" maxlength="20" />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-map-marker-alt me-2"></i>Dirección</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Provincia <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_Provincia" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una provincia.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantón <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_Canton" required disabled>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un cantón.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Distrito <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_Distrito" required disabled>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un distrito.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Otras Señas</label>
+                            <textarea class="form-control" id="Cliente_OtrasSenas" rows="2" maxlength="500"></textarea>
+                            <small class="text-muted">Dirección adicional, referencias, etc.</small>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-credit-card me-2"></i>Información Financiera</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Saldo Actual</label>
+                            <input type="number" step="0.01" class="form-control" id="Cliente_SaldoActual" value="0" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Límite de Crédito</label>
+                            <input type="number" step="0.01" class="form-control" id="Cliente_LimiteCredito" value="0" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Moneda</label>
+                            <select class="form-select" id="Cliente_Moneda">
+                                <option value="1">CRC - Colón</option>
+                                <option value="2">USD - Dólar</option>
+                                <option value="3">EUR - Euro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-file-invoice me-2"></i>Configuración de Facturación</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_TipoDocumento" required>
+                                <option value="1">Factura Electrónica (FE)</option>
+                                <option value="4">Tiquete Electrónico (TE)</option>
+                            </select>
+                            <small class="text-muted">Tipo de documento por defecto para este cliente</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Condición de Venta <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_TipoVenta" required>
+                                <option value="1">Contado</option>
+                                <option value="2">Crédito</option>
+                                <option value="3">Consignación</option>
+                                <option value="4">Apartado</option>
+                                <option value="5">Arrendamiento con opción de compra</option>
+                                <option value="6">Arrendamiento en función financiera</option>
+                                <option value="7">Cobro a favor de un tercero</option>
+                                <option value="8">Servicios prestados al Estado a crédito</option>
+                                <option value="9">Pago del servicios prestado al Estado</option>
+                                <option value="99">Otros</option>
+                            </select>
+                            <small class="text-muted">Condición de venta según catálogo de Hacienda</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Medio de Pago <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cliente_TipoPago" required>
+                                <option value="1">Efectivo</option>
+                                <option value="2">Tarjeta</option>
+                                <option value="3">Cheque</option>
+                                <option value="4">Transferencia - depósito bancario</option>
+                                <option value="5">Recaudado por terceros</option>
+                                <option value="6">Otros</option>
+                                <option value="99">Otros</option>
+                            </select>
+                            <small class="text-muted">Medio de pago según catálogo de Hacienda</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Actividad Económica CIIU v4</label>
+                            <input type="text" class="form-control" id="Cliente_ActividadEconomicaCIIU4" maxlength="10" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Actividad Económica CIIU v3</label>
+                            <input type="text" class="form-control" id="Cliente_ActividadEconomicaCIIU3" maxlength="10" />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-envelope me-2"></i>Correos Electrónicos Adicionales</h6>
+
+                    <div id="emailsContainer" class="mb-3">
+                        <!-- Los emails se cargarán dinámicamente aquí -->
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addEmail()">
+                        <i class="fas fa-plus me-1"></i> Agregar Email
+                    </button>
+
+                    <hr />
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Cliente_Activo" checked />
+                        <label class="form-check-label" for="Cliente_Activo">
+                            Cliente Activo
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+    let emailCount = 0;
+    let clienteEmails = [];
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        setupEventHandlers();
+        loadProvincias();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableClientes', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: ''
+            },
+            columns: [
+                {
+                    data: 'tipoIdentificacion',
+                    render: function(data) {
+                        const tipos = {1: 'Física', 2: 'Jurídica', 3: 'DIMEX', 4: 'NITE', 5: 'Pasaporte', 6: 'Extranjera'};
+                        return tipos[data] || data;
+                    }
+                },
+                { data: 'numeroIdentificacion' },
+                { data: 'nombre' },
+                {
+                    data: 'emailPrincipal',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'telefonoPrincipal',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activo</span>'
+                            : '<span class="badge bg-secondary">Inactivo</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[2, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formCliente').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupEventHandlers() {
+        $('#Cliente_Provincia').on('change', function() {
+            const provinciaId = $(this).val();
+            if (provinciaId) {
+                loadCantones(provinciaId);
+            } else {
+                resetCascade('#Cliente_Canton', '#Cliente_Distrito');
+            }
+        });
+
+        $('#Cliente_Canton').on('change', function() {
+            const cantonId = $(this).val();
+            if (cantonId) {
+                loadDistritos(cantonId);
+            } else {
+                resetSelect('#Cliente_Distrito');
+            }
+        });
+    }
+
+    function loadProvincias() {
+        $.ajax({
+            url: '?handler=Provincias',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Cliente_Provincia');
+                select.empty().append('<option value="">Seleccione...</option>');
+
+                // Backend returns { success: true, data: [...] }
+                const provincias = response.data || response;
+                provincias.forEach(item => {
+                    select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                });
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function loadCantones(provinciaId) {
+        $.ajax({
+            url: '?handler=Cantones&provinciaId=' + provinciaId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Cliente_Canton');
+                select.empty().append('<option value="">Seleccione...</option>');
+
+                // Backend returns { success: true, data: [...] }
+                const cantones = response.data || response;
+                cantones.forEach(item => {
+                    select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                });
+                select.prop('disabled', false);
+                resetSelect('#Cliente_Distrito');
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function loadDistritos(cantonId) {
+        const provinciaId = $('#Cliente_Provincia').val();
+
+        // Extraer solo los últimos 2 dígitos del código del cantón
+        // cantonId puede ser 101 (de "0101"), necesitamos solo "01"
+        const cantonIdSoloDigitos = String(cantonId).padStart(4, '0').slice(-2);
+        const cantonIdNumerico = parseInt(cantonIdSoloDigitos, 10);
+
+        $.ajax({
+            url: '?handler=Distritos&provinciaId=' + provinciaId + '&cantonId=' + cantonIdNumerico,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Cliente_Distrito');
+                select.empty().append('<option value="">Seleccione...</option>');
+
+                // Backend returns { success: true, data: [...] }
+                const distritos = response.data || response;
+                distritos.forEach(item => {
+                    select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                });
+                select.prop('disabled', false);
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function resetSelect(selector) {
+        $(selector).empty().append('<option value="">Seleccione...</option>').prop('disabled', true);
+    }
+
+    function resetCascade(selector1, selector2) {
+        resetSelect(selector1);
+        if (selector2) resetSelect(selector2);
+    }
+
+    function openCreateModal() {
+        $('#formCliente')[0].reset();
+        $('#formCliente').removeClass('was-validated');
+        $('#Cliente_Id').val('0');
+        $('#Cliente_Activo').prop('checked', true);
+        $('#Cliente_SaldoActual').val(0);
+        $('#Cliente_LimiteCredito').val(0);
+        $('#Cliente_Moneda').val(1);
+        $('#Cliente_TipoDocumento').val(1);
+        $('#Cliente_TipoVenta').val(1);
+        $('#Cliente_TipoPago').val(1);
+        resetCascade('#Cliente_Canton', '#Cliente_Distrito');
+        clienteEmails = [];
+        renderEmails();
+        $('#modalTitle').text('Nuevo Cliente');
+        $('#modalCliente').modal('show');
+    }
+
+    function addEmail() {
+        const newEmail = {
+            id: 0,
+            direccionEmail: '',
+            esPrincipal: false,
+            tipo: 3, // Facturación por defecto
+            tempId: ++emailCount
+        };
+        clienteEmails.push(newEmail);
+        renderEmails();
+    }
+
+    function removeEmail(tempId) {
+        clienteEmails = clienteEmails.filter(e => e.tempId !== tempId);
+        renderEmails();
+    }
+
+    function renderEmails() {
+        const container = $('#emailsContainer');
+        container.empty();
+
+        if (clienteEmails.length === 0) {
+            container.html('<p class="text-muted"><small>No hay emails adicionales agregados.</small></p>');
+            return;
+        }
+
+        clienteEmails.forEach((email, index) => {
+            const emailHtml = `
+                <div class="card mb-2" data-email-id="${email.tempId}">
+                    <div class="card-body p-2">
+                        <div class="row align-items-center">
+                            <div class="col-md-5">
+                                <input type="email" class="form-control form-control-sm"
+                                       placeholder="ejemplo@correo.com"
+                                       value="${email.direccionEmail || ''}"
+                                       onchange="updateEmailField(${email.tempId}, 'direccionEmail', this.value)" />
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm"
+                                        onchange="updateEmailField(${email.tempId}, 'tipo', this.value)">
+                                    <option value="1" ${email.tipo === 1 ? 'selected' : ''}>Personal</option>
+                                    <option value="2" ${email.tipo === 2 ? 'selected' : ''}>Trabajo</option>
+                                    <option value="3" ${email.tipo === 3 ? 'selected' : ''}>Facturación</option>
+                                    <option value="4" ${email.tipo === 4 ? 'selected' : ''}>Administrativo</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           ${email.esPrincipal ? 'checked' : ''}
+                                           onchange="updateEmailField(${email.tempId}, 'esPrincipal', this.checked)">
+                                    <label class="form-check-label"><small>Principal</small></label>
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-end">
+                                <button type="button" class="btn btn-sm btn-danger" onclick="removeEmail(${email.tempId})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.append(emailHtml);
+        });
+    }
+
+    function updateEmailField(tempId, field, value) {
+        const email = clienteEmails.find(e => e.tempId === tempId);
+        if (email) {
+            if (field === 'esPrincipal' && value) {
+                // Solo un email puede ser principal
+                clienteEmails.forEach(e => e.esPrincipal = false);
+            }
+            email[field] = field === 'tipo' ? parseInt(value) : value;
+            if (field === 'esPrincipal') {
+                renderEmails(); // Re-render para actualizar checkboxes
+            }
+        }
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#Cliente_Id').val(data.id);
+                $('#Cliente_TipoIdentificacion').val(data.tipoIdentificacion);
+                $('#Cliente_NumeroIdentificacion').val(data.numeroIdentificacion);
+                $('#Cliente_Nombre').val(data.nombre);
+                $('#Cliente_NombreComercial').val(data.nombreComercial || '');
+                $('#Cliente_EmailPrincipal').val(data.emailPrincipal || '');
+                $('#Cliente_TelefonoPrincipal').val(data.telefonoPrincipal || '');
+                $('#Cliente_OtrasSenas').val(data.otrasSenas || '');
+                $('#Cliente_Activo').prop('checked', data.activo);
+
+                // Nuevos campos financieros
+                $('#Cliente_SaldoActual').val(data.saldoActual || 0);
+                $('#Cliente_LimiteCredito').val(data.limiteCredito || 0);
+                $('#Cliente_Moneda').val(data.moneda || 1);
+                $('#Cliente_TipoDocumento').val(data.tipoDocumento || 1);
+                $('#Cliente_TipoVenta').val(data.tipoVenta || 1);
+                $('#Cliente_TipoPago').val(data.tipoPago || 1);
+                $('#Cliente_ActividadEconomicaCIIU4').val(data.actividadEconomicaCIIU4 || '');
+                $('#Cliente_ActividadEconomicaCIIU3').val(data.actividadEconomicaCIIU3 || '');
+
+                // Cargar emails adicionales
+                if (data.emails && data.emails.length > 0) {
+                    emailCount = 0;
+                    clienteEmails = data.emails.map(e => ({
+                        id: e.id,
+                        direccionEmail: e.direccionEmail,
+                        esPrincipal: e.esPrincipal,
+                        tipo: e.tipo,
+                        tempId: ++emailCount
+                    }));
+                } else {
+                    clienteEmails = [];
+                }
+                renderEmails();
+
+                // Cascade load address
+                $('#Cliente_Provincia').val(data.provincia);
+                loadCantones(data.provincia);
+
+                setTimeout(function() {
+                    $('#Cliente_Canton').val(data.canton);
+                    loadDistritos(data.canton);
+
+                    setTimeout(function() {
+                        $('#Cliente_Distrito').val(data.distrito);
+                    }, 300);
+                }, 300);
+
+                $('#modalTitle').text('Editar Cliente');
+                $('#formCliente').removeClass('was-validated');
+                $('#modalCliente').modal('show');
+            },
+            error: function(xhr) {
+                showError('Error al cargar el cliente');
+            }
+        });
+    }
+
+    function save() {
+        // Preparar emails para enviar
+        const emailsToSend = clienteEmails
+            .filter(e => e.direccionEmail && e.direccionEmail.trim() !== '')
+            .map(e => ({
+                id: e.id || 0,
+                clienteId: $('#Cliente_Id').val() === '0' ? '00000000-0000-0000-0000-000000000000' : $('#Cliente_Id').val(),
+                direccionEmail: e.direccionEmail,
+                esPrincipal: e.esPrincipal,
+                tipo: e.tipo
+            }));
+
+        const clienteData = {
+            id: $('#Cliente_Id').val() === '0' ? '00000000-0000-0000-0000-000000000000' : $('#Cliente_Id').val(),
+            empresaId: empresaId,
+            tipoIdentificacion: parseInt($('#Cliente_TipoIdentificacion').val()),
+            numeroIdentificacion: $('#Cliente_NumeroIdentificacion').val(),
+            nombre: $('#Cliente_Nombre').val(),
+            nombreComercial: $('#Cliente_NombreComercial').val() || null,
+            emailPrincipal: $('#Cliente_EmailPrincipal').val() || null,
+            telefonoPrincipal: $('#Cliente_TelefonoPrincipal').val() || null,
+            provincia: parseInt($('#Cliente_Provincia').val()) || 0,
+            canton: parseInt($('#Cliente_Canton').val()) || 0,
+            distrito: parseInt($('#Cliente_Distrito').val()) || 0,
+            otrasSenas: $('#Cliente_OtrasSenas').val() || null,
+            activo: $('#Cliente_Activo').is(':checked'),
+            saldoActual: parseFloat($('#Cliente_SaldoActual').val()) || 0,
+            limiteCredito: parseFloat($('#Cliente_LimiteCredito').val()) || 0,
+            moneda: parseInt($('#Cliente_Moneda').val()) || 1,
+            tipoDocumento: parseInt($('#Cliente_TipoDocumento').val()) || 1,
+            tipoVenta: parseInt($('#Cliente_TipoVenta').val()) || 1,
+            tipoPago: parseInt($('#Cliente_TipoPago').val()) || 1,
+            actividadEconomicaCIIU4: $('#Cliente_ActividadEconomicaCIIU4').val() || null,
+            actividadEconomicaCIIU3: $('#Cliente_ActividadEconomicaCIIU3').val() || null,
+            emails: emailsToSend
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(clienteData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalCliente').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+</script>
+}

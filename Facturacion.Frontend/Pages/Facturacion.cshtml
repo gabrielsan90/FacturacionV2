@@ -1,0 +1,2469 @@
+@page
+@model Facturacion.Frontend.Pages.FacturacionModel
+@{
+    ViewData["Title"] = "Nueva Facturación Electrónica";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <h2 id="pageTitle" class="mb-0">
+                        <i class="fas fa-file-invoice"></i>
+                        @if (!string.IsNullOrEmpty(Model.DocumentoId))
+                        {
+                            <span>Editar Documento en Borrador</span>
+                        }
+                        else
+                        {
+                            <span>Nueva Facturación Electrónica</span>
+                        }
+                    </h2>
+                    <!-- Indicador de Ambiente -->
+                    <span id="ambienteIndicador" class="badge fs-6" style="display: none;"></span>
+                </div>
+                <a href="/Documentos" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Documentos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form id="formFacturacion">
+        @Html.AntiForgeryToken()
+        <!-- Hidden field for document ID (if editing) -->
+        <input type="hidden" id="DocumentoId" value="@Model.DocumentoId">
+
+        <!-- Document Type Selection Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-file-alt"></i> Tipo de Documento</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="TipoDocumento" class="form-label">Seleccione el Tipo de Documento <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-lg" id="TipoDocumento" required>
+                                    <option value="">-- Seleccione un tipo --</option>
+                                    <option value="1">Factura Electrónica (FE)</option>
+                                    <option value="4">Tiquete Electrónico (TE)</option>
+                                    <option value="2">Nota Débito Electrónica (ND)</option>
+                                    <option value="3">Nota Crédito Electrónica (NC)</option>
+                                    <option value="9">Factura Exportación (FEE)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0" style="margin-top: 32px;">
+                                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> Seleccione el tipo de documento que desea crear. Los campos cambiarán según su selección.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Show Clave and Consecutivo if editing (read-only) -->
+                        <div class="row mt-3" id="sectionClaveConsecutivo" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="NumeroConsecutivo" class="form-label">Número Consecutivo</label>
+                                <input type="text" class="form-control bg-light" id="NumeroConsecutivo" readonly>
+                                <small class="text-muted">Ya generado (solo lectura)</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="Clave" class="form-label">Clave</label>
+                                <input type="text" class="form-control bg-light" id="Clave" readonly>
+                                <small class="text-muted">Ya generada (solo lectura)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Document Information Card -->
+        <div class="row mb-4" id="mainFormCard" style="display: none;">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información General</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Sucursal and Terminal -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="SucursalId" class="form-label">Sucursal <span class="text-danger">*</span></label>
+                                <select class="form-select" id="SucursalId" required>
+                                    <option value="">Seleccione...</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione una sucursal.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="TerminalId" class="form-label">Terminal <span class="text-danger">*</span></label>
+                                <select class="form-select" id="TerminalId" required>
+                                    <option value="">Seleccione...</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione una terminal.</div>
+                            </div>
+                        </div>
+
+                        <!-- Economic Activity (Emisor) -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-building"></i> Datos del Emisor (Empresa)
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <label for="EmisorActividadEconomica" class="form-label">
+                                                    Actividad Económica (CIIU4) <span class="text-danger">*</span>
+                                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Código CIIU4 de la actividad económica principal de su empresa. Se carga automáticamente pero puede modificarse para este documento"></i>
+                                                </label>
+                                                <input type="text" class="form-control" id="EmisorActividadEconomica" maxlength="10" placeholder="Código CIIU4 (ej: 620900)" required>
+                                                <small class="text-muted">Este campo se carga automáticamente desde la actividad económica principal de su empresa, pero puede editarse si es necesario para este documento específico</small>
+                                                <div class="invalid-feedback">La actividad económica del emisor es obligatoria.</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="FechaDocumento" class="form-label">
+                                                    Fecha del Documento
+                                                    <i class="fas fa-calendar text-info" data-bs-toggle="tooltip" title="Fecha de emisión del documento. Se establece automáticamente con la fecha actual"></i>
+                                                </label>
+                                                <input type="text" class="form-control bg-light" id="FechaDocumento" readonly>
+                                                <input type="hidden" id="FechaDocumentoISO">
+                                                <small class="text-muted">Fecha de emisión (solo lectura)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reference Document Section (NC/ND only) -->
+                        <div class="row mb-3" id="sectionReferencia" style="display: none;">
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> <strong>Documento de Referencia:</strong>
+                                    <span id="mensajeReferencia"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="DocumentoReferenciaNumero" class="form-label">Documento de Referencia <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="DocumentoReferenciaNumero" readonly placeholder="Seleccione un documento...">
+                                    <input type="hidden" id="DocumentoReferenciaId">
+                                    <button class="btn btn-outline-primary" type="button" id="btnVerTodosDocumentos" title="Ver todos los documentos">
+                                        <i class="fas fa-list"></i> Seleccionar Documento
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback">Seleccione un documento de referencia.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="RazonReferencia" class="form-label">Razón de la NC/ND <span class="text-danger">*</span></label>
+                                <select class="form-select" id="RazonReferencia">
+                                    <option value="">Seleccione...</option>
+                                    <option value="01">01 - Anula Documento de Referencia</option>
+                                    <option value="02">02 - Corrige texto del documento de referencia</option>
+                                    <option value="03">03 - Corrige monto</option>
+                                    <option value="04">04 - Referencia a otro documento</option>
+                                    <option value="05">05 - Sustituye factura rechazada por el Ministerio de Hacienda</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione una razón.</div>
+                            </div>
+                        </div>
+
+                        <!-- Export Information Section (FEE only) -->
+                        <div class="row mb-3" id="sectionExportacion" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="Incoterm" class="form-label">Incoterm <span class="text-danger">*</span></label>
+                                <select class="form-select" id="Incoterm">
+                                    <option value="">Seleccione...</option>
+                                    <option value="EXW">EXW - Ex Works</option>
+                                    <option value="FCA">FCA - Free Carrier</option>
+                                    <option value="CPT">CPT - Carriage Paid To</option>
+                                    <option value="CIP">CIP - Carriage and Insurance Paid To</option>
+                                    <option value="DAP">DAP - Delivered At Place</option>
+                                    <option value="DPU">DPU - Delivered At Place Unloaded</option>
+                                    <option value="DDP">DDP - Delivered Duty Paid</option>
+                                    <option value="FAS">FAS - Free Alongside Ship</option>
+                                    <option value="FOB">FOB - Free On Board</option>
+                                    <option value="CFR">CFR - Cost and Freight</option>
+                                    <option value="CIF">CIF - Cost, Insurance and Freight</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione un Incoterm.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="PaisDestino" class="form-label">País Destino <span class="text-danger">*</span></label>
+                                <select class="form-select select2" id="PaisDestino">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione un país de destino.</div>
+                            </div>
+                        </div>
+
+                        <!-- Client Information -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="ClienteId" class="form-label">Cliente <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <select class="form-select select2" id="ClienteId" required>
+                                        <option value="">Buscar cliente...</option>
+                                    </select>
+                                    <button class="btn btn-outline-primary" type="button" id="btnVerTodosClientes" title="Ver todos los clientes">
+                                        <i class="fas fa-list"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" type="button" id="btnEditarCliente" disabled>
+                                        <i class="fas fa-edit"></i> Editar Datos
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback">Seleccione un cliente.</div>
+                            </div>
+                        </div>
+
+                        <!-- Client Auto-filled Information (collapsible) -->
+                        <div class="row mb-3" id="clienteInfoSection" style="display: none;">
+                            <div class="col-12">
+                                <div class="card border-secondary">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-user"></i> Datos del Receptor (Editable)
+                                            <small class="text-muted">- Los campos se cargan automáticamente y pueden editarse antes de guardar</small>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Identification Section -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="ClienteNombre" class="form-label">
+                                                    Nombre/Razón Social <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" id="ClienteNombre" maxlength="200" required>
+                                                <div class="invalid-feedback">El nombre es obligatorio.</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="ClienteTipoIdentificacion" class="form-label">
+                                                    Tipo Identificación <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" id="ClienteTipoIdentificacion" required>
+                                                    <option value="1">01 - Cédula Física</option>
+                                                    <option value="2">02 - Cédula Jurídica</option>
+                                                    <option value="3">03 - DIMEX</option>
+                                                    <option value="4">04 - NITE</option>
+                                                    <option value="5">05 - Pasaporte</option>
+                                                    <option value="6">06 - Extranjera</option>
+                                                </select>
+                                                <div class="invalid-feedback">Seleccione el tipo de identificación.</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="ClienteIdentificacion" class="form-label">
+                                                    Número Identificación <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="text" class="form-control" id="ClienteIdentificacion" maxlength="20" required>
+                                                <div class="invalid-feedback">El número de identificación es obligatorio.</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Contact Information -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <label for="ClienteEmail" class="form-label">
+                                                    Correo Electrónico
+                                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Email para envío de factura electrónica"></i>
+                                                </label>
+                                                <input type="email" class="form-control" id="ClienteEmail" maxlength="100" placeholder="cliente@ejemplo.com">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="ClienteTelefono" class="form-label">Teléfono</label>
+                                                <input type="text" class="form-control" id="ClienteTelefono" maxlength="20" placeholder="8888-8888">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="ClienteFax" class="form-label">Fax</label>
+                                                <input type="text" class="form-control" id="ClienteFax" maxlength="20" placeholder="2222-2222">
+                                            </div>
+                                        </div>
+
+                                        <!-- Address Section (Costa Rica) -->
+                                        <div class="row mb-3" id="sectionDireccionNacional">
+                                            <div class="col-md-4">
+                                                <label for="ClienteProvincia" class="form-label">
+                                                    Provincia <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" id="ClienteProvincia" required>
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <div class="invalid-feedback">Seleccione una provincia.</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="ClienteCanton" class="form-label">
+                                                    Cantón <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" id="ClienteCanton" required disabled>
+                                                    <option value="">Seleccione provincia primero...</option>
+                                                </select>
+                                                <div class="invalid-feedback">Seleccione un cantón.</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="ClienteDistrito" class="form-label">
+                                                    Distrito <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" id="ClienteDistrito" required disabled>
+                                                    <option value="">Seleccione cantón primero...</option>
+                                                </select>
+                                                <div class="invalid-feedback">Seleccione un distrito.</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Other Address Details -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-12">
+                                                <label for="ClienteOtrasSenas" class="form-label">
+                                                    Otras Señas <span class="text-danger">*</span>
+                                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Dirección exacta: Barrio, número de casa, referencias. OBLIGATORIO según XSD Hacienda v4.4"></i>
+                                                </label>
+                                                <textarea class="form-control" id="ClienteOtrasSenas" rows="2" maxlength="250" required placeholder="Ejemplo: Del Más x Menos 100 metros al norte, casa amarilla portón negro"></textarea>
+                                                <div class="invalid-feedback">Las otras señas son obligatorias según Hacienda v4.4.</div>
+                                                <small class="text-muted">Dirección exacta requerida (máx. 250 caracteres según XSD)</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Economic Activity Section -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-12">
+                                                <label for="ClienteActividadEconomica" class="form-label">
+                                                    Actividad Económica (CIIU4)
+                                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Código CIIU4 de la actividad económica del cliente. Se carga automáticamente pero puede modificarse"></i>
+                                                </label>
+                                                <input type="text" class="form-control" id="ClienteActividadEconomica" maxlength="10" placeholder="Código CIIU4 (ej: 620900)">
+                                                <small class="text-muted">Este campo se carga automáticamente desde los datos del cliente, pero puede editarse si es necesario</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Foreign Client Section (Conditional) -->
+                                        <div class="row mb-2" id="sectionClienteExtranjero" style="display: none;">
+                                            <div class="col-md-4">
+                                                <label for="ClienteCodigoPais" class="form-label">
+                                                    Código País <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select" id="ClienteCodigoPais">
+                                                    <option value="">Seleccione...</option>
+                                                    <option value="US">Estados Unidos</option>
+                                                    <option value="MX">México</option>
+                                                    <option value="PA">Panamá</option>
+                                                    <option value="GT">Guatemala</option>
+                                                    <option value="NI">Nicaragua</option>
+                                                    <option value="HN">Honduras</option>
+                                                    <option value="SV">El Salvador</option>
+                                                    <option value="ES">España</option>
+                                                    <option value="CO">Colombia</option>
+                                                    <option value="AR">Argentina</option>
+                                                    <option value="CL">Chile</option>
+                                                    <option value="PE">Perú</option>
+                                                </select>
+                                                <div class="invalid-feedback">Seleccione el país del cliente.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Conditions -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="CondicionVenta" class="form-label">Condición Venta <span class="text-danger">*</span></label>
+                                <select class="form-select" id="CondicionVenta" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="01">01 - Contado</option>
+                                    <option value="02">02 - Crédito</option>
+                                    <option value="03">03 - Consignación</option>
+                                    <option value="04">04 - Apartado</option>
+                                    <option value="05">05 - Arrendamiento con opción de compra</option>
+                                    <option value="06">06 - Arrendamiento en función financiera</option>
+                                    <option value="07">07 - Cobro a favor de un tercero</option>
+                                    <option value="08">08 - Servicios prestados al Estado a crédito</option>
+                                    <option value="09">09 - Pago del servicios prestado al Estado</option>
+                                    <option value="10">10 - Mercancía no nacionalizada</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione una condición de venta.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="MedioPago" class="form-label">Medio Pago <span class="text-danger">*</span></label>
+                                <select class="form-select" id="MedioPago" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="01">01 - Efectivo</option>
+                                    <option value="02">02 - Tarjeta</option>
+                                    <option value="03">03 - Cheque</option>
+                                    <option value="04">04 - Transferencia</option>
+                                    <option value="05">05 - Recaudado por terceros</option>
+                                    <option value="06">06 - SINPE Móvil</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione un medio de pago.</div>
+                            </div>
+                            <div class="col-md-4" id="divPlazoCreditoDias" style="display: none;">
+                                <label for="PlazoCreditoDias" class="form-label">Plazo Crédito (días) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="PlazoCreditoDias" min="1" placeholder="30">
+                            </div>
+                        </div>
+
+                        <!-- Currency and Exchange Rate -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="Moneda" class="form-label">Moneda <span class="text-danger">*</span></label>
+                                <select class="form-select" id="Moneda" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="CRC" selected>CRC - Colón Costarricense</option>
+                                    <option value="USD">USD - Dólar Estadounidense</option>
+                                    <option value="EUR">EUR - Euro</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione una moneda.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="TipoCambio" class="form-label">
+                                    Tipo de Cambio <span class="text-danger">*</span>
+                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="El tipo de cambio es automático para Colones (CRC = 1). Para otras monedas, ingrese el tipo de cambio correspondiente."></i>
+                                </label>
+                                <input type="number" class="form-control" id="TipoCambio" step="0.01" min="0.01" value="1.00" required placeholder="1.00">
+                                <div class="invalid-feedback">El tipo de cambio es obligatorio.</div>
+                                <small class="text-muted" id="tipoCambioHelp">Tipo de cambio fijo en 1 para Colones (CRC)</small>
+                            </div>
+                        </div>
+
+                        <!-- Observations -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="Observaciones" class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="Observaciones" rows="2" maxlength="1000" placeholder="Notas u observaciones adicionales..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Optional Fields Section (Collapsible) -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info bg-opacity-10" role="button" data-bs-toggle="collapse" data-bs-target="#collapseCamposOpcionales" aria-expanded="false" aria-controls="collapseCamposOpcionales">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-plus-circle"></i> Información Adicional (Opcional)
+                                            <small class="text-muted">- Haga clic para expandir/contraer</small>
+                                            <i class="fas fa-chevron-down float-end mt-1"></i>
+                                        </h6>
+                                    </div>
+                                    <div class="collapse" id="collapseCamposOpcionales">
+                                        <div class="card-body">
+                                            <!-- Purchase Order Number -->
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label for="NumeroOrdenCompra" class="form-label">
+                                                        Número de Orden de Compra
+                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Número de referencia de orden de compra del cliente (opcional)"></i>
+                                                    </label>
+                                                    <input type="text" class="form-control" id="NumeroOrdenCompra" maxlength="50" placeholder="Ej: OC-2025-001">
+                                                    <small class="text-muted">Referencia de orden de compra del cliente (si aplica)</small>
+                                                </div>
+                                            </div>
+
+                                            <!-- Otros Cargos Section -->
+                                            <div class="row mb-3">
+                                                <div class="col-12">
+                                                    <hr>
+                                                    <h6 class="mb-3">
+                                                        <i class="fas fa-file-invoice-dollar"></i> Otros Cargos
+                                                        <small class="text-muted">- Cargos adicionales no relacionados con líneas de detalle</small>
+                                                    </h6>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-3">
+                                                <div class="col-md-3">
+                                                    <label for="OtrosCargosTipoDocumento" class="form-label">
+                                                        Tipo Documento
+                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Tipo de documento de soporte del cargo adicional"></i>
+                                                    </label>
+                                                    <select class="form-select" id="OtrosCargosTipoDocumento">
+                                                        <option value="">Seleccione...</option>
+                                                        <option value="01">01 - Gastos de envío</option>
+                                                        <option value="02">02 - Gastos de flete</option>
+                                                        <option value="03">03 - Gastos de seguro</option>
+                                                        <option value="04">04 - Gastos de embalaje</option>
+                                                        <option value="05">05 - Otros cargos</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label for="OtrosCargosDetalle" class="form-label">
+                                                        Detalle/Descripción
+                                                    </label>
+                                                    <input type="text" class="form-control" id="OtrosCargosDetalle" maxlength="200" placeholder="Descripción del cargo adicional">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label for="OtrosCargosPorcentaje" class="form-label">
+                                                        Porcentaje (%)
+                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Porcentaje aplicado sobre el subtotal (opcional si ingresa monto)"></i>
+                                                    </label>
+                                                    <input type="number" class="form-control" id="OtrosCargosPorcentaje" step="0.01" min="0" max="100" placeholder="0.00">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label for="OtrosCargosMonto" class="form-label">
+                                                        Monto
+                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Monto fijo del cargo (opcional si ingresa porcentaje)"></i>
+                                                    </label>
+                                                    <input type="number" class="form-control" id="OtrosCargosMonto" step="0.01" min="0" placeholder="0.00">
+                                                </div>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="alert alert-info mb-0">
+                                                        <i class="fas fa-info-circle"></i> <strong>Nota:</strong>
+                                                        Los campos de esta sección son completamente opcionales. Si no aplican a su documento, puede dejarlos vacíos.
+                                                        Si ingresa otros cargos, puede especificar un porcentaje o un monto fijo, pero no ambos.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Lines Card -->
+        <div class="row mb-4" id="lineasCard" style="display: none;">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Líneas del Documento</h5>
+                            <button type="button" class="btn btn-light btn-sm" id="btnAgregarLinea">
+                                <i class="fas fa-plus"></i> Agregar Línea
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tableLineas" class="table table-striped table-hover table-bordered">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 10%;">Código</th>
+                                        <th style="width: 30%;">Descripción</th>
+                                        <th style="width: 10%;">Cantidad</th>
+                                        <th style="width: 12%;">Precio Unit.</th>
+                                        <th style="width: 10%;">Desc. %</th>
+                                        <th style="width: 10%;">Imp. %</th>
+                                        <th style="width: 13%;">Subtotal</th>
+                                        <th style="width: 5%;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyLineas">
+                                    <tr id="emptyRow">
+                                        <td colspan="8" class="text-center text-muted">
+                                            <i class="fas fa-inbox"></i> No hay líneas agregadas. Haga clic en "Agregar Línea" para comenzar.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Totals Section -->
+                        <div class="row mt-4">
+                            <div class="col-md-8"></div>
+                            <div class="col-md-4">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td class="text-end"><strong>Subtotal:</strong></td>
+                                        <td class="text-end" id="lblSubtotal">₡0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end"><strong>Descuentos:</strong></td>
+                                        <td class="text-end" id="lblDescuentos">₡0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end"><strong>Impuestos:</strong></td>
+                                        <td class="text-end" id="lblImpuestos">₡0.00</td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td class="text-end"><strong>TOTAL:</strong></td>
+                                        <td class="text-end"><strong id="lblTotal">₡0.00</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4" id="actionButtons" style="display: none;">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <a href="/Documentos" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-warning me-2" id="btnGuardarBorrador">
+                                    <i class="fas fa-save"></i> Guardar como Borrador
+                                </button>
+                                <button type="button" class="btn btn-success" id="btnGuardarYEnviar">
+                                    <i class="fas fa-paper-plane"></i> Guardar y Enviar a Hacienda
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal: Ver Todos los Clientes -->
+<div class="modal fade" id="modalClientes" tabindex="-1" aria-labelledby="modalClientesLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalClientesLabel">
+                    <i class="fas fa-users"></i> Seleccionar Cliente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="filtroClienteNombre" class="form-label">Nombre / Razón Social</label>
+                        <input type="text" class="form-control" id="filtroClienteNombre" placeholder="Buscar por nombre...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filtroClienteIdentificacion" class="form-label">Identificación</label>
+                        <input type="text" class="form-control" id="filtroClienteIdentificacion" placeholder="Cédula / RUC...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filtroClienteTipo" class="form-label">Tipo</label>
+                        <select class="form-select" id="filtroClienteTipo">
+                            <option value="">Todos</option>
+                            <option value="1">Cédula Física</option>
+                            <option value="2">Cédula Jurídica</option>
+                            <option value="3">DIMEX</option>
+                            <option value="4">NITE</option>
+                            <option value="5">Pasaporte</option>
+                            <option value="6">Extranjero</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-secondary w-100" id="btnFiltrarClientes">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de Clientes -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="tablaClientesModal">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Identificación</th>
+                                <th>Nombre / Razón Social</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyClientesModal">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Cargando clientes...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Ver Todos los Documentos (para Documento de Referencia) -->
+<div class="modal fade" id="modalDocumentos" tabindex="-1" aria-labelledby="modalDocumentosLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="modalDocumentosLabel">
+                    <i class="fas fa-file-invoice"></i> Seleccionar Documento de Referencia
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Nota:</strong> Solo se mostrarán documentos electrónicos <strong>aceptados</strong> por Hacienda que pueden ser referenciados.
+                </div>
+
+                <!-- Tabla de Documentos -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-sm" id="tablaDocumentosModal">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Consecutivo</th>
+                                <th>Tipo</th>
+                                <th>Cliente</th>
+                                <th>Fecha</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDocumentosModal">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Cargando documentos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add/Edit Line -->
+<div class="modal fade" id="modalLinea" tabindex="-1" aria-labelledby="modalLineaLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalLineaLabel">
+                    <i class="fas fa-plus"></i> <span id="modalLineaTitle">Agregar Línea</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formLinea">
+                <div class="modal-body">
+                    <input type="hidden" id="Linea_Index" value="-1">
+
+                    <!-- Product Selector -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="Linea_ProductoId" class="form-label">Producto/Servicio</label>
+                            <select class="form-select select2" id="Linea_ProductoId">
+                                <option value="">Buscar producto o servicio...</option>
+                            </select>
+                            <small class="text-muted">Seleccione un producto para auto-completar los campos</small>
+                        </div>
+                    </div>
+
+                    <!-- Product Details -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="Linea_Codigo" class="form-label">Código</label>
+                            <input type="text" class="form-control" id="Linea_Codigo" maxlength="50" placeholder="Código">
+                        </div>
+                        <div class="col-md-8">
+                            <label for="Linea_Descripcion" class="form-label">Descripción <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Linea_Descripcion" maxlength="500" required placeholder="Descripción del producto/servicio">
+                        </div>
+                    </div>
+
+                    <!-- Quantities and Prices -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="Linea_Cantidad" class="form-label">Cantidad <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Linea_Cantidad" step="0.001" min="0.001" required placeholder="1.000">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="Linea_PrecioUnitario" class="form-label">Precio Unitario <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Linea_PrecioUnitario" step="0.01" min="0" required placeholder="0.00">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="Linea_DescuentoPorcentaje" class="form-label">Descuento %</label>
+                            <input type="number" class="form-control" id="Linea_DescuentoPorcentaje" step="0.01" min="0" max="100" value="0" placeholder="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="Linea_ImpuestoPorcentaje" class="form-label">Impuesto %</label>
+                            <input type="number" class="form-control" id="Linea_ImpuestoPorcentaje" step="0.01" min="0" value="13" placeholder="13">
+                        </div>
+                    </div>
+
+                    <!-- Calculated Subtotal -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <strong>Subtotal de Línea:</strong> <span id="lblSubtotalLinea">₡0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Agregar Línea
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        const empresaId = '@Model.EmpresaId';
+        const documentoId = '@Model.DocumentoId';
+        const isEditMode = documentoId && documentoId !== '';
+
+        let documentLines = [];
+        let sucursales = [];
+        let terminales = [];
+        let currentTipoDocumento = null;
+        let clienteSeleccionado = null;
+        let documentoEnEdicion = null;
+
+        $(document).ready(function () {
+            initializeForm();
+            setupEventHandlers();
+            loadInitialData();
+
+            // Si estamos en modo edición, cargar el documento
+            if (isEditMode) {
+                loadDocumentoParaEditar(documentoId);
+            }
+        });
+
+        function initializeForm() {
+            // Initialize Select2 for Cliente
+            $('#ClienteId').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Buscar cliente...',
+                allowClear: true,
+                ajax: {
+                    url: '?handler=Clientes&empresaId=' + empresaId,
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataType: 'json',
+                    delay: 250,
+                    processResults: function (data) {
+                        return {
+                            results: data.map(function (item) {
+                                return {
+                                    id: item.id,
+                                    text: `${item.numeroIdentificacion} - ${item.nombre}`,
+                                    data: item
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+            // Initialize Select2 for Producto in modal
+            $('#Linea_ProductoId').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalLinea'),
+                placeholder: 'Buscar producto...',
+                allowClear: true,
+                ajax: {
+                    url: '?handler=Productos&empresaId=' + empresaId,
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataType: 'json',
+                    delay: 250,
+                    processResults: function (data) {
+                        return {
+                            results: data.map(function (item) {
+                                return {
+                                    id: item.id,
+                                    text: `${item.codigo} - ${item.nombre}`,
+                                    data: item
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+            // Initialize Select2 for País Destino (will load countries)
+            $('#PaisDestino').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Seleccione país...',
+                allowClear: true
+            });
+
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        function setupEventHandlers() {
+            // Document type change
+            $('#TipoDocumento').on('change', function () {
+                handleTipoDocumentoChange($(this).val());
+            });
+
+            // Cliente selection
+            $('#ClienteId').on('select2:select', function (e) {
+                const data = e.params.data.data;
+                loadClienteData(data.id);
+            });
+
+            $('#ClienteId').on('select2:clear', function () {
+                clearClienteData();
+            });
+
+            $('#btnEditarCliente').on('click', function () {
+                $('#clienteInfoSection').toggle();
+            });
+
+            // Address cascading dropdowns
+            $('#ClienteProvincia').on('change', function () {
+                const provinciaId = $(this).val();
+                if (provinciaId) {
+                    loadCantones(provinciaId);
+                } else {
+                    $('#ClienteCanton').empty().append('<option value="">Seleccione provincia primero...</option>').prop('disabled', true);
+                    $('#ClienteDistrito').empty().append('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                }
+            });
+
+            $('#ClienteCanton').on('change', function () {
+                const provinciaId = $('#ClienteProvincia').val();
+                const cantonId = $(this).val();
+                if (provinciaId && cantonId) {
+                    loadDistritos(provinciaId, cantonId);
+                } else {
+                    $('#ClienteDistrito').empty().append('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                }
+            });
+
+            // Toggle foreign client section based on TipoIdentificacion
+            $('#ClienteTipoIdentificacion').on('change', function () {
+                const tipo = $(this).val();
+                if (tipo === '6') { // Extranjera
+                    $('#sectionClienteExtranjero').show();
+                    $('#ClienteCodigoPais').prop('required', true);
+                    // Optional: disable Costa Rica address fields
+                    $('#ClienteProvincia, #ClienteCanton, #ClienteDistrito').prop('required', false);
+                } else {
+                    $('#sectionClienteExtranjero').hide();
+                    $('#ClienteCodigoPais').prop('required', false);
+                    // Re-enable Costa Rica address fields
+                    $('#ClienteProvincia, #ClienteCanton, #ClienteDistrito').prop('required', true);
+                }
+            });
+
+            // Condición venta change
+            $('#CondicionVenta').on('change', function () {
+                if ($(this).val() === '02') {
+                    $('#divPlazoCreditoDias').show();
+                    $('#PlazoCreditoDias').prop('required', true);
+                } else {
+                    $('#divPlazoCreditoDias').hide();
+                    $('#PlazoCreditoDias').prop('required', false);
+                }
+            });
+
+            // Moneda change - Control Tipo de Cambio
+            $('#Moneda').on('change', function () {
+                const moneda = $(this).val();
+                if (moneda === 'CRC') {
+                    // Si es Colones, tipo de cambio = 1 y campo readonly
+                    $('#TipoCambio').val('1.00').prop('readonly', true);
+                    $('#tipoCambioHelp').text('Tipo de cambio fijo en 1 para Colones (CRC)').removeClass('text-danger').addClass('text-muted');
+                } else if (moneda) {
+                    // Si es otra moneda, habilitar campo y poner valor vacío
+                    $('#TipoCambio').val('').prop('readonly', false).focus();
+                    $('#tipoCambioHelp').text('Ingrese el tipo de cambio correspondiente a ' + moneda).removeClass('text-muted').addClass('text-info');
+                } else {
+                    // Si no hay moneda seleccionada, deshabilitar
+                    $('#TipoCambio').val('').prop('readonly', true);
+                    $('#tipoCambioHelp').text('Seleccione primero una moneda').removeClass('text-info').addClass('text-muted');
+                }
+            });
+
+            // Sucursal change
+            $('#SucursalId').on('change', function () {
+                loadTerminalesBySucursal($(this).val());
+            });
+
+            // Ver todos los clientes button
+            $('#btnVerTodosClientes').on('click', function () {
+                openClientesModal();
+            });
+
+            // Filtrar clientes en modal
+            $('#btnFiltrarClientes').on('click', function () {
+                filterClientesModal();
+            });
+
+            // Filtro con Enter
+            $('#filtroClienteNombre, #filtroClienteIdentificacion').on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    filterClientesModal();
+                }
+            });
+
+            // Ver todos los documentos button (para documento de referencia)
+            $('#btnVerTodosDocumentos').on('click', function () {
+                openDocumentosModal();
+            });
+
+            // Add line button
+            $('#btnAgregarLinea').on('click', function () {
+                openLineModal();
+            });
+
+            // Producto selection in modal
+            $('#Linea_ProductoId').on('select2:select', function (e) {
+                const producto = e.params.data.data;
+                loadProductoData(producto);
+            });
+
+            // Auto-calculate line subtotal
+            $('#Linea_Cantidad, #Linea_PrecioUnitario, #Linea_DescuentoPorcentaje, #Linea_ImpuestoPorcentaje').on('input', function () {
+                calculateLineSubtotal();
+            });
+
+            // Form line submission
+            $('#formLinea').on('submit', function (e) {
+                e.preventDefault();
+                addOrUpdateLine();
+            });
+
+            // Save buttons
+            $('#btnGuardarBorrador').on('click', function () {
+                saveDocument(1); // Estado: Borrador
+            });
+
+            $('#btnGuardarYEnviar').on('click', function () {
+                saveDocument(2); // Estado: Pendiente, then send
+            });
+        }
+
+        function loadInitialData() {
+            loadSucursales();
+            loadTerminales();
+            loadPaises();
+            loadProvincias();
+            loadEmpresaData();
+            setFechaDocumento();
+        }
+
+        function setFechaDocumento() {
+            const ahora = new Date();
+            const dia = String(ahora.getDate()).padStart(2, '0');
+            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+            const anio = ahora.getFullYear();
+            const hora = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+
+            // Formato legible para mostrar en Costa Rica (dd/MM/yyyy HH:mm)
+            const fechaFormateada = `${dia}/${mes}/${anio} ${hora}:${minutos}`;
+            $('#FechaDocumento').val(fechaFormateada);
+
+            // Formato ISO para enviar al backend (si es necesario)
+            $('#FechaDocumentoISO').val(ahora.toISOString());
+        }
+
+        function handleTipoDocumentoChange(tipo) {
+            currentTipoDocumento = tipo;
+
+            if (!tipo) {
+                $('#mainFormCard, #lineasCard, #actionButtons').hide();
+                return;
+            }
+
+            // Show main sections
+            $('#mainFormCard, #lineasCard, #actionButtons').show();
+
+            // Hide all conditional sections
+            $('#sectionReferencia, #sectionExportacion').hide();
+            $('#DocumentoReferenciaId, #RazonReferencia, #Incoterm, #PaisDestino').prop('required', false);
+
+            // Show specific sections based on document type
+            if (tipo === '2' || tipo === '3') {
+                // Nota Débito or Nota Crédito
+                $('#sectionReferencia').show();
+                $('#DocumentoReferenciaId, #RazonReferencia').prop('required', true);
+
+                const tipoNombre = tipo === '2' ? 'Nota Débito' : 'Nota Crédito';
+                $('#mensajeReferencia').text(`Esta ${tipoNombre} modificará el documento seleccionado.`);
+            } else if (tipo === '9') {
+                // Factura Exportación
+                $('#sectionExportacion').show();
+                $('#Incoterm, #PaisDestino').prop('required', true);
+            }
+        }
+
+        function loadSucursales() {
+            $.ajax({
+                url: '?handler=Sucursales&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    sucursales = data;
+                    const select = $('#SucursalId');
+                    select.empty().append('<option value="">Seleccione...</option>');
+
+                    data.forEach(function (item) {
+                        select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                    });
+                },
+                error: function (xhr) {
+                    console.error('Error loading sucursales:', xhr);
+                    Swal.fire('Error', 'No se pudieron cargar las sucursales.', 'error');
+                }
+            });
+        }
+
+        function loadTerminales() {
+            $.ajax({
+                url: '?handler=Terminales&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    terminales = data;
+                },
+                error: function (xhr) {
+                    console.error('Error loading terminales:', xhr);
+                    Swal.fire('Error', 'No se pudieron cargar las terminales.', 'error');
+                }
+            });
+        }
+
+        function loadTerminalesBySucursal(sucursalId) {
+            const select = $('#TerminalId');
+            select.empty().append('<option value="">Seleccione...</option>');
+
+            if (!sucursalId) return;
+
+            // Comparar GUIDs como strings en minúsculas
+            const sucursalIdLower = sucursalId.toLowerCase();
+            const filteredTerminales = terminales.filter(t =>
+                t.sucursalId && t.sucursalId.toLowerCase() === sucursalIdLower
+            );
+
+            filteredTerminales.forEach(function (item) {
+                select.append(`<option value="${item.id}">${item.codigo} - ${item.nombre || item.descripcion}</option>`);
+            });
+
+            // Si solo hay una terminal, seleccionarla automáticamente
+            if (filteredTerminales.length === 1) {
+                select.val(filteredTerminales[0].id);
+            }
+        }
+
+        // Variable para almacenar todos los clientes
+        let todosLosClientes = [];
+
+        function openClientesModal() {
+            $('#modalClientes').modal('show');
+            // Limpiar filtros
+            $('#filtroClienteNombre').val('');
+            $('#filtroClienteIdentificacion').val('');
+            $('#filtroClienteTipo').val('');
+            // Cargar clientes
+            loadClientesModal();
+        }
+
+        function loadClientesModal() {
+            const tbody = $('#tbodyClientesModal');
+            tbody.html(`
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando clientes...
+                    </td>
+                </tr>
+            `);
+
+            $.ajax({
+                url: '?handler=Clientes&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    todosLosClientes = data;
+                    renderClientesModal(data);
+                },
+                error: function (xhr) {
+                    console.error('Error loading clientes:', xhr);
+                    tbody.html(`
+                        <tr>
+                            <td colspan="5" class="text-center text-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Error al cargar clientes
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        }
+
+        function filterClientesModal() {
+            const nombre = $('#filtroClienteNombre').val().toLowerCase().trim();
+            const identificacion = $('#filtroClienteIdentificacion').val().toLowerCase().trim();
+            const tipo = $('#filtroClienteTipo').val();
+
+            let filtrados = todosLosClientes.filter(function (cliente) {
+                let cumple = true;
+
+                if (nombre && !cliente.nombre.toLowerCase().includes(nombre)) {
+                    cumple = false;
+                }
+
+                if (identificacion && !cliente.numeroIdentificacion.toLowerCase().includes(identificacion)) {
+                    cumple = false;
+                }
+
+                if (tipo && cliente.tipoIdentificacion != tipo) {
+                    cumple = false;
+                }
+
+                return cumple;
+            });
+
+            renderClientesModal(filtrados);
+        }
+
+        function renderClientesModal(clientes) {
+            const tbody = $('#tbodyClientesModal');
+
+            if (!clientes || clientes.length === 0) {
+                tbody.html(`
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            <i class="fas fa-info-circle"></i> No se encontraron clientes
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            const tiposIdentificacion = {
+                1: 'Física',
+                2: 'Jurídica',
+                3: 'DIMEX',
+                4: 'NITE',
+                5: 'Pasaporte',
+                6: 'Extranjera'
+            };
+
+            let html = '';
+            clientes.forEach(function (cliente) {
+                const tipoNombre = tiposIdentificacion[cliente.tipoIdentificacion] || 'Desconocido';
+                html += `
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary">${tipoNombre}</span><br>
+                            <strong>${cliente.numeroIdentificacion}</strong>
+                        </td>
+                        <td>${cliente.nombre}</td>
+                        <td>${cliente.emailPrincipal || '<span class="text-muted">-</span>'}</td>
+                        <td>${cliente.telefonoPrincipal || '<span class="text-muted">-</span>'}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-success" onclick="seleccionarClienteModal('${cliente.id}')">
+                                <i class="fas fa-check"></i> Seleccionar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.html(html);
+        }
+
+        function seleccionarClienteModal(clienteId) {
+            // Cerrar el modal
+            $('#modalClientes').modal('hide');
+
+            // Cargar los datos del cliente
+            loadClienteData(clienteId);
+
+            // Actualizar el Select2 con el cliente seleccionado
+            const cliente = todosLosClientes.find(c => c.id === clienteId);
+            if (cliente) {
+                // Crear una nueva opción para Select2
+                const newOption = new Option(
+                    `${cliente.numeroIdentificacion} - ${cliente.nombre}`,
+                    cliente.id,
+                    true,
+                    true
+                );
+                $('#ClienteId').append(newOption).trigger('change');
+            }
+        }
+
+        // Variable para almacenar todos los documentos
+        let todosLosDocumentos = [];
+        let tableDocumentos = null;
+
+        function openDocumentosModal() {
+            $('#modalDocumentos').modal('show');
+            loadDocumentosModal();
+        }
+
+        function loadDocumentosModal() {
+            const tbody = $('#tbodyDocumentosModal');
+            tbody.html(`
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando documentos...
+                    </td>
+                </tr>
+            `);
+
+            $.ajax({
+                url: '?handler=Documentos&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    // Filtrar solo documentos aceptados (estado = 4)
+                    todosLosDocumentos = data.filter(d => d.estado === 4);
+                    initializeDocumentosDataTable();
+                },
+                error: function (xhr) {
+                    console.error('Error loading documentos:', xhr);
+                    tbody.html(`
+                        <tr>
+                            <td colspan="6" class="text-center text-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Error al cargar documentos
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        }
+
+        function initializeDocumentosDataTable() {
+            // Destruir DataTable existente si existe
+            if (tableDocumentos) {
+                tableDocumentos.destroy();
+            }
+
+            const tiposDocumento = {
+                1: 'FE',
+                2: 'ND',
+                3: 'NC',
+                4: 'TE',
+                9: 'FEE'
+            };
+
+            tableDocumentos = $('#tablaDocumentosModal').DataTable({
+                data: todosLosDocumentos,
+                columns: [
+                    {
+                        data: 'numeroConsecutivo',
+                        render: function(data) {
+                            return `<strong>${data}</strong>`;
+                        }
+                    },
+                    {
+                        data: 'tipoDocumento',
+                        render: function(data) {
+                            const tipo = tiposDocumento[data] || 'Desconocido';
+                            return `<span class="badge bg-primary">${tipo}</span>`;
+                        }
+                    },
+                    {
+                        data: 'receptorNombre',
+                        render: function(data) {
+                            return data || '<span class="text-muted">Sin nombre</span>';
+                        }
+                    },
+                    {
+                        data: 'fecha',
+                        render: function(data) {
+                            if (!data) return '-';
+                            const date = new Date(data);
+                            return date.toLocaleDateString('es-CR');
+                        }
+                    },
+                    {
+                        data: 'totalComprobante',
+                        className: 'text-end',
+                        render: function(data) {
+                            return formatCurrency(data || 0);
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        className: 'text-center',
+                        render: function(data, type, row) {
+                            return `
+                                <button type="button" class="btn btn-sm btn-success" onclick="seleccionarDocumentoModal('${row.id}')">
+                                    <i class="fas fa-check"></i> Seleccionar
+                                </button>
+                            `;
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                },
+                responsive: true,
+                order: [[3, 'desc']], // Ordenar por fecha descendente
+                pageLength: 10,
+                dom: 'frtip' // Incluir búsqueda
+            });
+        }
+
+        function seleccionarDocumentoModal(documentoId) {
+            // Cerrar el modal
+            $('#modalDocumentos').modal('hide');
+
+            // Buscar el documento seleccionado
+            const documento = todosLosDocumentos.find(d => d.id === documentoId);
+            if (documento) {
+                // Actualizar los campos
+                $('#DocumentoReferenciaId').val(documento.id);
+                $('#DocumentoReferenciaNumero').val(documento.numeroConsecutivo);
+
+                // Actualizar mensaje de referencia
+                updateMensajeReferencia(documento);
+            }
+        }
+
+        function loadPaises() {
+            // Load countries from API or use static list
+            const paises = [
+                { codigo: 'US', nombre: 'Estados Unidos' },
+                { codigo: 'MX', nombre: 'México' },
+                { codigo: 'PA', nombre: 'Panamá' },
+                { codigo: 'GT', nombre: 'Guatemala' },
+                { codigo: 'NI', nombre: 'Nicaragua' },
+                { codigo: 'HN', nombre: 'Honduras' },
+                { codigo: 'SV', nombre: 'El Salvador' },
+                // Add more countries as needed
+            ];
+
+            const select = $('#PaisDestino');
+            select.empty().append('<option value="">Seleccione...</option>');
+            paises.forEach(function (pais) {
+                select.append(`<option value="${pais.codigo}">${pais.nombre}</option>`);
+            });
+        }
+
+        function loadClienteData(clienteId) {
+            $.ajax({
+                url: '?handler=ClienteDetails&id=' + clienteId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (cliente) {
+                    clienteSeleccionado = cliente;
+
+                    // Fill identification fields
+                    $('#ClienteNombre').val(cliente.nombre);
+                    // Convert TipoIdentificacion (int) to string to match select option values
+                    $('#ClienteTipoIdentificacion').val(String(cliente.tipoIdentificacion)).trigger('change');
+                    $('#ClienteIdentificacion').val(cliente.numeroIdentificacion);
+
+                    // Fill contact fields
+                    $('#ClienteEmail').val(cliente.emailPrincipal || '');
+                    $('#ClienteTelefono').val(cliente.telefonoPrincipal || '');
+                    $('#ClienteFax').val(''); // If you have fax in backend, populate it
+
+                    // Fill address fields
+                    $('#ClienteOtrasSenas').val(cliente.otrasSenas || '');
+                    $('#ClienteActividadEconomica').val(cliente.actividadEconomicaCIIU4 || '');
+
+                    // Load provincia first, then cascade to canton and distrito
+                    if (cliente.provincia) {
+                        $('#ClienteProvincia').val(cliente.provincia).trigger('change');
+
+                        // Wait for cantones to load, then set canton
+                        if (cliente.canton) {
+                            setTimeout(function() {
+                                $('#ClienteCanton').val(cliente.canton).trigger('change');
+
+                                // Wait for distritos to load, then set distrito
+                                if (cliente.distrito) {
+                                    setTimeout(function() {
+                                        $('#ClienteDistrito').val(cliente.distrito);
+                                    }, 300);
+                                }
+                            }, 300);
+                        }
+                    }
+
+                    // Auto-fill Condicion de Venta (TipoVenta from Cliente)
+                    if (cliente.tipoVenta) {
+                        // Convert TipoVenta (int) to the format expected by the dropdown (string with leading zero)
+                        const condicionVenta = String(cliente.tipoVenta).padStart(2, '0');
+                        $('#CondicionVenta').val(condicionVenta).trigger('change');
+                    }
+
+                    // Auto-fill Medio de Pago (TipoPago from Cliente)
+                    if (cliente.tipoPago) {
+                        // Convert TipoPago (int) to the format expected by the dropdown (string with leading zero)
+                        const medioPago = String(cliente.tipoPago).padStart(2, '0');
+                        $('#MedioPago').val(medioPago);
+                    }
+
+                    $('#clienteInfoSection').show();
+                    $('#btnEditarCliente').prop('disabled', false);
+                },
+                error: function (xhr) {
+                    console.error('Error loading cliente:', xhr);
+                    Swal.fire('Error', 'No se pudieron cargar los datos del cliente.', 'error');
+                }
+            });
+        }
+
+        function clearClienteData() {
+            clienteSeleccionado = null;
+            $('#ClienteNombre, #ClienteIdentificacion, #ClienteEmail, #ClienteTelefono, #ClienteFax, #ClienteOtrasSenas, #ClienteActividadEconomica').val('');
+            $('#ClienteTipoIdentificacion').val('1');
+            $('#ClienteProvincia').val('');
+            $('#ClienteCanton').empty().append('<option value="">Seleccione provincia primero...</option>').prop('disabled', true);
+            $('#ClienteDistrito').empty().append('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+            $('#ClienteCodigoPais').val('');
+            $('#sectionClienteExtranjero').hide();
+            $('#clienteInfoSection').hide();
+            $('#btnEditarCliente').prop('disabled', true);
+        }
+
+        function updateMensajeReferencia(documento) {
+            $('#mensajeReferencia').html(`Esta NC/ND modificará el documento <strong>${documento.numeroConsecutivo}</strong>`);
+        }
+
+        function loadProductoData(producto) {
+            $('#Linea_Codigo').val(producto.codigo);
+            $('#Linea_Descripcion').val(producto.nombre);
+            $('#Linea_PrecioUnitario').val(producto.precioVenta.toFixed(2));
+
+            // Load impuesto percentage if available
+            if (producto.impuesto && producto.impuesto.tarifa) {
+                $('#Linea_ImpuestoPorcentaje').val(producto.impuesto.tarifa);
+            }
+
+            calculateLineSubtotal();
+        }
+
+        function calculateLineSubtotal() {
+            const cantidad = parseFloat($('#Linea_Cantidad').val()) || 0;
+            const precio = parseFloat($('#Linea_PrecioUnitario').val()) || 0;
+            const descPorcentaje = parseFloat($('#Linea_DescuentoPorcentaje').val()) || 0;
+            const impPorcentaje = parseFloat($('#Linea_ImpuestoPorcentaje').val()) || 0;
+
+            const montoTotal = cantidad * precio;
+            const descuento = montoTotal * (descPorcentaje / 100);
+            const subtotal = montoTotal - descuento;
+            const impuesto = subtotal * (impPorcentaje / 100);
+            const total = subtotal + impuesto;
+
+            $('#lblSubtotalLinea').text(formatCurrency(total));
+        }
+
+        function openLineModal(index = -1) {
+            $('#formLinea')[0].reset();
+            $('#formLinea').removeClass('was-validated');
+            $('#Linea_Index').val(index);
+            $('#Linea_ProductoId').val(null).trigger('change');
+
+            if (index >= 0) {
+                // Edit mode
+                const line = documentLines[index];
+                $('#modalLineaTitle').text('Editar Línea');
+                $('#Linea_Codigo').val(line.codigo);
+                $('#Linea_Descripcion').val(line.descripcion);
+                $('#Linea_Cantidad').val(line.cantidad);
+                $('#Linea_PrecioUnitario').val(line.precioUnitario);
+                $('#Linea_DescuentoPorcentaje').val(line.descuentoPorcentaje);
+                $('#Linea_ImpuestoPorcentaje').val(line.impuestoPorcentaje);
+                calculateLineSubtotal();
+            } else {
+                // Add mode
+                $('#modalLineaTitle').text('Agregar Línea');
+                $('#Linea_Cantidad').val('1.000');
+                $('#Linea_DescuentoPorcentaje').val('0');
+                $('#Linea_ImpuestoPorcentaje').val('13');
+            }
+
+            $('#modalLinea').modal('show');
+        }
+
+        function addOrUpdateLine() {
+            if (!$('#formLinea')[0].checkValidity()) {
+                $('#formLinea').addClass('was-validated');
+                return;
+            }
+
+            const index = parseInt($('#Linea_Index').val());
+            const cantidad = parseFloat($('#Linea_Cantidad').val());
+            const precio = parseFloat($('#Linea_PrecioUnitario').val());
+            const descPorcentaje = parseFloat($('#Linea_DescuentoPorcentaje').val()) || 0;
+            const impPorcentaje = parseFloat($('#Linea_ImpuestoPorcentaje').val()) || 0;
+
+            const montoTotal = cantidad * precio;
+            const descuento = montoTotal * (descPorcentaje / 100);
+            const subtotal = montoTotal - descuento;
+            const impuesto = subtotal * (impPorcentaje / 100);
+            const total = subtotal + impuesto;
+
+            const line = {
+                codigo: $('#Linea_Codigo').val(),
+                descripcion: $('#Linea_Descripcion').val(),
+                cantidad: cantidad,
+                precioUnitario: precio,
+                descuentoPorcentaje: descPorcentaje,
+                impuestoPorcentaje: impPorcentaje,
+                montoDescuento: descuento,
+                montoImpuesto: impuesto,
+                subtotal: total
+            };
+
+            if (index >= 0) {
+                // Update existing line
+                documentLines[index] = line;
+            } else {
+                // Add new line
+                documentLines.push(line);
+            }
+
+            renderLines();
+            calculateTotals();
+            $('#modalLinea').modal('hide');
+        }
+
+        function renderLines() {
+            const tbody = $('#tbodyLineas');
+            tbody.empty();
+
+            if (documentLines.length === 0) {
+                tbody.append(`
+                    <tr id="emptyRow">
+                        <td colspan="8" class="text-center text-muted">
+                            <i class="fas fa-inbox"></i> No hay líneas agregadas. Haga clic en "Agregar Línea" para comenzar.
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            documentLines.forEach(function (line, index) {
+                tbody.append(`
+                    <tr>
+                        <td>${line.codigo || '-'}</td>
+                        <td>${line.descripcion}</td>
+                        <td class="text-end">${line.cantidad.toFixed(3)}</td>
+                        <td class="text-end">${formatCurrency(line.precioUnitario)}</td>
+                        <td class="text-end">${line.descuentoPorcentaje.toFixed(2)}%</td>
+                        <td class="text-end">${line.impuestoPorcentaje.toFixed(2)}%</td>
+                        <td class="text-end">${formatCurrency(line.subtotal)}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-warning" onclick="editLine(${index})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteLine(${index})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        function editLine(index) {
+            openLineModal(index);
+        }
+
+        function deleteLine(index) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: '¿Desea eliminar esta línea?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    documentLines.splice(index, 1);
+                    renderLines();
+                    calculateTotals();
+                }
+            });
+        }
+
+        function calculateTotals() {
+            let subtotal = 0;
+            let descuentos = 0;
+            let impuestos = 0;
+
+            documentLines.forEach(function (line) {
+                const montoTotal = line.cantidad * line.precioUnitario;
+                subtotal += montoTotal;
+                descuentos += line.montoDescuento;
+                impuestos += line.montoImpuesto;
+            });
+
+            const total = subtotal - descuentos + impuestos;
+
+            $('#lblSubtotal').text(formatCurrency(subtotal));
+            $('#lblDescuentos').text(formatCurrency(descuentos));
+            $('#lblImpuestos').text(formatCurrency(impuestos));
+            $('#lblTotal').text(formatCurrency(total));
+        }
+
+        function saveDocument(estado) {
+            // Validate form
+            if (!validateForm()) {
+                return;
+            }
+
+            if (documentLines.length === 0) {
+                Swal.fire('Validación', 'Debe agregar al menos una línea al documento.', 'warning');
+                return;
+            }
+
+            const documento = buildDocumentoObject(estado);
+
+            Swal.fire({
+                title: 'Guardando...',
+                text: 'Por favor espere...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Determinar si es creación o actualización
+            const handlerUrl = isEditMode ? '?handler=UpdateDocument' : '?handler=CreateDocument';
+            const successMessage = isEditMode ? 'Documento actualizado exitosamente.' : 'Documento guardado como borrador exitosamente.';
+
+            $.ajax({
+                url: handlerUrl,
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: JSON.stringify(documento),
+                success: function (response) {
+                    // Validate response has the expected structure
+                    if (!response || !response.id) {
+                        Swal.fire('Error', 'La respuesta del servidor no es válida.', 'error');
+                        return;
+                    }
+
+                    if (estado === 2 && !isEditMode) {
+                        // Send to Hacienda (only if document was created successfully and not editing)
+                        sendToHacienda(response.id);
+                    } else {
+                        // For draft state or update, show success
+                        Swal.fire({
+                            title: 'Éxito',
+                            text: successMessage,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Si fue actualización, podemos redirigir a la lista de documentos
+                            if (isEditMode) {
+                                window.location.href = '/Documentos';
+                            }
+                        });
+                        // Do NOT redirect for drafts in create mode - user may want to continue editing
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error saving document:', xhr);
+                    const message = xhr.responseText || 'Ocurrió un error al guardar el documento.';
+                    Swal.fire('Error', message, 'error');
+                    // Stay on the page when there's an error
+                }
+            });
+        }
+
+        function validateForm() {
+            const form = $('#formFacturacion')[0];
+
+            if (!currentTipoDocumento) {
+                Swal.fire('Validación', 'Seleccione un tipo de documento.', 'warning');
+                return false;
+            }
+
+            if (!$('#SucursalId').val()) {
+                Swal.fire('Validación', 'Seleccione una sucursal.', 'warning');
+                return false;
+            }
+
+            if (!$('#TerminalId').val()) {
+                Swal.fire('Validación', 'Seleccione una terminal.', 'warning');
+                return false;
+            }
+
+            if (!$('#EmisorActividadEconomica').val()) {
+                Swal.fire('Validación', 'La actividad económica del emisor es obligatoria.', 'warning');
+                return false;
+            }
+
+            if (!$('#ClienteId').val()) {
+                Swal.fire('Validación', 'Seleccione un cliente.', 'warning');
+                return false;
+            }
+
+            // Validate client data (mandatory fields for electronic invoice)
+            if (!$('#ClienteNombre').val()) {
+                Swal.fire('Validación', 'El nombre del cliente es obligatorio.', 'warning');
+                return false;
+            }
+
+            if (!$('#ClienteIdentificacion').val()) {
+                Swal.fire('Validación', 'El número de identificación del cliente es obligatorio.', 'warning');
+                return false;
+            }
+
+            // Validate address for national clients (not foreign)
+            const tipoId = $('#ClienteTipoIdentificacion').val();
+            if (tipoId !== '6') { // Not Extranjera
+                if (!$('#ClienteProvincia').val()) {
+                    Swal.fire('Validación', 'La provincia es obligatoria para clientes nacionales.', 'warning');
+                    return false;
+                }
+
+                if (!$('#ClienteCanton').val()) {
+                    Swal.fire('Validación', 'El cantón es obligatorio para clientes nacionales.', 'warning');
+                    return false;
+                }
+
+                if (!$('#ClienteDistrito').val()) {
+                    Swal.fire('Validación', 'El distrito es obligatorio para clientes nacionales.', 'warning');
+                    return false;
+                }
+            } else {
+                // Foreign client - require country code
+                if (!$('#ClienteCodigoPais').val()) {
+                    Swal.fire('Validación', 'El código de país es obligatorio para clientes extranjeros.', 'warning');
+                    return false;
+                }
+            }
+
+            // Validar OtrasSenas (OBLIGATORIO según XSD v4.4: minOccurs=1, maxLength=250)
+            if (!$('#ClienteOtrasSenas').val()) {
+                Swal.fire('Validación', 'Las otras señas (dirección exacta) son obligatorias según Hacienda v4.4.', 'warning');
+                return false;
+            }
+
+            if (!$('#CondicionVenta').val()) {
+                Swal.fire('Validación', 'Seleccione una condición de venta.', 'warning');
+                return false;
+            }
+
+            if (!$('#MedioPago').val()) {
+                Swal.fire('Validación', 'Seleccione un medio de pago.', 'warning');
+                return false;
+            }
+
+            // Validate Moneda
+            if (!$('#Moneda').val()) {
+                Swal.fire('Validación', 'Seleccione una moneda.', 'warning');
+                return false;
+            }
+
+            // Validate Tipo de Cambio
+            const tipoCambio = parseFloat($('#TipoCambio').val());
+            if (!tipoCambio || tipoCambio <= 0) {
+                Swal.fire('Validación', 'El tipo de cambio debe ser mayor a 0.', 'warning');
+                return false;
+            }
+
+            // Validate Tipo de Cambio for non-CRC currencies
+            const moneda = $('#Moneda').val();
+            if (moneda !== 'CRC' && !$('#TipoCambio').val()) {
+                Swal.fire('Validación', 'Debe ingresar el tipo de cambio para la moneda seleccionada.', 'warning');
+                return false;
+            }
+
+            // Validate NC/ND specific fields
+            if ((currentTipoDocumento === '2' || currentTipoDocumento === '3')) {
+                if (!$('#DocumentoReferenciaId').val()) {
+                    Swal.fire('Validación', 'Seleccione un documento de referencia.', 'warning');
+                    return false;
+                }
+                if (!$('#RazonReferencia').val()) {
+                    Swal.fire('Validación', 'Seleccione una razón para la NC/ND.', 'warning');
+                    return false;
+                }
+            }
+
+            // Validate FEE specific fields
+            if (currentTipoDocumento === '9') {
+                if (!$('#Incoterm').val()) {
+                    Swal.fire('Validación', 'Seleccione un Incoterm.', 'warning');
+                    return false;
+                }
+                if (!$('#PaisDestino').val()) {
+                    Swal.fire('Validación', 'Seleccione un país de destino.', 'warning');
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function buildDocumentoObject(estado) {
+            const documento = {
+                tipoDocumento: parseInt(currentTipoDocumento),
+                empresaId: empresaId,
+                sucursalId: $('#SucursalId').val(),
+                terminalId: $('#TerminalId').val(),
+                fecha: $('#FechaDocumentoISO').val(), // Fecha en formato ISO
+                actividadEconomica: $('#EmisorActividadEconomica').val(),
+                clienteId: $('#ClienteId').val(),
+                condicionVenta: $('#CondicionVenta').val(),
+                medioPago: $('#MedioPago').val(),
+                plazoCreditoDias: $('#PlazoCreditoDias').val() ? parseInt($('#PlazoCreditoDias').val()) : null,
+                observaciones: $('#Observaciones').val() || null,
+                moneda: $('#Moneda').val(),
+                tipoCambio: parseFloat($('#TipoCambio').val()) || 1.00,
+
+                // Si estamos editando, incluir el ID del documento
+                ...(isEditMode && { id: documentoId }),
+
+                // Client override data (if edited) - Required for Costa Rica Electronic Invoice
+                receptorNombre: $('#ClienteNombre').val(),
+                receptorTipoIdentificacion: parseInt($('#ClienteTipoIdentificacion').val()),
+                receptorNumeroIdentificacion: $('#ClienteIdentificacion').val(),
+                receptorEmails: $('#ClienteEmail').val(),
+                receptorTelefono: $('#ClienteTelefono').val(),
+                receptorProvincia: $('#ClienteProvincia').val() ? parseInt($('#ClienteProvincia').val()) : null,
+                receptorCanton: $('#ClienteCanton').val() ? parseInt($('#ClienteCanton').val()) : null,
+                receptorDistrito: $('#ClienteDistrito').val() ? parseInt($('#ClienteDistrito').val()) : null,
+                receptorOtrasSenas: $('#ClienteOtrasSenas').val(),
+                receptorActividadEconomica: $('#ClienteActividadEconomica').val() || '620900', // CIIU4 del cliente
+
+                // Lines - Estructura corregida según CreateDocumentoDetalleDTO
+                detalles: documentLines.map((line, index) => {
+                    const detalle = {
+                        numeroLinea: index + 1,
+                        codigo: line.codigo,
+                        codigoCabys: '1010101010101', // TODO: Agregar campo CAByS en el modal de línea
+                        descripcion: line.descripcion,
+                        cantidad: line.cantidad,
+                        unidadMedidaId: 1, // Default unit
+                        precioUnitario: line.precioUnitario
+                    };
+
+                    // Agregar descuentos si existen
+                    if (line.montoDescuento && line.montoDescuento > 0) {
+                        detalle.descuentos = [{
+                            naturaleza: 'Descuento comercial',
+                            monto: line.montoDescuento
+                        }];
+                    }
+
+                    // Agregar impuestos si existen
+                    if (line.impuestoPorcentaje && line.impuestoPorcentaje > 0) {
+                        detalle.impuestos = [{
+                            codigoTarifa: line.impuestoPorcentaje === 13 ? '08' : '01',
+                            tarifa: line.impuestoPorcentaje,
+                            monto: line.montoImpuesto
+                        }];
+                    }
+
+                    return detalle;
+                })
+            };
+
+            // Add reference for NC/ND
+            if (currentTipoDocumento === '2' || currentTipoDocumento === '3') {
+                documento.referencias = [{
+                    tipoReferencia: 1, // Referencia a documento anterior
+                    numeroDocumento: $('#DocumentoReferenciaNumero').val(),
+                    codigoReferencia: $('#RazonReferencia').val(),
+                    razon: $('#RazonReferencia option:selected').text()
+                }];
+            }
+
+            // Add export info for FEE
+            if (currentTipoDocumento === '9') {
+                documento.exportacion = {
+                    incotermVenta: $('#Incoterm').val(),
+                    codigoPaisDestino: $('#PaisDestino').val(),
+                    nombrePaisDestino: $('#PaisDestino option:selected').text()
+                };
+            }
+
+            // Add optional fields (if provided)
+            // Número de Orden de Compra
+            const numeroOrdenCompra = $('#NumeroOrdenCompra').val();
+            if (numeroOrdenCompra && numeroOrdenCompra.trim() !== '') {
+                documento.numeroOrdenCompra = numeroOrdenCompra.trim();
+            }
+
+            // Otros Cargos (if any field is filled)
+            const otrosCargosTipo = $('#OtrosCargosTipoDocumento').val();
+            const otrosCargosDetalle = $('#OtrosCargosDetalle').val();
+            const otrosCargosPorcentaje = parseFloat($('#OtrosCargosPorcentaje').val());
+            const otrosCargosMonto = parseFloat($('#OtrosCargosMonto').val());
+
+            // Solo incluir otros cargos si al menos el tipo o detalle están completados
+            if ((otrosCargosTipo && otrosCargosTipo !== '') ||
+                (otrosCargosDetalle && otrosCargosDetalle.trim() !== '')) {
+
+                documento.otrosCargos = {
+                    tipoDocumento: otrosCargosTipo || null,
+                    detalle: otrosCargosDetalle ? otrosCargosDetalle.trim() : null
+                };
+
+                // Agregar porcentaje o monto (priorizar monto si ambos están presentes)
+                if (otrosCargosMonto && otrosCargosMonto > 0) {
+                    documento.otrosCargos.monto = otrosCargosMonto;
+                } else if (otrosCargosPorcentaje && otrosCargosPorcentaje > 0) {
+                    documento.otrosCargos.porcentaje = otrosCargosPorcentaje;
+                }
+            }
+
+            return documento;
+        }
+
+        function sendToHacienda(documentoId) {
+            $.ajax({
+                url: '?handler=SendToHacienda&documentoId=' + documentoId,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response && response.success) {
+                        // Only redirect when successfully sent to Hacienda
+                        Swal.fire({
+                            title: 'Éxito',
+                            text: 'Documento guardado y enviado a Hacienda exitosamente.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            window.location.href = '/Documentos';
+                        });
+                    } else {
+                        // Show error and stay on page so user can fix the issue
+                        const message = response?.message || 'Error al enviar el documento a Hacienda.';
+                        Swal.fire('Error', message, 'error');
+                        // Do NOT redirect - user needs to see the error and may need to retry
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error sending to Hacienda:', xhr);
+                    const message = xhr.responseText || 'El documento se guardó pero hubo un error al enviarlo a Hacienda.';
+                    Swal.fire('Error', message, 'error');
+                    // Do NOT redirect - stay on page so user can retry or check the issue
+                }
+            });
+        }
+
+        function loadProvincias() {
+            $.ajax({
+                url: '?handler=Provincias',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        const select = $('#ClienteProvincia');
+                        select.empty().append('<option value="">Seleccione...</option>');
+
+                        response.data.forEach(function (item) {
+                            select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading provincias:', xhr);
+                }
+            });
+        }
+
+        function loadCantones(provinciaId) {
+            $.ajax({
+                url: '?handler=Cantones&provinciaId=' + provinciaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        const select = $('#ClienteCanton');
+                        select.empty().append('<option value="">Seleccione...</option>');
+
+                        response.data.forEach(function (item) {
+                            select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                        });
+
+                        select.prop('disabled', false);
+
+                        // Reset distrito dropdown when cantones are loaded
+                        $('#ClienteDistrito').empty().append('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading cantones:', xhr);
+                }
+            });
+        }
+
+        function loadDistritos(provinciaId, cantonId) {
+            // Extraer solo los últimos 2 dígitos del código del cantón
+            // cantonId puede ser 101 (de "0101"), necesitamos solo "01"
+            const cantonIdSoloDigitos = String(cantonId).padStart(4, '0').slice(-2);
+            const cantonIdNumerico = parseInt(cantonIdSoloDigitos, 10);
+
+            $.ajax({
+                url: '?handler=Distritos&provinciaId=' + provinciaId + '&cantonId=' + cantonIdNumerico,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        const select = $('#ClienteDistrito');
+                        select.empty().append('<option value="">Seleccione...</option>');
+
+                        response.data.forEach(function (item) {
+                            select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                        });
+
+                        select.prop('disabled', false);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading distritos:', xhr);
+                }
+            });
+        }
+
+        function loadEmpresaData() {
+            if (!empresaId) {
+                console.warn('No hay empresaId disponible');
+                return;
+            }
+
+            $.ajax({
+                url: '?handler=EmpresaDetails&id=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (empresa) {
+                    if (empresa && !empresa.error) {
+                        // Mostrar indicador de ambiente
+                        const ambienteIndicador = $('#ambienteIndicador');
+                        if (empresa.ambiente === 'Pruebas' || empresa.ambiente === 1) {
+                            ambienteIndicador.removeClass().addClass('badge fs-6 bg-warning text-dark');
+                            ambienteIndicador.html('<i class="fas fa-flask"></i> Ambiente: PRUEBAS (Sandbox)');
+                            ambienteIndicador.show();
+                        } else if (empresa.ambiente === 'Produccion' || empresa.ambiente === 2) {
+                            ambienteIndicador.removeClass().addClass('badge fs-6 bg-success');
+                            ambienteIndicador.html('<i class="fas fa-check-circle"></i> Ambiente: PRODUCCIÓN');
+                            ambienteIndicador.show();
+                        }
+
+                        // Cargar actividad económica principal
+                        let actividadEconomica = '';
+
+                        // Intentar obtener la actividad económica principal de la empresa
+                        if (empresa.actividadesEconomicas && empresa.actividadesEconomicas.length > 0) {
+                            // Buscar la actividad principal
+                            const actividadPrincipal = empresa.actividadesEconomicas.find(a => a.esPrincipal);
+
+                            if (actividadPrincipal && actividadPrincipal.actividadEconomica) {
+                                actividadEconomica = actividadPrincipal.actividadEconomica.codigo ||
+                                                   actividadPrincipal.actividadEconomica.codigoCIIU4 || '';
+                            } else if (empresa.actividadesEconomicas[0].actividadEconomica) {
+                                // Si no hay principal, tomar la primera
+                                actividadEconomica = empresa.actividadesEconomicas[0].actividadEconomica.codigo ||
+                                                   empresa.actividadesEconomicas[0].actividadEconomica.codigoCIIU4 || '';
+                            }
+                        }
+
+                        // Si no se encontró ninguna actividad económica, usar un valor por defecto
+                        if (!actividadEconomica) {
+                            actividadEconomica = '620900'; // Valor por defecto
+                        }
+
+                        $('#EmisorActividadEconomica').val(actividadEconomica);
+                    } else {
+                        console.error('Error al cargar empresa:', empresa.error);
+                        // Establecer valor por defecto en caso de error
+                        $('#EmisorActividadEconomica').val('620900');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading empresa:', xhr);
+                    // Establecer valor por defecto en caso de error
+                    $('#EmisorActividadEconomica').val('620900');
+                }
+            });
+        }
+
+        function loadDocumentoParaEditar(docId) {
+            if (!docId) {
+                console.error('No se proporcionó ID de documento para editar');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Cargando...',
+                text: 'Cargando datos del documento...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '?handler=Documento&id=' + docId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        const doc = response.data;
+
+                        // Verificar que el documento esté en estado Borrador
+                        if (doc.estado !== 'Borrador' && doc.estado !== 1) {
+                            Swal.fire({
+                                title: 'No Permitido',
+                                text: 'Solo se pueden editar documentos en estado Borrador.',
+                                icon: 'warning',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.href = '/Documentos';
+                            });
+                            return;
+                        }
+
+                        // Cargar tipo de documento
+                        currentTipoDocumento = doc.tipoDocumento ? doc.tipoDocumento.toString() : '';
+                        $('#TipoDocumento').val(currentTipoDocumento).trigger('change');
+
+                        // Mostrar Clave y Consecutivo (solo lectura)
+                        if (doc.clave) {
+                            $('#Clave').val(doc.clave);
+                            $('#NumeroConsecutivo').val(doc.numeroConsecutivo);
+                            $('#sectionClaveConsecutivo').show();
+                        }
+
+                        // Cargar datos del encabezado
+                        $('#SucursalId').val(doc.sucursalId);
+                        $('#TerminalId').val(doc.terminalId);
+                        $('#EmisorActividadEconomica').val(doc.actividadEconomica || '620900');
+
+                        // Cargar fecha
+                        if (doc.fecha || doc.fechaEmision) {
+                            const fecha = new Date(doc.fecha || doc.fechaEmision);
+                            $('#FechaDocumento').val(fecha.toLocaleString('es-CR'));
+                            $('#FechaDocumentoISO').val(fecha.toISOString());
+                        }
+
+                        // Cargar cliente
+                        if (doc.clienteId) {
+                            // Crear opción en el select2 con los datos del cliente
+                            const clienteOption = new Option(
+                                doc.receptorNombre || 'Cliente',
+                                doc.clienteId,
+                                true,
+                                true
+                            );
+                            $('#ClienteId').append(clienteOption).trigger('change');
+
+                            // Cargar datos del receptor (cliente)
+                            $('#ClienteNombre').val(doc.receptorNombre || '');
+                            $('#ClienteTipoIdentificacion').val(doc.receptorTipoIdentificacion || 1);
+                            $('#ClienteIdentificacion').val(doc.receptorNumeroIdentificacion || '');
+                            $('#ClienteEmail').val(doc.receptorEmails || '');
+                            $('#ClienteTelefono').val(doc.receptorTelefono || '');
+                            $('#ClienteFax').val(doc.receptorFax || '');
+                            $('#ClienteActividadEconomica').val(doc.receptorActividadEconomica || '');
+                            $('#ClienteOtrasSenas').val(doc.receptorOtrasSenas || '');
+
+                            // Cargar dirección (provincia, cantón, distrito)
+                            if (doc.receptorProvincia) {
+                                $('#ClienteProvincia').val(doc.receptorProvincia.toString());
+                                loadCantones(doc.receptorProvincia);
+
+                                // Esperar a que se carguen los cantones antes de seleccionar
+                                setTimeout(() => {
+                                    if (doc.receptorCanton) {
+                                        $('#ClienteCanton').val(doc.receptorCanton.toString());
+                                        loadDistritos(doc.receptorProvincia, doc.receptorCanton);
+
+                                        // Esperar a que se carguen los distritos antes de seleccionar
+                                        setTimeout(() => {
+                                            if (doc.receptorDistrito) {
+                                                $('#ClienteDistrito').val(doc.receptorDistrito.toString());
+                                            }
+                                        }, 500);
+                                    }
+                                }, 500);
+                            }
+
+                            // Mostrar sección de datos del cliente
+                            $('#clienteInfoSection').show();
+                            $('#btnEditarCliente').prop('disabled', false);
+                        }
+
+                        // Condición de venta y medio de pago
+                        $('#CondicionVenta').val(doc.condicionVenta || '01').trigger('change');
+                        $('#MedioPago').val(doc.medioPago || '01');
+
+                        if (doc.plazoCreditoDias) {
+                            $('#PlazoCreditoDias').val(doc.plazoCreditoDias);
+                            $('#divPlazoCreditoDias').show();
+                        }
+
+                        // Moneda y tipo de cambio
+                        $('#Moneda').val(doc.moneda || 'CRC').trigger('change');
+                        $('#TipoCambio').val(doc.tipoCambio || 1.00);
+
+                        // Observaciones
+                        $('#Observaciones').val(doc.observaciones || '');
+
+                        // Cargar referencias (NC/ND)
+                        if (doc.referencias && doc.referencias.length > 0) {
+                            const ref = doc.referencias[0];
+                            $('#DocumentoReferenciaNumero').val(ref.numeroDocumento || '');
+                            $('#DocumentoReferenciaId').val(ref.documentoReferenciaId || '');
+                            $('#RazonReferencia').val(ref.codigoReferencia || '');
+                        }
+
+                        // Cargar datos de exportación (FEE)
+                        if (doc.exportacion) {
+                            $('#Incoterm').val(doc.exportacion.incotermVenta || '');
+                            $('#PaisDestino').val(doc.exportacion.codigoPaisDestino || '');
+                        }
+
+                        // Cargar información opcional
+                        if (doc.numeroOrdenCompra) {
+                            $('#NumeroOrdenCompra').val(doc.numeroOrdenCompra);
+                        }
+
+                        // Cargar otros cargos
+                        if (doc.otrosCargos && doc.otrosCargos.length > 0) {
+                            const cargo = doc.otrosCargos[0];
+                            $('#OtrosCargosTipoDocumento').val(cargo.tipoDocumento || '');
+                            $('#OtrosCargosDetalle').val(cargo.detalle || '');
+                            $('#OtrosCargosPorcentaje').val(cargo.porcentaje || '');
+                            $('#OtrosCargosMonto').val(cargo.monto || '');
+                        }
+
+                        // Cargar líneas de detalle
+                        if (doc.detalles && doc.detalles.length > 0) {
+                            documentLines = [];
+                            doc.detalles.forEach((detalle, index) => {
+                                const line = {
+                                    id: detalle.id || null,
+                                    numeroLinea: detalle.numeroLinea || (index + 1),
+                                    codigo: detalle.codigo || '',
+                                    descripcion: detalle.descripcion || '',
+                                    cantidad: detalle.cantidad || 1,
+                                    precioUnitario: detalle.precioUnitario || 0,
+                                    montoDescuento: 0,
+                                    impuestoPorcentaje: 0,
+                                    montoImpuesto: 0
+                                };
+
+                                // Extraer descuento si existe
+                                if (detalle.descuentos && detalle.descuentos.length > 0) {
+                                    line.montoDescuento = detalle.descuentos[0].monto || 0;
+                                }
+
+                                // Extraer impuesto si existe
+                                if (detalle.impuestos && detalle.impuestos.length > 0) {
+                                    line.impuestoPorcentaje = detalle.impuestos[0].tarifa || 0;
+                                    line.montoImpuesto = detalle.impuestos[0].monto || 0;
+                                }
+
+                                documentLines.push(line);
+                            });
+
+                            // Actualizar la tabla de líneas
+                            updateLinesTable();
+                        }
+
+                        // Cerrar el loading
+                        Swal.close();
+
+                        // Mostrar mensaje de éxito
+                        Swal.fire({
+                            title: 'Documento Cargado',
+                            text: 'Los datos del documento han sido cargados correctamente. Puede editarlos y guardar los cambios.',
+                            icon: 'success',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudo cargar el documento.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading document:', xhr);
+                    const message = xhr.responseText || 'Ocurrió un error al cargar el documento.';
+                    Swal.fire({
+                        title: 'Error',
+                        text: message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.href = '/Documentos';
+                    });
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return '₡' + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
+        // Global functions for inline onclick handlers
+        window.editLine = editLine;
+        window.deleteLine = deleteLine;
+        window.seleccionarClienteModal = seleccionarClienteModal;
+        window.seleccionarDocumentoModal = seleccionarDocumentoModal;
+    </script>
+}

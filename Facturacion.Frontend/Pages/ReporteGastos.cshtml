@@ -1,0 +1,387 @@
+@page
+@model Facturacion.Frontend.Pages.ReporteGastosModel
+@{
+    ViewData["Title"] = "Reporte: Gastos";
+    ViewData["Breadcrumb"] = "Reporte: Gastos";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-receipt me-2"></i>Reporte: Gastos
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Fecha Inicio</label>
+                <input type="date" class="form-control" id="fechaInicio" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha Fin</label>
+                <input type="date" class="form-control" id="fechaFin" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Categoría Gasto</label>
+                <select class="form-select" id="categoriaGasto">
+                    <option value="">Todas</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Suministros">Suministros</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Otros">Otros</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary me-2" onclick="filtrar()">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+                <button class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-1"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Total Gastos</h6>
+                                <h4 class="mb-0" id="totalGastos">₡0.00</h4>
+                            </div>
+                            <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Documentos</h6>
+                                <h4 class="mb-0" id="totalDocumentos">0</h4>
+                            </div>
+                            <i class="fas fa-file-invoice fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Promedio</h6>
+                                <h4 class="mb-0" id="promedioGasto">₡0.00</h4>
+                            </div>
+                            <i class="fas fa-chart-bar fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Proveedores</h6>
+                                <h4 class="mb-0" id="totalProveedores">0</h4>
+                            </div>
+                            <i class="fas fa-truck fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Gastos por Mes</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartGastosMes" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Gastos por Categoría</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartGastosCategoria" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Proveedores -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Top 10 Proveedores</h6>
+                    </div>
+                    <div class="card-body">
+                        <table id="tableTopProveedores" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Proveedor</th>
+                                    <th>Documentos</th>
+                                    <th>Monto Total</th>
+                                    <th>Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="mb-3">
+            <button class="btn btn-success btn-sm" onclick="exportarExcel()">
+                <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="exportarPDF()">
+                <i class="fas fa-file-pdf me-1"></i> Exportar a PDF
+            </button>
+        </div>
+
+        <!-- DataTable -->
+        <table id="tableReporte" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Número</th>
+                    <th>Proveedor</th>
+                    <th>Categoría</th>
+                    <th>Monto</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let chartGastosMes;
+    let chartGastosCategoria;
+
+    $(document).ready(function() {
+        // Set default dates (last 30 days)
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
+        $('#fechaInicio').val(hace30Dias.toISOString().split('T')[0]);
+
+        cargarReporte();
+    });
+
+    function cargarReporte() {
+        loadDataTable();
+        cargarResumen();
+        cargarGraficos();
+        cargarTopProveedores();
+    }
+
+    function loadDataTable() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+        const categoriaGasto = $('#categoriaGasto').val();
+
+        if (table) {
+            table.destroy();
+        }
+
+        table = initDataTable('#tableReporte', {
+            ajax: {
+                url: `?handler=Data&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&categoriaGasto=${categoriaGasto}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return moment(data).format('DD/MM/YYYY');
+                    }
+                },
+                { data: 'tipoDocumento' },
+                { data: 'numero' },
+                { data: 'proveedorNombre' },
+                { data: 'categoria' },
+                {
+                    data: 'monto',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'descripcion',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            buttons: ['excel', 'pdf']
+        });
+    }
+
+    function cargarResumen() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+        const categoriaGasto = $('#categoriaGasto').val();
+
+        $.ajax({
+            url: `?handler=Resumen&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&categoriaGasto=${categoriaGasto}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#totalGastos').text(formatCurrency(data.totalGastos));
+                $('#totalDocumentos').text(data.totalDocumentos);
+                $('#promedioGasto').text(formatCurrency(data.promedioGasto));
+                $('#totalProveedores').text(data.totalProveedores);
+            }
+        });
+    }
+
+    function cargarGraficos() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+        const categoriaGasto = $('#categoriaGasto').val();
+
+        $.ajax({
+            url: `?handler=Graficos&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&categoriaGasto=${categoriaGasto}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                // Chart Gastos por Mes
+                if (chartGastosMes) {
+                    chartGastosMes.destroy();
+                }
+
+                const ctx1 = document.getElementById('chartGastosMes').getContext('2d');
+                chartGastosMes = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: data.meses.labels,
+                        datasets: [{
+                            label: 'Gastos',
+                            data: data.meses.valores,
+                            backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                            borderColor: 'rgb(220, 53, 69)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true
+                    }
+                });
+
+                // Chart Gastos por Categoría
+                if (chartGastosCategoria) {
+                    chartGastosCategoria.destroy();
+                }
+
+                const ctx2 = document.getElementById('chartGastosCategoria').getContext('2d');
+                chartGastosCategoria = new Chart(ctx2, {
+                    type: 'pie',
+                    data: {
+                        labels: data.categorias.map(c => c.nombre),
+                        datasets: [{
+                            data: data.categorias.map(c => c.monto),
+                            backgroundColor: [
+                                '#FF6384',
+                                '#36A2EB',
+                                '#FFCE56',
+                                '#4BC0C0',
+                                '#9966FF'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true
+                    }
+                });
+            }
+        });
+    }
+
+    function cargarTopProveedores() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+        const categoriaGasto = $('#categoriaGasto').val();
+
+        $.ajax({
+            url: `?handler=TopProveedores&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&categoriaGasto=${categoriaGasto}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const tbody = $('#tableTopProveedores tbody');
+                tbody.empty();
+                data.forEach(proveedor => {
+                    tbody.append(`
+                        <tr>
+                            <td>${proveedor.nombre}</td>
+                            <td>${proveedor.cantidadDocumentos}</td>
+                            <td>${formatCurrency(proveedor.montoTotal)}</td>
+                            <td>${formatCurrency(proveedor.promedio)}</td>
+                        </tr>
+                    `);
+                });
+            }
+        });
+    }
+
+    function filtrar() {
+        cargarReporte();
+    }
+
+    function limpiarFiltros() {
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
+        $('#fechaInicio').val(hace30Dias.toISOString().split('T')[0]);
+        $('#categoriaGasto').val('');
+        filtrar();
+    }
+
+    function exportarExcel() {
+        table.button('.buttons-excel').trigger();
+    }
+
+    function exportarPDF() {
+        table.button('.buttons-pdf').trigger();
+    }
+</script>
+}

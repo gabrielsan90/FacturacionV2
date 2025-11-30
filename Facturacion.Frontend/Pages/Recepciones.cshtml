@@ -1,0 +1,336 @@
+@page
+@model Facturacion.Frontend.Pages.RecepcionesModel
+@{
+    ViewData["Title"] = "Recepciones";
+    ViewData["Breadcrumb"] = "Recepciones";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-inbox me-2"></i>Recepciones - Documentos Electrónicos Recibidos
+        </h5>
+        <button class="btn btn-primary btn-sm" onclick="sincronizar()">
+            <i class="fas fa-sync me-1"></i> Sincronizar con Hacienda
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Aquí podrá ver y responder los documentos electrónicos recibidos (Mensajes Receptor).
+        </div>
+
+        <table id="tableRecepciones" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fecha Recepción</th>
+                    <th>Tipo Documento</th>
+                    <th>Número</th>
+                    <th>Emisor</th>
+                    <th>Monto</th>
+                    <th>Estado</th>
+                    <th>Fecha Respuesta</th>
+                    <th style="width: 150px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Responder -->
+<div class="modal fade" id="modalResponder" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Responder Documento Electrónico</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formResponder" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Recepcion_Id" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-secondary">
+                                <strong>Documento:</strong> <span id="infoDocumento"></span><br>
+                                <strong>Emisor:</strong> <span id="infoEmisor"></span><br>
+                                <strong>Monto:</strong> <span id="infoMonto"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Tipo de Respuesta <span class="text-danger">*</span></label>
+                            <select class="form-select" id="TipoRespuesta" required>
+                                <option value="">Seleccione...</option>
+                                <option value="1">Aceptado</option>
+                                <option value="2">Aceptado Parcialmente</option>
+                                <option value="3">Rechazado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3" id="divDetalleRespuesta" style="display: none;">
+                        <div class="col-md-12">
+                            <label class="form-label">Detalle de Rechazo/Aceptación Parcial</label>
+                            <textarea class="form-control" id="DetalleRespuesta" rows="3" maxlength="500"></textarea>
+                            <small class="text-muted">Requerido para rechazo o aceptación parcial</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i> Enviar Respuesta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver XML -->
+<div class="modal fade" id="modalVerXML" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ver XML del Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="xmlContent" style="max-height: 500px; overflow-y: auto;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="descargarXML()">
+                    <i class="fas fa-download me-1"></i> Descargar XML
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let xmlActual = '';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        setupEventHandlers();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableRecepciones', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                {
+                    data: 'fechaRecepcion',
+                    render: function(data) {
+                        return moment(data).format('DD/MM/YYYY HH:mm');
+                    }
+                },
+                { data: 'tipoDocumento' },
+                { data: 'numeroDocumento' },
+                { data: 'emisorNombre' },
+                {
+                    data: 'monto',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'estadoRespuesta',
+                    render: function(data) {
+                        if (data === 'Aceptado') return '<span class="badge bg-success">Aceptado</span>';
+                        if (data === 'Rechazado') return '<span class="badge bg-danger">Rechazado</span>';
+                        if (data === 'Aceptado Parcialmente') return '<span class="badge bg-warning">Parcial</span>';
+                        return '<span class="badge bg-secondary">Sin Responder</span>';
+                    }
+                },
+                {
+                    data: 'fechaRespuesta',
+                    render: function(data) {
+                        return data ? moment(data).format('DD/MM/YYYY HH:mm') : '-';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let html = `
+                            <button class="btn btn-sm btn-info" onclick="verXML('${data}')" title="Ver XML">
+                                <i class="fas fa-code"></i>
+                            </button>
+                        `;
+
+                        if (!row.fechaRespuesta) {
+                            html += `
+                                <button class="btn btn-sm btn-success" onclick="responder('${data}')" title="Responder">
+                                    <i class="fas fa-reply"></i>
+                                </button>
+                            `;
+                        }
+
+                        return html;
+                    }
+                }
+            ],
+            order: [[0, 'desc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formResponder').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                enviarRespuesta();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupEventHandlers() {
+        $('#TipoRespuesta').on('change', function() {
+            const valor = $(this).val();
+            if (valor === '2' || valor === '3') {
+                $('#divDetalleRespuesta').show();
+                $('#DetalleRespuesta').prop('required', true);
+            } else {
+                $('#divDetalleRespuesta').hide();
+                $('#DetalleRespuesta').prop('required', false);
+            }
+        });
+    }
+
+    function responder(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#Recepcion_Id').val(data.id);
+                $('#infoDocumento').text(data.tipoDocumento + ' - ' + data.numeroDocumento);
+                $('#infoEmisor').text(data.emisorNombre);
+                $('#infoMonto').text(formatCurrency(data.monto));
+
+                $('#TipoRespuesta').val('');
+                $('#DetalleRespuesta').val('');
+                $('#divDetalleRespuesta').hide();
+                $('#formResponder').removeClass('was-validated');
+
+                $('#modalResponder').modal('show');
+            },
+            error: function() {
+                showError('Error al cargar la información del documento');
+            }
+        });
+    }
+
+    function enviarRespuesta() {
+        const respuestaData = {
+            id: $('#Recepcion_Id').val(),
+            tipoRespuesta: parseInt($('#TipoRespuesta').val()),
+            detalleRespuesta: $('#DetalleRespuesta').val() || null
+        };
+
+        $.ajax({
+            url: '?handler=Responder',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(respuestaData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalResponder').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function() {
+                showError('Error al enviar la respuesta');
+            }
+        });
+    }
+
+    function verXML(id) {
+        $.ajax({
+            url: '?handler=XML&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                xmlActual = data.xml;
+                $('#xmlContent').text(xmlActual);
+                $('#modalVerXML').modal('show');
+            },
+            error: function() {
+                showError('Error al cargar el XML');
+            }
+        });
+    }
+
+    function descargarXML() {
+        const blob = new Blob([xmlActual], { type: 'text/xml' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'documento.xml';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function sincronizar() {
+        Swal.fire({
+            title: 'Sincronizando...',
+            text: 'Obteniendo documentos recibidos de Hacienda',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '?handler=Sincronizar',
+            type: 'POST',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                Swal.close();
+                if (response.success) {
+                    showSuccess(response.message);
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function() {
+                Swal.close();
+                showError('Error al sincronizar con Hacienda');
+            }
+        });
+    }
+</script>
+}

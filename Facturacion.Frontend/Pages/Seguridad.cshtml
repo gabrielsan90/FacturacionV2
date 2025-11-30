@@ -1,0 +1,339 @@
+@page
+@model Facturacion.Frontend.Pages.SeguridadModel
+@{
+    ViewData["Title"] = "Seguridad";
+    ViewData["Breadcrumb"] = "Seguridad";
+}
+
+<div class="row">
+    <!-- Security Settings -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-shield-alt me-2"></i>Configuración de Seguridad
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="formSeguridad">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label">Longitud Mínima de Contraseña</label>
+                        <input type="number" class="form-control" id="minPasswordLength" min="6" max="20" value="8" />
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="requireUppercase" checked />
+                            <label class="form-check-label" for="requireUppercase">
+                                Requerir mayúsculas en contraseñas
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="requireNumbers" checked />
+                            <label class="form-check-label" for="requireNumbers">
+                                Requerir números en contraseñas
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="requireSpecialChars" />
+                            <label class="form-check-label" for="requireSpecialChars">
+                                Requerir caracteres especiales en contraseñas
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Duración de Sesión (minutos)</label>
+                        <input type="number" class="form-control" id="sessionTimeout" min="15" max="480" value="60" />
+                        <small class="text-muted">Tiempo de inactividad antes de cerrar sesión automáticamente</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Intentos Fallidos de Login Antes de Bloqueo</label>
+                        <input type="number" class="form-control" id="maxLoginAttempts" min="3" max="10" value="5" />
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableTwoFactor" />
+                            <label class="form-check-label" for="enableTwoFactor">
+                                Habilitar Autenticación de Dos Factores (2FA)
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar Configuración
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Registro de Auditoría
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="date" class="form-control" id="filterFecha" />
+                </div>
+
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover">
+                        <thead class="sticky-top bg-white">
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Usuario</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogBody">
+                            <tr>
+                                <td colspan="3" class="text-center">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="cargarAuditLog()">
+                    <i class="fas fa-sync me-1"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Sessions -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Sesiones Activas
+                </h5>
+                <button class="btn btn-sm btn-outline-danger" onclick="cerrarTodasSesiones()">
+                    <i class="fas fa-sign-out-alt me-1"></i> Cerrar Todas las Sesiones
+                </button>
+            </div>
+            <div class="card-body">
+                <table id="tableSesiones" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>IP</th>
+                            <th>Navegador</th>
+                            <th>Inicio de Sesión</th>
+                            <th>Última Actividad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let tableSesiones;
+
+    $(document).ready(function() {
+        cargarConfiguracion();
+        cargarAuditLog();
+        loadSesionesTable();
+
+        $('#formSeguridad').on('submit', function(e) {
+            e.preventDefault();
+            guardarConfiguracion();
+        });
+
+        $('#filterFecha').on('change', cargarAuditLog);
+    });
+
+    function cargarConfiguracion() {
+        $.ajax({
+            url: '?handler=Configuracion',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#minPasswordLength').val(data.minPasswordLength);
+                $('#requireUppercase').prop('checked', data.requireUppercase);
+                $('#requireNumbers').prop('checked', data.requireNumbers);
+                $('#requireSpecialChars').prop('checked', data.requireSpecialChars);
+                $('#sessionTimeout').val(data.sessionTimeout);
+                $('#maxLoginAttempts').val(data.maxLoginAttempts);
+                $('#enableTwoFactor').prop('checked', data.enableTwoFactor);
+            }
+        });
+    }
+
+    function guardarConfiguracion() {
+        const config = {
+            minPasswordLength: parseInt($('#minPasswordLength').val()),
+            requireUppercase: $('#requireUppercase').is(':checked'),
+            requireNumbers: $('#requireNumbers').is(':checked'),
+            requireSpecialChars: $('#requireSpecialChars').is(':checked'),
+            sessionTimeout: parseInt($('#sessionTimeout').val()),
+            maxLoginAttempts: parseInt($('#maxLoginAttempts').val()),
+            enableTwoFactor: $('#enableTwoFactor').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=GuardarConfiguracion',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(config),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess('Configuración guardada exitosamente');
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function() {
+                showError('Error al guardar la configuración');
+            }
+        });
+    }
+
+    function cargarAuditLog() {
+        const fecha = $('#filterFecha').val();
+
+        $.ajax({
+            url: `?handler=AuditLog&fecha=${fecha}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const tbody = $('#auditLogBody');
+                tbody.empty();
+
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="3" class="text-center">No hay registros</td></tr>');
+                } else {
+                    data.forEach(log => {
+                        tbody.append(`
+                            <tr>
+                                <td>${moment(log.fecha).format('DD/MM/YYYY HH:mm:ss')}</td>
+                                <td>${log.usuario}</td>
+                                <td><small>${log.accion}</small></td>
+                            </tr>
+                        `);
+                    });
+                }
+            }
+        });
+    }
+
+    function loadSesionesTable() {
+        tableSesiones = initDataTable('#tableSesiones', {
+            ajax: {
+                url: '?handler=SesionesActivas',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'usuario' },
+                { data: 'ip' },
+                { data: 'navegador' },
+                {
+                    data: 'inicioSesion',
+                    render: function(data) {
+                        return moment(data).format('DD/MM/YYYY HH:mm');
+                    }
+                },
+                {
+                    data: 'ultimaActividad',
+                    render: function(data) {
+                        return moment(data).fromNow();
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-danger" onclick="cerrarSesion('${data}')">
+                                <i class="fas fa-sign-out-alt"></i> Cerrar
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[3, 'desc']]
+        });
+    }
+
+    function cerrarSesion(sesionId) {
+        confirmDelete('¿Cerrar esta sesión?', function() {
+            $.ajax({
+                url: `?handler=CerrarSesion&sesionId=${sesionId}`,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess('Sesión cerrada');
+                        tableSesiones.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                }
+            });
+        });
+    }
+
+    function cerrarTodasSesiones() {
+        Swal.fire({
+            title: '¿Cerrar todas las sesiones?',
+            text: 'Todos los usuarios serán desconectados',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, cerrar todas',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=CerrarTodasSesiones',
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess(response.message);
+                            tableSesiones.ajax.reload();
+                        } else {
+                            showError(response.message);
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

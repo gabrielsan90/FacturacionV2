@@ -1,0 +1,361 @@
+@page
+@model Facturacion.Frontend.Pages.ReporteVentasModel
+@{
+    ViewData["Title"] = "Reporte: Ventas";
+    ViewData["Breadcrumb"] = "Reporte: Ventas";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>Reporte: Ventas
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Fecha Inicio</label>
+                <input type="date" class="form-control" id="fechaInicio" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha Fin</label>
+                <input type="date" class="form-control" id="fechaFin" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Agrupar Por</label>
+                <select class="form-select" id="agruparPor">
+                    <option value="dia">Día</option>
+                    <option value="semana">Semana</option>
+                    <option value="mes" selected>Mes</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary me-2" onclick="filtrar()">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+                <button class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-1"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Total Ventas</h6>
+                                <h4 class="mb-0" id="totalVentas">₡0.00</h4>
+                            </div>
+                            <i class="fas fa-dollar-sign fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Documentos</h6>
+                                <h4 class="mb-0" id="totalDocumentos">0</h4>
+                            </div>
+                            <i class="fas fa-file-invoice fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Promedio</h6>
+                                <h4 class="mb-0" id="promedioVenta">₡0.00</h4>
+                            </div>
+                            <i class="fas fa-chart-bar fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Clientes Únicos</h6>
+                                <h4 class="mb-0" id="clientesUnicos">0</h4>
+                            </div>
+                            <i class="fas fa-users fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Ventas en el Tiempo</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartVentasTiempo" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Top 5 Productos</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartTopProductos" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Clients and Products -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Top 10 Clientes</h6>
+                    </div>
+                    <div class="card-body">
+                        <table id="tableTopClientes" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Ventas</th>
+                                    <th>Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Top 10 Productos</h6>
+                    </div>
+                    <div class="card-body">
+                        <table id="tableTopProductos" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="mb-3">
+            <button class="btn btn-success btn-sm" onclick="exportarExcel()">
+                <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="exportarPDF()">
+                <i class="fas fa-file-pdf me-1"></i> Exportar a PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let chartVentasTiempo;
+    let chartTopProductos;
+
+    $(document).ready(function() {
+        // Set default dates (last 30 days)
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
+        $('#fechaInicio').val(hace30Dias.toISOString().split('T')[0]);
+
+        cargarReporte();
+    });
+
+    function cargarReporte() {
+        cargarResumen();
+        cargarGraficos();
+        cargarTopClientes();
+        cargarTopProductos();
+    }
+
+    function cargarResumen() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+
+        $.ajax({
+            url: `?handler=Resumen&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#totalVentas').text(formatCurrency(data.totalVentas));
+                $('#totalDocumentos').text(data.totalDocumentos);
+                $('#promedioVenta').text(formatCurrency(data.promedioVenta));
+                $('#clientesUnicos').text(data.clientesUnicos);
+            }
+        });
+    }
+
+    function cargarGraficos() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+        const agruparPor = $('#agruparPor').val();
+
+        $.ajax({
+            url: `?handler=GraficoVentas&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&agruparPor=${agruparPor}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                // Chart Ventas en el Tiempo
+                if (chartVentasTiempo) {
+                    chartVentasTiempo.destroy();
+                }
+
+                const ctx1 = document.getElementById('chartVentasTiempo').getContext('2d');
+                chartVentasTiempo = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Ventas',
+                            data: data.valores,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true
+                    }
+                });
+
+                // Chart Top Productos
+                if (chartTopProductos) {
+                    chartTopProductos.destroy();
+                }
+
+                const ctx2 = document.getElementById('chartTopProductos').getContext('2d');
+                chartTopProductos = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.topProductos.map(p => p.nombre),
+                        datasets: [{
+                            data: data.topProductos.map(p => p.monto),
+                            backgroundColor: [
+                                '#FF6384',
+                                '#36A2EB',
+                                '#FFCE56',
+                                '#4BC0C0',
+                                '#9966FF'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true
+                    }
+                });
+            }
+        });
+    }
+
+    function cargarTopClientes() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+
+        $.ajax({
+            url: `?handler=TopClientes&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const tbody = $('#tableTopClientes tbody');
+                tbody.empty();
+                data.forEach(cliente => {
+                    tbody.append(`
+                        <tr>
+                            <td>${cliente.nombre}</td>
+                            <td>${cliente.cantidadVentas}</td>
+                            <td>${formatCurrency(cliente.montoTotal)}</td>
+                        </tr>
+                    `);
+                });
+            }
+        });
+    }
+
+    function cargarTopProductos() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+
+        $.ajax({
+            url: `?handler=TopProductos&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const tbody = $('#tableTopProductos tbody');
+                tbody.empty();
+                data.forEach(producto => {
+                    tbody.append(`
+                        <tr>
+                            <td>${producto.nombre}</td>
+                            <td>${producto.cantidad}</td>
+                            <td>${formatCurrency(producto.montoTotal)}</td>
+                        </tr>
+                    `);
+                });
+            }
+        });
+    }
+
+    function filtrar() {
+        cargarReporte();
+    }
+
+    function limpiarFiltros() {
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
+        $('#fechaInicio').val(hace30Dias.toISOString().split('T')[0]);
+        $('#agruparPor').val('mes');
+        filtrar();
+    }
+
+    function exportarExcel() {
+        showInfo('La funcionalidad de exportación estará disponible próximamente');
+    }
+
+    function exportarPDF() {
+        showInfo('La funcionalidad de exportación estará disponible próximamente');
+    }
+</script>
+}

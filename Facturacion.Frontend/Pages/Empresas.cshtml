@@ -1,0 +1,1845 @@
+@page
+@model Facturacion.Frontend.Pages.EmpresasModel
+@{
+    ViewData["Title"] = "Gestión de Empresas";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-building"></i> Gestión de Empresas</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus"></i> Nueva Empresa
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="tableEmpresas" class="table table-striped table-hover table-bordered" style="width:100%">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Número Identificación</th>
+                                    <th>Nombre Comercial</th>
+                                    <th>Razón Social</th>
+                                    <th>Provincia</th>
+                                    <th>Ambiente</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Create/Edit -->
+<div class="modal fade" id="modalEmpresa" tabindex="-1" aria-labelledby="modalEmpresaLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalEmpresaLabel">
+                    <i class="fas fa-building"></i> <span id="modalTitle">Nueva Empresa</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEmpresa" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" asp-for="Empresa.Id" id="Empresa_Id" />
+
+                    <!-- Main Tabs -->
+                    <ul class="nav nav-tabs" id="empresaMainTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="empresa-tab" data-bs-toggle="tab" data-bs-target="#tabEmpresa" type="button" role="tab">
+                                <i class="fas fa-building"></i> Datos de Empresa
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sucursales-tab" data-bs-toggle="tab" data-bs-target="#tabSucursales" type="button" role="tab" data-tab-requires-save="true">
+                                <i class="fas fa-store"></i> Sucursales
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="terminales-tab" data-bs-toggle="tab" data-bs-target="#tabTerminales" type="button" role="tab" data-tab-requires-save="true">
+                                <i class="fas fa-cash-register"></i> Terminales
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="consecutivos-tab" data-bs-toggle="tab" data-bs-target="#tabConsecutivos" type="button" role="tab" data-tab-requires-save="true">
+                                <i class="fas fa-list-ol"></i> Consecutivos
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content mt-3" id="empresaMainTabContent">
+                        <!-- Tab 1: Datos de Empresa -->
+                        <div class="tab-pane fade show active" id="tabEmpresa" role="tabpanel">
+                            <!-- Sub-tabs for Empresa -->
+                            <ul class="nav nav-tabs nav-tabs-sm" id="empresaSubTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                                        <i class="fas fa-info-circle"></i> Información General
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="hacienda-tab" data-bs-toggle="tab" data-bs-target="#hacienda" type="button" role="tab">
+                                        <i class="fas fa-file-invoice"></i> Configuración Hacienda
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="smtp-tab" data-bs-toggle="tab" data-bs-target="#smtp" type="button" role="tab">
+                                        <i class="fas fa-envelope"></i> Configuración SMTP
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- Sub-tab Content -->
+                            <div class="tab-content mt-3" id="empresaSubTabContent">
+                                <!-- Sub-tab 1: Información General -->
+                                <div class="tab-pane fade show active" id="general" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.TipoIdentificacion" class="form-label">Tipo de Identificación <span class="text-danger">*</span></label>
+                                                <select asp-for="Empresa.TipoIdentificacion" asp-items="Model.TiposIdentificacion" class="form-select" id="Empresa_TipoIdentificacion" required>
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <span asp-validation-for="Empresa.TipoIdentificacion" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.NumeroIdentificacion" class="form-label">Número de Identificación <span class="text-danger">*</span></label>
+                                                <input asp-for="Empresa.NumeroIdentificacion" class="form-control" id="Empresa_NumeroIdentificacion" maxlength="20" required />
+                                                <span asp-validation-for="Empresa.NumeroIdentificacion" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.NombreComercial" class="form-label">Nombre Comercial <span class="text-danger">*</span></label>
+                                                <input asp-for="Empresa.NombreComercial" class="form-control" id="Empresa_NombreComercial" maxlength="200" required />
+                                                <span asp-validation-for="Empresa.NombreComercial" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.RazonSocial" class="form-label">Razón Social <span class="text-danger">*</span></label>
+                                                <input asp-for="Empresa.RazonSocial" class="form-control" id="Empresa_RazonSocial" maxlength="200" required />
+                                                <span asp-validation-for="Empresa.RazonSocial" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.Provincia" class="form-label">Provincia <span class="text-danger">*</span></label>
+                                                <select asp-for="Empresa.Provincia" asp-items="Model.Provincias" class="form-select" id="Empresa_Provincia" required>
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <span asp-validation-for="Empresa.Provincia" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.Canton" class="form-label">Cantón <span class="text-danger">*</span></label>
+                                                <select asp-for="Empresa.Canton" class="form-select" id="Empresa_Canton" required disabled>
+                                                    <option value="">Seleccione provincia primero...</option>
+                                                </select>
+                                                <span asp-validation-for="Empresa.Canton" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.Distrito" class="form-label">Distrito <span class="text-danger">*</span></label>
+                                                <select asp-for="Empresa.Distrito" class="form-select" id="Empresa_Distrito" required disabled>
+                                                    <option value="">Seleccione cantón primero...</option>
+                                                </select>
+                                                <span asp-validation-for="Empresa.Distrito" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.OtrasSenas" class="form-label">Otras Señas</label>
+                                                <textarea asp-for="Empresa.OtrasSenas" class="form-control" id="Empresa_OtrasSenas" rows="3" maxlength="500"></textarea>
+                                                <span asp-validation-for="Empresa.OtrasSenas" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="LogoFile" class="form-label">Logo de la Empresa</label>
+                                                <input type="file" asp-for="LogoFile" class="form-control" id="LogoFile" accept="image/*" />
+                                                <small class="form-text text-muted">Tamaño máximo: 2MB. Formatos: JPG, PNG, GIF</small>
+                                                <div id="logoPreview" class="mt-2" style="display:none;">
+                                                    <img id="logoImage" src="" alt="Logo Preview" class="img-thumbnail" style="max-height: 150px;" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <div class="form-check form-switch">
+                                                    <input asp-for="Empresa.Activa" class="form-check-input" type="checkbox" id="Empresa_Activa" />
+                                                    <label class="form-check-label" asp-for="Empresa.Activa">
+                                                        Empresa Activa
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sub-tab 2: Configuración Hacienda -->
+                                <div class="tab-pane fade" id="hacienda" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="CertificadoFile" class="form-label">Certificado Digital (.p12)</label>
+                                                <input type="file" asp-for="CertificadoFile" class="form-control" id="CertificadoFile" accept=".p12,.pfx" />
+                                                <small class="form-text text-muted">Tamaño máximo: 5MB. Formato: .p12 o .pfx</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.PinCertificado" class="form-label">PIN del Certificado</label>
+                                                <input asp-for="Empresa.PinCertificado" type="password" class="form-control" id="Empresa_PinCertificado" maxlength="100" />
+                                                <span asp-validation-for="Empresa.PinCertificado" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.UsuarioHacienda" class="form-label">Usuario Hacienda</label>
+                                                <input asp-for="Empresa.UsuarioHacienda" class="form-control" id="Empresa_UsuarioHacienda" maxlength="100" />
+                                                <span asp-validation-for="Empresa.UsuarioHacienda" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.ClaveHacienda" class="form-label">Clave Hacienda</label>
+                                                <input asp-for="Empresa.ClaveHacienda" type="password" class="form-control" id="Empresa_ClaveHacienda" maxlength="100" />
+                                                <span asp-validation-for="Empresa.ClaveHacienda" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Ambiente <span class="text-danger">*</span></label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="Empresa.Ambiente" id="AmbientePruebas" value="1" />
+                                                    <label class="form-check-label" for="AmbientePruebas">
+                                                        <i class="fas fa-flask text-warning"></i> Pruebas
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="Empresa.Ambiente" id="AmbienteProduccion" value="2" />
+                                                    <label class="form-check-label" for="AmbienteProduccion">
+                                                        <i class="fas fa-check-circle text-success"></i> Producción
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sub-tab 3: Configuración SMTP -->
+                                <div class="tab-pane fade" id="smtp" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.ServidorSMTP" class="form-label">Servidor SMTP</label>
+                                                <input asp-for="Empresa.ServidorSMTP" class="form-control" id="Empresa_ServidorSMTP" placeholder="smtp.gmail.com" maxlength="100" />
+                                                <span asp-validation-for="Empresa.ServidorSMTP" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.PuertoSMTP" class="form-label">Puerto SMTP</label>
+                                                <input asp-for="Empresa.PuertoSMTP" type="number" class="form-control" id="Empresa_PuertoSMTP" placeholder="587" min="1" max="65535" />
+                                                <span asp-validation-for="Empresa.PuertoSMTP" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.UsuarioSMTP" class="form-label">Usuario SMTP</label>
+                                                <input asp-for="Empresa.UsuarioSMTP" class="form-control" id="Empresa_UsuarioSMTP" placeholder="usuario@ejemplo.com" maxlength="100" />
+                                                <span asp-validation-for="Empresa.UsuarioSMTP" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.ClaveSMTP" class="form-label">Clave SMTP</label>
+                                                <input asp-for="Empresa.ClaveSMTP" type="password" class="form-control" id="Empresa_ClaveSMTP" maxlength="100" />
+                                                <span asp-validation-for="Empresa.ClaveSMTP" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Configuración común:</strong>
+                                        <ul class="mb-0 mt-2">
+                                            <li><strong>Gmail:</strong> smtp.gmail.com - Puerto: 587 (TLS) o 465 (SSL)</li>
+                                            <li><strong>Outlook:</strong> smtp-mail.outlook.com - Puerto: 587</li>
+                                            <li><strong>Office365:</strong> smtp.office365.com - Puerto: 587</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Sucursales -->
+                        <div class="tab-pane fade" id="tabSucursales" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-primary mb-0"><i class="fas fa-store"></i> Gestión de Sucursales</h6>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="openSucursalModal()">
+                                    <i class="fas fa-plus"></i> Nueva Sucursal
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table id="tableSucursales" class="table table-sm table-hover table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Nombre</th>
+                                            <th>Teléfono</th>
+                                            <th>Email</th>
+                                            <th>Principal</th>
+                                            <th>Estado</th>
+                                            <th style="width: 100px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableSucursalesBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">No hay sucursales registradas</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: Terminales -->
+                        <div class="tab-pane fade" id="tabTerminales" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-primary mb-0"><i class="fas fa-cash-register"></i> Gestión de Terminales</h6>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="openTerminalModal()" id="btnNewTerminal">
+                                    <i class="fas fa-plus"></i> Nuevo Terminal
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Filtrar por Sucursal</label>
+                                <select class="form-select form-select-sm" id="filterSucursal">
+                                    <option value="">-- Todas las sucursales --</option>
+                                </select>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table id="tableTerminales" class="table table-sm table-hover table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Sucursal</th>
+                                            <th>Código</th>
+                                            <th>Nombre</th>
+                                            <th>Estado</th>
+                                            <th style="width: 100px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableTerminalesBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">No hay terminales registrados</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 4: Consecutivos -->
+                        <div class="tab-pane fade" id="tabConsecutivos" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-primary mb-0"><i class="fas fa-list-ol"></i> Gestión de Consecutivos</h6>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="openConsecutivoModal()" id="btnNewConsecutivo">
+                                    <i class="fas fa-plus"></i> Nuevo Consecutivo
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Filtrar por Terminal</label>
+                                <select class="form-select form-select-sm" id="filterTerminal">
+                                    <option value="">-- Todos los terminales --</option>
+                                </select>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table id="tableConsecutivos" class="table table-sm table-hover table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Terminal</th>
+                                            <th>Tipo Doc</th>
+                                            <th>Próximo Consecutivo</th>
+                                            <th>Último Usado</th>
+                                            <th>Estado</th>
+                                            <th style="width: 100px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableConsecutivosBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No hay consecutivos registrados</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveEmpresa">
+                        <i class="fas fa-save"></i> Guardar Empresa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Sucursal Create/Edit -->
+<div class="modal fade" id="modalSucursal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalSucursalTitle">Nueva Sucursal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formSucursal">
+                <div class="modal-body">
+                    <input type="hidden" id="Sucursal_Id" value="00000000-0000-0000-0000-000000000000" />
+                    <input type="hidden" id="Sucursal_EmpresaId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Código <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Sucursal_Codigo" maxlength="10" required />
+                        <small class="text-muted">Código único de 3 dígitos (ej: 001, 002)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Sucursal_Nombre" maxlength="200" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" id="Sucursal_Telefono" maxlength="20" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="Sucursal_Email" maxlength="100" />
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="Sucursal_EsPrincipal" />
+                        <label class="form-check-label" for="Sucursal_EsPrincipal">
+                            <strong>Sucursal Principal</strong>
+                        </label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Sucursal_Activo" checked />
+                        <label class="form-check-label" for="Sucursal_Activo">
+                            Sucursal Activa
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Terminal Create/Edit -->
+<div class="modal fade" id="modalTerminal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalTerminalTitle">Nuevo Terminal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formTerminal">
+                <div class="modal-body">
+                    <input type="hidden" id="Terminal_Id" value="00000000-0000-0000-0000-000000000000" />
+                    <input type="hidden" id="Terminal_SucursalId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Sucursal <span class="text-danger">*</span></label>
+                        <select class="form-select" id="Terminal_SucursalIdSelect" required>
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Código <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Terminal_Codigo" maxlength="10" required />
+                        <small class="text-muted">Código único de 5 dígitos (ej: 00001)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Terminal_Nombre" maxlength="200" required />
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Terminal_Activo" checked />
+                        <label class="form-check-label" for="Terminal_Activo">
+                            Terminal Activo
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Consecutivo Create/Edit -->
+<div class="modal fade" id="modalConsecutivo" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="modalConsecutivoTitle">Nuevo Consecutivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formConsecutivo">
+                <div class="modal-body">
+                    <input type="hidden" id="Consecutivo_Id" value="00000000-0000-0000-0000-000000000000" />
+                    <input type="hidden" id="Consecutivo_TerminalId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Terminal <span class="text-danger">*</span></label>
+                        <select class="form-select" id="Consecutivo_TerminalIdSelect" required>
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                        <select class="form-select" id="Consecutivo_TipoDocumento" required>
+                            <option value="">Seleccione...</option>
+                            <option value="01">01 - Factura Electrónica (FE)</option>
+                            <option value="02">02 - Nota de Débito (ND)</option>
+                            <option value="03">03 - Nota de Crédito (NC)</option>
+                            <option value="04">04 - Tiquete Electrónico (TE)</option>
+                            <option value="08">08 - Factura Electrónica de Compra (FEC)</option>
+                            <option value="09">09 - Factura Electrónica de Exportación (FEE)</option>
+                            <option value="10">10 - Recibo Electrónico de Pago (REP)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Número Actual <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="Consecutivo_NumeroActual" min="0" value="0" required />
+                        <small class="text-muted">Ingrese el último número utilizado (el siguiente será este + 1)</small>
+                    </div>
+
+                    <!-- Vista previa del consecutivo -->
+                    <div class="alert alert-info" id="consecutivoPreview">
+                        <label class="form-label fw-bold"><i class="fas fa-eye"></i> Vista Previa del Consecutivo:</label>
+                        <div class="font-monospace fs-5 text-center" id="consecutivoPreviewText">
+                            ---
+                        </div>
+                        <small class="text-muted d-block text-center mt-1">Formato: Sucursal-Terminal-TipoDoc-Consecutivo</small>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Consecutivo_Activo" checked />
+                        <label class="form-check-label" for="Consecutivo_Activo">
+                            Consecutivo Activo
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        let table;
+        let currentProvinciaId = 0;
+        let currentCantonId = 0;
+        let currentEmpresaId = null;
+        let sucursalesData = [];
+        let terminalesData = [];
+        let consecutivosData = [];
+        let isEditMode = false;
+
+        const tiposDocumento = {
+            '01': '01 - FE',
+            '02': '02 - ND',
+            '03': '03 - NC',
+            '04': '04 - TE',
+            '05': '05 - CCE',
+            '06': '06 - CPCE',
+            '07': '07 - RCE',
+            '08': '08 - FEC',
+            '09': '09 - FEE'
+        };
+
+        $(document).ready(function () {
+            loadDataTable();
+            setupFormSubmit();
+            setupCascadingDropdowns();
+            setupFilePreview();
+            setupTabRestrictions();
+            setupSucursalForm();
+            setupTerminalForm();
+            setupConsecutivoForm();
+        });
+
+        function loadDataTable() {
+            table = $('#tableEmpresas').DataTable({
+                ajax: {
+                    url: '?handler=Data',
+                    type: 'GET',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataSrc: 'data'
+                },
+                columns: [
+                    { data: 'numeroIdentificacion' },
+                    { data: 'nombreComercial' },
+                    { data: 'razonSocial' },
+                    { data: 'provinciaTexto' },
+                    {
+                        data: 'ambienteTexto',
+                        render: function (data, type, row) {
+                            if (row.ambiente === 'Produccion') {
+                                return '<span class="badge bg-success"><i class="fas fa-check-circle"></i> ' + data + '</span>';
+                            } else {
+                                return '<span class="badge bg-warning"><i class="fas fa-flask"></i> ' + data + '</span>';
+                            }
+                        }
+                    },
+                    {
+                        data: 'activa',
+                        render: function (data) {
+                            if (data) {
+                                return '<span class="badge bg-success"><i class="fas fa-check"></i> Activa</span>';
+                            } else {
+                                return '<span class="badge bg-danger"><i class="fas fa-times"></i> Inactiva</span>';
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        orderable: false,
+                        render: function (data) {
+                            return `
+                                <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                },
+                responsive: true,
+                order: [[1, 'asc']],
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]]
+            });
+        }
+
+        function setupFormSubmit() {
+            $('#formEmpresa').on('submit', function (e) {
+                e.preventDefault();
+                saveEmpresa();
+            });
+        }
+
+        function setupTabRestrictions() {
+            // Disable Sucursales and Terminales tabs for new empresa
+            $('button[data-tab-requires-save]').on('click', function(e) {
+                if (!isEditMode) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Atención',
+                        text: 'Debe guardar la empresa primero antes de agregar sucursales o terminales.',
+                        confirmButtonColor: '#4e73df'
+                    });
+                    // Go back to empresa tab
+                    $('#empresa-tab').tab('show');
+                }
+            });
+        }
+
+        function setupCascadingDropdowns() {
+            // Load cantones when provincia changes
+            $('#Empresa_Provincia').on('change', function () {
+                const provinciaId = $(this).val();
+                currentProvinciaId = provinciaId;
+
+                if (provinciaId) {
+                    loadCantones(provinciaId);
+                } else {
+                    $('#Empresa_Canton').html('<option value="">Seleccione provincia primero...</option>').prop('disabled', true);
+                    $('#Empresa_Distrito').html('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                }
+            });
+
+            // Load distritos when canton changes
+            $('#Empresa_Canton').on('change', function () {
+                const cantonId = $(this).val();
+                currentCantonId = cantonId;
+
+                if (cantonId && currentProvinciaId) {
+                    loadDistritos(currentProvinciaId, cantonId);
+                } else {
+                    $('#Empresa_Distrito').html('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                }
+            });
+        }
+
+        function setupFilePreview() {
+            // Logo preview
+            $('#LogoFile').on('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#logoImage').attr('src', e.target.result);
+                        $('#logoPreview').show();
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function setupSucursalForm() {
+            $('#formSucursal').on('submit', function(e) {
+                e.preventDefault();
+                saveSucursal();
+            });
+        }
+
+        function setupTerminalForm() {
+            $('#formTerminal').on('submit', function(e) {
+                e.preventDefault();
+                saveTerminal();
+            });
+
+            // Filter terminales by sucursal
+            $('#filterSucursal').on('change', function() {
+                renderTerminalesTable();
+            });
+        }
+
+        function loadCantones(provinciaId) {
+            $.ajax({
+                url: '?handler=CantonesByProvincia&provinciaId=' + provinciaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    const select = $('#Empresa_Canton');
+                    select.empty().append('<option value="">Seleccione...</option>');
+
+                    const cantones = response.data || response;
+                    cantones.forEach(item => {
+                        select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                    });
+                    select.prop('disabled', false);
+                    $('#Empresa_Distrito').html('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                },
+                error: function(xhr) {
+                    console.error('Error loading cantones:', xhr);
+                    $('#Empresa_Canton').html('<option value="">Error al cargar cantones</option>').prop('disabled', true);
+                }
+            });
+        }
+
+        function loadDistritos(provinciaId, cantonId) {
+            // Extraer solo los últimos 2 dígitos del código del cantón
+            const cantonIdSoloDigitos = String(cantonId).padStart(4, '0').slice(-2);
+            const cantonIdNumerico = parseInt(cantonIdSoloDigitos, 10);
+
+            $.ajax({
+                url: '?handler=DistritosByCanton&provinciaId=' + provinciaId + '&cantonId=' + cantonIdNumerico,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    const select = $('#Empresa_Distrito');
+                    select.empty().append('<option value="">Seleccione...</option>');
+
+                    const distritos = response.data || response;
+                    distritos.forEach(item => {
+                        select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
+                    });
+                    select.prop('disabled', false);
+                },
+                error: function(xhr) {
+                    console.error('Error loading distritos:', xhr);
+                    $('#Empresa_Distrito').html('<option value="">Error al cargar distritos</option>').prop('disabled', true);
+                }
+            });
+        }
+
+        function openCreateModal() {
+            $('#formEmpresa')[0].reset();
+            $('#Empresa_Id').val('00000000-0000-0000-0000-000000000000');
+            $('#modalTitle').text('Nueva Empresa');
+            $('#logoPreview').hide();
+            $('#Empresa_Activa').prop('checked', true);
+            $('#AmbientePruebas').prop('checked', true);
+
+            // Reset cascading dropdowns
+            $('#Empresa_Canton').html('<option value="">Seleccione provincia primero...</option>').prop('disabled', true);
+            $('#Empresa_Distrito').html('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+
+            // Reset variables
+            currentEmpresaId = null;
+            sucursalesData = [];
+            terminalesData = [];
+            consecutivosData = [];
+            isEditMode = false;
+
+            // Switch to first tab
+            $('#empresa-tab').tab('show');
+            $('#general-tab').tab('show');
+
+            // Clear tables
+            renderSucursalesTable();
+            renderTerminalesTable();
+            renderConsecutivosTable();
+
+            $('#modalEmpresa').modal('show');
+        }
+
+        function edit(id) {
+            $.ajax({
+                url: '?handler=Details&id=' + id,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        const data = response.data;
+                        currentEmpresaId = data.id;
+                        isEditMode = true;
+
+                        // Populate form fields
+                        $('#Empresa_Id').val(data.id);
+                        $('#Empresa_TipoIdentificacion').val(data.tipoIdentificacion);
+                        $('#Empresa_NumeroIdentificacion').val(data.numeroIdentificacion);
+                        $('#Empresa_NombreComercial').val(data.nombreComercial);
+                        $('#Empresa_RazonSocial').val(data.razonSocial);
+                        $('#Empresa_Provincia').val(data.provincia);
+                        $('#Empresa_OtrasSenas').val(data.otrasSenas);
+                        $('#Empresa_PinCertificado').val(data.pinCertificado);
+                        $('#Empresa_UsuarioHacienda').val(data.usuarioHacienda);
+                        $('#Empresa_ClaveHacienda').val(data.claveHacienda);
+                        $('#Empresa_ServidorSMTP').val(data.servidorSMTP);
+                        $('#Empresa_PuertoSMTP').val(data.puertoSMTP);
+                        $('#Empresa_UsuarioSMTP').val(data.usuarioSMTP);
+                        $('#Empresa_ClaveSMTP').val(data.claveSMTP);
+                        $('#Empresa_Activa').prop('checked', data.activa);
+
+                        // Set ambiente radio buttons
+                        if (data.ambiente === 1) {
+                            $('#AmbientePruebas').prop('checked', true);
+                        } else {
+                            $('#AmbienteProduccion').prop('checked', true);
+                        }
+
+                        // Load logo if exists
+                        if (data.logo) {
+                            $('#logoImage').attr('src', data.logo);
+                            $('#logoPreview').show();
+                        } else {
+                            $('#logoPreview').hide();
+                        }
+
+                        // Load cascading dropdowns
+                        currentProvinciaId = data.provincia;
+                        loadCantones(data.provincia);
+
+                        // Wait for cantones to load, then set canton and load distritos
+                        setTimeout(function () {
+                            $('#Empresa_Canton').val(data.canton);
+                            currentCantonId = data.canton;
+                            loadDistritos(data.provincia, data.canton);
+
+                            // Wait for distritos to load, then set distrito
+                            setTimeout(function () {
+                                $('#Empresa_Distrito').val(data.distrito);
+                            }, 300);
+                        }, 300);
+
+                        $('#modalTitle').text('Editar Empresa');
+                        $('#empresa-tab').tab('show');
+                        $('#general-tab').tab('show');
+
+                        // Load sucursales, terminales and consecutivos
+                        loadSucursales(data.id);
+                        loadTerminales(data.id);
+                        loadConsecutivos(data.id);
+
+                        $('#modalEmpresa').modal('show');
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function saveEmpresa() {
+            var formData = new FormData($('#formEmpresa')[0]);
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            confirmButtonColor: '#4e73df'
+                        });
+
+                        // If it was a new empresa, now we can enable the other tabs
+                        if (!isEditMode && response.empresaId) {
+                            currentEmpresaId = response.empresaId;
+                            $('#Empresa_Id').val(response.empresaId);
+                            isEditMode = true;
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Empresa Guardada',
+                                text: 'Ahora puede agregar sucursales y terminales.',
+                                confirmButtonColor: '#4e73df'
+                            });
+                        } else {
+                            // Close modal and reload table for updates
+                            $('#modalEmpresa').modal('hide');
+                            table.ajax.reload();
+                        }
+                    } else {
+                        let errorMessage = response.message;
+                        if (response.errors) {
+                            errorMessage += '<br><br>';
+                            response.errors.forEach(function (error) {
+                                errorMessage += '- ' + error.message + '<br>';
+                            });
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: errorMessage,
+                            confirmButtonColor: '#e74a3b'
+                        });
+                    }
+                },
+                error: function (xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ocurrió un error al procesar la solicitud: ' + error,
+                        confirmButtonColor: '#e74a3b'
+                    });
+                }
+            });
+        }
+
+        function deleteRecord(id) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: "Esta acción eliminará la empresa. Esta operación no se puede revertir.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e74a3b',
+                cancelButtonColor: '#858796',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Delete&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Eliminado',
+                                    text: response.message,
+                                    confirmButtonColor: '#4e73df'
+                                });
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message,
+                                    confirmButtonColor: '#e74a3b'
+                                });
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Ocurrió un error al eliminar la empresa: ' + error,
+                                confirmButtonColor: '#e74a3b'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ========================================
+        // SUCURSALES FUNCTIONS
+        // ========================================
+
+        function loadSucursales(empresaId) {
+            $.ajax({
+                url: '?handler=SucursalesByEmpresa&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        sucursalesData = response.data || [];
+                        renderSucursalesTable();
+                        updateSucursalSelects();
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading sucursales:', xhr);
+                }
+            });
+        }
+
+        function renderSucursalesTable() {
+            const tbody = $('#tableSucursalesBody');
+            tbody.empty();
+
+            if (sucursalesData.length === 0) {
+                tbody.append('<tr><td colspan="7" class="text-center text-muted">No hay sucursales registradas</td></tr>');
+                return;
+            }
+
+            sucursalesData.forEach(sucursal => {
+                const row = `
+                    <tr>
+                        <td>${sucursal.codigo}</td>
+                        <td>${sucursal.nombre}</td>
+                        <td>${sucursal.telefono || '-'}</td>
+                        <td>${sucursal.email || '-'}</td>
+                        <td>${sucursal.esPrincipal ? '<span class="badge bg-primary"><i class="fas fa-star"></i> Principal</span>' : '-'}</td>
+                        <td>${sucursal.activo ? '<span class="badge bg-success">Activa</span>' : '<span class="badge bg-secondary">Inactiva</span>'}</td>
+                        <td>
+                            <button class="btn btn-xs btn-info" onclick="editSucursal('${sucursal.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-xs btn-danger" onclick="deleteSucursal('${sucursal.id}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function updateSucursalSelects() {
+            // Update filter select in terminales tab
+            const filterSelect = $('#filterSucursal');
+            filterSelect.empty().append('<option value="">-- Todas las sucursales --</option>');
+
+            // Update sucursal select in terminal modal
+            const terminalSelect = $('#Terminal_SucursalIdSelect');
+            terminalSelect.empty().append('<option value="">Seleccione...</option>');
+
+            sucursalesData.forEach(sucursal => {
+                filterSelect.append(`<option value="${sucursal.id}">${sucursal.nombre}</option>`);
+                terminalSelect.append(`<option value="${sucursal.id}">${sucursal.nombre}</option>`);
+            });
+        }
+
+        function openSucursalModal() {
+            if (!currentEmpresaId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Debe guardar la empresa primero.',
+                    confirmButtonColor: '#4e73df'
+                });
+                return;
+            }
+
+            $('#formSucursal')[0].reset();
+            $('#Sucursal_Id').val('00000000-0000-0000-0000-000000000000');
+            $('#Sucursal_EmpresaId').val(currentEmpresaId);
+            $('#Sucursal_Activo').prop('checked', true);
+            $('#modalSucursalTitle').text('Nueva Sucursal');
+            $('#modalSucursal').modal('show');
+        }
+
+        function editSucursal(id) {
+            const sucursal = sucursalesData.find(s => s.id === id);
+            if (!sucursal) return;
+
+            $('#Sucursal_Id').val(sucursal.id);
+            $('#Sucursal_EmpresaId').val(sucursal.empresaId);
+            $('#Sucursal_Codigo').val(sucursal.codigo);
+            $('#Sucursal_Nombre').val(sucursal.nombre);
+            $('#Sucursal_Telefono').val(sucursal.telefono || '');
+            $('#Sucursal_Email').val(sucursal.email || '');
+            $('#Sucursal_EsPrincipal').prop('checked', sucursal.esPrincipal);
+            $('#Sucursal_Activo').prop('checked', sucursal.activo);
+
+            $('#modalSucursalTitle').text('Editar Sucursal');
+            $('#modalSucursal').modal('show');
+        }
+
+        function saveSucursal() {
+            const data = {
+                id: $('#Sucursal_Id').val(),
+                empresaId: $('#Sucursal_EmpresaId').val(),
+                codigo: $('#Sucursal_Codigo').val(),
+                nombre: $('#Sucursal_Nombre').val(),
+                telefono: $('#Sucursal_Telefono').val() || null,
+                email: $('#Sucursal_Email').val() || null,
+                esPrincipal: $('#Sucursal_EsPrincipal').is(':checked'),
+                activo: $('#Sucursal_Activo').is(':checked')
+            };
+
+            $.ajax({
+                url: '?handler=SaveSucursal',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            confirmButtonColor: '#4e73df',
+                            timer: 1500
+                        });
+                        $('#modalSucursal').modal('hide');
+                        loadSucursales(currentEmpresaId);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message,
+                            confirmButtonColor: '#e74a3b'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ocurrió un error al guardar la sucursal',
+                        confirmButtonColor: '#e74a3b'
+                    });
+                }
+            });
+        }
+
+        function deleteSucursal(id) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: "Esta acción eliminará la sucursal.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e74a3b',
+                cancelButtonColor: '#858796'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=DeleteSucursal&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Eliminado',
+                                    text: response.message,
+                                    confirmButtonColor: '#4e73df',
+                                    timer: 1500
+                                });
+                                loadSucursales(currentEmpresaId);
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message,
+                                    confirmButtonColor: '#e74a3b'
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // ========================================
+        // TERMINALES FUNCTIONS
+        // ========================================
+
+        function loadTerminales(empresaId) {
+            $.ajax({
+                url: '?handler=TerminalesByEmpresa&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        terminalesData = response.data || [];
+                        renderTerminalesTable();
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading terminales:', xhr);
+                }
+            });
+        }
+
+        function renderTerminalesTable() {
+            const tbody = $('#tableTerminalesBody');
+            tbody.empty();
+
+            let filteredData = terminalesData;
+            const filterSucursalId = $('#filterSucursal').val();
+            if (filterSucursalId) {
+                filteredData = terminalesData.filter(t => t.sucursalId === filterSucursalId);
+            }
+
+            if (filteredData.length === 0) {
+                tbody.append('<tr><td colspan="5" class="text-center text-muted">No hay terminales registrados</td></tr>');
+                return;
+            }
+
+            filteredData.forEach(terminal => {
+                const sucursal = sucursalesData.find(s => s.id === terminal.sucursalId);
+
+                const row = `
+                    <tr>
+                        <td>${sucursal ? sucursal.nombre : '-'}</td>
+                        <td>${terminal.codigo}</td>
+                        <td>${terminal.nombre}</td>
+                        <td>${terminal.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
+                        <td>
+                            <button class="btn btn-xs btn-info" onclick="editTerminal('${terminal.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-xs btn-danger" onclick="deleteTerminal('${terminal.id}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+
+            // Update terminal select for consecutivos
+            updateTerminalSelects();
+        }
+
+        function openTerminalModal() {
+            if (!currentEmpresaId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Debe guardar la empresa primero.',
+                    confirmButtonColor: '#4e73df'
+                });
+                return;
+            }
+
+            if (sucursalesData.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Debe crear al menos una sucursal primero.',
+                    confirmButtonColor: '#4e73df'
+                });
+                return;
+            }
+
+            $('#formTerminal')[0].reset();
+            $('#Terminal_Id').val('00000000-0000-0000-0000-000000000000');
+            $('#Terminal_Activo').prop('checked', true);
+            $('#modalTerminalTitle').text('Nuevo Terminal');
+            $('#modalTerminal').modal('show');
+        }
+
+        function editTerminal(id) {
+            const terminal = terminalesData.find(t => t.id === id);
+            if (!terminal) return;
+
+            $('#Terminal_Id').val(terminal.id);
+            $('#Terminal_SucursalId').val(terminal.sucursalId);
+            $('#Terminal_SucursalIdSelect').val(terminal.sucursalId);
+            $('#Terminal_Codigo').val(terminal.codigo);
+            $('#Terminal_Nombre').val(terminal.nombre);
+            $('#Terminal_Activo').prop('checked', terminal.activo);
+
+            $('#modalTerminalTitle').text('Editar Terminal');
+            $('#modalTerminal').modal('show');
+        }
+
+        function saveTerminal() {
+            const data = {
+                id: $('#Terminal_Id').val(),
+                sucursalId: $('#Terminal_SucursalIdSelect').val(),
+                codigo: $('#Terminal_Codigo').val(),
+                nombre: $('#Terminal_Nombre').val(),
+                activo: $('#Terminal_Activo').is(':checked')
+            };
+
+            // Validation
+            if (!data.sucursalId) {
+                Swal.fire('Error', 'Debe seleccionar una sucursal', 'error');
+                return;
+            }
+
+            $.ajax({
+                url: '?handler=SaveTerminal',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            confirmButtonColor: '#4e73df',
+                            timer: 1500
+                        });
+                        $('#modalTerminal').modal('hide');
+                        loadTerminales(currentEmpresaId);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message,
+                            confirmButtonColor: '#e74a3b'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ocurrió un error al guardar el terminal',
+                        confirmButtonColor: '#e74a3b'
+                    });
+                }
+            });
+        }
+
+        function deleteTerminal(id) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: "Esta acción eliminará el terminal.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e74a3b',
+                cancelButtonColor: '#858796'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=DeleteTerminal&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Eliminado',
+                                    text: response.message,
+                                    confirmButtonColor: '#4e73df',
+                                    timer: 1500
+                                });
+                                loadTerminales(currentEmpresaId);
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message,
+                                    confirmButtonColor: '#e74a3b'
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // ========================================
+        // CONSECUTIVOS FUNCTIONS
+        // ========================================
+
+        function updateTerminalSelects() {
+            // Update filter select in consecutivos tab
+            const filterSelect = $('#filterTerminal');
+            filterSelect.empty().append('<option value="">-- Todos los terminales --</option>');
+
+            // Update terminal select in consecutivo modal
+            const consecutivoSelect = $('#Consecutivo_TerminalIdSelect');
+            consecutivoSelect.empty().append('<option value="">Seleccione...</option>');
+
+            terminalesData.forEach(terminal => {
+                const sucursal = sucursalesData.find(s => s.id === terminal.sucursalId);
+                const label = sucursal ? `${sucursal.nombre} - ${terminal.nombre}` : terminal.nombre;
+                filterSelect.append(`<option value="${terminal.id}">${label}</option>`);
+                consecutivoSelect.append(`<option value="${terminal.id}">${label}</option>`);
+            });
+        }
+
+        function setupConsecutivoForm() {
+            $('#formConsecutivo').on('submit', function(e) {
+                e.preventDefault();
+                saveConsecutivo();
+            });
+
+            // Filter consecutivos by terminal
+            $('#filterTerminal').on('change', function() {
+                renderConsecutivosTable();
+            });
+
+            // Update preview when terminal, tipo documento or numero changes
+            $('#Consecutivo_TerminalIdSelect, #Consecutivo_TipoDocumento, #Consecutivo_NumeroActual').on('change keyup', function() {
+                updateConsecutivoPreview();
+            });
+        }
+
+        function updateConsecutivoPreview() {
+            const terminalId = $('#Consecutivo_TerminalIdSelect').val();
+            const tipoDocumento = $('#Consecutivo_TipoDocumento').val();
+            const numeroActual = parseInt($('#Consecutivo_NumeroActual').val()) || 0;
+
+            if (!terminalId || !tipoDocumento) {
+                $('#consecutivoPreviewText').text('---');
+                return;
+            }
+
+            // Get terminal and sucursal info
+            const terminal = terminalesData.find(t => t.id === terminalId);
+            if (!terminal) {
+                $('#consecutivoPreviewText').text('---');
+                return;
+            }
+
+            const sucursal = sucursalesData.find(s => s.id === terminal.sucursalId);
+            const codigoSucursal = (sucursal?.codigo || '001').toString().padStart(3, '0');
+            const codigoTerminal = terminal.codigo.toString().padStart(5, '0');
+            const siguienteNumero = (numeroActual + 1).toString().padStart(10, '0');
+
+            const consecutivoFormateado = `${codigoSucursal}-${codigoTerminal}-${tipoDocumento}-${siguienteNumero}`;
+            $('#consecutivoPreviewText').text(consecutivoFormateado);
+        }
+
+        function loadConsecutivos(empresaId) {
+            $.ajax({
+                url: '?handler=ConsecutivosByEmpresa&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        consecutivosData = response.data || [];
+                        renderConsecutivosTable();
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading consecutivos:', xhr);
+                }
+            });
+        }
+
+        function renderConsecutivosTable() {
+            const tbody = $('#tableConsecutivosBody');
+            tbody.empty();
+
+            let filteredData = consecutivosData;
+            const filterTerminalId = $('#filterTerminal').val();
+            if (filterTerminalId) {
+                filteredData = consecutivosData.filter(c => c.terminalId === filterTerminalId);
+            }
+
+            if (filteredData.length === 0) {
+                tbody.append('<tr><td colspan="6" class="text-center text-muted">No hay consecutivos registrados</td></tr>');
+                return;
+            }
+
+            filteredData.forEach(consecutivo => {
+                const terminal = terminalesData.find(t => t.id === consecutivo.terminalId);
+                const sucursal = terminal ? sucursalesData.find(s => s.id === terminal.sucursalId) : null;
+                const terminalLabel = terminal ? (sucursal ? `${sucursal.nombre} - ${terminal.nombre}` : terminal.nombre) : '-';
+
+                // Generate formatted consecutive preview
+                const codigoSucursal = (sucursal?.codigo || '001').toString().padStart(3, '0');
+                const codigoTerminal = terminal ? terminal.codigo.toString().padStart(5, '0') : '00000';
+                const siguienteNumero = (consecutivo.numeroActual + 1).toString().padStart(10, '0');
+                const consecutivoFormateado = `${codigoSucursal}-${codigoTerminal}-${consecutivo.tipoDocumento}-${siguienteNumero}`;
+
+                const row = `
+                    <tr>
+                        <td>${terminalLabel}</td>
+                        <td>${tiposDocumento[consecutivo.tipoDocumento] || consecutivo.tipoDocumento}</td>
+                        <td><code class="text-primary">${consecutivoFormateado}</code></td>
+                        <td>${consecutivo.numeroActual}</td>
+                        <td>${consecutivo.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
+                        <td>
+                            <button class="btn btn-xs btn-info" onclick="editConsecutivo('${consecutivo.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-xs btn-danger" onclick="deleteConsecutivo('${consecutivo.id}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function openConsecutivoModal() {
+            if (!currentEmpresaId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Debe guardar la empresa primero.',
+                    confirmButtonColor: '#4e73df'
+                });
+                return;
+            }
+
+            if (terminalesData.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Debe crear al menos un terminal primero.',
+                    confirmButtonColor: '#4e73df'
+                });
+                return;
+            }
+
+            $('#formConsecutivo')[0].reset();
+            $('#Consecutivo_Id').val('00000000-0000-0000-0000-000000000000');
+            $('#Consecutivo_NumeroActual').val(0);
+            $('#Consecutivo_Activo').prop('checked', true);
+            $('#consecutivoPreviewText').text('---');
+            $('#modalConsecutivoTitle').text('Nuevo Consecutivo');
+            $('#modalConsecutivo').modal('show');
+        }
+
+        function editConsecutivo(id) {
+            const consecutivo = consecutivosData.find(c => c.id === id);
+            if (!consecutivo) return;
+
+            $('#Consecutivo_Id').val(consecutivo.id);
+            $('#Consecutivo_TerminalId').val(consecutivo.terminalId);
+            $('#Consecutivo_TerminalIdSelect').val(consecutivo.terminalId);
+            $('#Consecutivo_TipoDocumento').val(consecutivo.tipoDocumento);
+            $('#Consecutivo_NumeroActual').val(consecutivo.numeroActual);
+            $('#Consecutivo_Activo').prop('checked', consecutivo.activo);
+
+            // Update preview
+            updateConsecutivoPreview();
+
+            $('#modalConsecutivoTitle').text('Editar Consecutivo');
+            $('#modalConsecutivo').modal('show');
+        }
+
+        function saveConsecutivo() {
+            const terminalId = $('#Consecutivo_TerminalIdSelect').val();
+            const tipoDocumento = $('#Consecutivo_TipoDocumento').val();
+            const numeroActual = parseInt($('#Consecutivo_NumeroActual').val()) || 0;
+
+            // Validation
+            if (!terminalId) {
+                Swal.fire('Error', 'Debe seleccionar un terminal', 'error');
+                return;
+            }
+
+            if (!tipoDocumento) {
+                Swal.fire('Error', 'Debe seleccionar un tipo de documento', 'error');
+                return;
+            }
+
+            if (numeroActual < 0) {
+                Swal.fire('Error', 'El número actual no puede ser negativo', 'error');
+                return;
+            }
+
+            // Get terminal and sucursal to generate claveNumeracion
+            const terminal = terminalesData.find(t => t.id === terminalId);
+            const sucursal = terminal ? sucursalesData.find(s => s.id === terminal.sucursalId) : null;
+            const codigoSucursal = (sucursal?.codigo || '001').toString().padStart(3, '0');
+            const codigoTerminal = terminal ? terminal.codigo.toString().padStart(5, '0') : '00001';
+
+            // Auto-generate claveNumeracion
+            const claveNumeracion = `${codigoSucursal}-${codigoTerminal}-${tipoDocumento}`;
+
+            const data = {
+                id: $('#Consecutivo_Id').val(),
+                terminalId: terminalId,
+                tipoDocumento: tipoDocumento,
+                descripcion: null,
+                claveNumeracion: claveNumeracion,
+                numeroInicio: 1,
+                numeroFin: 9999999999,
+                numeroActual: numeroActual,
+                activo: $('#Consecutivo_Activo').is(':checked')
+            };
+
+            $.ajax({
+                url: '?handler=SaveConsecutivo',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            confirmButtonColor: '#4e73df',
+                            timer: 1500
+                        });
+                        $('#modalConsecutivo').modal('hide');
+                        loadConsecutivos(currentEmpresaId);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message,
+                            confirmButtonColor: '#e74a3b'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ocurrió un error al guardar el consecutivo',
+                        confirmButtonColor: '#e74a3b'
+                    });
+                }
+            });
+        }
+
+        function deleteConsecutivo(id) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: "Esta acción eliminará el consecutivo.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e74a3b',
+                cancelButtonColor: '#858796'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=DeleteConsecutivo&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Eliminado',
+                                    text: response.message,
+                                    confirmButtonColor: '#4e73df',
+                                    timer: 1500
+                                });
+                                loadConsecutivos(currentEmpresaId);
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message,
+                                    confirmButtonColor: '#e74a3b'
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+
+    <style>
+        .card {
+            border: none;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .modal-xl {
+            max-width: 1200px;
+        }
+
+        .nav-tabs .nav-link {
+            color: #6c757d;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #4e73df;
+            font-weight: 600;
+        }
+
+        .nav-tabs-sm .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            font-size: 0.85rem;
+            padding: 0.35em 0.65em;
+        }
+
+        .btn-sm {
+            margin: 0 2px;
+        }
+
+        .btn-xs {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1;
+            border-radius: 0.2rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .text-danger {
+            font-size: 0.875rem;
+        }
+
+        #logoPreview {
+            text-align: center;
+        }
+
+        .img-thumbnail {
+            border: 2px solid #dee2e6;
+        }
+    </style>
+}

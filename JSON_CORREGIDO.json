@@ -1,0 +1,42 @@
+{
+  "tipoDocumento": 1,
+  "empresaId": "d7eb6eb4-9463-41a7-5df7-08de2b7440bd",
+  "sucursalId": "d65eb67d-024e-4577-2126-08de2ebd8144",
+  "terminalId": "01f8bcbd-77db-4f3a-1074-08de2edaf606",
+  "actividadEconomica": "620900",
+  "clienteId": "238bf6b8-b4f6-4122-0791-08de2f0974e4",
+  "condicionVenta": "04",
+  "medioPago": "04",
+  "plazoCreditoDias": null,
+  "observaciones": null,
+  "moneda": 1,
+  "tipoCambio": 1.0,
+  "receptorNombre": "3DX IMAGENES DENTALES Y MAXILOFACIALES S.A",
+  "receptorTipoIdentificacion": 2,
+  "receptorNumeroIdentificacion": "3101601306",
+  "receptorActividadEconomica": "861001",
+  "receptorEmails": "gsanchez@smarttechcr.com",
+  "receptorTelefono": "87026858",
+  "receptorProvincia": 1,
+  "receptorCanton": 101,
+  "receptorDistrito": 10103,
+  "receptorOtrasSenas": "100 sur 200 norte",
+  "detalles": [
+    {
+      "numeroLinea": 1,
+      "codigo": "002",
+      "codigoCabys": "1010101010101",
+      "descripcion": "Materia Prima 3",
+      "cantidad": 1,
+      "unidadMedidaId": 1,
+      "precioUnitario": 5000,
+      "impuestos": [
+        {
+          "codigoTarifa": "08",
+          "tarifa": 13,
+          "monto": 650
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+using Facturacion.Backend.Data;
+using Facturacion.Backend.Repositories.Interfaces;
+using Facturacion.Shared.Entities;
+using Facturacion.Shared.Enums;
+using Microsoft.EntityFrameworkCore;
+
+namespace Facturacion.Backend.Repositories.Implementations;
+
+public class DocumentoRepository : IDocumentoRepository
+{
+    private readonly DataContext _context;
+
+    public DocumentoRepository(DataContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Documento?> GetAsync(Guid id)
+    {
+        return await _context.Documentos
+            .Include(d => d.Empresa)
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted);
+    }
+
+    public async Task<Documento?> GetWithDetallesAsync(Guid id)
+    {
+        return await _context.Documentos
+            .Include(d => d.Empresa)
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Include(d => d.Detalles.Where(det => !det.IsDeleted))
+                .ThenInclude(det => det.Producto)
+            .Include(d => d.Detalles.Where(det => !det.IsDeleted))
+                .ThenInclude(det => det.UnidadMedida)
+            .Include(d => d.Detalles.Where(det => !det.IsDeleted))
+                .ThenInclude(det => det.Impuestos.Where(imp => !imp.IsDeleted))
+            .Include(d => d.Detalles.Where(det => !det.IsDeleted))
+                .ThenInclude(det => det.Descuentos.Where(desc => !desc.IsDeleted))
+            .Include(d => d.Descuentos.Where(desc => !desc.IsDeleted))
+            .Include(d => d.Referencias.Where(r => !r.IsDeleted))
+            .Include(d => d.MediosPago.Where(mp => !mp.IsDeleted))
+            .Include(d => d.OtraInformacion.Where(oi => !oi.IsDeleted))
+            .Include(d => d.Exportacion)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted);
+    }
+
+    public async Task<IEnumerable<Documento>> GetByEmpresaAsync(Guid empresaId)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.EmpresaId == empresaId && !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Documento>> GetBySucursalAsync(Guid sucursalId)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.SucursalId == sucursalId && !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Documento>> GetByTerminalAsync(Guid terminalId)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.TerminalId == terminalId && !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Documento>> GetByClienteAsync(Guid clienteId)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Where(d => d.ClienteId == clienteId && !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<Documento?> GetByClaveAsync(string clave)
+    {
+        return await _context.Documentos
+            .Include(d => d.Empresa)
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Clave == clave && !d.IsDeleted);
+    }
+
+    public async Task<Documento?> GetByConsecutivoAsync(Guid empresaId, string numeroConsecutivo)
+    {
+        return await _context.Documentos
+            .Include(d => d.Empresa)
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.EmpresaId == empresaId &&
+                                     d.NumeroConsecutivo == numeroConsecutivo &&
+                                     !d.IsDeleted);
+    }
+
+    public async Task<IEnumerable<Documento>> GetByFechaRangoAsync(Guid empresaId, DateTime fechaInicio, DateTime fechaFin)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.EmpresaId == empresaId &&
+                       d.FechaEmision >= fechaInicio &&
+                       d.FechaEmision <= fechaFin &&
+                       !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Documento>> GetByEstadoAsync(Guid empresaId, EstadoDocumento estado)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.EmpresaId == empresaId &&
+                       d.Estado == estado &&
+                       !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Documento>> GetPendientesEnvioAsync(Guid empresaId)
+    {
+        return await _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.EmpresaId == empresaId &&
+                       (d.Estado == EstadoDocumento.Pendiente || d.Estado == EstadoDocumento.Contingencia) &&
+                       !d.IsDeleted)
+            .OrderBy(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<Documento> AddAsync(Documento documento)
+    {
+        documento.FechaCreacion = DateTime.UtcNow;
+        _context.Documentos.Add(documento);
+        await _context.SaveChangesAsync();
+        return documento;
+    }
+
+    public async Task UpdateAsync(Documento documento)
+    {
+        documento.FechaModificacion = DateTime.UtcNow;
+        _context.Documentos.Update(documento);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Guid id, string userId)
+    {
+        var documento = await _context.Documentos.FindAsync(id);
+        if (documento != null)
+        {
+            documento.IsDeleted = true;
+            documento.FechaEliminacion = DateTime.UtcNow;
+            documento.UsuarioEliminacionId = userId;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    // ========================================
+    // MÉTODOS PARA DOCUMENTOS RECIBIDOS
+    // ========================================
+
+    public async Task<IEnumerable<Documento>> GetDocumentosRecibidosAsync(Guid empresaId)
+    {
+        return await _context.Documentos
+            .Include(d => d.Proveedor)
+            .Include(d => d.Sucursal)
+            .Where(d => d.EmpresaId == empresaId &&
+                       d.EsDocumentoRecibido == true &&
+                       !d.IsDeleted)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Documento>> GetDocumentosPendientesMRAsync(Guid empresaId)
+    {
+        // Obtener documentos recibidos que NO tienen mensaje receptor asociado
+        // y que están dentro del plazo de 8 días calendario desde la emisión
+        var fechaLimite = DateTime.Now.AddDays(-8);
+
+        return await _context.Documentos
+            .Include(d => d.Proveedor)
+            .Where(d => d.EmpresaId == empresaId &&
+                       d.EsDocumentoRecibido == true &&
+                       d.FechaEmision >= fechaLimite && // Aún dentro del plazo
+                       !d.IsDeleted &&
+                       !_context.Set<DocumentoReceptorMensaje>()
+                           .Any(m => m.DocumentoOriginalId == d.Id && !m.IsDeleted))
+            .OrderBy(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<bool> ExisteDocumentoPorClaveAsync(string clave, Guid empresaId)
+    {
+        return await _context.Documentos
+            .AnyAsync(d => d.Clave == clave &&
+                          d.EmpresaId == empresaId &&
+                          !d.IsDeleted);
+    }
+}
