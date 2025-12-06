@@ -61,7 +61,10 @@ public class DocumentoEnvioBackgroundService : BackgroundService
         var documentoService = scope.ServiceProvider.GetRequiredService<IDocumentoHaciendaService>();
         var notificacionService = scope.ServiceProvider.GetRequiredService<INotificacionService>();
 
-        // Obtener documentos pendientes (no eliminados, estado Pendiente)
+        // Tiempo mínimo para reintentar documentos con error (esperar 2 minutos antes de reintentar)
+        var tiempoMinimoReintento = DateTime.Now.AddMinutes(-2);
+
+        // Obtener documentos pendientes (estado Pendiente) o con error técnico (estado Error)
         var documentosPendientes = await context.Documentos
             .Include(d => d.Empresa)
             .Include(d => d.Sucursal)
@@ -69,15 +72,18 @@ public class DocumentoEnvioBackgroundService : BackgroundService
             .Include(d => d.Detalles)
                 .ThenInclude(det => det.Impuestos)
             .Where(d => !d.IsDeleted &&
-                       d.Estado == EstadoDocumento.Pendiente &&
-                       d.FechaEnvioHacienda == null)
+                       ((d.Estado == EstadoDocumento.Pendiente && d.FechaEnvioHacienda == null) ||
+                        (d.Estado == EstadoDocumento.Error && d.FechaEnvioHacienda < tiempoMinimoReintento)))
+            .OrderBy(d => d.FechaEmision) // Más antiguos primero
             .Take(10) // Procesar máximo 10 a la vez
             .ToListAsync(stoppingToken);
 
         if (!documentosPendientes.Any())
             return;
 
-        _logger.LogInformation("Procesando {0} documentos pendientes de envío", documentosPendientes.Count);
+        var pendientes = documentosPendientes.Count(d => d.Estado == EstadoDocumento.Pendiente);
+        var conError = documentosPendientes.Count(d => d.Estado == EstadoDocumento.Error);
+        _logger.LogInformation("Procesando {Pendientes} documentos pendientes y {ConError} documentos con error", pendientes, conError);
 
         foreach (var documento in documentosPendientes)
         {
@@ -146,6 +152,9 @@ public class DocumentoEnvioBackgroundService : BackgroundService
 
     /// <summary>
     /// Verifica el estado de documentos que ya fueron enviados
+    /// Consulta documentos en estado Procesando que:
+    /// 1. No tienen FechaRespuestaHacienda (respuesta pendiente)
+    /// 2. O tienen más de 5 minutos en estado Procesando (por seguridad)
     /// </summary>
     private async Task VerificarDocumentosEnProcesoAsync(CancellationToken stoppingToken)
     {
@@ -154,15 +163,26 @@ public class DocumentoEnvioBackgroundService : BackgroundService
         var documentoService = scope.ServiceProvider.GetRequiredService<IDocumentoHaciendaService>();
         var notificacionService = scope.ServiceProvider.GetRequiredService<INotificacionService>();
 
-        // Obtener documentos en proceso (enviados pero sin respuesta)
+        // Tiempo límite para considerar un documento "atascado" en Procesando
+        var tiempoLimite = DateTime.Now.AddMinutes(-5);
+
+        // Obtener documentos en proceso:
+        // - Sin respuesta final (FechaRespuestaHacienda == null)
+        // - O que llevan más de 5 minutos en Procesando (por si acaso)
         var documentosEnProceso = await context.Documentos
             .Include(d => d.Empresa)
             .Where(d => !d.IsDeleted &&
                        d.Estado == EstadoDocumento.Procesando &&
                        d.FechaEnvioHacienda != null &&
-                       d.FechaRespuestaHacienda == null)
+                       (d.FechaRespuestaHacienda == null || d.FechaEnvioHacienda < tiempoLimite))
+            .OrderBy(d => d.FechaEnvioHacienda) // Más antiguos primero
             .Take(10)
             .ToListAsync(stoppingToken);
+
+        if (documentosEnProceso.Any())
+        {
+            _logger.LogInformation("Verificando estado de {Count} documentos en proceso", documentosEnProceso.Count);
+        }
 
         foreach (var documento in documentosEnProceso)
         {
@@ -172,38 +192,67 @@ public class DocumentoEnvioBackgroundService : BackgroundService
             try
             {
                 // Consultar estado en Hacienda
+                _logger.LogDebug("Consultando estado en Hacienda para documento {Clave} (ID: {DocumentoId})",
+                    documento.Clave, documento.Id);
+
                 var estado = await documentoService.ConsultarEstadoAsync(documento.Id);
 
                 if (!string.IsNullOrEmpty(estado.Estado))
                 {
-                    documento.FechaRespuestaHacienda = DateTime.Now;
-                    documento.MensajeHacienda = estado.Mensaje;
+                    var estadoAnterior = documento.Estado;
 
                     switch (estado.Estado.ToLowerInvariant())
                     {
                         case "aceptado":
                             documento.Estado = EstadoDocumento.Aceptado;
+                            documento.FechaRespuestaHacienda = DateTime.Now;
+                            documento.MensajeHacienda = estado.Mensaje;
+
+                            _logger.LogInformation("Documento {Clave} cambió de {EstadoAnterior} a Aceptado",
+                                documento.Clave, estadoAnterior);
+
                             await CrearNotificacionEstadoAsync(notificacionService, documento,
                                 TipoNotificacion.DocumentoAceptado, "success", "fa-check-circle");
                             break;
 
                         case "rechazado":
                             documento.Estado = EstadoDocumento.Rechazado;
+                            documento.FechaRespuestaHacienda = DateTime.Now;
+                            documento.MensajeHacienda = estado.Mensaje;
+
+                            _logger.LogWarning("Documento {Clave} cambió de {EstadoAnterior} a Rechazado: {Mensaje}",
+                                documento.Clave, estadoAnterior, estado.Mensaje);
+
                             await CrearNotificacionEstadoAsync(notificacionService, documento,
                                 TipoNotificacion.DocumentoRechazado, "danger", "fa-times-circle");
                             break;
 
                         case "procesando":
+                        case "enviado":
                             // Todavía en proceso, no hacer nada
+                            // NO establecer FechaRespuestaHacienda para que se vuelva a consultar
+                            documento.MensajeHacienda = "Documento aún en proceso de validación por Hacienda";
+                            _logger.LogDebug("Documento {Clave} aún en proceso de validación", documento.Clave);
+                            break;
+
+                        default:
+                            _logger.LogWarning("Documento {Clave} tiene estado desconocido: {Estado}",
+                                documento.Clave, estado.Estado);
                             break;
                     }
 
                     await context.SaveChangesAsync(stoppingToken);
                 }
+                else
+                {
+                    _logger.LogWarning("Consulta de estado para documento {Clave} no retornó estado válido",
+                        documento.Clave);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error consultando estado del documento {DocumentoId}", documento.Id);
+                _logger.LogError(ex, "Error consultando estado del documento {Clave} (ID: {DocumentoId})",
+                    documento.Clave, documento.Id);
             }
         }
     }

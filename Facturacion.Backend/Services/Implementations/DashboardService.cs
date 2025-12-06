@@ -574,7 +574,9 @@ public class DashboardService : IDashboardService
             DocumentoTipo.TiqueteElectronico => "TE - Tiquete Electrónico",
             DocumentoTipo.FacturaElectronicaExportacion => "FEE - Factura Exportación",
             DocumentoTipo.FacturaElectronicaCompra => "FEC - Factura Compra",
-            DocumentoTipo.ComprobanteCompraElectronico => "CCE - Comprobante Compra",
+            DocumentoTipo.NotaCreditoElectronicaCompra => "NCC - Nota Crédito Compra",
+            DocumentoTipo.NotaDebitoElectronicaCompra => "NDC - Nota Débito Compra",
+            DocumentoTipo.ComprobanteElectronicoCompra => "CCE - Comprobante Compra",
             DocumentoTipo.ReciboElectronicoPago => "REP - Recibo de Pago",
             _ => tipo.ToString()
         };

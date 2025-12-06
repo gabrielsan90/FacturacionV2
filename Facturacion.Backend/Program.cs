@@ -201,9 +201,16 @@ builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IAuditori
 
 // Dependency Injection - Servicios v4.4 (Validación, Tipo de Cambio, Encriptación, Errores)
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IValidacionDocumentoService, Facturacion.Backend.Services.Implementations.ValidacionDocumentoService>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IValidacionCalculosService, Facturacion.Backend.Services.Implementations.ValidacionCalculosService>(); // NUEVO v4.4 - M8
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.ITipoCambioBCCRService, Facturacion.Backend.Services.Implementations.TipoCambioBCCRService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IEncryptionService, Facturacion.Backend.Services.Implementations.EncryptionService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IHaciendaErrorService, Facturacion.Backend.Services.Implementations.HaciendaErrorService>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IXsdValidacionService, Facturacion.Backend.Services.Implementations.XsdValidacionService>();
+
+// Dependency Injection - Servicios de APIs de Hacienda (CABYS, Actividades Económicas, Exoneraciones)
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.ICabysService, Facturacion.Backend.Services.Implementations.CabysService>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IActividadEconomicaService, Facturacion.Backend.Services.Implementations.ActividadEconomicaService>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IExoneracionService, Facturacion.Backend.Services.Implementations.ExoneracionService>();
 
 // Dependency Injection - Hacienda Token Module (OAuth2)
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IHaciendaTokenRepository, Facturacion.Backend.Repositories.Implementations.HaciendaTokenRepository>();

@@ -1,3 +1,4 @@
+using Facturacion.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -30,6 +31,18 @@ public class DocumentoDetalle
     [Display(Name = "Número de Línea")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public int NumeroLinea { get; set; }
+
+    // ========================================
+    // TIPO DE TRANSACCIÓN (v4.4 - OBLIGATORIO)
+    // ========================================
+
+    /// <summary>
+    /// NUEVO v4.4 - OBLIGATORIO: Tipo de transacción de la línea
+    /// Códigos 01-13 según catálogo Hacienda
+    /// 01=Venta bienes, 02=Venta servicios, 05=Exportación bienes, etc.
+    /// </summary>
+    [Display(Name = "Tipo de Transacción")]
+    public TipoTransaccion? TipoTransaccion { get; set; }
 
     // ========================================
     // PRODUCTO/SERVICIO
@@ -208,9 +221,15 @@ public class DocumentoDetalle
 
     /// <summary>
     /// OBLIGATORIO desde 01/12/2024 para productos farmacéuticos:
-    /// Forma farmacéutica (01-Tableta, 02-Cápsula, 03-Jarabe, etc.)
+    /// Forma farmacéutica (FK al catálogo)
     /// </summary>
     [Display(Name = "Forma Farmacéutica")]
+    public int? FormaFarmaceuticaId { get; set; }
+
+    /// <summary>
+    /// CAMPO LEGACY: Mantener por compatibilidad - usar FormaFarmaceuticaId en nuevos desarrollos
+    /// </summary>
+    [Display(Name = "Forma Farmacéutica (Código)")]
     [MaxLength(2, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? FormaFarmaceutica { get; set; }
 
@@ -220,6 +239,19 @@ public class DocumentoDetalle
     [Display(Name = "Número VIN")]
     [MaxLength(50, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? NumeroVIN { get; set; }
+
+    // ========================================
+    // COMBOS Y PAQUETES (v4.4)
+    // ========================================
+
+    /// <summary>
+    /// NUEVO v4.4 - M1: Detalle de surtido para combos/paquetes de productos
+    /// Descripción detallada de los productos incluidos en un combo o paquete
+    /// Ejemplo: "Combo incluye: 1x Hamburguesa, 1x Papas fritas, 1x Refresco"
+    /// </summary>
+    [Display(Name = "Detalle de Surtido")]
+    [MaxLength(1000, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? DetalleSurtido { get; set; }
 
     // ========================================
     // AUDIT TRAIL
@@ -257,6 +289,7 @@ public class DocumentoDetalle
     public Documento? Documento { get; set; }
     public Producto? Producto { get; set; }
     public Catalogos.UnidadMedida? UnidadMedida { get; set; }
+    public Catalogos.FormaFarmaceutica? FormaFarmaceuticaNavigation { get; set; } // NUEVO v4.4 - M7
     public User? UsuarioCreacion { get; set; }
     public User? UsuarioModificacion { get; set; }
     public User? UsuarioEliminacion { get; set; }
@@ -272,4 +305,10 @@ public class DocumentoDetalle
     /// Permite múltiples descuentos por línea
     /// </summary>
     public ICollection<DocumentoDetalleDescuento> Descuentos { get; set; } = new List<DocumentoDetalleDescuento>();
+
+    /// <summary>
+    /// NUEVO v4.4 - M6: Números VIN asociados a esta línea
+    /// Una línea puede tener hasta 1000 números VIN (para vehículos)
+    /// </summary>
+    public ICollection<DocumentoDetalleVIN> NumerosVIN { get; set; } = new List<DocumentoDetalleVIN>();
 }

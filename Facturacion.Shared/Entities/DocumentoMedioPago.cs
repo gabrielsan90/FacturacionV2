@@ -72,6 +72,14 @@ public class DocumentoMedioPago
     [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? NumeroReferencia { get; set; }
 
+    /// <summary>
+    /// NUEVO v4.4 - Fecha específica en que se realizó el pago
+    /// Obligatorio para Recibo Electrónico de Pago (REP)
+    /// Formato: yyyy-MM-dd
+    /// </summary>
+    [Display(Name = "Fecha de Pago")]
+    public DateTime? FechaPago { get; set; }
+
     // ========================================
     // AUDIT TRAIL
     // ========================================

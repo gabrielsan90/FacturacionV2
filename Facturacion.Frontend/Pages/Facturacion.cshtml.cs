@@ -22,10 +22,10 @@ public class FacturacionModel : PageModel
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 
@@ -554,6 +554,48 @@ public class FacturacionModel : PageModel
         {
             _logger.LogError(ex, "Error updating document");
             return new JsonResult(new { success = false, message = "Error al actualizar el documento" });
+        }
+    }
+
+    // Handler to get formas farmacéuticas catalog
+    public async Task<IActionResult> OnGetFormasFarmaceuticasAsync()
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync("/api/catalogos/formas-farmaceuticas");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+
+                // Check if response has success/data structure or is direct array
+                if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("success", out var successProp))
+                {
+                    if (successProp.GetBoolean() && data.TryGetProperty("data", out var dataProp))
+                    {
+                        return new JsonResult(new { success = true, data = dataProp });
+                    }
+                }
+
+                return new JsonResult(JsonSerializer.Deserialize<object>(content, _jsonOptions));
+            }
+
+            _logger.LogWarning("Failed to load formas farmacéuticas. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new { success = false, data = new List<object>() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading formas farmacéuticas");
+            return new JsonResult(new { success = false, data = new List<object>() });
         }
     }
 }

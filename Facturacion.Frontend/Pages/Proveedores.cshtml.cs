@@ -18,10 +18,10 @@ public class ProveedoresModel : PageModel
 
     public ProveedoresModel(IHttpClientFactory httpClientFactory)
     {
-        _httpClientFactory = httpClientFactory;
-        _jsonOptions = new JsonSerializerOptions
+        _httpClientFactory = httpClientFactory;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

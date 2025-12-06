@@ -88,6 +88,7 @@
                                         <option value="5">Rechazado</option>
                                         <option value="6">Contingencia</option>
                                         <option value="7">Anulado</option>
+                                        <option value="8">Error</option>
                                     </select>
                                 </div>
                             </div>
@@ -573,6 +574,7 @@
                             const isBorrador = row.estado === "Borrador";
                             const isPendienteOrBorrador = row.estado === "Borrador" || row.estado === "Pendiente";
                             const isAceptadoOrRechazado = row.estado === "Aceptado" || row.estado === "Rechazado";
+                            const isError = row.estado === "Error";
                             const hasRespuestaHacienda = row.xmlRespuestaHacienda != null && row.xmlRespuestaHacienda.length > 0;
                             const hasBeenSent = row.fechaEnvioHacienda != null;
 
@@ -603,6 +605,15 @@
                                 buttons += `
                                     <button class="btn btn-sm btn-success" onclick="sendToHacienda('${row.id}')" title="Enviar a Hacienda">
                                         <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                `;
+                            }
+
+                            // Reintentar envío (solo para documentos con error)
+                            if (isError) {
+                                buttons += `
+                                    <button class="btn btn-sm btn-warning" onclick="reintentarEnvio('${row.id}')" title="Reintentar envío a Hacienda">
+                                        <i class="fas fa-redo"></i> Reintentar
                                     </button>
                                 `;
                             }
@@ -775,12 +786,13 @@
         function getEstadoBadge(estado) {
             const badges = {
                 'Borrador': '<span class="badge bg-secondary">Borrador</span>',
-                'Pendiente': '<span class="badge bg-warning">Pendiente</span>',
+                'Pendiente': '<span class="badge bg-warning text-dark">Pendiente</span>',
                 'Procesando': '<span class="badge bg-info">Procesando</span>',
                 'Aceptado': '<span class="badge bg-success">Aceptado</span>',
                 'Rechazado': '<span class="badge bg-danger">Rechazado</span>',
                 'Contingencia': '<span class="badge" style="background-color: orange;">Contingencia</span>',
-                'Anulado': '<span class="badge bg-dark">Anulado</span>'
+                'Anulado': '<span class="badge bg-dark">Anulado</span>',
+                'Error': '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Error</span>'
             };
             return badges[estado] || estado;
         }
@@ -1046,6 +1058,69 @@
                         error: function (xhr) {
                             const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al reenviar el documento.';
                             Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Reintentar envío de documento con error
+        function reintentarEnvio(id) {
+            Swal.fire({
+                title: 'Reintentar envío',
+                text: 'El documento tuvo un error técnico. ¿Desea reintentar el envío a Hacienda?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-redo"></i> Sí, reintentar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Procesando...',
+                        text: 'Reintentando envío a Hacienda',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    $.ajax({
+                        url: `?handler=ReintentarEnvio&id=${id}`,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            Swal.close();
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Enviado',
+                                    text: response.message,
+                                    timer: 3000
+                                });
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.message,
+                                    footer: '<small>El sistema reintentará automáticamente en unos minutos.</small>'
+                                });
+                                table.ajax.reload();
+                            }
+                        },
+                        error: function (xhr) {
+                            Swal.close();
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al reintentar el envío.';
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: message,
+                                footer: '<small>El sistema reintentará automáticamente en unos minutos.</small>'
+                            });
                         }
                     });
                 }

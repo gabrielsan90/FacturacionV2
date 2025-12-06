@@ -24,10 +24,10 @@ public class ProductosModel : PageModel
     public ProductosModel(IHttpClientFactory httpClientFactory, ILogger<ProductosModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

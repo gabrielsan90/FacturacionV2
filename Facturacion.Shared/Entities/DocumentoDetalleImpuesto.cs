@@ -63,8 +63,17 @@ public class DocumentoDetalleImpuesto
     public decimal Tarifa { get; set; }
 
     // ========================================
-    // FACTOR DE IVA DEVUELTO (CASOS ESPECIALES)
+    // FACTOR IVA (v4.4)
     // ========================================
+
+    /// <summary>
+    /// NUEVO v4.4: Factor de IVA para bienes usados
+    /// Aplica cuando se usa el método de factor para calcular IVA sobre bienes usados
+    /// Valores entre 0.0000 y 1.0000
+    /// </summary>
+    [Display(Name = "Factor IVA")]
+    [Column(TypeName = "decimal(5, 4)")]
+    public decimal? FactorIVA { get; set; }
 
     /// <summary>
     /// Factor de IVA devuelto (para casos específicos de devolución de IVA)

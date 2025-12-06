@@ -24,7 +24,8 @@ public class ClientesModel : PageModel
         _httpClientFactory = httpClientFactory;
         _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

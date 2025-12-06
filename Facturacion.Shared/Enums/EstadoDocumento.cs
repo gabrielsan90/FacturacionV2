@@ -38,5 +38,11 @@ public enum EstadoDocumento
     /// <summary>
     /// Documento anulado
     /// </summary>
-    Anulado = 7
+    Anulado = 7,
+
+    /// <summary>
+    /// Error técnico al enviar/procesar el documento (problemas de conexión, autenticación, etc.)
+    /// No es un rechazo de Hacienda, es un error del sistema que requiere reintento
+    /// </summary>
+    Error = 8
 }

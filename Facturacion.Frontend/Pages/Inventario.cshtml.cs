@@ -18,7 +18,7 @@ public class InventarioModel : PageModel
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
     }
 
     public string EmpresaId { get; set; } = "";

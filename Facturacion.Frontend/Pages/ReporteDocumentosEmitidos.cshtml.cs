@@ -15,10 +15,10 @@ public class ReporteDocumentosEmitidosModel : PageModel
     public ReporteDocumentosEmitidosModel(IHttpClientFactory httpClientFactory, ILogger<ReporteDocumentosEmitidosModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

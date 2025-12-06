@@ -16,10 +16,10 @@ public class ConfiguracionCorreoModel : PageModel
     public ConfiguracionCorreoModel(IHttpClientFactory httpClientFactory, ILogger<ConfiguracionCorreoModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

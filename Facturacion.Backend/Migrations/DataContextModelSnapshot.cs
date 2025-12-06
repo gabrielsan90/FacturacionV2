@@ -397,6 +397,38 @@ namespace Facturacion.Backend.Migrations
                     b.ToTable("Distritos");
                 });
 
+            modelBuilder.Entity("Facturacion.Shared.Entities.Catalogos.FormaFarmaceutica", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FormaFarmaceutica_Codigo");
+
+                    b.ToTable("FormasFarmaceuticas");
+                });
+
             modelBuilder.Entity("Facturacion.Shared.Entities.Catalogos.Impuesto", b =>
                 {
                     b.Property<int>("Id")
@@ -1068,6 +1100,9 @@ namespace Facturacion.Backend.Migrations
                     b.Property<DateTime?>("FechaRespuestaHacienda")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FechaVencimientoRetencion")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal?>("IVADevuelto")
                         .HasPrecision(18, 5)
                         .HasColumnType("decimal(18, 5)");
@@ -1352,6 +1387,10 @@ namespace Facturacion.Backend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("DetalleSurtido")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<Guid>("DocumentoId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1367,6 +1406,9 @@ namespace Facturacion.Backend.Migrations
                     b.Property<string>("FormaFarmaceutica")
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)");
+
+                    b.Property<int?>("FormaFarmaceuticaId")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("ImpuestoNeto")
                         .HasPrecision(18, 5)
@@ -1425,6 +1467,9 @@ namespace Facturacion.Backend.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("nvarchar(2)");
 
+                    b.Property<int?>("TipoTransaccion")
+                        .HasColumnType("int");
+
                     b.Property<string>("UnidadMedidaComercial")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -1445,6 +1490,8 @@ namespace Facturacion.Backend.Migrations
 
                     b.HasIndex("DocumentoId")
                         .HasDatabaseName("IX_DocumentoDetalle_DocumentoId");
+
+                    b.HasIndex("FormaFarmaceuticaId");
 
                     b.HasIndex("ProductoId");
 
@@ -1534,6 +1581,9 @@ namespace Facturacion.Backend.Migrations
                     b.Property<Guid>("DocumentoDetalleId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("FactorIVA")
+                        .HasColumnType("decimal(5, 4)");
+
                     b.Property<decimal?>("FactorIVADevuelto")
                         .HasPrecision(18, 5)
                         .HasColumnType("decimal(5, 2)");
@@ -1614,6 +1664,45 @@ namespace Facturacion.Backend.Migrations
                     b.HasIndex("UsuarioModificacionId");
 
                     b.ToTable("DocumentoDetalleImpuestos");
+                });
+
+            modelBuilder.Entity("Facturacion.Shared.Entities.DocumentoDetalleVIN", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentoDetalleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("NumeroOrden")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NumeroVIN")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("UsuarioCreacionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentoDetalleId")
+                        .HasDatabaseName("IX_DocumentoDetalleVIN_DetalleId");
+
+                    b.HasIndex("UsuarioCreacionId");
+
+                    b.HasIndex("DocumentoDetalleId", "NumeroOrden")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DocumentoDetalleVIN_Detalle_Orden");
+
+                    b.ToTable("DocumentoDetalleVINs");
                 });
 
             modelBuilder.Entity("Facturacion.Shared.Entities.DocumentoExportacion", b =>
@@ -1767,6 +1856,9 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaPago")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
@@ -2151,6 +2243,17 @@ namespace Facturacion.Backend.Migrations
                     b.Property<string>("PinCertificado")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProveedorSistemasIdentificacion")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ProveedorSistemasNombre")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("ProveedorSistemasTipoIdentificacion")
+                        .HasColumnType("int");
 
                     b.Property<int>("Provincia")
                         .HasColumnType("int");
@@ -3780,6 +3883,11 @@ namespace Facturacion.Backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Facturacion.Shared.Entities.Catalogos.FormaFarmaceutica", "FormaFarmaceuticaNavigation")
+                        .WithMany()
+                        .HasForeignKey("FormaFarmaceuticaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Facturacion.Shared.Entities.Producto", "Producto")
                         .WithMany()
                         .HasForeignKey("ProductoId")
@@ -3805,6 +3913,8 @@ namespace Facturacion.Backend.Migrations
                         .HasForeignKey("UsuarioModificacionId");
 
                     b.Navigation("Documento");
+
+                    b.Navigation("FormaFarmaceuticaNavigation");
 
                     b.Navigation("Producto");
 
@@ -3881,6 +3991,24 @@ namespace Facturacion.Backend.Migrations
                     b.Navigation("UsuarioEliminacion");
 
                     b.Navigation("UsuarioModificacion");
+                });
+
+            modelBuilder.Entity("Facturacion.Shared.Entities.DocumentoDetalleVIN", b =>
+                {
+                    b.HasOne("Facturacion.Shared.Entities.DocumentoDetalle", "DocumentoDetalle")
+                        .WithMany("NumerosVIN")
+                        .HasForeignKey("DocumentoDetalleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Facturacion.Shared.Entities.User", "UsuarioCreacion")
+                        .WithMany()
+                        .HasForeignKey("UsuarioCreacionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DocumentoDetalle");
+
+                    b.Navigation("UsuarioCreacion");
                 });
 
             modelBuilder.Entity("Facturacion.Shared.Entities.DocumentoExportacion", b =>
@@ -4671,6 +4799,8 @@ namespace Facturacion.Backend.Migrations
                     b.Navigation("Descuentos");
 
                     b.Navigation("Impuestos");
+
+                    b.Navigation("NumerosVIN");
                 });
 
             modelBuilder.Entity("Facturacion.Shared.Entities.Empresa", b =>

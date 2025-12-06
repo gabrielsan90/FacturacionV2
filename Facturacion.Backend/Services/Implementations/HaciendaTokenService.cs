@@ -23,6 +23,10 @@ public class HaciendaTokenService : IHaciendaTokenService
     private const string UrlIdpStag = "https://idp.comprobanteselectronicos.go.cr/auth/realms/rut-stag/protocol/openid-connect/token";
     private const string UrlIdpProd = "https://idp.comprobanteselectronicos.go.cr/auth/realms/rut/protocol/openid-connect/token";
 
+    // Margen de seguridad: considerar el token como expirado 30 segundos antes de su vencimiento real
+    // Esto previene errores si el token expira durante una llamada a Hacienda
+    private const int MargenSeguridadSegundos = 30;
+
     public HaciendaTokenService(
         DataContext context,
         IHttpClientFactory httpClientFactory,
@@ -53,6 +57,7 @@ public class HaciendaTokenService : IHaciendaTokenService
                 .FirstOrDefaultAsync();
 
             var ahora = DateTime.Now;
+            var margenSeguridad = TimeSpan.FromSeconds(MargenSeguridadSegundos);
 
             // CASO 1: No hay token -> Obtener nuevo token
             if (tokenExistente == null)
@@ -62,10 +67,10 @@ public class HaciendaTokenService : IHaciendaTokenService
                 return nuevoToken.AccessToken;
             }
 
-            // CASO 2: Refresh token expiró -> Obtener nuevo token
-            if (ahora >= tokenExistente.FechaExpiracionRefreshToken)
+            // CASO 2: Refresh token expiró o está por expirar -> Obtener nuevo token
+            if (ahora.Add(margenSeguridad) >= tokenExistente.FechaExpiracionRefreshToken)
             {
-                _logger.LogInformation("Refresh token expirado. Obteniendo nuevo token...");
+                _logger.LogInformation("Refresh token expirado o próximo a expirar. Obteniendo nuevo token...");
 
                 // Invalidar token anterior
                 tokenExistente.Activo = false;
@@ -75,17 +80,18 @@ public class HaciendaTokenService : IHaciendaTokenService
                 return nuevoToken.AccessToken;
             }
 
-            // CASO 3: Access token expiró pero refresh token válido -> Refrescar token
-            if (ahora >= tokenExistente.FechaExpiracionToken)
+            // CASO 3: Access token expiró o está por expirar pero refresh token válido -> Refrescar token
+            if (ahora.Add(margenSeguridad) >= tokenExistente.FechaExpiracionToken)
             {
-                _logger.LogInformation("Access token expirado. Refrescando token...");
+                _logger.LogInformation("Access token expirado o próximo a expirar. Refrescando token...");
                 var tokenRefrescado = await RefrescarTokenAsync(empresaId, ambiente);
                 return tokenRefrescado.AccessToken;
             }
 
             // CASO 4: Token válido -> Retornar token existente
-            _logger.LogInformation("Token válido encontrado. Expira en {Minutos} minutos",
-                (tokenExistente.FechaExpiracionToken - ahora).TotalMinutes);
+            var tiempoRestante = tokenExistente.FechaExpiracionToken - ahora;
+            _logger.LogInformation("Token válido encontrado. Expira en {Minutos:F1} minutos ({Segundos} segundos)",
+                tiempoRestante.TotalMinutes, (int)tiempoRestante.TotalSeconds);
 
             return tokenExistente.AccessToken;
         }

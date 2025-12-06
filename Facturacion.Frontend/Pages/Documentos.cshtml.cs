@@ -17,10 +17,10 @@ public class DocumentosModel : PageModel
     public DocumentosModel(IHttpClientFactory httpClientFactory, ILogger<DocumentosModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 
@@ -463,5 +463,28 @@ public class DocumentosModel : PageModel
         }
 
         return new JsonResult(new { success = false, message = "No se pudo obtener la información del cliente" });
+    }
+
+    // Handler to retry sending a document that had a technical error
+    public async Task<IActionResult> OnPostReintentarEnvioAsync(string id)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        // Call the API endpoint to retry the document
+        var response = await client.PostAsync($"/api/Documentos/{id}/reintentar", null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new JsonResult(new { success = true, message = "Documento marcado para reintento. Se procesará en breve." });
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return new JsonResult(new { success = false, message = error });
     }
 }

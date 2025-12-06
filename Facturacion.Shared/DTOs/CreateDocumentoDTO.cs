@@ -140,7 +140,13 @@ public class CreateDocumentoDetalleDTO
     // Impuestos de la línea
     public List<CreateDocumentoDetalleImpuestoDTO>? Impuestos { get; set; }
 
-    // Campos específicos
+    // Campos específicos v4.4
+    [MaxLength(2)]
+    public string? TipoTransaccion { get; set; }
+
+    [MaxLength(1000)]
+    public string? DetalleSurtido { get; set; }
+
     [MaxLength(20)]
     public string? NumeroPartidaArancelaria { get; set; }
 
@@ -232,6 +238,11 @@ public class CreateDocumentoMedioPagoDTO
 
     [Required]
     public decimal Monto { get; set; }
+
+    /// <summary>
+    /// Fecha de pago - Requerido para REP según v4.4
+    /// </summary>
+    public DateTime? FechaPago { get; set; }
 }
 
 /// <summary>

@@ -15,10 +15,10 @@ public class ImpuestosPageModel : PageModel
     public ImpuestosPageModel(IHttpClientFactory httpClientFactory, ILogger<ImpuestosPageModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
 

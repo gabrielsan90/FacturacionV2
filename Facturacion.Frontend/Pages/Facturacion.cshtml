@@ -799,6 +799,50 @@
                         </div>
                     </div>
 
+                    <!-- Campos adicionales v4.4 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="Linea_TipoTransaccion" class="form-label">Tipo de Transacción</label>
+                            <select class="form-select" id="Linea_TipoTransaccion">
+                                <option value="">-- Seleccione --</option>
+                                <option value="01">01 - Venta de bienes</option>
+                                <option value="02">02 - Venta de servicios</option>
+                                <option value="03">03 - Importación de bienes</option>
+                                <option value="04">04 - Importación de servicios</option>
+                                <option value="05">05 - Exportación de bienes</option>
+                                <option value="06">06 - Exportación de servicios</option>
+                                <option value="07">07 - Compras locales de bienes</option>
+                                <option value="08">08 - Compras locales de servicios</option>
+                                <option value="09">09 - Devolución de mercancías</option>
+                                <option value="10">10 - Descuentos y bonificaciones</option>
+                                <option value="11">11 - Anticipos</option>
+                                <option value="12">12 - Arrendamiento</option>
+                                <option value="13">13 - Otros</option>
+                            </select>
+                            <small class="text-muted">Opcional - Tipo de transacción v4.4</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="Linea_CodigoCabys" class="form-label">Código CAByS <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Linea_CodigoCabys" maxlength="13" placeholder="1234567890123">
+                            <small class="text-muted">13 caracteres - Obligatorio desde 01/06/2025</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="Linea_FormaFarmaceutica" class="form-label">Forma Farmacéutica</label>
+                            <select class="form-select" id="Linea_FormaFarmaceutica">
+                                <option value="">-- Seleccione --</option>
+                            </select>
+                            <small class="text-muted">Solo para productos farmacéuticos</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="Linea_DetalleSurtido" class="form-label">Detalle Surtido</label>
+                            <textarea class="form-control" id="Linea_DetalleSurtido" rows="2" maxlength="1000" placeholder="Detalle de combos/paquetes..."></textarea>
+                            <small class="text-muted">Máx. 1000 caracteres - Para combos/paquetes</small>
+                        </div>
+                    </div>
+
                     <!-- Calculated Subtotal -->
                     <div class="row">
                         <div class="col-md-12">
@@ -918,6 +962,14 @@
             $('#PaisDestino').select2({
                 theme: 'bootstrap-5',
                 placeholder: 'Seleccione país...',
+                allowClear: true
+            });
+
+            // Initialize Select2 for Forma Farmacéutica
+            $('#Linea_FormaFarmaceutica').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#modalLinea'),
+                placeholder: 'Seleccione forma farmacéutica...',
                 allowClear: true
             });
 
@@ -1080,6 +1132,7 @@
             loadPaises();
             loadProvincias();
             loadEmpresaData();
+            loadFormasFarmaceuticas();
             setFechaDocumento();
         }
 
@@ -1464,6 +1517,29 @@
             }
         }
 
+        function loadFormasFarmaceuticas() {
+            $.ajax({
+                url: '?handler=FormasFarmaceuticas',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    const select = $('#Linea_FormaFarmaceutica');
+                    select.empty().append('<option value="">-- Seleccione --</option>');
+
+                    if (response && response.data) {
+                        response.data.forEach(function (item) {
+                            select.append(`<option value="${item.codigo}">${item.codigo} - ${item.descripcion}</option>`);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading formas farmacéuticas:', xhr);
+                }
+            });
+        }
+
         function loadPaises() {
             // Load countries from API or use static list
             const paises = [
@@ -1613,6 +1689,11 @@
                 $('#Linea_PrecioUnitario').val(line.precioUnitario);
                 $('#Linea_DescuentoPorcentaje').val(line.descuentoPorcentaje);
                 $('#Linea_ImpuestoPorcentaje').val(line.impuestoPorcentaje);
+                // Campos v4.4
+                $('#Linea_TipoTransaccion').val(line.tipoTransaccion || '');
+                $('#Linea_CodigoCabys').val(line.codigoCabys || '');
+                $('#Linea_FormaFarmaceutica').val(line.formaFarmaceutica || '');
+                $('#Linea_DetalleSurtido').val(line.detalleSurtido || '');
                 calculateLineSubtotal();
             } else {
                 // Add mode
@@ -1620,6 +1701,11 @@
                 $('#Linea_Cantidad').val('1.000');
                 $('#Linea_DescuentoPorcentaje').val('0');
                 $('#Linea_ImpuestoPorcentaje').val('13');
+                // Clear v4.4 fields
+                $('#Linea_TipoTransaccion').val('');
+                $('#Linea_CodigoCabys').val('');
+                $('#Linea_FormaFarmaceutica').val('');
+                $('#Linea_DetalleSurtido').val('');
             }
 
             $('#modalLinea').modal('show');
@@ -1652,7 +1738,12 @@
                 impuestoPorcentaje: impPorcentaje,
                 montoDescuento: descuento,
                 montoImpuesto: impuesto,
-                subtotal: total
+                subtotal: total,
+                // Campos v4.4
+                tipoTransaccion: $('#Linea_TipoTransaccion').val() || null,
+                codigoCabys: $('#Linea_CodigoCabys').val() || null,
+                formaFarmaceutica: $('#Linea_FormaFarmaceutica').val() || null,
+                detalleSurtido: $('#Linea_DetalleSurtido').val() || null
             };
 
             if (index >= 0) {
@@ -1981,11 +2072,15 @@
                     const detalle = {
                         numeroLinea: index + 1,
                         codigo: line.codigo,
-                        codigoCabys: '1010101010101', // TODO: Agregar campo CAByS en el modal de línea
+                        codigoCabys: line.codigoCabys || null,
                         descripcion: line.descripcion,
                         cantidad: line.cantidad,
                         unidadMedidaId: 1, // Default unit
-                        precioUnitario: line.precioUnitario
+                        precioUnitario: line.precioUnitario,
+                        // Campos v4.4
+                        tipoTransaccion: line.tipoTransaccion || null,
+                        detalleSurtido: line.detalleSurtido || null,
+                        formaFarmaceutica: line.formaFarmaceutica || null
                     };
 
                     // Agregar descuentos si existen

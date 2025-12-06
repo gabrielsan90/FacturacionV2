@@ -699,11 +699,11 @@ public class ReportesService : IReportesService
             DocumentoTipo.NotaDebitoElectronica => "Nota de Débito",
             DocumentoTipo.NotaCreditoElectronica => "Nota de Crédito",
             DocumentoTipo.TiqueteElectronico => "Tiquete Electrónico",
-            DocumentoTipo.FacturaElectronicaCompra => "Factura Electrónica de Compra",
             DocumentoTipo.FacturaElectronicaExportacion => "Factura de Exportación",
-            DocumentoTipo.ComprobanteCompraElectronico => "Comprobante de Compra",
-            DocumentoTipo.NotaDebitoElectronicaCompra => "Nota de Débito de Compra",
+            DocumentoTipo.FacturaElectronicaCompra => "Factura Electrónica de Compra",
             DocumentoTipo.NotaCreditoElectronicaCompra => "Nota de Crédito de Compra",
+            DocumentoTipo.NotaDebitoElectronicaCompra => "Nota de Débito de Compra",
+            DocumentoTipo.ComprobanteElectronicoCompra => "Comprobante de Compra",
             DocumentoTipo.ReciboElectronicoPago => "Recibo Electrónico de Pago",
             _ => "Documento desconocido"
         };

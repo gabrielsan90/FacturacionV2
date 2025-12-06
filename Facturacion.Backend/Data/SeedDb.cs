@@ -46,6 +46,7 @@ public class SeedDb
         await CheckTiposDescuentoHaciendaAsync();
         await CheckTiposDocumentoReferenciaAsync();
         await CheckCodigosReferenciaAsync();
+        await CheckFormasFarmaceuticasAsync(); // NUEVO v4.4 - M7
 
         // Datos de ejemplo para empresas existentes
         await CheckCategoriasEjemploAsync();
@@ -2173,6 +2174,62 @@ public class SeedDb
             if (nuevos.Any())
             {
                 _context.CodigosReferencia.AddRange(nuevos);
+                await _context.SaveChangesAsync();
+            }
+        }
+    }
+
+    // ===========================================
+    // NUEVO v4.4 - M7: FORMAS FARMACÉUTICAS
+    // ===========================================
+
+    private async Task CheckFormasFarmaceuticasAsync()
+    {
+        // Catálogo oficial Hacienda v4.4 - Formas Farmacéuticas
+        // Obligatorio desde 01/12/2024 para productos farmacéuticos
+        var formasOficiales = new List<(string Codigo, string Descripcion)>
+        {
+            ("01", "Tableta"),
+            ("02", "Cápsula"),
+            ("03", "Jarabe"),
+            ("04", "Solución inyectable"),
+            ("05", "Crema/Ungüento"),
+            ("06", "Suspensión"),
+            ("07", "Gotas"),
+            ("08", "Parche transdérmico"),
+            ("09", "Supositorio"),
+            ("10", "Aerosol/Inhalador"),
+            ("99", "Otros")
+        };
+
+        if (!_context.FormasFarmaceuticas.Any())
+        {
+            var formas = formasOficiales.Select(f => new FormaFarmaceutica
+            {
+                Codigo = f.Codigo,
+                Descripcion = f.Descripcion,
+                Activo = true
+            }).ToList();
+
+            _context.FormasFarmaceuticas.AddRange(formas);
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            // Agregar formas faltantes
+            var existentes = await _context.FormasFarmaceuticas.Select(f => f.Codigo).ToListAsync();
+            var nuevas = formasOficiales
+                .Where(f => !existentes.Contains(f.Codigo))
+                .Select(f => new FormaFarmaceutica
+                {
+                    Codigo = f.Codigo,
+                    Descripcion = f.Descripcion,
+                    Activo = true
+                }).ToList();
+
+            if (nuevas.Any())
+            {
+                _context.FormasFarmaceuticas.AddRange(nuevas);
                 await _context.SaveChangesAsync();
             }
         }

@@ -264,6 +264,47 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- NUEVO v4.4: Proveedor de Sistemas -->
+                                    <hr class="my-4" />
+                                    <h6 class="text-primary mb-3">
+                                        <i class="fas fa-code"></i> Proveedor de Sistemas (v4.4 - OBLIGATORIO)
+                                    </h6>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Información del desarrollador del sistema de facturación.</strong>
+                                        Este campo es obligatorio según la versión 4.4 de Hacienda.
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.ProveedorSistemasTipoIdentificacion" class="form-label">Tipo de Identificación Proveedor <span class="text-danger">*</span></label>
+                                                <select asp-for="Empresa.ProveedorSistemasTipoIdentificacion" asp-items="Model.TiposIdentificacion" class="form-select" id="Empresa_ProveedorSistemasTipoIdentificacion">
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <span asp-validation-for="Empresa.ProveedorSistemasTipoIdentificacion" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.ProveedorSistemasIdentificacion" class="form-label">Identificación Proveedor <span class="text-danger">*</span></label>
+                                                <input asp-for="Empresa.ProveedorSistemasIdentificacion" class="form-control" id="Empresa_ProveedorSistemasIdentificacion" maxlength="20" />
+                                                <span asp-validation-for="Empresa.ProveedorSistemasIdentificacion" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.ProveedorSistemasNombre" class="form-label">Nombre del Proveedor (Opcional)</label>
+                                                <input asp-for="Empresa.ProveedorSistemasNombre" class="form-control" id="Empresa_ProveedorSistemasNombre" maxlength="200" placeholder="Nombre o razón social del proveedor del sistema" />
+                                                <span asp-validation-for="Empresa.ProveedorSistemasNombre" class="text-danger"></span>
+                                                <small class="form-text text-muted">Para referencia interna</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Sub-tab 3: Configuración SMTP -->
@@ -621,7 +662,7 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
         let table;
@@ -915,6 +956,13 @@
                         $('#Empresa_ClaveSMTP').val(data.claveSMTP);
                         $('#Empresa_Activa').prop('checked', data.activa);
 
+                        // NUEVO v4.4: Cargar datos de Proveedor de Sistemas
+                        if (data.proveedorSistemasTipoIdentificacion) {
+                            $('#Empresa_ProveedorSistemasTipoIdentificacion').val(data.proveedorSistemasTipoIdentificacion);
+                        }
+                        $('#Empresa_ProveedorSistemasIdentificacion').val(data.proveedorSistemasIdentificacion || '');
+                        $('#Empresa_ProveedorSistemasNombre').val(data.proveedorSistemasNombre || '');
+
                         // Set ambiente radio buttons
                         if (data.ambiente === 1) {
                             $('#AmbientePruebas').prop('checked', true);
@@ -1120,10 +1168,10 @@
                         <td>${sucursal.esPrincipal ? '<span class="badge bg-primary"><i class="fas fa-star"></i> Principal</span>' : '-'}</td>
                         <td>${sucursal.activo ? '<span class="badge bg-success">Activa</span>' : '<span class="badge bg-secondary">Inactiva</span>'}</td>
                         <td>
-                            <button class="btn btn-xs btn-info" onclick="editSucursal('${sucursal.id}')" title="Editar">
+                            <button type="button" class="btn btn-xs btn-info" onclick="editSucursal('${sucursal.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-xs btn-danger" onclick="deleteSucursal('${sucursal.id}')" title="Eliminar">
+                            <button type="button" class="btn btn-xs btn-danger" onclick="deleteSucursal('${sucursal.id}')" title="Eliminar">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1325,10 +1373,10 @@
                         <td>${terminal.nombre}</td>
                         <td>${terminal.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
                         <td>
-                            <button class="btn btn-xs btn-info" onclick="editTerminal('${terminal.id}')" title="Editar">
+                            <button type="button" class="btn btn-xs btn-info" onclick="editTerminal('${terminal.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-xs btn-danger" onclick="deleteTerminal('${terminal.id}')" title="Eliminar">
+                            <button type="button" class="btn btn-xs btn-danger" onclick="deleteTerminal('${terminal.id}')" title="Eliminar">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1597,10 +1645,10 @@
                         <td>${consecutivo.numeroActual}</td>
                         <td>${consecutivo.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
                         <td>
-                            <button class="btn btn-xs btn-info" onclick="editConsecutivo('${consecutivo.id}')" title="Editar">
+                            <button type="button" class="btn btn-xs btn-info" onclick="editConsecutivo('${consecutivo.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-xs btn-danger" onclick="deleteConsecutivo('${consecutivo.id}')" title="Eliminar">
+                            <button type="button" class="btn btn-xs btn-danger" onclick="deleteConsecutivo('${consecutivo.id}')" title="Eliminar">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>

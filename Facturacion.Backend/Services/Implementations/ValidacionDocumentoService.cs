@@ -258,6 +258,12 @@ public class ValidacionDocumentoService : IValidacionDocumentoService
         if (string.IsNullOrWhiteSpace(documento.ReceptorNombre))
             resultado.AgregarError("El nombre del receptor es obligatorio en Factura Electrónica");
 
+        // NUEVO v4.4 - I7: Actividad económica del receptor es OBLIGATORIA en Facturas Electrónicas desde v4.4
+        if (string.IsNullOrWhiteSpace(documento.ReceptorActividadEconomica))
+            resultado.AgregarError("La actividad económica del receptor es obligatoria en Factura Electrónica (v4.4)");
+        else if (documento.ReceptorActividadEconomica.Length != 6)
+            resultado.AgregarError("La actividad económica del receptor debe ser un código CIIU4 de 6 dígitos");
+
         // Ubicación del receptor es obligatoria (excepto Extranjero)
         if (documento.ReceptorTipoIdentificacion != TipoIdentificacion.Extranjera)
         {

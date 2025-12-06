@@ -17,6 +17,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
     private readonly IXmlGeneradorService _xmlGenerador;
     private readonly IFirmaDigitalService _firmaDigital;
     private readonly IHaciendaApiService _haciendaApi;
+    private readonly IXsdValidacionService _xsdValidacion;
+    private readonly IValidacionCalculosService _validacionCalculos; // NUEVO v4.4 - M8
     private readonly ILogger<DocumentoHaciendaService> _logger;
 
     public DocumentoHaciendaService(
@@ -25,6 +27,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         IXmlGeneradorService xmlGenerador,
         IFirmaDigitalService firmaDigital,
         IHaciendaApiService haciendaApi,
+        IXsdValidacionService xsdValidacion,
+        IValidacionCalculosService validacionCalculos, // NUEVO v4.4 - M8
         ILogger<DocumentoHaciendaService> logger)
     {
         _context = context;
@@ -32,6 +36,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         _xmlGenerador = xmlGenerador;
         _firmaDigital = firmaDigital;
         _haciendaApi = haciendaApi;
+        _xsdValidacion = xsdValidacion;
+        _validacionCalculos = validacionCalculos; // NUEVO v4.4 - M8
         _logger = logger;
     }
 
@@ -127,6 +133,46 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             await _context.SaveChangesAsync();
 
+            // 6.1. Validar XML contra XSD v4.4 (NUEVO)
+            _logger.LogInformation("Validando XML contra XSD v4.4 para documento {DocumentoId}", documentoId);
+
+            try
+            {
+                var resultadoXsd = await _xsdValidacion.ValidarXmlContraXsdAsync(xmlGenerado, documento.TipoDocumento);
+
+                if (!resultadoXsd.EsValido)
+                {
+                    resultado.Mensaje = "El XML generado no cumple con el esquema XSD v4.4";
+                    resultado.Errores = resultadoXsd.Errores;
+
+                    // Registrar errores para análisis
+                    _logger.LogError("Validación XSD falló para documento {DocumentoId}. Errores: {Errores}",
+                        documentoId, string.Join("; ", resultadoXsd.Errores));
+
+                    // Cambiar estado a Error para que el usuario pueda corregir
+                    documento.Estado = EstadoDocumento.Error;
+                    documento.MensajeHacienda = $"Error de validación XSD: {string.Join("; ", resultadoXsd.Errores.Take(3))}";
+                    await _context.SaveChangesAsync();
+
+                    return resultado;
+                }
+
+                // Log de advertencias si las hay (no impiden el envío)
+                if (resultadoXsd.Advertencias.Any())
+                {
+                    _logger.LogWarning("Advertencias XSD para documento {DocumentoId}: {Advertencias}",
+                        documentoId, string.Join("; ", resultadoXsd.Advertencias));
+                }
+
+                _logger.LogInformation("Validación XSD exitosa para documento {DocumentoId}", documentoId);
+            }
+            catch (Exception ex)
+            {
+                // No bloquear el envío si hay error en la validación XSD (modo permisivo)
+                // Solo registrar el error
+                _logger.LogWarning(ex, "Error durante validación XSD para documento {DocumentoId}. Se continúa con el envío.", documentoId);
+            }
+
             // 7. Firmar XML
             _logger.LogInformation("Firmando XML para documento {DocumentoId}", documentoId);
 
@@ -148,45 +194,48 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 return resultado;
             }
 
-            // 8. Enviar a Hacienda
-            _logger.LogInformation("Enviando documento {DocumentoId} a Hacienda", documentoId);
+            // 8. Enviar a Hacienda usando OAuth2 Bearer token (método correcto)
+            _logger.LogInformation("Enviando documento {DocumentoId} a Hacienda con OAuth2", documentoId);
             documento.Estado = EstadoDocumento.Procesando;
             documento.FechaEnvioHacienda = DateTime.Now;
             await _context.SaveChangesAsync();
 
             string ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
 
-            var respuestaHacienda = await _haciendaApi.EnviarDocumentoAsync(
+            // IMPORTANTE: Usar el método con OAuth2 que obtiene automáticamente un token válido
+            var respuestaHacienda = await _haciendaApi.EnviarDocumentoConTokenAsync(
                 documento.Clave,
                 documento.XmlFirmado!,
-                empresa.UsuarioHacienda,
-                empresa.ClaveHacienda,
+                empresa.Id, // EmpresaId para obtener el token válido
                 ambiente
             );
 
             resultado.RespuestaHacienda = respuestaHacienda;
 
             // 9. Procesar respuesta según el código HTTP
-            documento.FechaRespuestaHacienda = DateTime.Now;
+            // IMPORTANTE: Solo establecer FechaRespuestaHacienda cuando hay una respuesta FINAL
+            // Si el documento queda en "Procesando", NO establecer la fecha para que el BackgroundService lo consulte
             documento.XmlRespuestaHacienda = respuestaHacienda.RespuestaXml;
 
             var estadoRespuesta = respuestaHacienda.IndEstado.ToLower();
 
-            if (estadoRespuesta == "enviado")
+            if (estadoRespuesta == "enviado" || estadoRespuesta == "procesando")
             {
                 // 201/202: Documento recibido por Hacienda y en proceso de validación
+                // NO establecer FechaRespuestaHacienda para que el BackgroundService lo consulte posteriormente
                 documento.Estado = EstadoDocumento.Procesando;
                 documento.MensajeHacienda = "Documento enviado exitosamente a Hacienda y en proceso de validación";
                 resultado.Exitoso = true;
                 resultado.Mensaje = "Documento enviado exitosamente a Hacienda";
                 resultado.Estado = "Enviado";
 
-                _logger.LogInformation("Documento {DocumentoId} enviado exitosamente a Hacienda (HTTP 201/202)", documentoId);
+                _logger.LogInformation("Documento {DocumentoId} enviado exitosamente a Hacienda (HTTP 201/202) - será consultado automáticamente", documentoId);
             }
             else if (estadoRespuesta == "aceptado")
             {
                 // Respuesta posterior indica que fue aceptado
                 documento.Estado = EstadoDocumento.Aceptado;
+                documento.FechaRespuestaHacienda = DateTime.Now;
                 documento.MensajeHacienda = "Documento aceptado por Hacienda";
                 resultado.Exitoso = true;
                 resultado.Mensaje = "Documento aceptado exitosamente por Hacienda";
@@ -198,6 +247,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             {
                 // 400 Bad Request: Error de validación
                 documento.Estado = EstadoDocumento.Rechazado;
+                documento.FechaRespuestaHacienda = DateTime.Now;
 
                 var mensajes = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Mensaje));
                 var detalles = string.Join("; ", respuestaHacienda.Mensajes
@@ -223,9 +273,11 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             else if (estadoRespuesta == "error")
             {
                 // 401/403/429/50x: Error técnico (no del documento)
-                // Mantener estado anterior y registrar el error
+                // Cambiar a estado Error para que sea visible y se pueda reintentar
                 var mensajes = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Mensaje));
+                documento.Estado = EstadoDocumento.Error;
                 documento.MensajeHacienda = $"Error técnico: {mensajes}";
+                // NO establecer FechaRespuestaHacienda porque no es una respuesta de Hacienda
 
                 resultado.Exitoso = false;
                 resultado.Mensaje = "Error técnico al comunicarse con Hacienda";
@@ -237,8 +289,9 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 _logger.LogError("Error técnico al enviar documento {DocumentoId}: {Mensajes}",
                     documentoId, mensajes);
             }
-            else // procesando u otro estado
+            else // otros estados desconocidos
             {
+                // NO establecer FechaRespuestaHacienda para que el BackgroundService lo consulte
                 documento.Estado = EstadoDocumento.Procesando;
                 documento.MensajeHacienda = "Documento en proceso de validación por Hacienda";
                 resultado.Exitoso = true;
@@ -252,11 +305,79 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             return resultado;
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("token") || ex.Message.Contains("credentials") || ex.Message.Contains("Unauthorized"))
+        {
+            // Error de autenticación con Hacienda - credenciales inválidas
+            _logger.LogError(ex, "Error de autenticación con Hacienda para documento {DocumentoId}", documentoId);
+
+            // Actualizar estado del documento para indicar el error
+            var doc = await _context.Set<Documento>().FindAsync(documentoId);
+            if (doc != null)
+            {
+                doc.Estado = EstadoDocumento.Error;
+                doc.MensajeHacienda = "Error de autenticación: Las credenciales de Hacienda (ATV) son inválidas. Verifique el usuario y contraseña en la configuración de la empresa.";
+                await _context.SaveChangesAsync();
+            }
+
+            resultado.Mensaje = "Error de autenticación con Hacienda";
+            resultado.Errores.Add("Las credenciales de acceso a Hacienda (ATV) son inválidas.");
+            resultado.Errores.Add("Por favor verifique el Usuario y Contraseña de Hacienda en la configuración de la Empresa.");
+            resultado.Errores.Add("Puede obtener sus credenciales en: https://www.hacienda.go.cr/ATV/Login.aspx");
+            return resultado;
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("Unauthorized") || ex.Message.Contains("401"))
+        {
+            // Error HTTP 401 de Hacienda
+            _logger.LogError(ex, "Error HTTP 401 con Hacienda para documento {DocumentoId}", documentoId);
+
+            var doc = await _context.Set<Documento>().FindAsync(documentoId);
+            if (doc != null)
+            {
+                doc.Estado = EstadoDocumento.Error;
+                doc.MensajeHacienda = "Error de autenticación: Credenciales de Hacienda inválidas o expiradas.";
+                await _context.SaveChangesAsync();
+            }
+
+            resultado.Mensaje = "Error de autenticación con Hacienda";
+            resultado.Errores.Add("Las credenciales de acceso a Hacienda son inválidas o han expirado.");
+            resultado.Errores.Add("Verifique el Usuario y Contraseña de Hacienda en la configuración de la Empresa.");
+            return resultado;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al procesar documento {DocumentoId}", documentoId);
-            resultado.Mensaje = "Error al procesar el documento";
-            resultado.Errores.Add($"Error interno: {ex.Message}");
+
+            // Detectar errores de credenciales en el mensaje de la excepción
+            string mensajeError = ex.Message;
+            var innerEx = ex.InnerException;
+            while (innerEx != null)
+            {
+                mensajeError += " | " + innerEx.Message;
+                innerEx = innerEx.InnerException;
+            }
+
+            if (mensajeError.Contains("invalid_grant") || mensajeError.Contains("Invalid user credentials") ||
+                mensajeError.Contains("Unauthorized") || mensajeError.Contains("token"))
+            {
+                var doc = await _context.Set<Documento>().FindAsync(documentoId);
+                if (doc != null)
+                {
+                    doc.Estado = EstadoDocumento.Error;
+                    doc.MensajeHacienda = "Error de autenticación: Credenciales de Hacienda inválidas.";
+                    await _context.SaveChangesAsync();
+                }
+
+                resultado.Mensaje = "Error de autenticación con Hacienda";
+                resultado.Errores.Add("Las credenciales de acceso a Hacienda (ATV) son inválidas.");
+                resultado.Errores.Add("Verifique el Usuario y Contraseña en la configuración de la Empresa.");
+                resultado.Errores.Add("Si el problema persiste, regenere su contraseña en el portal ATV de Hacienda.");
+            }
+            else
+            {
+                resultado.Mensaje = "Error al procesar el documento";
+                resultado.Errores.Add($"Error: {ex.Message}");
+            }
+
             return resultado;
         }
     }
@@ -300,10 +421,10 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             string ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
 
-            var respuestaHacienda = await _haciendaApi.ConsultarEstadoAsync(
+            // IMPORTANTE: Usar el método con OAuth2 que obtiene automáticamente un token válido
+            var respuestaHacienda = await _haciendaApi.ConsultarEstadoConTokenAsync(
                 documento.Clave,
-                empresa.UsuarioHacienda,
-                empresa.ClaveHacienda!,
+                empresa.Id, // EmpresaId para obtener el token válido
                 ambiente
             );
 
@@ -335,10 +456,35 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             return resultado;
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("token") || ex.Message.Contains("credentials") || ex.Message.Contains("Unauthorized"))
+        {
+            _logger.LogError(ex, "Error de autenticación al consultar documento {DocumentoId}", documentoId);
+            resultado.Mensaje = "Error de autenticación con Hacienda: Las credenciales (Usuario/Contraseña ATV) son inválidas. Por favor verifique la configuración de la empresa.";
+            return resultado;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al consultar estado del documento {DocumentoId}", documentoId);
-            resultado.Mensaje = $"Error al consultar estado: {ex.Message}";
+
+            // Detectar errores de credenciales
+            string mensajeCompleto = ex.Message;
+            var innerEx = ex.InnerException;
+            while (innerEx != null)
+            {
+                mensajeCompleto += " | " + innerEx.Message;
+                innerEx = innerEx.InnerException;
+            }
+
+            if (mensajeCompleto.Contains("invalid_grant") || mensajeCompleto.Contains("Invalid user credentials") ||
+                mensajeCompleto.Contains("Unauthorized"))
+            {
+                resultado.Mensaje = "Error de autenticación con Hacienda: Las credenciales (Usuario/Contraseña ATV) son inválidas. Verifique la configuración de la empresa.";
+            }
+            else
+            {
+                resultado.Mensaje = $"Error al consultar estado: {ex.Message}";
+            }
+
             return resultado;
         }
     }
@@ -459,6 +605,21 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         if (documento.CondicionVenta == "02" && !documento.PlazoCreditoDias.HasValue)
         {
             errores.Add("Falta el plazo de crédito (condición de venta es crédito)");
+        }
+
+        // NUEVO v4.4 - M8: Validar cálculos del documento
+        var resultadoCalculos = await _validacionCalculos.ValidarDocumentoAsync(documento);
+        if (!resultadoCalculos.EsValido)
+        {
+            errores.AddRange(resultadoCalculos.Errores);
+        }
+        // Registrar advertencias en el log
+        if (resultadoCalculos.Advertencias.Any())
+        {
+            foreach (var advertencia in resultadoCalculos.Advertencias)
+            {
+                _logger.LogWarning("Validación de cálculos - Advertencia: {Advertencia}", advertencia);
+            }
         }
 
         return errores;

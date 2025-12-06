@@ -11,15 +11,23 @@ namespace Facturacion.Backend.Services.Implementations;
 
 /// <summary>
 /// Generador de XML para documentos electrónicos según Hacienda v4.4
+/// Actualizado a namespaces v4.4 según Resolución MH-DGT-RES-0027-2024
 /// </summary>
 public class XmlGeneradorService : IXmlGeneradorService
 {
     private readonly DataContext _context;
-    private const string NamespaceFactura = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/facturaElectronica";
-    private const string NamespaceTiquete = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/tiqueteElectronico";
-    private const string NamespaceNotaCredito = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/notaCreditoElectronica";
-    private const string NamespaceNotaDebito = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/notaDebitoElectronica";
-    private const string NamespaceFacturaExportacion = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/facturaElectronicaExportacion";
+
+    // ========================================
+    // NAMESPACES v4.4 (ACTUALIZADOS)
+    // ========================================
+    private const string NamespaceFactura = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronica";
+    private const string NamespaceTiquete = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/tiqueteElectronico";
+    private const string NamespaceNotaCredito = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/notaCreditoElectronica";
+    private const string NamespaceNotaDebito = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/notaDebitoElectronica";
+    private const string NamespaceFacturaExportacion = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaExportacion";
+    private const string NamespaceFacturaCompra = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaCompra";
+    private const string NamespaceREP = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/reciboElectronicoPago";
+    private const string NamespaceMensajeReceptor = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/mensajeReceptor";
 
     public XmlGeneradorService(DataContext context)
     {
@@ -117,6 +125,8 @@ public class XmlGeneradorService : IXmlGeneradorService
             var detalles = await _context.Set<DocumentoDetalle>()
                 .Include(d => d.Impuestos)
                 .Include(d => d.Descuentos)
+                .Include(d => d.NumerosVIN) // NUEVO v4.4 - M6: Múltiples VINs
+                .Include(d => d.FormaFarmaceuticaNavigation) // NUEVO v4.4 - M7: Forma Farmacéutica
                 .Include(d => d.Producto)
                 .Where(d => d.DocumentoId == documento.Id)
                 .OrderBy(d => d.NumeroLinea)
@@ -174,6 +184,7 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarCodigoActividad(doc, ns),
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -182,7 +193,6 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarDetalleServicio(doc, ns),
                 GenerarResumenFactura(doc, ns),
                 GenerarInformacionReferencia(doc, ns),
-                GenerarNormativa(doc, ns),
                 GenerarOtros(doc, ns)
             )
         );
@@ -207,14 +217,14 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarCodigoActividad(doc, ns),
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
                 GenerarPlazoCredito(doc, ns),
                 GenerarMedioPago(doc, ns),
-                GenerarDetalleServicio(doc, ns),
+                GenerarDetalleServicio(doc, ns, esParaTiquete: true), // Tiquete NO lleva TipoTransaccion
                 GenerarResumenFactura(doc, ns),
                 GenerarInformacionReferencia(doc, ns),
-                GenerarNormativa(doc, ns),
                 GenerarOtros(doc, ns)
             )
         );
@@ -239,6 +249,7 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarCodigoActividad(doc, ns),
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -247,7 +258,6 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarDetalleServicio(doc, ns),
                 GenerarResumenFactura(doc, ns),
                 GenerarInformacionReferencia(doc, ns),
-                GenerarNormativa(doc, ns),
                 GenerarOtros(doc, ns)
             )
         );
@@ -272,6 +282,7 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarCodigoActividad(doc, ns),
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -280,7 +291,6 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarDetalleServicio(doc, ns),
                 GenerarResumenFactura(doc, ns),
                 GenerarInformacionReferencia(doc, ns),
-                GenerarNormativa(doc, ns),
                 GenerarOtros(doc, ns)
             )
         );
@@ -305,6 +315,7 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarCodigoActividad(doc, ns),
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -313,7 +324,6 @@ public class XmlGeneradorService : IXmlGeneradorService
                 GenerarDetalleServicio(doc, ns),
                 GenerarResumenFactura(doc, ns),
                 GenerarInformacionReferencia(doc, ns),
-                GenerarNormativa(doc, ns),
                 GenerarOtros(doc, ns)
             )
         );
@@ -345,6 +355,31 @@ public class XmlGeneradorService : IXmlGeneradorService
         // Formato: 2025-01-15T10:30:00-06:00
         string fecha = doc.FechaEmision.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
         return new XElement(ns + "FechaEmision", fecha);
+    }
+
+    /// <summary>
+    /// NUEVO v4.4 - OBLIGATORIO: Genera el elemento ProveedorSistemas
+    /// Identifica al desarrollador del sistema de facturación
+    /// </summary>
+    private XElement? GenerarProveedorSistemas(Documento doc, XNamespace ns)
+    {
+        var empresa = doc.Empresa;
+        if (empresa == null)
+            return null;
+
+        // Si no hay datos del proveedor, retornar null (aunque es obligatorio en v4.4)
+        if (!empresa.ProveedorSistemasTipoIdentificacion.HasValue ||
+            string.IsNullOrWhiteSpace(empresa.ProveedorSistemasIdentificacion))
+        {
+            return null;
+        }
+
+        return new XElement(ns + "ProveedorSistemas",
+            new XElement(ns + "Identificacion",
+                new XElement(ns + "Tipo", ObtenerCodigoTipoIdentificacion(empresa.ProveedorSistemasTipoIdentificacion.Value)),
+                new XElement(ns + "Numero", empresa.ProveedorSistemasIdentificacion)
+            )
+        );
     }
 
     private XElement GenerarEmisor(Documento doc, XNamespace ns)
@@ -485,21 +520,88 @@ public class XmlGeneradorService : IXmlGeneradorService
         return new XElement(ns + "MedioPago", doc.MedioPago);
     }
 
-    private XElement GenerarDetalleServicio(Documento doc, XNamespace ns)
+    /// <summary>
+    /// Genera el elemento DetalleServicio con todas las líneas del documento
+    /// </summary>
+    /// <param name="doc">Documento</param>
+    /// <param name="ns">Namespace XML</param>
+    /// <param name="esParaTiquete">Si es true, NO incluye TipoTransaccion (Tiquetes no llevan este campo)</param>
+    private XElement GenerarDetalleServicio(Documento doc, XNamespace ns, bool esParaTiquete = false)
     {
         var detalleServicio = new XElement(ns + "DetalleServicio");
 
         foreach (var linea in doc.Detalles.OrderBy(d => d.NumeroLinea))
         {
             var lineaDetalle = new XElement(ns + "LineaDetalle",
-                new XElement(ns + "NumeroLinea", linea.NumeroLinea),
-                GenerarCodigoLinea(linea, ns),
-                new XElement(ns + "Cantidad", FormatearDecimal(linea.Cantidad, 3)),
-                new XElement(ns + "UnidadMedida", linea.UnidadMedida?.Descripcion ?? "Unid"),
-                new XElement(ns + "Detalle", linea.Descripcion),
-                new XElement(ns + "PrecioUnitario", FormatearDecimal(linea.PrecioUnitario, 5)),
-                new XElement(ns + "MontoTotal", FormatearDecimal(linea.MontoTotal, 5))
+                new XElement(ns + "NumeroLinea", linea.NumeroLinea)
             );
+
+            // NUEVO v4.4: TipoTransaccion (01-13) - Obligatorio excepto en Tiquetes
+            if (!esParaTiquete && linea.TipoTransaccion.HasValue)
+            {
+                lineaDetalle.Add(new XElement(ns + "TipoTransaccion",
+                    ((int)linea.TipoTransaccion.Value).ToString("D2")));
+            }
+
+            // Código CABYS (obligatorio desde 01/06/2025)
+            if (!string.IsNullOrWhiteSpace(linea.CodigoCabys))
+            {
+                lineaDetalle.Add(new XElement(ns + "Codigo", linea.CodigoCabys));
+            }
+
+            // Código Comercial (opcional)
+            var codigoComercial = GenerarCodigoLinea(linea, ns);
+            if (codigoComercial != null)
+            {
+                lineaDetalle.Add(codigoComercial);
+            }
+
+            // Partida Arancelaria (para exportación)
+            if (!string.IsNullOrWhiteSpace(linea.NumeroPartidaArancelaria))
+            {
+                lineaDetalle.Add(new XElement(ns + "PartidaArancelaria", linea.NumeroPartidaArancelaria));
+            }
+
+            // NUEVO v4.4 - M7: Número de Registro de Medicamento (para productos farmacéuticos)
+            if (!string.IsNullOrWhiteSpace(linea.NumeroRegistroMedicamento))
+            {
+                lineaDetalle.Add(new XElement(ns + "NumeroRegistroMedicamento", linea.NumeroRegistroMedicamento));
+            }
+
+            // NUEVO v4.4 - M7: Forma Farmacéutica (para productos farmacéuticos)
+            // Usar FK si está disponible, sino usar campo legacy
+            var formaFarmaceutica = linea.FormaFarmaceuticaNavigation?.Codigo ?? linea.FormaFarmaceutica;
+            if (!string.IsNullOrWhiteSpace(formaFarmaceutica))
+            {
+                lineaDetalle.Add(new XElement(ns + "FormaFarmaceutica", formaFarmaceutica));
+            }
+
+            // NUEVO v4.4 - M6: Múltiples Números VIN (hasta 1000 para vehículos)
+            if (linea.NumerosVIN != null && linea.NumerosVIN.Any())
+            {
+                foreach (var vin in linea.NumerosVIN.OrderBy(v => v.NumeroOrden))
+                {
+                    lineaDetalle.Add(new XElement(ns + "NumeroVINoSerie", vin.NumeroVIN));
+                }
+            }
+            // Soporte legacy: VIN único en campo antiguo
+            else if (!string.IsNullOrWhiteSpace(linea.NumeroVIN))
+            {
+                lineaDetalle.Add(new XElement(ns + "NumeroVINoSerie", linea.NumeroVIN));
+            }
+
+            // NUEVO v4.4 - M1: Detalle de Surtido (para combos/paquetes)
+            if (!string.IsNullOrWhiteSpace(linea.DetalleSurtido))
+            {
+                lineaDetalle.Add(new XElement(ns + "DetalleSurtido", linea.DetalleSurtido));
+            }
+
+            // Campos obligatorios
+            lineaDetalle.Add(new XElement(ns + "Cantidad", FormatearDecimal(linea.Cantidad, 3)));
+            lineaDetalle.Add(new XElement(ns + "UnidadMedida", linea.UnidadMedida?.Codigo ?? "Unid"));
+            lineaDetalle.Add(new XElement(ns + "Detalle", linea.Descripcion));
+            lineaDetalle.Add(new XElement(ns + "PrecioUnitario", FormatearDecimal(linea.PrecioUnitario, 5)));
+            lineaDetalle.Add(new XElement(ns + "MontoTotal", FormatearDecimal(linea.MontoTotal, 5)));
 
             // Descuentos (opcional)
             if (linea.Descuentos != null && linea.Descuentos.Any())
@@ -515,17 +617,32 @@ public class XmlGeneradorService : IXmlGeneradorService
 
             lineaDetalle.Add(new XElement(ns + "SubTotal", FormatearDecimal(linea.Subtotal, 5)));
 
+            // Base Imponible (opcional)
+            if (linea.BaseImponible.HasValue && linea.BaseImponible.Value > 0)
+            {
+                lineaDetalle.Add(new XElement(ns + "BaseImponible", FormatearDecimal(linea.BaseImponible.Value, 5)));
+            }
+
             // Impuestos
             if (linea.Impuestos != null && linea.Impuestos.Any())
             {
                 foreach (var imp in linea.Impuestos)
                 {
-                    lineaDetalle.Add(new XElement(ns + "Impuesto",
+                    var impuestoElement = new XElement(ns + "Impuesto",
                         new XElement(ns + "Codigo", imp.CodigoImpuesto),
                         new XElement(ns + "CodigoTarifa", imp.CodigoTarifa),
-                        new XElement(ns + "Tarifa", FormatearDecimal(imp.Tarifa, 2)),
-                        new XElement(ns + "Monto", FormatearDecimal(imp.MontoImpuesto, 5))
-                    ));
+                        new XElement(ns + "Tarifa", FormatearDecimal(imp.Tarifa, 2))
+                    );
+
+                    // FactorIVA (nuevo en v4.4 - para IVA con factor)
+                    if (imp.FactorIVA.HasValue && imp.FactorIVA.Value > 0)
+                    {
+                        impuestoElement.Add(new XElement(ns + "FactorIVA", FormatearDecimal(imp.FactorIVA.Value, 4)));
+                    }
+
+                    impuestoElement.Add(new XElement(ns + "Monto", FormatearDecimal(imp.MontoImpuesto, 5)));
+
+                    lineaDetalle.Add(impuestoElement);
                 }
             }
 
@@ -686,9 +803,8 @@ public class XmlGeneradorService : IXmlGeneradorService
         // Cargar relaciones necesarias del documento original
         await CargarRelacionesAsync(documentoOriginal);
 
-        // Namespace del Mensaje Receptor
-        const string nsMR = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/mensajeReceptor";
-        XNamespace ns = nsMR;
+        // Namespace del Mensaje Receptor v4.4
+        XNamespace ns = NamespaceMensajeReceptor;
 
         // Crear documento XML
         var xmlDoc = new XDocument(

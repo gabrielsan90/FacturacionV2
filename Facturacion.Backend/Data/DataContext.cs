@@ -36,6 +36,7 @@ public class DataContext : IdentityDbContext<User>
     public DbSet<CodigoReferencia> CodigosReferencia { get; set; }
     public DbSet<TipoDocumentoReferencia> TiposDocumentoReferencia { get; set; }
     public DbSet<TarifaIVA> TarifasIVA { get; set; }
+    public DbSet<FormaFarmaceutica> FormasFarmaceuticas { get; set; } // NUEVO v4.4 - M7
 
     // DbSets - Empresas y Contactos
     public DbSet<Empresa> Empresas { get; set; }
@@ -60,6 +61,7 @@ public class DataContext : IdentityDbContext<User>
     public DbSet<DocumentoDetalle> DocumentoDetalles { get; set; }
     public DbSet<DocumentoDetalleImpuesto> DocumentoDetalleImpuestos { get; set; }
     public DbSet<DocumentoDetalleDescuento> DocumentoDetalleDescuentos { get; set; }
+    public DbSet<DocumentoDetalleVIN> DocumentoDetalleVINs { get; set; } // NUEVO v4.4 - M6
     public DbSet<DocumentoDescuento> DocumentoDescuentos { get; set; }
     public DbSet<DocumentoReferencia> DocumentoReferencias { get; set; }
     public DbSet<DocumentoMedioPago> DocumentoMediosPago { get; set; }
@@ -1690,6 +1692,49 @@ public class DataContext : IdentityDbContext<User>
         modelBuilder.Entity<TarifaIVA>()
             .Property(t => t.Activo)
             .HasDefaultValue(true);
+
+        // NUEVO v4.4 - M7: FormaFarmaceutica - Catálogo de Formas Farmacéuticas
+        modelBuilder.Entity<FormaFarmaceutica>()
+            .HasIndex(f => f.Codigo)
+            .IsUnique()
+            .HasDatabaseName("IX_FormaFarmaceutica_Codigo");
+
+        modelBuilder.Entity<FormaFarmaceutica>()
+            .Property(f => f.Activo)
+            .HasDefaultValue(true);
+
+        // NUEVO v4.4 - M6: DocumentoDetalleVIN - Múltiples VINs por línea de detalle
+        modelBuilder.Entity<DocumentoDetalleVIN>()
+            .HasIndex(v => v.DocumentoDetalleId)
+            .HasDatabaseName("IX_DocumentoDetalleVIN_DetalleId");
+
+        modelBuilder.Entity<DocumentoDetalleVIN>()
+            .HasIndex(v => new { v.DocumentoDetalleId, v.NumeroOrden })
+            .IsUnique()
+            .HasDatabaseName("IX_DocumentoDetalleVIN_Detalle_Orden");
+
+        modelBuilder.Entity<DocumentoDetalleVIN>()
+            .HasOne(v => v.DocumentoDetalle)
+            .WithMany(d => d.NumerosVIN)
+            .HasForeignKey(v => v.DocumentoDetalleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DocumentoDetalleVIN>()
+            .HasOne(v => v.UsuarioCreacion)
+            .WithMany()
+            .HasForeignKey(v => v.UsuarioCreacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DocumentoDetalleVIN>()
+            .Property(v => v.FechaCreacion)
+            .HasDefaultValueSql("GETDATE()");
+
+        // NUEVO v4.4 - M7: Relación DocumentoDetalle -> FormaFarmaceutica
+        modelBuilder.Entity<DocumentoDetalle>()
+            .HasOne(d => d.FormaFarmaceuticaNavigation)
+            .WithMany()
+            .HasForeignKey(d => d.FormaFarmaceuticaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // =============================================
         // 13. AUDITORÍA

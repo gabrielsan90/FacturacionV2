@@ -440,6 +440,18 @@ public class Documento
     public string? PDF { get; set; }
 
     // ========================================
+    // RETENCIÓN LEGAL (v4.4 - M9)
+    // ========================================
+
+    /// <summary>
+    /// NUEVO v4.4 - M9: Fecha de vencimiento de retención legal de documentos
+    /// Según normativa costarricense, los comprobantes deben conservarse 5 años
+    /// Calculada automáticamente: FechaEmision + 5 años
+    /// </summary>
+    [Display(Name = "Fecha Vencimiento Retención")]
+    public DateTime? FechaVencimientoRetencion { get; set; }
+
+    // ========================================
     // AUDIT TRAIL
     // ========================================
 

@@ -89,6 +89,33 @@ public class Empresa
     [Display(Name = "Ambiente Hacienda")]
     public Ambiente Ambiente { get; set; } = Ambiente.Pruebas;
 
+    // ========================================
+    // PROVEEDOR DE SISTEMAS (v4.4 - OBLIGATORIO)
+    // ========================================
+
+    /// <summary>
+    /// NUEVO v4.4 - OBLIGATORIO: Tipo de identificación del proveedor del sistema
+    /// El proveedor es el desarrollador/empresa que creó el software de facturación
+    /// </summary>
+    [Display(Name = "Tipo Identificación Proveedor")]
+    public TipoIdentificacion? ProveedorSistemasTipoIdentificacion { get; set; }
+
+    /// <summary>
+    /// NUEVO v4.4 - OBLIGATORIO: Número de identificación del proveedor del sistema
+    /// Cédula física o jurídica del desarrollador del sistema
+    /// </summary>
+    [Display(Name = "Identificación Proveedor")]
+    [MaxLength(20, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? ProveedorSistemasIdentificacion { get; set; }
+
+    /// <summary>
+    /// NUEVO v4.4 - OPCIONAL: Nombre del proveedor del sistema
+    /// Para referencia interna
+    /// </summary>
+    [Display(Name = "Nombre Proveedor Sistema")]
+    [MaxLength(200, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? ProveedorSistemasNombre { get; set; }
+
     [Display(Name = "Servidor SMTP")]
     [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? ServidorSMTP { get; set; }

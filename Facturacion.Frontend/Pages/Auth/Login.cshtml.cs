@@ -17,7 +17,8 @@ public class LoginModel : PageModel
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
     public LoginModel(IAuthService authService, IHttpClientFactory httpClientFactory, ILogger<LoginModel> logger)

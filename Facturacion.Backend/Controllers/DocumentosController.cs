@@ -18,17 +18,20 @@ public class DocumentosController : ControllerBase
     private readonly IDocumentoUnitOfWork _unitOfWork;
     private readonly IDocumentoHaciendaService _haciendaService;
     private readonly IDocumentoService _documentoService;
+    private readonly IXsdValidacionService _xsdValidacion;
     private readonly ILogger<DocumentosController> _logger;
 
     public DocumentosController(
         IDocumentoUnitOfWork unitOfWork,
         IDocumentoHaciendaService haciendaService,
         IDocumentoService documentoService,
+        IXsdValidacionService xsdValidacion,
         ILogger<DocumentosController> logger)
     {
         _unitOfWork = unitOfWork;
         _haciendaService = haciendaService;
         _documentoService = documentoService;
+        _xsdValidacion = xsdValidacion;
         _logger = logger;
     }
 
@@ -486,6 +489,72 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
+    /// Retry sending a document that had a technical error (not a Hacienda rejection)
+    /// Resets the document from Error state to Pendiente so the BackgroundService can pick it up
+    /// </summary>
+    [HttpPost("{id:guid}/reintentar")]
+    public async Task<IActionResult> ReintentarAsync(Guid id)
+    {
+        try
+        {
+            _logger.LogInformation("Reintentando envío de documento {DocumentoId}", id);
+
+            var documento = await _unitOfWork.DocumentoRepository.GetAsync(id);
+
+            if (documento == null)
+            {
+                return NotFound($"Documento con ID {id} no encontrado.");
+            }
+
+            // Only allow retry for documents in Error state
+            if (documento.Estado != EstadoDocumento.Error)
+            {
+                return BadRequest(new
+                {
+                    Exitoso = false,
+                    Mensaje = $"Solo se pueden reintentar documentos en estado Error. Estado actual: {documento.Estado}"
+                });
+            }
+
+            // Get current user ID from JWT claims
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("Usuario no autenticado.");
+            }
+
+            // Reset to Pendiente state so BackgroundService picks it up
+            documento.Estado = EstadoDocumento.Pendiente;
+            documento.FechaEnvioHacienda = null; // Clear so it's picked up immediately
+            documento.MensajeHacienda = null;
+            documento.FechaModificacion = DateTime.UtcNow;
+            documento.UsuarioModificacionId = userId;
+
+            await _unitOfWork.DocumentoRepository.UpdateAsync(documento);
+
+            _logger.LogInformation("Documento {DocumentoId} marcado para reintento por usuario {UserId}", id, userId);
+
+            return Ok(new
+            {
+                Exitoso = true,
+                Mensaje = "Documento marcado para reintento. Se procesará en breve.",
+                DocumentoId = id,
+                Estado = documento.Estado.ToString()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al reintentar envío de documento {DocumentoId}", id);
+            return StatusCode(500, new
+            {
+                Exitoso = false,
+                Mensaje = "Error interno al reintentar el envío",
+                Detalle = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
     /// Resend rejected document to Hacienda
     /// </summary>
     [HttpPost("{id:guid}/reenviar")]
@@ -885,6 +954,44 @@ public class DocumentosController : ControllerBase
         {
             _logger.LogError(ex, "Error al enviar correo del documento");
             return StatusCode(500, new { Mensaje = "Error al enviar el correo", Detalle = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Validar esquemas XSD v4.4 - Endpoint de diagnóstico
+    /// Verifica que todos los archivos XSD necesarios estén disponibles
+    /// </summary>
+    [HttpGet("diagnostico-xsd")]
+    public IActionResult DiagnosticoXsd()
+    {
+        try
+        {
+            var todosPresentes = _xsdValidacion.ValidarExistenciaEsquemasXsd();
+
+            return Ok(new
+            {
+                Exitoso = todosPresentes,
+                Mensaje = todosPresentes
+                    ? "Todos los esquemas XSD v4.4 están disponibles"
+                    : "Faltan algunos archivos XSD. Revise los logs para más detalles.",
+                EsquemasValidados = new[]
+                {
+                    "FacturaElectronica_V4.4.xsd",
+                    "TiqueteElectronico_V4.4.xsd",
+                    "NotaCreditoElectronica_V4.4.xsd",
+                    "NotaDebitoElectronica_V4.4.xsd",
+                    "FacturaElectronicaExportacion_V4.4.xsd",
+                    "FacturaElectronicaCompra_V4.4.xsd",
+                    "ReciboElectronicoPago_V4.4.xsd",
+                    "MensajeHacienda_V4.4.xsd",
+                    "MensajeReceptor_V4.4.xsd"
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al validar esquemas XSD");
+            return StatusCode(500, new { Mensaje = "Error al validar esquemas XSD", Detalle = ex.Message });
         }
     }
 }

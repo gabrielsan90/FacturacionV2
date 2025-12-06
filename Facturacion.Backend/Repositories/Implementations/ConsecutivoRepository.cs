@@ -70,6 +70,16 @@ public class ConsecutivoRepository : IConsecutivoRepository
     public async Task UpdateAsync(Consecutivo consecutivo)
     {
         consecutivo.FechaModificacion = DateTime.UtcNow;
+
+        // Detach any existing tracked entity with the same key to avoid tracking conflicts
+        var existingEntry = _context.ChangeTracker.Entries<Consecutivo>()
+            .FirstOrDefault(e => e.Entity.Id == consecutivo.Id);
+
+        if (existingEntry != null)
+        {
+            existingEntry.State = EntityState.Detached;
+        }
+
         _context.Consecutivos.Update(consecutivo);
         await _context.SaveChangesAsync();
     }
