@@ -1,6 +1,7 @@
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
+using Facturacion.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Facturacion.Backend.Repositories.Implementations;
@@ -50,11 +51,12 @@ public class ConsecutivoRepository : IConsecutivoRepository
             .FirstOrDefaultAsync(c => c.ClaveNumeracion == claveNumeracion && !c.IsDeleted);
     }
 
-    public async Task<Consecutivo?> GetByTipoDocumentoAsync(Guid terminalId, string tipoDocumento)
+    public async Task<Consecutivo?> GetByTipoDocumentoAsync(Guid terminalId, string tipoDocumento, Ambiente ambiente)
     {
         return await _context.Consecutivos
             .FirstOrDefaultAsync(c => c.TerminalId == terminalId &&
                                      c.TipoDocumento == tipoDocumento &&
+                                     c.Ambiente == ambiente &&
                                      !c.IsDeleted &&
                                      c.Activo);
     }

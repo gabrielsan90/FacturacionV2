@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaCompra" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" targetNamespace="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaCompra" elementFormDefault="qualified" attributeFormDefault="unqualified" version="4.4" vc:minVersion="1.1">
-	<xs:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="../../xmldsig-core-schema.xsd"/>
+	<xs:import namespace="http://www.w3.org/2000/09/xmldsig#" schemaLocation="xmldsig-core-schema.xsd"/>
 	<xs:element name="FacturaElectronicaCompra">
 		<xs:annotation>
 			<xs:documentation>Elemento Raiz de la Facturacion Electrónica de Compra</xs:documentation>

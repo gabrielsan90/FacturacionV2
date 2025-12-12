@@ -70,6 +70,16 @@ public class XsdValidacionService : IXsdValidacionService
             try
             {
                 xmlDoc = XDocument.Parse(xml);
+
+                // Remover el elemento Signature si existe (la firma se agrega después de la validación)
+                // El namespace de xmldsig es http://www.w3.org/2000/09/xmldsig#
+                XNamespace dsNs = "http://www.w3.org/2000/09/xmldsig#";
+                var signatureElement = xmlDoc.Descendants(dsNs + "Signature").FirstOrDefault();
+                if (signatureElement != null)
+                {
+                    _logger.LogInformation("Removiendo elemento Signature para validación XSD (se validará sin firma)");
+                    signatureElement.Remove();
+                }
             }
             catch (Exception ex)
             {
@@ -83,12 +93,24 @@ public class XsdValidacionService : IXsdValidacionService
 
             try
             {
-                // Cargar el esquema principal
-                schemas.Add(null, rutaXsd);
-
-                // IMPORTANTE: Configurar el resolvedor de esquemas para dependencias
-                // Los XSD de Hacienda referencian xmldsig-core-schema.xsd
+                // IMPORTANTE: Configurar el resolvedor de esquemas ANTES de cargar
                 schemas.XmlResolver = new XmlUrlResolver();
+
+                // Primero cargar el esquema xmldsig que es referenciado por todos los XSD de Hacienda
+                var xmldsigPath = Path.Combine(_rutaBaseXsd, "xmldsig-core-schema.xsd");
+                if (File.Exists(xmldsigPath))
+                {
+                    schemas.Add("http://www.w3.org/2000/09/xmldsig#", xmldsigPath);
+                    _logger.LogDebug("Esquema xmldsig cargado desde: {RutaXmldsig}", xmldsigPath);
+                }
+                else
+                {
+                    _logger.LogWarning("No se encontró xmldsig-core-schema.xsd en: {RutaXmldsig}", xmldsigPath);
+                }
+
+                // Cargar el esquema principal de Hacienda
+                schemas.Add(null, rutaXsd);
+                schemas.Compile();
             }
             catch (Exception ex)
             {

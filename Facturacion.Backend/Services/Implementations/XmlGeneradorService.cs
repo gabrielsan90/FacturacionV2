@@ -181,10 +181,10 @@ public class XmlGeneradorService : IXmlGeneradorService
             new XElement(ns + "FacturaElectronica",
                 new XAttribute(XNamespace.Xmlns + "xsi", xsi),
                 GenerarClave(doc, ns),
-                GenerarCodigoActividad(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // v4.4 - OBLIGATORIO (posición 2)
+                GenerarCodigoActividadEmisor(doc, ns), // v4.4 - CodigoActividadEmisor (posición 3)
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
-                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -214,10 +214,10 @@ public class XmlGeneradorService : IXmlGeneradorService
             new XElement(ns + "TiqueteElectronico",
                 new XAttribute(XNamespace.Xmlns + "xsi", xsi),
                 GenerarClave(doc, ns),
-                GenerarCodigoActividad(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // v4.4 - OBLIGATORIO (posición 2)
+                GenerarCodigoActividadEmisor(doc, ns), // v4.4 - CodigoActividadEmisor (posición 3)
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
-                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
                 GenerarPlazoCredito(doc, ns),
@@ -246,10 +246,10 @@ public class XmlGeneradorService : IXmlGeneradorService
             new XElement(ns + "NotaCreditoElectronica",
                 new XAttribute(XNamespace.Xmlns + "xsi", xsi),
                 GenerarClave(doc, ns),
-                GenerarCodigoActividad(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // v4.4 - OBLIGATORIO (posición 2)
+                GenerarCodigoActividadEmisor(doc, ns), // v4.4 - CodigoActividadEmisor (posición 3)
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
-                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -279,10 +279,10 @@ public class XmlGeneradorService : IXmlGeneradorService
             new XElement(ns + "NotaDebitoElectronica",
                 new XAttribute(XNamespace.Xmlns + "xsi", xsi),
                 GenerarClave(doc, ns),
-                GenerarCodigoActividad(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // v4.4 - OBLIGATORIO (posición 2)
+                GenerarCodigoActividadEmisor(doc, ns), // v4.4 - CodigoActividadEmisor (posición 3)
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
-                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -312,10 +312,10 @@ public class XmlGeneradorService : IXmlGeneradorService
             new XElement(ns + "FacturaElectronicaExportacion",
                 new XAttribute(XNamespace.Xmlns + "xsi", xsi),
                 GenerarClave(doc, ns),
-                GenerarCodigoActividad(doc, ns),
+                GenerarProveedorSistemas(doc, ns), // v4.4 - OBLIGATORIO (posición 2)
+                GenerarCodigoActividadEmisor(doc, ns), // v4.4 - CodigoActividadEmisor (posición 3)
                 GenerarNumeroConsecutivo(doc, ns),
                 GenerarFechaEmision(doc, ns),
-                GenerarProveedorSistemas(doc, ns), // NUEVO v4.4 - OBLIGATORIO
                 GenerarEmisor(doc, ns),
                 GenerarReceptor(doc, ns),
                 GenerarCondicionVenta(doc, ns),
@@ -340,9 +340,9 @@ public class XmlGeneradorService : IXmlGeneradorService
         return new XElement(ns + "Clave", doc.Clave);
     }
 
-    private XElement GenerarCodigoActividad(Documento doc, XNamespace ns)
+    private XElement GenerarCodigoActividadEmisor(Documento doc, XNamespace ns)
     {
-        return new XElement(ns + "CodigoActividad", doc.ActividadEconomica);
+        return new XElement(ns + "CodigoActividadEmisor", doc.ActividadEconomica);
     }
 
     private XElement GenerarNumeroConsecutivo(Documento doc, XNamespace ns)
@@ -904,8 +904,8 @@ public class XmlGeneradorService : IXmlGeneradorService
                 // 1. Clave del REP (50 dígitos)
                 new XElement(ns + "Clave", documentoREP.Clave),
 
-                // 2. CodigoActividad (CIIU4 - 6 dígitos)
-                new XElement(ns + "CodigoActividad", documentoREP.ActividadEconomica),
+                // 2. ProveedorSistemas (v4.4 - OBLIGATORIO) - REP no tiene CodigoActividad
+                GenerarProveedorSistemas(documentoREP, ns),
 
                 // 3. NumeroConsecutivo del REP
                 new XElement(ns + "NumeroConsecutivo", documentoREP.NumeroConsecutivo),

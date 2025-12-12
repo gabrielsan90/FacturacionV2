@@ -102,13 +102,18 @@ public class ConsecutivosController : ControllerBase
             return Forbid();
         }
 
-        // Verificar que no exista otro consecutivo activo para el mismo tipo de documento en el terminal
+        // Verificar que no exista otro consecutivo activo para el mismo tipo de documento y ambiente en el terminal
         var existente = await _consecutivoRepository.GetByTipoDocumentoAsync(
-            consecutivo.TerminalId, consecutivo.TipoDocumento);
+            consecutivo.TerminalId, consecutivo.TipoDocumento, consecutivo.Ambiente);
         if (existente != null && consecutivo.Activo)
         {
-            return BadRequest($"Ya existe un consecutivo activo para el tipo de documento {consecutivo.TipoDocumento} en este terminal.");
+            var ambienteNombre = consecutivo.Ambiente == Shared.Enums.Ambiente.Pruebas ? "Pruebas" : "Producción";
+            return BadRequest($"Ya existe un consecutivo activo para el tipo de documento {consecutivo.TipoDocumento} en ambiente {ambienteNombre} en este terminal.");
         }
+
+        // Asignar EmpresaId y SucursalId desde el terminal
+        consecutivo.EmpresaId = terminal.Sucursal!.EmpresaId;
+        consecutivo.SucursalId = terminal.SucursalId;
 
         // Validar numero actual no sea negativo
         if (consecutivo.NumeroActual < 0)
@@ -174,7 +179,9 @@ public class ConsecutivosController : ControllerBase
             consecutivo.NumeroFin = 9999999999;
         }
 
-        // Preservar campos de auditoría
+        // Preservar campos de auditoría y claves foráneas de jerarquía
+        consecutivo.EmpresaId = consecutivoExistente.EmpresaId;
+        consecutivo.SucursalId = consecutivoExistente.SucursalId;
         consecutivo.FechaCreacion = consecutivoExistente.FechaCreacion;
         consecutivo.UsuarioCreacionId = consecutivoExistente.UsuarioCreacionId;
 

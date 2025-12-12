@@ -8,6 +8,14 @@ public class Consecutivo
     [Key]
     public Guid Id { get; set; }
 
+    [Display(Name = "Empresa")]
+    [Required(ErrorMessage = "El campo {0} es obligatorio.")]
+    public Guid EmpresaId { get; set; }
+
+    [Display(Name = "Sucursal")]
+    [Required(ErrorMessage = "El campo {0} es obligatorio.")]
+    public Guid SucursalId { get; set; }
+
     [Display(Name = "Terminal")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public Guid TerminalId { get; set; }
@@ -73,6 +81,8 @@ public class Consecutivo
     public string? UsuarioEliminacionId { get; set; }
 
     // Navigation Properties
+    public Empresa? Empresa { get; set; }
+    public Sucursal? Sucursal { get; set; }
     public Terminal? Terminal { get; set; }
     public User? UsuarioCreacion { get; set; }
     public User? UsuarioModificacion { get; set; }

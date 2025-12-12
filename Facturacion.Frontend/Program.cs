@@ -28,7 +28,7 @@ builder.Services.AddHttpClient("FacturacionApi", client =>
 {
     var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
     client.BaseAddress = new Uri(apiBaseUrl!);
-    client.Timeout = TimeSpan.FromSeconds(30);
+    client.Timeout = TimeSpan.FromMinutes(5); // Increased for PDF generation and long operations
 });
 
 // HttpContextAccessor for accessing HttpContext in services

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(do if ! grep -q \"JsonStringEnumConverter\" \"$file\")",
-      "Bash(git -C /mnt/d/Proyectos/2/Facturacion status --short)"
+      "Bash(git -C /mnt/d/Proyectos/2/Facturacion status --short)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef database:*)"
     ],
     "deny": [],
     "ask": []

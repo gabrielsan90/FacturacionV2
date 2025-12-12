@@ -4,6 +4,7 @@ using Facturacion.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Facturacion.Backend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20251209021314_AddEmpresaSucursalToConsecutivo")]
+    partial class AddEmpresaSucursalToConsecutivo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1037,7 +1040,7 @@ namespace Facturacion.Backend.Migrations
                     b.HasIndex("TerminalId", "TipoDocumento", "Ambiente", "Activo")
                         .HasFilter("[IsDeleted] = 0 AND [Activo] = 1");
 
-                    b.HasIndex("EmpresaId", "SucursalId", "TerminalId", "TipoDocumento", "Ambiente", "ClaveNumeracion")
+                    b.HasIndex("EmpresaId", "SucursalId", "TerminalId", "TipoDocumento", "ClaveNumeracion")
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 

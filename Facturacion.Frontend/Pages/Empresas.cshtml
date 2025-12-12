@@ -444,6 +444,7 @@
                                         <tr>
                                             <th>Terminal</th>
                                             <th>Tipo Doc</th>
+                                            <th>Ambiente</th>
                                             <th>Próximo Consecutivo</th>
                                             <th>Último Usado</th>
                                             <th>Estado</th>
@@ -452,7 +453,7 @@
                                     </thead>
                                     <tbody id="tableConsecutivosBody">
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted">No hay consecutivos registrados</td>
+                                            <td colspan="7" class="text-center text-muted">No hay consecutivos registrados</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -620,6 +621,21 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Ambiente <span class="text-danger">*</span></label>
+                        <select class="form-select" id="Consecutivo_Ambiente" required>
+                            <option value="">Seleccione...</option>
+                            <option value="1">Pruebas (Staging)</option>
+                            <option value="2">Producción</option>
+                        </select>
+                        <small class="text-muted">Seleccione el ambiente de Hacienda para este consecutivo</small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Importante:</strong> Cada terminal debe tener consecutivos separados para <strong>Pruebas</strong> y <strong>Producción</strong>.
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Número Actual <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" id="Consecutivo_NumeroActual" min="0" value="0" required />
                         <small class="text-muted">Ingrese el último número utilizado (el siguiente será este + 1)</small>
@@ -684,6 +700,11 @@
             '07': '07 - RCE',
             '08': '08 - FEC',
             '09': '09 - FEE'
+        };
+
+        const ambientes = {
+            1: { nombre: 'Pruebas', badge: 'bg-warning text-dark' },
+            2: { nombre: 'Producción', badge: 'bg-success' }
         };
 
         $(document).ready(function () {
@@ -1622,7 +1643,7 @@
             }
 
             if (filteredData.length === 0) {
-                tbody.append('<tr><td colspan="6" class="text-center text-muted">No hay consecutivos registrados</td></tr>');
+                tbody.append('<tr><td colspan="7" class="text-center text-muted">No hay consecutivos registrados</td></tr>');
                 return;
             }
 
@@ -1637,10 +1658,15 @@
                 const siguienteNumero = (consecutivo.numeroActual + 1).toString().padStart(10, '0');
                 const consecutivoFormateado = `${codigoSucursal}-${codigoTerminal}-${consecutivo.tipoDocumento}-${siguienteNumero}`;
 
+                // Get ambiente info
+                const amb = ambientes[consecutivo.ambiente];
+                const ambienteBadge = amb ? `<span class="badge ${amb.badge}">${amb.nombre}</span>` : '-';
+
                 const row = `
                     <tr>
                         <td>${terminalLabel}</td>
                         <td>${tiposDocumento[consecutivo.tipoDocumento] || consecutivo.tipoDocumento}</td>
+                        <td>${ambienteBadge}</td>
                         <td><code class="text-primary">${consecutivoFormateado}</code></td>
                         <td>${consecutivo.numeroActual}</td>
                         <td>${consecutivo.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
@@ -1682,6 +1708,7 @@
             $('#formConsecutivo')[0].reset();
             $('#Consecutivo_Id').val('00000000-0000-0000-0000-000000000000');
             $('#Consecutivo_NumeroActual').val(0);
+            $('#Consecutivo_Ambiente').val('');
             $('#Consecutivo_Activo').prop('checked', true);
             $('#consecutivoPreviewText').text('---');
             $('#modalConsecutivoTitle').text('Nuevo Consecutivo');
@@ -1696,6 +1723,7 @@
             $('#Consecutivo_TerminalId').val(consecutivo.terminalId);
             $('#Consecutivo_TerminalIdSelect').val(consecutivo.terminalId);
             $('#Consecutivo_TipoDocumento').val(consecutivo.tipoDocumento);
+            $('#Consecutivo_Ambiente').val(consecutivo.ambiente);
             $('#Consecutivo_NumeroActual').val(consecutivo.numeroActual);
             $('#Consecutivo_Activo').prop('checked', consecutivo.activo);
 
@@ -1709,6 +1737,7 @@
         function saveConsecutivo() {
             const terminalId = $('#Consecutivo_TerminalIdSelect').val();
             const tipoDocumento = $('#Consecutivo_TipoDocumento').val();
+            const ambiente = $('#Consecutivo_Ambiente').val();
             const numeroActual = parseInt($('#Consecutivo_NumeroActual').val()) || 0;
 
             // Validation
@@ -1719,6 +1748,11 @@
 
             if (!tipoDocumento) {
                 Swal.fire('Error', 'Debe seleccionar un tipo de documento', 'error');
+                return;
+            }
+
+            if (!ambiente) {
+                Swal.fire('Error', 'Debe seleccionar un ambiente (Pruebas o Producción)', 'error');
                 return;
             }
 
@@ -1733,13 +1767,15 @@
             const codigoSucursal = (sucursal?.codigo || '001').toString().padStart(3, '0');
             const codigoTerminal = terminal ? terminal.codigo.toString().padStart(5, '0') : '00001';
 
-            // Auto-generate claveNumeracion
-            const claveNumeracion = `${codigoSucursal}-${codigoTerminal}-${tipoDocumento}`;
+            // Auto-generate claveNumeracion (include ambiente to make it unique per ambiente)
+            const ambienteCode = ambiente === '1' ? 'stag' : 'prod';
+            const claveNumeracion = `${codigoSucursal}-${codigoTerminal}-${tipoDocumento}-${ambienteCode}`;
 
             const data = {
                 id: $('#Consecutivo_Id').val(),
                 terminalId: terminalId,
                 tipoDocumento: tipoDocumento,
+                ambiente: parseInt(ambiente),
                 descripcion: null,
                 claveNumeracion: claveNumeracion,
                 numeroInicio: 1,

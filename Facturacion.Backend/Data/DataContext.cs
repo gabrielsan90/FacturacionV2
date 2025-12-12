@@ -180,9 +180,11 @@ public class DataContext : IdentityDbContext<User>
             .HasIndex(t => new { t.SucursalId, t.Codigo })
             .IsUnique();
 
+        // Índice único para ClaveNumeracion por Empresa + Sucursal + Terminal + TipoDocumento + Ambiente
         modelBuilder.Entity<Consecutivo>()
-            .HasIndex(c => c.ClaveNumeracion)
-            .IsUnique();
+            .HasIndex(c => new { c.EmpresaId, c.SucursalId, c.TerminalId, c.TipoDocumento, c.Ambiente, c.ClaveNumeracion })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         // Índice compuesto para Consecutivo: Terminal + TipoDocumento + Ambiente + Activo
         // Esto permite tener consecutivos separados por ambiente (Pruebas vs Producción)
