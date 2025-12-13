@@ -205,6 +205,48 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
+    /// [DIAGNÓSTICO] Obtiene todos los documentos de la empresa incluyendo eliminados
+    /// Para verificar el estado real de los documentos en BD
+    /// </summary>
+    [HttpGet("diagnostico/{empresaId:guid}")]
+    public async Task<IActionResult> GetDiagnosticoAsync(Guid empresaId)
+    {
+        try
+        {
+            // Obtener todos los documentos sin filtro de IsDeleted
+            var documentos = await _unitOfWork.DocumentoRepository.GetAllByEmpresaIncludingDeletedAsync(empresaId);
+
+            var resumen = documentos.Select(d => new
+            {
+                d.Id,
+                Clave = d.Clave?.Substring(0, 20) + "...",
+                d.NumeroConsecutivo,
+                d.TipoDocumento,
+                d.Estado,
+                d.MensajeHacienda,
+                d.IsDeleted,
+                d.FechaEmision,
+                d.FechaEnvioHacienda,
+                d.FechaRespuestaHacienda
+            }).ToList();
+
+            return Ok(new
+            {
+                TotalDocumentos = documentos.Count(),
+                DocumentosActivos = documentos.Count(d => !d.IsDeleted),
+                DocumentosEliminados = documentos.Count(d => d.IsDeleted),
+                PorEstado = documentos.GroupBy(d => d.Estado).Select(g => new { Estado = g.Key.ToString(), Cantidad = g.Count() }),
+                Documentos = resumen.Take(20) // Solo los primeros 20 para diagnóstico
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en diagnóstico de documentos para empresa {EmpresaId}", empresaId);
+            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Get documents by sucursal
     /// </summary>
     [HttpGet("sucursal/{sucursalId:guid}")]
@@ -838,7 +880,7 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
-    /// Get Hacienda response XML for a document
+    /// Get complete Hacienda response info for a document (Estado, MensajeHacienda, XML, fechas)
     /// </summary>
     [HttpGet("{id:guid}/respuesta-hacienda")]
     public async Task<IActionResult> GetRespuestaHaciendaAsync(Guid id)
@@ -852,12 +894,39 @@ public class DocumentosController : ControllerBase
                 return NotFound($"Documento con ID {id} no encontrado.");
             }
 
-            if (string.IsNullOrWhiteSpace(documento.XmlRespuestaHacienda))
+            // Parsear mensajes estructurados si existen
+            List<HaciendaMensaje>? mensajesEstructurados = null;
+            if (!string.IsNullOrWhiteSpace(documento.MensajesHaciendaJson))
             {
-                return BadRequest("El documento no tiene respuesta de Hacienda disponible.");
+                try
+                {
+                    mensajesEstructurados = System.Text.Json.JsonSerializer.Deserialize<List<HaciendaMensaje>>(
+                        documento.MensajesHaciendaJson,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    // Si falla el parseo, continuar sin mensajes estructurados
+                }
             }
 
-            return Content(documento.XmlRespuestaHacienda, "application/xml");
+            // Devolver toda la información relacionada con Hacienda
+            return Ok(new
+            {
+                DocumentoId = documento.Id,
+                Clave = documento.Clave,
+                NumeroConsecutivo = documento.NumeroConsecutivo,
+                Estado = documento.Estado.ToString(),
+                MensajeHacienda = documento.MensajeHacienda,
+                MensajesEstructurados = mensajesEstructurados,
+                FechaEmision = documento.FechaEmision,
+                FechaEnvioHacienda = documento.FechaEnvioHacienda,
+                FechaRespuestaHacienda = documento.FechaRespuestaHacienda,
+                XmlRespuestaHacienda = documento.XmlRespuestaHacienda,
+                TieneRespuestaXml = !string.IsNullOrWhiteSpace(documento.XmlRespuestaHacienda),
+                TieneXmlFirmado = !string.IsNullOrWhiteSpace(documento.XmlFirmado),
+                TieneMensajesEstructurados = mensajesEstructurados != null && mensajesEstructurados.Any()
+            });
         }
         catch (Exception ex)
         {
@@ -898,10 +967,10 @@ public class DocumentosController : ControllerBase
                     xmlStream.Write(xmlBytes, 0, xmlBytes.Length);
                 }
 
-                // Add respuesta Hacienda
+                // Add respuesta Hacienda (MensajeHacienda XML)
                 if (!string.IsNullOrWhiteSpace(documento.XmlRespuestaHacienda))
                 {
-                    var respuestaEntry = archive.CreateEntry("respuestahacienda.xml");
+                    var respuestaEntry = archive.CreateEntry($"{documento.NumeroConsecutivo.Replace("-", "")}_RespuestaHacienda.xml");
                     using var respuestaStream = respuestaEntry.Open();
                     var respuestaBytes = System.Text.Encoding.UTF8.GetBytes(documento.XmlRespuestaHacienda);
                     respuestaStream.Write(respuestaBytes, 0, respuestaBytes.Length);

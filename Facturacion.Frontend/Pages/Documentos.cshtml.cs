@@ -357,12 +357,44 @@ public class DocumentosModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var xml = await response.Content.ReadAsStringAsync();
-            return new JsonResult(new { success = true, data = xml });
+            var data = await response.Content.ReadFromJsonAsync<object>(_jsonOptions);
+            return new JsonResult(new { success = true, data = data });
         }
 
         var error = await response.Content.ReadAsStringAsync();
         return new JsonResult(new { success = false, message = error });
+    }
+
+    // Handler to get diagnostics from DB (includes deleted documents)
+    public async Task<IActionResult> OnGetDiagnosticoAsync(string empresaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/Documentos/diagnostico/{empresaId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<object>(_jsonOptions);
+                return new JsonResult(new { success = true, data = data });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Error getting diagnostico: {Error}", error);
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in OnGetDiagnosticoAsync");
+            return new JsonResult(new { success = false, message = ex.Message });
+        }
     }
 
     // Handler to download ZIP file (XML firmado, respuesta Hacienda, PDF)
@@ -486,5 +518,67 @@ public class DocumentosModel : PageModel
 
         var error = await response.Content.ReadAsStringAsync();
         return new JsonResult(new { success = false, message = error });
+    }
+
+    // Handler to manually query document status in Hacienda
+    public async Task<IActionResult> OnPostConsultarEstadoAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            _logger.LogInformation("Consultando estado del documento {DocumentoId} en Hacienda", id);
+
+            // Call the API endpoint to query status
+            var response = await client.GetAsync($"/api/Documentos/{id}/consultar");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var resultado = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+
+                // Extract relevant fields from the response
+                var estado = resultado.TryGetProperty("estado", out var estadoProp) ? estadoProp.GetString() : null;
+                var mensaje = resultado.TryGetProperty("mensaje", out var mensajeProp) ? mensajeProp.GetString() : null;
+                var exitoso = resultado.TryGetProperty("exitoso", out var exitosoProp) && exitosoProp.GetBoolean();
+
+                // Try to get additional details from respuestaHacienda if available
+                string? detalle = null;
+                if (resultado.TryGetProperty("respuestaHacienda", out var respHacienda))
+                {
+                    if (respHacienda.TryGetProperty("mensajes", out var mensajes) && mensajes.GetArrayLength() > 0)
+                    {
+                        var primerMensaje = mensajes[0];
+                        if (primerMensaje.TryGetProperty("detalle", out var detalleProp))
+                        {
+                            detalle = detalleProp.GetString();
+                        }
+                    }
+                }
+
+                return new JsonResult(new
+                {
+                    success = exitoso,
+                    estado = estado,
+                    mensaje = mensaje,
+                    detalle = detalle
+                });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Error al consultar estado: {Error}", error);
+            return new JsonResult(new { success = false, mensaje = $"Error al consultar: {error}" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar estado del documento {DocumentoId}", id);
+            return new JsonResult(new { success = false, mensaje = $"Error interno: {ex.Message}" });
+        }
     }
 }

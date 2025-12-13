@@ -176,10 +176,18 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-12">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label asp-for="Empresa.Barrio" class="form-label">Barrio</label>
+                                                <input asp-for="Empresa.Barrio" class="form-control" id="Empresa_Barrio" maxlength="50" placeholder="Nombre del barrio (opcional)" />
+                                                <span asp-validation-for="Empresa.Barrio" class="text-danger"></span>
+                                                <small class="form-text text-muted">v4.4: Campo opcional para documentos electrónicos</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label asp-for="Empresa.OtrasSenas" class="form-label">Otras Señas</label>
-                                                <textarea asp-for="Empresa.OtrasSenas" class="form-control" id="Empresa_OtrasSenas" rows="3" maxlength="500"></textarea>
+                                                <textarea asp-for="Empresa.OtrasSenas" class="form-control" id="Empresa_OtrasSenas" rows="2" maxlength="500"></textarea>
                                                 <span asp-validation-for="Empresa.OtrasSenas" class="text-danger"></span>
                                             </div>
                                         </div>
@@ -967,6 +975,7 @@
                         $('#Empresa_NombreComercial').val(data.nombreComercial);
                         $('#Empresa_RazonSocial').val(data.razonSocial);
                         $('#Empresa_Provincia').val(data.provincia);
+                        $('#Empresa_Barrio').val(data.barrio || '');
                         $('#Empresa_OtrasSenas').val(data.otrasSenas);
                         $('#Empresa_PinCertificado').val(data.pinCertificado);
                         $('#Empresa_UsuarioHacienda').val(data.usuarioHacienda);

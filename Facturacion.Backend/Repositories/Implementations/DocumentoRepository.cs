@@ -245,4 +245,17 @@ public class DocumentoRepository : IDocumentoRepository
                           d.EmpresaId == empresaId &&
                           !d.IsDeleted);
     }
+
+    // ========================================
+    // DIAGNÓSTICO
+    // ========================================
+
+    public async Task<IEnumerable<Documento>> GetAllByEmpresaIncludingDeletedAsync(Guid empresaId)
+    {
+        return await _context.Documentos
+            .Where(d => d.EmpresaId == empresaId)
+            .OrderByDescending(d => d.FechaEmision)
+            .AsNoTracking()
+            .ToListAsync();
+    }
 }

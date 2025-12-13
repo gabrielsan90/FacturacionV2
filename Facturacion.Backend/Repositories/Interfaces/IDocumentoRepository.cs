@@ -24,4 +24,7 @@ public interface IDocumentoRepository
     Task<IEnumerable<Documento>> GetDocumentosRecibidosAsync(Guid empresaId);
     Task<IEnumerable<Documento>> GetDocumentosPendientesMRAsync(Guid empresaId);
     Task<bool> ExisteDocumentoPorClaveAsync(string clave, Guid empresaId);
+
+    // Diagnóstico - incluye documentos eliminados
+    Task<IEnumerable<Documento>> GetAllByEmpresaIncludingDeletedAsync(Guid empresaId);
 }

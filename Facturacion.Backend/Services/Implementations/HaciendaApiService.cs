@@ -457,6 +457,13 @@ public class HaciendaApiService : IHaciendaApiService
         {
             _logger.LogInformation("Consulta exitosa. Documento procesado por Hacienda. Clave: {Clave}", clave);
 
+            // Validar que el contenido no esté vacío
+            if (string.IsNullOrWhiteSpace(responseContent))
+            {
+                _logger.LogWarning("Respuesta 200 de Hacienda sin contenido para clave {Clave}", clave);
+                return Task.FromResult(CrearRespuestaError(clave, "EMPTY_RESPONSE", "Respuesta vacía de Hacienda", "El servidor respondió 200 pero sin contenido"));
+            }
+
             try
             {
                 // Deserializar respuesta JSON de Hacienda
@@ -559,50 +566,54 @@ public class HaciendaApiService : IHaciendaApiService
         {
             _logger.LogInformation("Documento aceptado para procesamiento. Status: 202 Accepted. Clave: {Clave}", clave);
 
-            // Intentar parsear respuesta JSON si existe
-            try
+            // Intentar parsear respuesta JSON si existe y no está vacía
+            if (!string.IsNullOrWhiteSpace(responseContent))
             {
-                var consultaRespuesta = JsonSerializer.Deserialize<HaciendaConsultaRespuesta>(
-                    responseContent,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (consultaRespuesta != null && !string.IsNullOrWhiteSpace(consultaRespuesta.RespuestaXml))
+                try
                 {
-                    var mensajeXml = ParsearXmlRespuestaHacienda(consultaRespuesta.RespuestaXml);
+                    var consultaRespuesta = JsonSerializer.Deserialize<HaciendaConsultaRespuesta>(
+                        responseContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                    if (mensajeXml != null)
+                    if (consultaRespuesta != null && !string.IsNullOrWhiteSpace(consultaRespuesta.RespuestaXml))
                     {
-                        string indEstado = mensajeXml.Mensaje switch
-                        {
-                            "1" => "aceptado",
-                            "2" => "aceptado_parcial",
-                            "3" => "rechazado",
-                            _ => "procesando"
-                        };
+                        var mensajeXml = ParsearXmlRespuestaHacienda(consultaRespuesta.RespuestaXml);
 
-                        return Task.FromResult(new HaciendaRespuesta
+                        if (mensajeXml != null)
                         {
-                            Clave = clave,
-                            Fecha = DateTime.Now,
-                            IndEstado = indEstado,
-                            RespuestaXml = consultaRespuesta.RespuestaXml,
-                            Mensajes = new List<HaciendaMensaje>
+                            string indEstado = mensajeXml.Mensaje switch
                             {
-                                new HaciendaMensaje
+                                "1" => "aceptado",
+                                "2" => "aceptado_parcial",
+                                "3" => "rechazado",
+                                _ => "procesando"
+                            };
+
+                            return Task.FromResult(new HaciendaRespuesta
+                            {
+                                Clave = clave,
+                                Fecha = DateTime.Now,
+                                IndEstado = indEstado,
+                                RespuestaXml = consultaRespuesta.RespuestaXml,
+                                Mensajes = new List<HaciendaMensaje>
                                 {
-                                    Codigo = mensajeXml.Mensaje,
-                                    Mensaje = mensajeXml.EstadoTexto,
-                                    Detalle = mensajeXml.DetalleMensaje,
-                                    Tipo = mensajeXml.EsRechazado ? "error" : "info"
+                                    new HaciendaMensaje
+                                    {
+                                        Codigo = mensajeXml.Mensaje,
+                                        Mensaje = mensajeXml.EstadoTexto,
+                                        Detalle = mensajeXml.DetalleMensaje,
+                                        Tipo = mensajeXml.EsRechazado ? "error" : "info"
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
                 }
-            }
-            catch (JsonException)
-            {
-                // Si no se puede parsear JSON, continuar con respuesta básica
+                catch (JsonException ex)
+                {
+                    // Si no se puede parsear JSON, continuar con respuesta básica
+                    _logger.LogWarning(ex, "No se pudo parsear respuesta JSON de Hacienda para clave {Clave}", clave);
+                }
             }
 
             return Task.FromResult(new HaciendaRespuesta
@@ -857,14 +868,16 @@ public class HaciendaApiService : IHaciendaApiService
             }
 
             // Extraer campos del XML
+            XNamespace ns = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/mensajeHacienda";
+
             var mensajeXml = new HaciendaMensajeRespuestaXml
             {
-                Clave = root.Element("Clave")?.Value ?? string.Empty,
-                NombreEmisor = root.Element("NombreEmisor")?.Value ?? string.Empty,
-                TipoIdentificacionEmisor = root.Element("TipoIdentificacionEmisor")?.Value ?? string.Empty,
-                NumeroCedulaEmisor = root.Element("NumeroCedulaEmisor")?.Value ?? string.Empty,
-                Mensaje = root.Element("Mensaje")?.Value ?? string.Empty,
-                DetalleMensaje = root.Element("DetalleMensaje")?.Value ?? string.Empty
+                Clave = root.Element(ns + "Clave")?.Value ?? string.Empty,
+                NombreEmisor = root.Element(ns + "NombreEmisor")?.Value ?? string.Empty,
+                TipoIdentificacionEmisor = root.Element(ns + "TipoIdentificacionEmisor")?.Value ?? string.Empty,
+                NumeroCedulaEmisor = root.Element(ns + "NumeroCedulaEmisor")?.Value ?? string.Empty,
+                Mensaje = root.Element(ns + "Mensaje")?.Value ?? string.Empty,
+                DetalleMensaje = root.Element(ns + "DetalleMensaje")?.Value ?? string.Empty
             };
 
             // Extraer montos (opcionales)

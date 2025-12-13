@@ -133,8 +133,11 @@
                                         <button class="btn btn-primary w-100 mb-2" onclick="aplicarFiltros()">
                                             <i class="fas fa-search"></i> Filtrar
                                         </button>
-                                        <button class="btn btn-secondary w-100" onclick="limpiarFiltros()">
+                                        <button class="btn btn-secondary w-100 mb-2" onclick="limpiarFiltros()">
                                             <i class="fas fa-eraser"></i> Limpiar
+                                        </button>
+                                        <button class="btn btn-outline-danger w-100" onclick="verDiagnostico()">
+                                            <i class="fas fa-stethoscope"></i> Diagnóstico BD
                                         </button>
                                     </div>
                                 </div>
@@ -303,17 +306,182 @@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="modalRespuestaHaciendaLabel">
-                    <i class="fas fa-file-code"></i> Respuesta de Hacienda
+                    <i class="fas fa-file-code"></i> Información de Hacienda
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="copyXmlToClipboard()">
-                        <i class="fas fa-copy"></i> Copiar XML
-                    </button>
+                <!-- Información General -->
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <i class="fas fa-info-circle"></i> <strong>Información del Documento</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Consecutivo:</strong> <span id="respHacienda_consecutivo">-</span></p>
+                                <p><strong>Clave:</strong> <small id="respHacienda_clave" class="text-muted">-</small></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Estado:</strong> <span id="respHacienda_estado">-</span></p>
+                                <p><strong>Fecha Emisión:</strong> <span id="respHacienda_fechaEmision">-</span></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <pre id="xmlRespuestaContent" style="max-height: 500px; overflow-y: auto; background-color: #f5f5f5; padding: 15px; border-radius: 5px;"><code class="language-xml"></code></pre>
+
+                <!-- Fechas de Hacienda -->
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <i class="fas fa-clock"></i> <strong>Fechas de Comunicación con Hacienda</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Fecha Envío:</strong> <span id="respHacienda_fechaEnvio">-</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Fecha Respuesta:</strong> <span id="respHacienda_fechaRespuesta">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensaje/Errores de Hacienda -->
+                <div class="card mb-3" id="respHacienda_mensajeCard">
+                    <div class="card-header" id="respHacienda_mensajeHeader">
+                        <i class="fas fa-comment-alt"></i> <strong>Mensaje de Hacienda</strong>
+                    </div>
+                    <div class="card-body">
+                        <div id="respHacienda_mensaje" class="alert mb-0">
+                            Sin mensaje
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mensajes Estructurados (errores detallados) -->
+                <div class="card mb-3" id="respHacienda_mensajesEstructuradosCard" style="display: none;">
+                    <div class="card-header bg-warning">
+                        <i class="fas fa-list"></i> <strong>Detalle de Mensajes/Errores</strong>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 80px;">Código</th>
+                                    <th style="width: 80px;">Tipo</th>
+                                    <th>Mensaje</th>
+                                    <th>Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="respHacienda_mensajesEstructuradosBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- XML de Respuesta -->
+                <div class="card" id="respHacienda_xmlCard" style="display: none;">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-code"></i> <strong>XML de Respuesta de Hacienda</strong></span>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="copyXmlToClipboard()">
+                            <i class="fas fa-copy"></i> Copiar XML
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <pre id="xmlRespuestaContent" style="max-height: 400px; overflow-y: auto; background-color: #f8f9fa; padding: 15px; margin: 0; border-radius: 0 0 5px 5px;"><code class="language-xml"></code></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Diagnóstico BD -->
+<div class="modal fade" id="modalDiagnostico" tabindex="-1" aria-labelledby="modalDiagnosticoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalDiagnosticoLabel">
+                    <i class="fas fa-stethoscope"></i> Diagnóstico de Documentos en BD
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="diagnosticoLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2">Consultando base de datos...</p>
+                </div>
+                <div id="diagnosticoContent" style="display:none;">
+                    <!-- Resumen -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h3 id="diagTotalDocumentos">0</h3>
+                                    <p class="mb-0">Total Documentos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h3 id="diagDocumentosActivos">0</h3>
+                                    <p class="mb-0">Activos (IsDeleted=false)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center">
+                                    <h3 id="diagDocumentosEliminados">0</h3>
+                                    <p class="mb-0">Eliminados (IsDeleted=true)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Por Estado -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-chart-pie"></i> Documentos por Estado</strong>
+                        </div>
+                        <div class="card-body">
+                            <div id="diagPorEstado" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de documentos -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-list"></i> Últimos 20 Documentos (incluye eliminados)</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-bordered">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Consecutivo</th>
+                                            <th>Tipo</th>
+                                            <th>Estado</th>
+                                            <th>Mensaje Hacienda</th>
+                                            <th>IsDeleted</th>
+                                            <th>Fecha Emisión</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="diagTablaDocumentos"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -563,8 +731,15 @@
                     },
                     {
                         data: 'estado',
-                        render: function (data) {
-                            return getEstadoBadge(data);
+                        render: function (data, type, row) {
+                            let badge = getEstadoBadge(data);
+                            // Si tiene mensaje de Hacienda, agregarlo como información adicional
+                            if (row.mensajeHacienda) {
+                                const msgClass = (data === 'Rechazado' || data === 'Error') ? 'text-danger' : 'text-muted';
+                                const icon = (data === 'Rechazado') ? '<i class="fas fa-exclamation-circle text-danger"></i>' : '<i class="fas fa-info-circle text-info"></i>';
+                                badge += `<br><small class="${msgClass}" title="${escapeHtml(row.mensajeHacienda)}">${icon} ${truncateText(row.mensajeHacienda, 40)}</small>`;
+                            }
+                            return badge;
                         }
                     },
                     {
@@ -574,6 +749,7 @@
                             const isBorrador = row.estado === "Borrador";
                             const isPendienteOrBorrador = row.estado === "Borrador" || row.estado === "Pendiente";
                             const isAceptadoOrRechazado = row.estado === "Aceptado" || row.estado === "Rechazado";
+                            const isProcesando = row.estado === "Procesando";
                             const isError = row.estado === "Error";
                             const hasRespuestaHacienda = row.xmlRespuestaHacienda != null && row.xmlRespuestaHacienda.length > 0;
                             const hasBeenSent = row.fechaEnvioHacienda != null;
@@ -618,19 +794,26 @@
                                 `;
                             }
 
-                            // Ver Respuesta de Hacienda (solo si tiene respuesta)
-                            if (hasRespuestaHacienda) {
+                            // Consultar Estado en Hacienda (solo para documentos en Procesando)
+                            if (isProcesando) {
                                 buttons += `
-                                    <button class="btn btn-sm btn-primary" onclick="verRespuestaHacienda('${row.id}')" title="Ver Respuesta de Hacienda">
-                                        <i class="fas fa-file-code"></i>
+                                    <button class="btn btn-sm btn-info" onclick="consultarEstadoHacienda('${row.id}')" title="Consultar Estado en Hacienda">
+                                        <i class="fas fa-sync-alt"></i> Consultar
                                     </button>
                                 `;
                             }
 
-                            // Descargar ZIP (solo si fue enviado a Hacienda)
-                            if (hasBeenSent) {
+                            // Ver Respuesta de Hacienda (disponible para todos los documentos)
+                            buttons += `
+                                <button class="btn btn-sm btn-primary" onclick="verRespuestaHacienda('${row.id}')" title="Ver Respuesta de Hacienda">
+                                    <i class="fas fa-file-code"></i>
+                                </button>
+                            `;
+
+                            // Descargar ZIP (si fue enviado a Hacienda o tiene respuesta - incluye rechazados)
+                            if (hasBeenSent || hasRespuestaHacienda) {
                                 buttons += `
-                                    <button class="btn btn-sm btn-dark" onclick="downloadZIP('${row.id}')" title="Descargar ZIP">
+                                    <button class="btn btn-sm btn-dark" onclick="downloadZIP('${row.id}')" title="Descargar ZIP (XML + Respuesta Hacienda)">
                                         <i class="fas fa-file-archive"></i>
                                     </button>
                                 `;
@@ -965,9 +1148,80 @@
                 },
                 success: function (response) {
                     if (response.success) {
-                        // Format XML with indentation
-                        const formattedXml = formatXml(response.data);
-                        $('#xmlRespuestaContent code').text(formattedXml);
+                        const data = response.data;
+
+                        // Información general
+                        $('#respHacienda_consecutivo').text(data.numeroConsecutivo || '-');
+                        $('#respHacienda_clave').text(data.clave || '-');
+                        $('#respHacienda_estado').html(getEstadoBadge(data.estado));
+                        $('#respHacienda_fechaEmision').text(data.fechaEmision ? new Date(data.fechaEmision).toLocaleString() : '-');
+
+                        // Fechas de Hacienda
+                        $('#respHacienda_fechaEnvio').text(data.fechaEnvioHacienda ? new Date(data.fechaEnvioHacienda).toLocaleString() : 'No enviado');
+                        $('#respHacienda_fechaRespuesta').text(data.fechaRespuestaHacienda ? new Date(data.fechaRespuestaHacienda).toLocaleString() : 'Sin respuesta');
+
+                        // Mensaje de Hacienda (errores/información)
+                        const mensajeDiv = $('#respHacienda_mensaje');
+                        const mensajeHeader = $('#respHacienda_mensajeHeader');
+                        if (data.mensajeHacienda) {
+                            mensajeDiv.text(data.mensajeHacienda);
+
+                            // Colorear según estado
+                            if (data.estado === 'Rechazado') {
+                                mensajeDiv.removeClass('alert-info alert-success alert-warning').addClass('alert-danger');
+                                mensajeHeader.removeClass('bg-light bg-success bg-warning').addClass('bg-danger text-white');
+                            } else if (data.estado === 'Error') {
+                                mensajeDiv.removeClass('alert-info alert-success alert-danger').addClass('alert-warning');
+                                mensajeHeader.removeClass('bg-light bg-success bg-danger').addClass('bg-warning');
+                            } else if (data.estado === 'Aceptado') {
+                                mensajeDiv.removeClass('alert-info alert-danger alert-warning').addClass('alert-success');
+                                mensajeHeader.removeClass('bg-light bg-danger bg-warning').addClass('bg-success text-white');
+                            } else {
+                                mensajeDiv.removeClass('alert-success alert-danger alert-warning').addClass('alert-info');
+                                mensajeHeader.removeClass('bg-success bg-danger bg-warning text-white').addClass('bg-light');
+                            }
+                        } else {
+                            mensajeDiv.text('Sin mensaje de Hacienda');
+                            mensajeDiv.removeClass('alert-success alert-danger alert-warning').addClass('alert-info');
+                            mensajeHeader.removeClass('bg-success bg-danger bg-warning text-white').addClass('bg-light');
+                        }
+
+                        // Mensajes Estructurados (errores detallados)
+                        if (data.tieneMensajesEstructurados && data.mensajesEstructurados) {
+                            const tbody = $('#respHacienda_mensajesEstructuradosBody');
+                            tbody.empty();
+
+                            data.mensajesEstructurados.forEach(msg => {
+                                const tipoClass = msg.tipo === 'error' ? 'text-danger fw-bold' :
+                                                  msg.tipo === 'advertencia' ? 'text-warning' : 'text-info';
+                                const tipoIcon = msg.tipo === 'error' ? '<i class="fas fa-times-circle text-danger"></i>' :
+                                                 msg.tipo === 'advertencia' ? '<i class="fas fa-exclamation-triangle text-warning"></i>' :
+                                                 '<i class="fas fa-info-circle text-info"></i>';
+
+                                tbody.append(`
+                                    <tr>
+                                        <td><code>${escapeHtml(msg.codigo || '-')}</code></td>
+                                        <td class="${tipoClass}">${tipoIcon} ${escapeHtml(msg.tipo || '-')}</td>
+                                        <td>${escapeHtml(msg.mensaje || '-')}</td>
+                                        <td><small class="text-muted">${escapeHtml(msg.detalle || '-')}</small></td>
+                                    </tr>
+                                `);
+                            });
+
+                            $('#respHacienda_mensajesEstructuradosCard').show();
+                        } else {
+                            $('#respHacienda_mensajesEstructuradosCard').hide();
+                        }
+
+                        // XML de Respuesta
+                        if (data.tieneRespuestaXml && data.xmlRespuestaHacienda) {
+                            const formattedXml = formatXml(data.xmlRespuestaHacienda);
+                            $('#xmlRespuestaContent code').text(formattedXml);
+                            $('#respHacienda_xmlCard').show();
+                        } else {
+                            $('#respHacienda_xmlCard').hide();
+                        }
+
                         $('#modalRespuestaHacienda').modal('show');
                     } else {
                         Swal.fire('Error', response.message, 'error');
@@ -976,6 +1230,87 @@
                 error: function (xhr) {
                     const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al obtener la respuesta de Hacienda.';
                     Swal.fire('Error', message, 'error');
+                }
+            });
+        }
+
+        // Diagnóstico de documentos en BD
+        function verDiagnostico() {
+            // Mostrar modal con loading
+            $('#diagnosticoLoading').show();
+            $('#diagnosticoContent').hide();
+            $('#modalDiagnostico').modal('show');
+
+            $.ajax({
+                url: `?handler=Diagnostico&empresaId=${empresaId}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    $('#diagnosticoLoading').hide();
+                    $('#diagnosticoContent').show();
+
+                    if (response.success) {
+                        const data = response.data;
+
+                        // Actualizar resumen
+                        $('#diagTotalDocumentos').text(data.totalDocumentos);
+                        $('#diagDocumentosActivos').text(data.documentosActivos);
+                        $('#diagDocumentosEliminados').text(data.documentosEliminados);
+
+                        // Actualizar por estado
+                        let estadosHtml = '';
+                        const estadoColors = {
+                            'Borrador': 'secondary',
+                            'Pendiente': 'warning',
+                            'Procesando': 'info',
+                            'Aceptado': 'success',
+                            'Rechazado': 'danger',
+                            'Contingencia': 'dark',
+                            'Anulado': 'secondary',
+                            'Error': 'danger'
+                        };
+                        data.porEstado.forEach(function(item) {
+                            const color = estadoColors[item.estado] || 'primary';
+                            estadosHtml += `<span class="badge bg-${color} fs-6 p-2">${item.estado}: ${item.cantidad}</span>`;
+                        });
+                        $('#diagPorEstado').html(estadosHtml);
+
+                        // Actualizar tabla de documentos
+                        let tablaHtml = '';
+                        data.documentos.forEach(function(doc) {
+                            const estadoColor = estadoColors[doc.estado] || 'primary';
+                            const deletedBadge = doc.isDeleted
+                                ? '<span class="badge bg-danger">Sí</span>'
+                                : '<span class="badge bg-success">No</span>';
+                            const mensaje = doc.mensajeHacienda
+                                ? `<small class="text-muted">${doc.mensajeHacienda.substring(0, 100)}${doc.mensajeHacienda.length > 100 ? '...' : ''}</small>`
+                                : '-';
+                            const fecha = doc.fechaEmision ? new Date(doc.fechaEmision).toLocaleString() : '-';
+
+                            tablaHtml += `
+                                <tr class="${doc.isDeleted ? 'table-secondary' : ''}">
+                                    <td><small>${doc.numeroConsecutivo || '-'}</small></td>
+                                    <td><small>${doc.tipoDocumento}</small></td>
+                                    <td><span class="badge bg-${estadoColor}">${doc.estado}</span></td>
+                                    <td>${mensaje}</td>
+                                    <td class="text-center">${deletedBadge}</td>
+                                    <td><small>${fecha}</small></td>
+                                </tr>
+                            `;
+                        });
+                        $('#diagTablaDocumentos').html(tablaHtml || '<tr><td colspan="6" class="text-center">No hay documentos</td></tr>');
+
+                    } else {
+                        Swal.fire('Error', response.message || 'Error al obtener diagnóstico', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    $('#diagnosticoLoading').hide();
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al obtener el diagnóstico.';
+                    Swal.fire('Error', message, 'error');
+                    $('#modalDiagnostico').modal('hide');
                 }
             });
         }
@@ -1127,6 +1462,74 @@
             });
         }
 
+        // Consultar Estado en Hacienda (forzar consulta manual)
+        function consultarEstadoHacienda(id) {
+            Swal.fire({
+                title: 'Consultando estado...',
+                text: 'Obteniendo estado del documento en Hacienda',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: `?handler=ConsultarEstado&id=${id}`,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    Swal.close();
+                    if (response.success) {
+                        let icon = 'info';
+                        let title = 'Estado Actual';
+
+                        // Determinar icono según estado
+                        if (response.estado === 'aceptado' || response.estado === 'Aceptado') {
+                            icon = 'success';
+                            title = '¡Documento Aceptado!';
+                        } else if (response.estado === 'rechazado' || response.estado === 'Rechazado') {
+                            icon = 'error';
+                            title = 'Documento Rechazado';
+                        } else if (response.estado === 'procesando' || response.estado === 'Procesando') {
+                            icon = 'warning';
+                            title = 'Documento en Proceso';
+                        }
+
+                        Swal.fire({
+                            icon: icon,
+                            title: title,
+                            html: `<div class="text-start">
+                                <p><strong>Estado:</strong> ${response.estado || 'Sin información'}</p>
+                                <p><strong>Mensaje:</strong> ${response.mensaje || 'Sin mensaje'}</p>
+                                ${response.detalle ? `<p><strong>Detalle:</strong> <small class="text-muted">${response.detalle}</small></p>` : ''}
+                            </div>`,
+                            footer: '<small>El estado se actualizó en la base de datos.</small>'
+                        });
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al consultar',
+                            text: response.mensaje || response.message || 'No se pudo consultar el estado',
+                            footer: '<small>El sistema reintentará automáticamente en unos minutos.</small>'
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    Swal.close();
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al consultar el estado.';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: message,
+                        footer: '<small>Verifique la conexión con Hacienda.</small>'
+                    });
+                }
+            });
+        }
+
         // Open Email Modal
         function openEmailModal(documentoId, consecutivo, clienteId) {
             // Reset form
@@ -1167,6 +1570,26 @@
 
             // Show modal
             $('#modalEnviarCorreo').modal('show');
+        }
+
+        // Función para escapar HTML y evitar XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Función para truncar texto
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
         }
 
         // Submit email form

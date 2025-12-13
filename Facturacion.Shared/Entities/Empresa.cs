@@ -36,6 +36,14 @@ public class Empresa
     [Display(Name = "Distrito")]
     public int Distrito { get; set; }
 
+    /// <summary>
+    /// v4.4: Barrio (opcional en XSD, minLength=5, maxLength=50)
+    /// Texto descriptivo del barrio, no código numérico
+    /// </summary>
+    [Display(Name = "Barrio")]
+    [MaxLength(50, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? Barrio { get; set; }
+
     [Display(Name = "Otras Señas")]
     [MaxLength(500, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? OtrasSenas { get; set; }

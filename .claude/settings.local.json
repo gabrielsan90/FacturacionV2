@@ -5,7 +5,13 @@
       "Bash(git -C /mnt/d/Proyectos/2/Facturacion status --short)",
       "Bash(dotnet ef migrations:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet ef database:*)"
+      "Bash(dotnet ef database:*)",
+      "Bash(xmllint:*)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(sqlcmd:*)",
+      "Bash(pkill:*)",
+      "WebFetch(domain:atv.hacienda.go.cr)"
     ],
     "deny": [],
     "ask": []
