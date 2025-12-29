@@ -21,6 +21,7 @@ public class ProductoRepository : IProductoRepository
             .Include(p => p.Categoria)
             .Include(p => p.UnidadMedida)
             .Include(p => p.Impuesto)
+            .Include(p => p.Cabys)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
     }
 
@@ -30,6 +31,7 @@ public class ProductoRepository : IProductoRepository
             .Include(p => p.Categoria)
             .Include(p => p.UnidadMedida)
             .Include(p => p.Impuesto)
+            .Include(p => p.Cabys)
             .Where(p => p.EmpresaId == empresaId && !p.IsDeleted)
             .OrderBy(p => p.Nombre)
             .ToListAsync();
@@ -64,6 +66,15 @@ public class ProductoRepository : IProductoRepository
     public async Task UpdateAsync(Producto producto)
     {
         producto.FechaModificacion = DateTime.UtcNow;
+
+        // Detach any existing tracked entity with the same key to avoid conflicts
+        var existingEntry = _context.ChangeTracker.Entries<Producto>()
+            .FirstOrDefault(e => e.Entity.Id == producto.Id);
+        if (existingEntry != null)
+        {
+            existingEntry.State = EntityState.Detached;
+        }
+
         _context.Productos.Update(producto);
         await _context.SaveChangesAsync();
     }

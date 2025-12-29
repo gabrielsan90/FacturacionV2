@@ -285,4 +285,40 @@ public class ProductosModel : PageModel
             return new JsonResult(new List<Impuesto>());
         }
     }
+
+    // Handler to search CABYS codes (for product association)
+    public async Task<IActionResult> OnGetBuscarCabysAsync(string q)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            {
+                return new JsonResult(new { success = true, data = new List<object>() });
+            }
+
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/cabys/local/buscar?q={Uri.EscapeDataString(q)}&top=20");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var cabys = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
+                return new JsonResult(new { success = true, data = cabys ?? new List<object>() });
+            }
+
+            _logger.LogWarning("Failed to search CABYS. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new { success = false, message = "Error al buscar códigos CABYS" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching CABYS");
+            return new JsonResult(new { success = false, message = "Error al buscar códigos CABYS" });
+        }
+    }
 }

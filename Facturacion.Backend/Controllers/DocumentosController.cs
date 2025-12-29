@@ -97,8 +97,8 @@ public class DocumentosController : ControllerBase
                 documentos = documentos.Where(d => d.Ambiente == ambiente.Value);
             }
 
-            // Ordenar por fecha de emisión descendente
-            documentos = documentos.OrderByDescending(d => d.FechaEmision);
+            // Ordenar por fecha de creación descendente (más recientes primero)
+            documentos = documentos.OrderByDescending(d => d.FechaCreacion);
 
             return Ok(documentos);
         }
@@ -111,8 +111,8 @@ public class DocumentosController : ControllerBase
     /// <summary>
     /// Get document by ID with all details
     /// </summary>
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetAsync(Guid id)
+    [HttpGet("{id:guid}", Name = "GetDocumentoById")]
+    public async Task<IActionResult> GetByIdAsync(Guid id)
     {
         try
         {
@@ -355,7 +355,7 @@ public class DocumentosController : ControllerBase
                 "Documento creado: ID={DocumentoId}, Tipo={TipoDocumento}, Consecutivo={Consecutivo}, Usuario={UserId}",
                 nuevoDocumento.Id, nuevoDocumento.TipoDocumento, nuevoDocumento.NumeroConsecutivo, userId);
 
-            return CreatedAtAction(nameof(GetAsync), new { id = nuevoDocumento.Id }, nuevoDocumento);
+            return CreatedAtRoute("GetDocumentoById", new { id = nuevoDocumento.Id }, nuevoDocumento);
         }
         catch (InvalidOperationException ex)
         {

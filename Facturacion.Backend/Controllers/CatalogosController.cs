@@ -337,7 +337,7 @@ public class CatalogosController : ControllerBase
                 .Select(m => new
                 {
                     m.Codigo,
-                    m.Descripcion
+                    nombre = m.Descripcion
                 })
                 .ToListAsync();
 
@@ -347,6 +347,33 @@ public class CatalogosController : ControllerBase
         {
             _logger.LogError(ex, "Error al obtener medios de pago");
             return StatusCode(500, new { success = false, message = "Error al obtener medios de pago" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todas las formas de pago (alias de medios-pago para frontend)
+    /// </summary>
+    [HttpGet("formas-pago")]
+    public async Task<IActionResult> GetFormasPago()
+    {
+        try
+        {
+            var formas = await _context.Set<MedioPago>()
+                .Where(m => m.Activo)
+                .OrderBy(m => m.Codigo)
+                .Select(m => new
+                {
+                    m.Codigo,
+                    nombre = m.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(formas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener formas de pago");
+            return StatusCode(500, new { success = false, message = "Error al obtener formas de pago" });
         }
     }
 
@@ -364,11 +391,11 @@ public class CatalogosController : ControllerBase
                 .Select(c => new
                 {
                     c.Codigo,
-                    c.Descripcion
+                    nombre = c.Descripcion
                 })
                 .ToListAsync();
 
-            return Ok(new { success = true, data = condiciones });
+            return Ok(condiciones);
         }
         catch (Exception ex)
         {
@@ -392,7 +419,7 @@ public class CatalogosController : ControllerBase
                 {
                     u.Id,
                     u.Codigo,
-                    u.Descripcion
+                    nombre = u.Descripcion
                 })
                 .ToListAsync();
 
@@ -402,6 +429,173 @@ public class CatalogosController : ControllerBase
         {
             _logger.LogError(ex, "Error al obtener unidades de medida");
             return StatusCode(500, new { success = false, message = "Error al obtener unidades de medida" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los tipos de documento (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("tipos-documentos")]
+    public async Task<IActionResult> GetTiposDocumentos()
+    {
+        try
+        {
+            var tipos = await _context.TiposDocumento
+                .Where(t => t.Activo)
+                .OrderBy(t => t.Codigo)
+                .Select(t => new
+                {
+                    t.Codigo,
+                    nombre = t.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de documentos");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de documentos" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los tipos de referencia (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("tipos-referencias")]
+    public async Task<IActionResult> GetTiposReferencias()
+    {
+        try
+        {
+            var tipos = await _context.Set<CodigoReferencia>()
+                .Where(c => c.Activo)
+                .OrderBy(c => c.Codigo)
+                .Select(c => new
+                {
+                    c.Codigo,
+                    nombre = c.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de referencias");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de referencias" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los tipos de otros cargos (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("tipos-otros-cargos")]
+    public IActionResult GetTiposOtrosCargos()
+    {
+        try
+        {
+            // Lista de tipos de otros cargos según Hacienda v4.4
+            var tipos = new[]
+            {
+                new { codigo = "01", nombre = "Contribución parafiscal" },
+                new { codigo = "02", nombre = "Timbre de la Cruz Roja" },
+                new { codigo = "03", nombre = "Timbre de Benemérito Cuerpo de Bomberos de Costa Rica" },
+                new { codigo = "04", nombre = "Cobro de un tercero" },
+                new { codigo = "05", nombre = "Costos de exportación" },
+                new { codigo = "06", nombre = "Impuesto de servicio 10%" },
+                new { codigo = "07", nombre = "Timbre de Colegios Profesionales" },
+                new { codigo = "99", nombre = "Otros Cargos" }
+            };
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de otros cargos");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de otros cargos" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los tipos de códigos de producto (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("tipos-codigos-producto")]
+    public async Task<IActionResult> GetTiposCodigosProducto()
+    {
+        try
+        {
+            var tipos = await _context.TiposCodigo
+                .Where(t => t.Activo)
+                .OrderBy(t => t.Codigo)
+                .Select(t => new
+                {
+                    t.Codigo,
+                    nombre = t.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de códigos de producto");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de códigos de producto" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los tipos de identificación (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("tipos-identificacion")]
+    public IActionResult GetTiposIdentificacion()
+    {
+        try
+        {
+            // Lista de tipos de identificación según Hacienda v4.4
+            var tipos = new[]
+            {
+                new { codigo = "01", nombre = "Cédula Física" },
+                new { codigo = "02", nombre = "Cédula Jurídica" },
+                new { codigo = "03", nombre = "DIMEX" },
+                new { codigo = "04", nombre = "NITE" },
+                new { codigo = "05", nombre = "Pasaporte" },
+                new { codigo = "06", nombre = "Extranjero no domiciliado" },
+                new { codigo = "07", nombre = "No contribuyente" }
+            };
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de identificación");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de identificación" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los tipos de exoneración (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("tipos-exoneracion")]
+    public async Task<IActionResult> GetTiposExoneracion()
+    {
+        try
+        {
+            var tipos = await _context.CodigosExoneracion
+                .Where(c => c.Activo)
+                .OrderBy(c => c.Codigo)
+                .Select(c => new
+                {
+                    c.Codigo,
+                    nombre = c.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de exoneración");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de exoneración" });
         }
     }
 
@@ -420,8 +614,8 @@ public class CatalogosController : ControllerBase
                 {
                     i.Id,
                     i.Codigo,
-                    i.Descripcion,
-                    Tarifa = i.Porcentaje
+                    descripcion = i.Descripcion,
+                    tarifa = i.Porcentaje
                 })
                 .ToListAsync();
 
@@ -431,6 +625,94 @@ public class CatalogosController : ControllerBase
         {
             _logger.LogError(ex, "Error al obtener impuestos");
             return StatusCode(500, new { success = false, message = "Error al obtener impuestos" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todas las formas farmacéuticas (Hacienda v4.4 - Medicamentos)
+    /// </summary>
+    [HttpGet("formas-farmaceuticas")]
+    public async Task<IActionResult> GetFormasFarmaceuticas()
+    {
+        try
+        {
+            var formas = await _context.FormasFarmaceuticas
+                .Where(f => f.Activo)
+                .OrderBy(f => f.Codigo)
+                .Select(f => new
+                {
+                    f.Codigo,
+                    nombre = f.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(formas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener formas farmacéuticas");
+            return StatusCode(500, new { success = false, message = "Error al obtener formas farmacéuticas" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todas las monedas soportadas (ISO 4217 - Hacienda v4.4)
+    /// </summary>
+    [HttpGet("monedas")]
+    public IActionResult GetMonedas()
+    {
+        try
+        {
+            // Lista de monedas principales según Hacienda Costa Rica
+            var monedas = new[]
+            {
+                new { codigo = "CRC", nombre = "Colón Costarricense" },
+                new { codigo = "USD", nombre = "Dólar Estadounidense" },
+                new { codigo = "EUR", nombre = "Euro" },
+                new { codigo = "CAD", nombre = "Dólar Canadiense" },
+                new { codigo = "GBP", nombre = "Libra Esterlina" },
+                new { codigo = "JPY", nombre = "Yen Japonés" },
+                new { codigo = "CHF", nombre = "Franco Suizo" },
+                new { codigo = "MXN", nombre = "Peso Mexicano" },
+                new { codigo = "CNY", nombre = "Yuan Chino" },
+                new { codigo = "BRL", nombre = "Real Brasileño" }
+            };
+
+            return Ok(monedas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener monedas");
+            return StatusCode(500, new { success = false, message = "Error al obtener monedas" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todas las tarifas de IVA (Hacienda v4.4)
+    /// </summary>
+    [HttpGet("codigos-tarifas-iva")]
+    public async Task<IActionResult> GetCodigosTarifasIVA()
+    {
+        try
+        {
+            var tarifas = await _context.Set<TarifaIVA>()
+                .Where(t => t.Activo)
+                .OrderBy(t => t.Codigo)
+                .Select(t => new
+                {
+                    t.Id,
+                    t.Codigo,
+                    t.Descripcion,
+                    t.Porcentaje
+                })
+                .ToListAsync();
+
+            return Ok(tarifas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener códigos de tarifas IVA");
+            return StatusCode(500, new { success = false, message = "Error al obtener códigos de tarifas IVA" });
         }
     }
 

@@ -203,11 +203,18 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             string ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
 
-            // IMPORTANTE: Usar el método con OAuth2 que obtiene automáticamente un token válido
-            var respuestaHacienda = await _haciendaApi.EnviarDocumentoConTokenAsync(
+            // Obtener el cliente si existe para incluirlo en el payload
+            Cliente? cliente = documento.ClienteId.HasValue
+                ? await _context.Set<Cliente>().FirstOrDefaultAsync(c => c.Id == documento.ClienteId)
+                : null;
+
+            // IMPORTANTE: Usar el método con Emisor/Receptor que obtiene el tipo de identificación
+            // correctamente de las entidades (la clave NO contiene el tipo de identificación)
+            var respuestaHacienda = await _haciendaApi.EnviarDocumentoConEmisorReceptorAsync(
                 documento.Clave,
                 documento.XmlFirmado!,
-                empresa.Id, // EmpresaId para obtener el token válido
+                empresa,
+                cliente,
                 ambiente
             );
 

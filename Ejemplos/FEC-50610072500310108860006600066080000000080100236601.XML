@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?><FacturaElectronicaCompra xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaCompra" xmlns:ns2="http://www.w3.org/2000/09/xmldsig#">
+    <Clave>50610072500310108860006600066080000000080100236601</Clave>
+    <ProveedorSistemas>3101088600</ProveedorSistemas>
+    <CodigoActividadEmisor>722003</CodigoActividadEmisor>
+    <CodigoActividadReceptor>722003</CodigoActividadReceptor>
+    <NumeroConsecutivo>06600066080000000080</NumeroConsecutivo>
+    <FechaEmision>2025-07-10T10:52:07.6564615</FechaEmision>
+    <Emisor>
+        <Nombre>GB SYS SOCIEDAD ANONIMA</Nombre>
+        <Identificacion>
+            <Tipo>02</Tipo>
+            <Numero>3101088600</Numero>
+        </Identificacion>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>18</Canton>
+            <Distrito>01</Distrito>
+            <Barrio>PLAZA DEL SOL</Barrio>
+            <OtrasSenas>De la POPS 500 m al sur</OtrasSenas>
+        </Ubicacion>
+        <CorreoElectronico>herman.barrantes@gbsys.com</CorreoElectronico>
+    </Emisor>
+    <Receptor>
+        <Nombre>GB SYS SOCIEDAD ANONIMA</Nombre>
+        <Identificacion>
+            <Tipo>02</Tipo>
+            <Numero>3101088600</Numero>
+        </Identificacion>
+        <NombreComercial>GLOBAL BUSINNESS SYSTEM</NombreComercial>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>18</Canton>
+            <Distrito>01</Distrito>
+            <Barrio>AHOGADOS (PARTE)</Barrio>
+            <OtrasSenas>Curridabat, San Jose, Costa Rica, 500 mts. Sur y 25 mts. Oeste de Pops.</OtrasSenas>
+        </Ubicacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>22347876</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>herman.barrantes@gbsys.com</CorreoElectronico>
+    </Receptor>
+    <CondicionVenta>99</CondicionVenta>
+    <CondicionVentaOtros>Pruebas</CondicionVentaOtros>
+    <PlazoCredito>0</PlazoCredito>
+    <DetalleServicio>
+        <LineaDetalle>
+            <NumeroLinea>1</NumeroLinea>
+            <CodigoCABYS>4817101020100</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>13737</Codigo>
+            </CodigoComercial>
+            <Cantidad>5.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <TipoTransaccion>01</TipoTransaccion>
+            <Detalle>"Brackets" para ortodoncia</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>5000.00000</MontoTotal>
+            <Descuento>
+                <MontoDescuento>750.00000</MontoDescuento>
+                <CodigoDescuento>04</CodigoDescuento>
+                <NaturalezaDescuento>volumen</NaturalezaDescuento>
+            </Descuento>
+            <SubTotal>4250.00000</SubTotal>
+            <BaseImponible>4250.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>01</Codigo>
+                <CodigoTarifaIVA>10</CodigoTarifaIVA>
+                <Tarifa>0.00</Tarifa>
+                <Monto>0.00000</Monto>
+            </Impuesto>
+            <ImpuestoNeto>0.00000</ImpuestoNeto>
+            <MontoTotalLinea>4250.00000</MontoTotalLinea>
+        </LineaDetalle>
+    </DetalleServicio>
+    <ResumenFactura>
+        <CodigoTipoMoneda>
+            <CodigoMoneda>CRC</CodigoMoneda>
+            <TipoCambio>1.00000</TipoCambio>
+        </CodigoTipoMoneda>
+        <TotalServGravados>0.00000</TotalServGravados>
+        <TotalServExentos>0.00000</TotalServExentos>
+        <TotalServExonerado>0.00000</TotalServExonerado>
+        <TotalServNoSujeto>0.00000</TotalServNoSujeto>
+        <TotalMercanciasGravadas>0.00000</TotalMercanciasGravadas>
+        <TotalMercanciasExentas>5000.00000</TotalMercanciasExentas>
+        <TotalMercExonerada>0.00000</TotalMercExonerada>
+        <TotalMercNoSujeta>0.00000</TotalMercNoSujeta>
+        <TotalGravado>0.00000</TotalGravado>
+        <TotalExento>5000.00000</TotalExento>
+        <TotalExonerado>0.00000</TotalExonerado>
+        <TotalNoSujeto>0.00000</TotalNoSujeto>
+        <TotalVenta>5000.00000</TotalVenta>
+        <TotalDescuentos>750.00000</TotalDescuentos>
+        <TotalVentaNeta>4250.00000</TotalVentaNeta>
+        <TotalDesgloseImpuesto>
+            <Codigo>01</Codigo>
+            <CodigoTarifaIVA>10</CodigoTarifaIVA>
+            <TotalMontoImpuesto>0.00000</TotalMontoImpuesto>
+        </TotalDesgloseImpuesto>
+        <TotalImpuesto>0.00000</TotalImpuesto>
+        <TotalImpAsumEmisorFabrica>0.00000</TotalImpAsumEmisorFabrica>
+        <MedioPago>
+            <TipoMedioPago>01</TipoMedioPago>
+            <TotalMedioPago>4250.00000</TotalMedioPago>
+        </MedioPago>
+        <TotalComprobante>4250.00000</TotalComprobante>
+    </ResumenFactura>
+    <InformacionReferencia>
+        <TipoDocIR>14</TipoDocIR>
+        <Numero>123456</Numero>
+        <FechaEmisionIR>2025-07-10T10:48:00</FechaEmisionIR>
+        <Codigo>04</Codigo>
+        <Razon>asdf</Razon>
+    </InformacionReferencia>
+<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294">
+<ds:SignedInfo>
+<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+<ds:Reference Id="xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294-ref0" URI="">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>lCupD9LQZ2wFWdzDsJaTNibbTLT1AVYmEQMzt79iu3g=</ds:DigestValue>
+</ds:Reference>
+<ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294-signedprops">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>AKvkkRhp8tU2dOt3vvv2QsW6Q8TotC6wD/fWSSrgcBI=</ds:DigestValue>
+</ds:Reference>
+</ds:SignedInfo>
+<ds:SignatureValue Id="xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294-sigvalue">
+XwqTqMb6RrywdHHl0KrjLLsE57sLg/l+KT57zqDmeG5X0fDoe1WJXZow7U4IMIvVTeiXCjplX4Ln&#13;
+E7g7C1FBMxlLMLa0nBya5Pn5kxNsczQc3GNT1Jr6P3prYW5B/vuMwcQDL3pxG/YPnyVWvnDojite&#13;
+41uRYOp3k/gUTFuKa9x0KFr0kn8vukdFFqrnnCTuRhki2dBZ3ISo049kDlAxgROLMXCfST5JkhrY&#13;
+tgfvowpepofTMdO09GiDL8yPOZuy/wYCKYuSkseGSYfJoO8qoF4ttqyehed9wUDFK0UpJJOp0JPE&#13;
+jdjAsIXyfG7pepq25/LaJ/6mw1yOvXBnwADUnw==
+</ds:SignatureValue>
+<ds:KeyInfo>
+<ds:X509Data>
+<ds:X509Certificate>
+MIIFLDCCAxSgAwIBAgIGAX+Y0RroMA0GCSqGSIb3DQEBCwUAMG4xCzAJBgNVBAYTAkNSMSkwJwYD&#13;
+VQQKDCBNSU5JU1RFUklPIERFIEhBQ0lFTkRBIC0gU0FOREJPWDEMMAoGA1UECwwDREdUMSYwJAYD&#13;
+VQQDDB1DQSBQRVJTT05BIEpVUklESUNBIC0gU0FOREJPWDAeFw0yMjAzMTcxNjU4MzVaFw0yNjAz&#13;
+MTYxNjU4MzVaMHMxGTAXBgNVBAUTEENQSi0zLTEwMS0wODg2MDAxCzAJBgNVBAYTAkNSMRkwFwYD&#13;
+VQQKDBBQRVJTT05BIEpVUklESUNBMQwwCgYDVQQLDANDUEoxIDAeBgNVBAMMF0dCIFNZUyBTT0NJ&#13;
+RURBRCBBTk9OSU1BMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlMjmfYIO6E11/yRu&#13;
+lMqhhT/2hpyt6dB8RpqszITIhy6oRIH7U6vjl7mC7Ktl9Vz0Ag7QdSm4csw9OmjdE6UMifEh0KB9&#13;
+roz+UHd9LEF9d61vW0e8peke2+SqGiw/YSmk0UmtE0W1y24OtDV7xaNZOcYtiLBRYu7SpAg4BxlO&#13;
+yHMBty2k2UEJTjGDjeBtC69nsRLzQJf3j8bs6VWSk0Fk3GnCBIQFtYHXum62SfSOglt63VpKOk4K&#13;
+yXCcZByNgX6mL7wHUOzks/+TdXC8IkZ0XulzlINWoLeJQD3mdg6b/ANx3yZKS50LojcVMtx3pdIQ&#13;
+kbeNp5D37p9FBYPoyiMwkQIDAQABo4HKMIHHMB8GA1UdIwQYMBaAFKwoRfgvnUhfLB8AkOsyxaMH&#13;
+U4DhMB0GA1UdDgQWBBSZ66Wz2GYiTAl2Wep5a9efeE6X0DALBgNVHQ8EBAMCBsAwEwYDVR0lBAww&#13;
+CgYIKwYBBQUHAwQwYwYIKwYBBQUHAQEEVzBVMFMGCCsGAQUFBzAChkdodHRwczovL3BraS5jb21w&#13;
+cm9iYW50ZXNlbGVjdHJvbmljb3MuZ28uY3Ivc3RhZy9pbnRlcm1lZGlhdGUtcGotcGVtLmNydDAN&#13;
+BgkqhkiG9w0BAQsFAAOCAgEAjPBgoMXV0CCUtvGo5Clqwfdf90ZuVWJBozNU2nre2B9Eef9LwP9o&#13;
+lslfEp4juUK+VkJUPYkJgBZodSxO2tP9bKXMXQrkrgPuBTDi5o+it1yfVRonkNpLDRZRHVZZRjOm&#13;
+hVqzL1qLDZqoTk6IPWsr3y2a6A+g/MttSJ2ThUYssPFuDt7Y0kAWUuGlRuF+yQ5nqjK+dOrD/1vt&#13;
+WAsszcCswrQEJqv9/37fK3V3ilMi8c/nuHrIMFMviDxBTcUB6GsObi1ROp77DxbKg5Y2a/3jzP0P&#13;
+3XUwoZlSj/ATNQkxn4vU2xifp30OzxP4U0oMoJNojlg3z/8VuViGu20s+Wh/o2+Oh3PZFXvauaBc&#13;
+kyIWkjASUO3LbKXcVNDXNwOSUWTBFRRs69qw/L+sRQBKOVNU5GBVI96fIhY1fMQU5R03f1kBSdJM&#13;
+N8qpCwyb49H7ShKPrahZqhajWw2CNG2e+u1vR+2wFQnHom7Zqxvuvx3ukvEPgUsNwF760psEYmRb&#13;
+mSbreqi3ApynxLFNhrTnY/U8RotnKw3Tdrk01SC6OiMnVP554aYNUkOdumyj+fvZrthckNznYbcJ&#13;
+WeBbVOdK32SQoLADLT1tmirS6+qEYAI9B32eQ0FufBhFzkLTTPlBN3DC5o9XMUm7VdXS8huKhww8&#13;
+rpr27ev7UURMFEXx8D1gHVA=
+</ds:X509Certificate>
+<ds:X509IssuerSerial>
+<ds:X509IssuerName>cn=CA PERSONA JURIDICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ds:X509IssuerName>
+<ds:X509SerialNumber>1647536315112</ds:X509SerialNumber>
+</ds:X509IssuerSerial>
+<ds:X509SubjectName>cn=GB SYS SOCIEDAD ANONIMA,ou=CPJ,o=PERSONA JURIDICA,c=CR,serialNumber=CPJ-3-101-088600</ds:X509SubjectName>
+</ds:X509Data>
+</ds:KeyInfo>
+<ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" Target="#xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294"><xades:SignedProperties Id="xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294-signedprops"><xades:SignedSignatureProperties><xades:SigningTime>2025-07-10T10:52:12.027-06:00</xades:SigningTime><xades:SigningCertificate><xades:Cert><xades:CertDigest><ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ns2:DigestValue>7LUKAzKrgonBoEMGMi8kzYfbtSreGf/WbHBSmtrMyHA=</ns2:DigestValue></xades:CertDigest><xades:IssuerSerial><ns2:X509IssuerName>cn=CA PERSONA JURIDICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ns2:X509IssuerName><ns2:X509SerialNumber>1647536315112</ns2:X509SerialNumber></xades:IssuerSerial></xades:Cert></xades:SigningCertificate><xades:SignaturePolicyIdentifier><xades:SignaturePolicyId><xades:SigPolicyId><xades:Identifier>https://www.hacienda.go.cr/ATV/ComprobanteElectronico/docs/esquemas/2016/v4.3/Resoluci%C3%B3n_General_sobre_disposiciones_t%C3%A9cnicas_comprobantes_electr%C3%B3nicos_para_efectos_tributarios.pdf</xades:Identifier></xades:SigPolicyId><xades:SigPolicyHash><ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ns2:DigestValue>qejyRRM8RyeH+uO5XMcFUY6G1fYHho06sAHH7sue9gM=</ns2:DigestValue></xades:SigPolicyHash></xades:SignaturePolicyId></xades:SignaturePolicyIdentifier></xades:SignedSignatureProperties><xades:SignedDataObjectProperties><xades:DataObjectFormat ObjectReference="#xmldsig-ad64a7d2-2a0d-410c-a966-aba508aba294-ref0"><xades:MimeType>application/octet-stream</xades:MimeType></xades:DataObjectFormat></xades:SignedDataObjectProperties></xades:SignedProperties></xades:QualifyingProperties></ds:Object>
+</ds:Signature></FacturaElectronicaCompra>

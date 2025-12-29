@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<NotaCreditoElectronica
+    xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/notaCreditoElectronica"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Clave>50606082500010647095800100001030090000196188687765</Clave>
+    <ProveedorSistemas>106470958</ProveedorSistemas>
+    <CodigoActividadEmisor>7110.0</CodigoActividadEmisor>
+    <CodigoActividadReceptor>452003</CodigoActividadReceptor>
+    <NumeroConsecutivo>00100001030090000196</NumeroConsecutivo>
+    <FechaEmision>2025-08-06T17:37:41</FechaEmision>
+    <Emisor>
+        <Nombre>EDUARDO UREÑA</Nombre>
+        <Identificacion>
+            <Tipo>01</Tipo>
+            <Numero>106470958</Numero>
+        </Identificacion>
+        <NombreComercial>NOMBRE DE FANTASIA</NombreComercial>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>02</Canton>
+            <Distrito>03</Distrito>
+            <Barrio>CARMEN</Barrio>
+            <OtrasSenas>100 E, 25 N CONCRETERA PALMAREÑA</OtrasSenas>
+        </Ubicacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>88687765</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>sistemas@ursol.com</CorreoElectronico>
+    </Emisor>
+    <Receptor>
+        <Nombre>NOMBRE DEL CLIENTE</Nombre>
+        <Identificacion>
+            <Tipo>01</Tipo>
+            <Numero>909990999</Numero>
+        </Identificacion>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>01</Canton>
+            <Distrito>04</Distrito>
+            <Barrio>BARRIO GENERICO</Barrio>
+            <OtrasSenas>DIRECCION DETALLADA</OtrasSenas>
+        </Ubicacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>88888888</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>xyz123xyz@correo.com</CorreoElectronico>
+    </Receptor>
+    <CondicionVenta>02</CondicionVenta>
+    <PlazoCredito>7</PlazoCredito>
+    <DetalleServicio>
+        <LineaDetalle>
+            <NumeroLinea>1</NumeroLinea>
+            <Cantidad>2.000</Cantidad>
+            <UnidadMedida>Sp</UnidadMedida>
+            <Detalle>LINEA DE LA NC</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>2000.00000</MontoTotal>
+            <SubTotal>2000.00000</SubTotal>
+            <BaseImponible>2000.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>01</Codigo>
+                <CodigoTarifaIVA>10</CodigoTarifaIVA>
+                <Tarifa>0.00</Tarifa>
+                <Monto>0.00000</Monto>
+            </Impuesto>
+            <ImpuestoNeto>0.00000</ImpuestoNeto>
+            <MontoTotalLinea>2000.00000</MontoTotalLinea>
+        </LineaDetalle>
+    </DetalleServicio>
+    <ResumenFactura>
+        <CodigoTipoMoneda>
+            <CodigoMoneda>CRC</CodigoMoneda>
+            <TipoCambio>1.00000</TipoCambio>
+        </CodigoTipoMoneda>
+        <TotalServGravados>0.00000</TotalServGravados>
+        <TotalServExentos>0.00000</TotalServExentos>
+        <TotalServExonerado>0.00000</TotalServExonerado>
+        <TotalServNoSujeto>0.00000</TotalServNoSujeto>
+        <TotalMercanciasGravadas>0.00000</TotalMercanciasGravadas>
+        <TotalMercanciasExentas>0.00000</TotalMercanciasExentas>
+        <TotalMercExonerada>0.00000</TotalMercExonerada>
+        <TotalMercNoSujeta>0.00000</TotalMercNoSujeta>
+        <TotalGravado>0.00000</TotalGravado>
+        <TotalExento>2000.00000</TotalExento>
+        <TotalExonerado>0.00000</TotalExonerado>
+        <TotalNoSujeto>0.00000</TotalNoSujeto>
+        <TotalVenta>2000.00000</TotalVenta>
+        <TotalDescuentos>0.00000</TotalDescuentos>
+        <TotalVentaNeta>2000.00000</TotalVentaNeta>
+        <TotalImpuesto>0.00000</TotalImpuesto>
+        <TotalComprobante>2000.00000</TotalComprobante>
+    </ResumenFactura>
+    <InformacionReferencia>
+        <TipoDocIR>99</TipoDocIR>
+        <TipoDocRefOTRO>DOCUMENTO INTERNO</TipoDocRefOTRO>
+        <Numero>8X11S8XA</Numero>
+        <FechaEmisionIR>2025-08-06T17:37:41</FechaEmisionIR>
+        <Codigo>09</Codigo>
+        <CodigoReferenciaOTRO>DOCUMENTO INTERNO REFERENCIA</CodigoReferenciaOTRO>
+        <Razon>prueba</Razon>
+    </InformacionReferencia>
+    <Otros>
+        <OtroTexto codigo="OC"></OtroTexto>
+        <OtroContenido> Generada por: https://www.ursol.com </OtroContenido>
+    </Otros>
+</NotaCreditoElectronica>

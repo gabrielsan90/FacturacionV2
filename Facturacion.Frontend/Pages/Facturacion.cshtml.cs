@@ -598,4 +598,59 @@ public class FacturacionModel : PageModel
             return new JsonResult(new { success = false, data = new List<object>() });
         }
     }
+
+    // Handler to search CABYS by code
+    public async Task<IActionResult> OnGetBuscarCabysAsync(string codigo)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                return new JsonResult(new { success = false, message = "Código requerido" });
+            }
+
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // If code is exactly 13 characters, search exact match
+            var url = codigo.Length == 13
+                ? $"/api/cabys/local/buscar?q={Uri.EscapeDataString(codigo)}&top=1"
+                : $"/api/cabys/local/buscar?q={Uri.EscapeDataString(codigo)}&top=5";
+
+            var response = await client.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var cabys = await response.Content.ReadFromJsonAsync<List<JsonElement>>(_jsonOptions);
+                if (cabys != null && cabys.Count > 0)
+                {
+                    var first = cabys[0];
+                    return new JsonResult(new
+                    {
+                        success = true,
+                        data = new
+                        {
+                            id = first.GetProperty("id").GetInt32(),
+                            codigo = first.GetProperty("codigo").GetString(),
+                            descripcion = first.GetProperty("descripcion").GetString()
+                        }
+                    });
+                }
+                return new JsonResult(new { success = false, message = "Código no encontrado" });
+            }
+
+            _logger.LogWarning("Failed to search CABYS. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new { success = false, message = "Error al buscar CABYS" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching CABYS by code: {Codigo}", codigo);
+            return new JsonResult(new { success = false, message = "Error al buscar CABYS" });
+        }
+    }
 }

@@ -164,6 +164,7 @@
                                     <th>Clave</th>
                                     <th>Cliente/Receptor</th>
                                     <th>Fecha Emisión</th>
+                                    <th>Fecha Creación</th>
                                     <th>Total Venta</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
@@ -724,6 +725,18 @@
                         }
                     },
                     {
+                        data: 'fechaCreacion',
+                        render: function (data) {
+                            return new Date(data).toLocaleString('es-CR', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        }
+                    },
+                    {
                         data: 'totalVenta',
                         render: function (data) {
                             return '₡' + parseFloat(data).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
@@ -845,7 +858,7 @@
                     url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
                 },
                 pageLength: 25,
-                order: [[5, 'desc']] // Order by fecha emisión descending (column index 5 after adding Ambiente)
+                order: [[6, 'desc']] // Order by fecha creación descending (más recientes primero)
             });
         }
 

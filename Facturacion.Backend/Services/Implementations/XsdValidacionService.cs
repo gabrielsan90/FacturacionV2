@@ -269,14 +269,14 @@ public class XsdValidacionService : IXsdValidacionService
                 "MensajeReceptor_V4.4.xsd"
             };
 
-            var todosPresentses = true;
+            var todosPresentes = true;
             foreach (var archivo in archivosRequeridos)
             {
                 var rutaCompleta = Path.Combine(_rutaBaseXsd, archivo);
                 if (!File.Exists(rutaCompleta))
                 {
                     _logger.LogWarning("Archivo XSD faltante: {Archivo}", archivo);
-                    todosPresentses = false;
+                    todosPresentes = false;
                 }
                 else
                 {
@@ -284,16 +284,16 @@ public class XsdValidacionService : IXsdValidacionService
                 }
             }
 
-            if (todosPresentses)
+            if (todosPresentes)
             {
-                _logger.LogInformation("Todos los archivos XSD requeridos están presentes");
+                _logger.LogInformation("Todos los archivos XSD requeridos estan presentes");
             }
             else
             {
                 _logger.LogWarning("Faltan algunos archivos XSD requeridos");
             }
 
-            return todosPresentses;
+            return todosPresentes;
         }
         catch (Exception ex)
         {

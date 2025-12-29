@@ -21,7 +21,8 @@
             <thead>
                 <tr>
                     <th>Código</th>
-                    <th>Tarifa (%)</th>
+                    <th>Descripción</th>
+                    <th>Porcentaje</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -49,10 +50,11 @@
             },
             columns: [
                 { data: 'codigo' },
+                { data: 'descripcion' },
                 {
-                    data: 'tarifa',
+                    data: 'porcentaje',
                     render: function(data) {
-                        return data ? data + '%' : '-';
+                        return data != null ? data + '%' : '-';
                     }
                 }
             ],

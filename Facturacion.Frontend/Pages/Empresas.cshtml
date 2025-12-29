@@ -103,6 +103,11 @@
                                         <i class="fas fa-envelope"></i> Configuración SMTP
                                     </button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="actividades-tab" data-bs-toggle="tab" data-bs-target="#actividades" type="button" role="tab">
+                                        <i class="fas fa-briefcase"></i> Actividades Económicas
+                                    </button>
+                                </li>
                             </ul>
 
                             <!-- Sub-tab Content -->
@@ -225,6 +230,11 @@
                                                 <label asp-for="CertificadoFile" class="form-label">Certificado Digital (.p12)</label>
                                                 <input type="file" asp-for="CertificadoFile" class="form-control" id="CertificadoFile" accept=".p12,.pfx" />
                                                 <small class="form-text text-muted">Tamaño máximo: 5MB. Formato: .p12 o .pfx</small>
+                                                <!-- Indicador de certificado existente -->
+                                                <div id="certificadoExistente" class="alert alert-success mt-2" style="display: none;">
+                                                    <i class="fas fa-certificate text-success"></i>
+                                                    <strong>Certificado cargado</strong> - Si no selecciona un nuevo archivo, se mantendrá el actual.
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -359,6 +369,64 @@
                                             <li><strong>Outlook:</strong> smtp-mail.outlook.com - Puerto: 587</li>
                                             <li><strong>Office365:</strong> smtp.office365.com - Puerto: 587</li>
                                         </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Sub-tab 4: Actividades Económicas -->
+                                <div class="tab-pane fade" id="actividades" role="tabpanel">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Importante:</strong> Debe agregar al menos una actividad económica para poder generar documentos electrónicos.
+                                        La actividad marcada como <strong>principal</strong> será usada por defecto en los documentos.
+                                    </div>
+
+                                    <!-- Buscador de actividades -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                                <input type="text" id="buscarActividad" class="form-control" placeholder="Buscar por código o descripción (ej: 620101, programación, comercio)">
+                                                <button type="button" class="btn btn-primary" onclick="buscarActividades()">Buscar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Resultados de búsqueda -->
+                                    <div id="resultadosBusqueda" class="mb-3" style="display: none;">
+                                        <h6 class="text-muted">Resultados de búsqueda:</h6>
+                                        <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                            <table class="table table-sm table-hover">
+                                                <thead class="table-light sticky-top">
+                                                    <tr>
+                                                        <th>Código</th>
+                                                        <th>Descripción</th>
+                                                        <th style="width: 80px;">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tbodyResultadosBusqueda">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Actividades asignadas -->
+                                    <h6 class="text-primary"><i class="fas fa-briefcase"></i> Actividades Asignadas</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Código CIIU</th>
+                                                    <th>Descripción</th>
+                                                    <th style="width: 100px;">Principal</th>
+                                                    <th style="width: 80px;">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tableActividadesBody">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">No hay actividades económicas asignadas</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -929,6 +997,7 @@
             $('#Empresa_Id').val('00000000-0000-0000-0000-000000000000');
             $('#modalTitle').text('Nueva Empresa');
             $('#logoPreview').hide();
+            $('#certificadoExistente').hide(); // Ocultar indicador de certificado en nueva empresa
             $('#Empresa_Activa').prop('checked', true);
             $('#AmbientePruebas').prop('checked', true);
 
@@ -941,6 +1010,7 @@
             sucursalesData = [];
             terminalesData = [];
             consecutivosData = [];
+            actividadesData = [];
             isEditMode = false;
 
             // Switch to first tab
@@ -951,6 +1021,9 @@
             renderSucursalesTable();
             renderTerminalesTable();
             renderConsecutivosTable();
+            renderActividadesTable();
+            $('#resultadosBusqueda').hide();
+            $('#buscarActividad').val('');
 
             $('#modalEmpresa').modal('show');
         }
@@ -1008,6 +1081,13 @@
                             $('#logoPreview').hide();
                         }
 
+                        // Mostrar indicador de certificado existente
+                        if (data.certificadoDigital && data.certificadoDigital.length > 0) {
+                            $('#certificadoExistente').show();
+                        } else {
+                            $('#certificadoExistente').hide();
+                        }
+
                         // Load cascading dropdowns
                         currentProvinciaId = data.provincia;
                         loadCantones(data.provincia);
@@ -1028,10 +1108,11 @@
                         $('#empresa-tab').tab('show');
                         $('#general-tab').tab('show');
 
-                        // Load sucursales, terminales and consecutivos
+                        // Load sucursales, terminales, consecutivos and actividades
                         loadSucursales(data.id);
                         loadTerminales(data.id);
                         loadConsecutivos(data.id);
+                        loadActividadesEconomicas(data.id);
 
                         $('#modalEmpresa').modal('show');
                     } else {
@@ -1873,6 +1954,237 @@
                 }
             });
         }
+
+        // ========================================
+        // ACTIVIDADES ECONÓMICAS FUNCTIONS
+        // ========================================
+
+        let actividadesData = [];
+
+        function loadActividadesEconomicas(empresaId) {
+            if (!empresaId) return;
+
+            $.ajax({
+                url: '?handler=ActividadesEconomicas&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        actividadesData = response.data || [];
+                        renderActividadesTable();
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading actividades:', xhr);
+                }
+            });
+        }
+
+        function renderActividadesTable() {
+            const tbody = $('#tableActividadesBody');
+            tbody.empty();
+
+            if (actividadesData.length === 0) {
+                tbody.append('<tr><td colspan="4" class="text-center text-muted">No hay actividades económicas asignadas</td></tr>');
+                return;
+            }
+
+            actividadesData.forEach(act => {
+                const principalBadge = act.esPrincipal
+                    ? '<span class="badge bg-success"><i class="fas fa-star"></i> Principal</span>'
+                    : `<button type="button" class="btn btn-xs btn-outline-primary" onclick="setActividadPrincipal(${act.id})" title="Establecer como principal"><i class="fas fa-star"></i></button>`;
+
+                const row = `
+                    <tr>
+                        <td><code>${act.codigo}</code></td>
+                        <td>${act.descripcion}</td>
+                        <td class="text-center">${principalBadge}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-xs btn-danger" onclick="deleteActividadEconomica(${act.id})" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function buscarActividades() {
+            const query = $('#buscarActividad').val().trim();
+            if (!query || query.length < 2) {
+                Swal.fire('Atención', 'Ingrese al menos 2 caracteres para buscar', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: '?handler=BuscarActividades&q=' + encodeURIComponent(query),
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const resultados = response.data;
+                        const tbody = $('#tbodyResultadosBusqueda');
+                        tbody.empty();
+
+                        if (resultados.length === 0) {
+                            tbody.append('<tr><td colspan="3" class="text-center text-muted">No se encontraron resultados</td></tr>');
+                        } else {
+                            resultados.forEach(act => {
+                                const codigo = act.codigo || act.codigoCIIU4;
+                                const descripcion = act.descripcion;
+
+                                // Verificar si ya está agregada
+                                const yaAgregada = actividadesData.some(a => a.codigo === codigo);
+                                const btnAdd = yaAgregada
+                                    ? '<span class="badge bg-secondary">Agregada</span>'
+                                    : `<button type="button" class="btn btn-xs btn-success" onclick="addActividadEconomica('${codigo}')" title="Agregar"><i class="fas fa-plus"></i></button>`;
+
+                                const row = `
+                                    <tr>
+                                        <td><code>${codigo}</code></td>
+                                        <td>${descripcion}</td>
+                                        <td class="text-center">${btnAdd}</td>
+                                    </tr>
+                                `;
+                                tbody.append(row);
+                            });
+                        }
+                        $('#resultadosBusqueda').show();
+                    } else {
+                        Swal.fire('Error', response.message || 'Error al buscar actividades', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error buscando actividades:', xhr);
+                    Swal.fire('Error', 'Error al buscar actividades económicas', 'error');
+                }
+            });
+        }
+
+        function addActividadEconomica(codigo) {
+            if (!currentEmpresaId) {
+                Swal.fire('Error', 'Debe guardar la empresa primero', 'warning');
+                return;
+            }
+
+            const esPrincipal = actividadesData.length === 0; // Primera actividad es principal
+
+            $.ajax({
+                url: '?handler=AddActividadEconomica',
+                type: 'POST',
+                data: JSON.stringify({
+                    empresaId: currentEmpresaId,
+                    codigoActividad: codigo,
+                    esPrincipal: esPrincipal
+                }),
+                contentType: 'application/json',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            confirmButtonColor: '#4e73df',
+                            timer: 1500
+                        });
+                        loadActividadesEconomicas(currentEmpresaId);
+                        $('#resultadosBusqueda').hide();
+                        $('#buscarActividad').val('');
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error agregando actividad:', xhr);
+                    Swal.fire('Error', 'Error al agregar la actividad económica', 'error');
+                }
+            });
+        }
+
+        function deleteActividadEconomica(actividadId) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: "Esta acción eliminará la actividad económica de la empresa.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e74a3b',
+                cancelButtonColor: '#858796'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=DeleteActividadEconomica&empresaId=' + currentEmpresaId + '&actividadId=' + actividadId,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Eliminado',
+                                    text: response.message,
+                                    confirmButtonColor: '#4e73df',
+                                    timer: 1500
+                                });
+                                loadActividadesEconomicas(currentEmpresaId);
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr) {
+                            console.error('Error eliminando actividad:', xhr);
+                            Swal.fire('Error', 'Error al eliminar la actividad económica', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function setActividadPrincipal(actividadId) {
+            $.ajax({
+                url: '?handler=SetActividadPrincipal&empresaId=' + currentEmpresaId + '&actividadId=' + actividadId,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            confirmButtonColor: '#4e73df',
+                            timer: 1500
+                        });
+                        loadActividadesEconomicas(currentEmpresaId);
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error estableciendo actividad principal:', xhr);
+                    Swal.fire('Error', 'Error al establecer la actividad como principal', 'error');
+                }
+            });
+        }
+
+        // Búsqueda con Enter
+        $('#buscarActividad').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                buscarActividades();
+            }
+        });
     </script>
 
     <style>

@@ -11,7 +11,14 @@
       "Bash(python3:*)",
       "Bash(sqlcmd:*)",
       "Bash(pkill:*)",
-      "WebFetch(domain:atv.hacienda.go.cr)"
+      "WebFetch(domain:atv.hacienda.go.cr)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet add:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet tool restore:*)",
+      "Bash(dotnet tool install:*)",
+      "Bash(~/.dotnet/tools/dotnet-ef migrations add:*)",
+      "Bash(~/.dotnet/tools/dotnet-ef database update:*)"
     ],
     "deny": [],
     "ask": []

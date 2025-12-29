@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><FacturaElectronica xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronica" xmlns:ns2="http://www.w3.org/2000/09/xmldsig#">
+    <Clave>50604072500310108860006600066010000001041104236601</Clave>
+    <ProveedorSistemas>3101088600</ProveedorSistemas>
+    <CodigoActividadEmisor>722003</CodigoActividadEmisor>
+    <NumeroConsecutivo>06600066010000001041</NumeroConsecutivo>
+    <FechaEmision>2025-07-04T11:22:07.8772579</FechaEmision>
+    <Emisor>
+        <Nombre>GB SYS SOCIEDAD ANONIMA</Nombre>
+        <Identificacion>
+            <Tipo>02</Tipo>
+            <Numero>3101088600</Numero>
+        </Identificacion>
+        <Registrofiscal8707>12345</Registrofiscal8707>
+        <NombreComercial>GLOBAL BUSINNESS SYSTEM</NombreComercial>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>18</Canton>
+            <Distrito>01</Distrito>
+            <Barrio>AHOGADOS (PARTE)</Barrio>
+            <OtrasSenas>Curridabat, San Jose, Costa Rica, 500 mts. Sur y 25 mts. Oeste de Pops.</OtrasSenas>
+        </Ubicacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>22347876</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>herman.barrantes@gbsys.com</CorreoElectronico>
+    </Emisor>
+    <Receptor>
+        <Nombre>GB SYS SOCIEDAD ANONIMA</Nombre>
+        <Identificacion>
+            <Tipo>02</Tipo>
+            <Numero>3101088600</Numero>
+        </Identificacion>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>18</Canton>
+            <Distrito>01</Distrito>
+            <Barrio>PLAZA DEL SOL</Barrio>
+            <OtrasSenas>De la POPS 500 m al sur</OtrasSenas>
+        </Ubicacion>
+        <CorreoElectronico>herman.barrantes@gbsys.com</CorreoElectronico>
+    </Receptor>
+    <CondicionVenta>01</CondicionVenta>
+    <PlazoCredito>0</PlazoCredito>
+    <DetalleServicio>
+        <LineaDetalle>
+            <NumeroLinea>1</NumeroLinea>
+            <CodigoCABYS>3832001000000</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>20394</Codigo>
+            </CodigoComercial>
+            <Cantidad>7.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <Detalle>IVA BIENES USADOS</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>7000.00000</MontoTotal>
+            <SubTotal>7000.00000</SubTotal>
+            <BaseImponible>7000.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>08</Codigo>
+                <Tarifa>13.00</Tarifa>
+                <FactorCalculoIVA>0.1300</FactorCalculoIVA>
+                <Monto>910.00000</Monto>
+            </Impuesto>
+            <ImpuestoAsumidoEmisorFabrica>0.00000</ImpuestoAsumidoEmisorFabrica>
+            <ImpuestoNeto>910.00000</ImpuestoNeto>
+            <MontoTotalLinea>7910.00000</MontoTotalLinea>
+        </LineaDetalle>
+        <LineaDetalle>
+            <NumeroLinea>2</NumeroLinea>
+            <CodigoCABYS>3832001000000</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>20394</Codigo>
+            </CodigoComercial>
+            <Cantidad>7.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <Detalle>IVA BIENES USADOS</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>7000.00000</MontoTotal>
+            <Descuento>
+                <MontoDescuento>1050.00000</MontoDescuento>
+                <CodigoDescuento>04</CodigoDescuento>
+                <NaturalezaDescuento>volumen</NaturalezaDescuento>
+            </Descuento>
+            <SubTotal>5950.00000</SubTotal>
+            <BaseImponible>5950.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>08</Codigo>
+                <Tarifa>13.00</Tarifa>
+                <FactorCalculoIVA>0.1300</FactorCalculoIVA>
+                <Monto>773.50000</Monto>
+            </Impuesto>
+            <ImpuestoAsumidoEmisorFabrica>0.00000</ImpuestoAsumidoEmisorFabrica>
+            <ImpuestoNeto>773.50000</ImpuestoNeto>
+            <MontoTotalLinea>6723.50000</MontoTotalLinea>
+        </LineaDetalle>
+        <LineaDetalle>
+            <NumeroLinea>3</NumeroLinea>
+            <CodigoCABYS>3832001000000</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>20394</Codigo>
+            </CodigoComercial>
+            <Cantidad>7.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <Detalle>IVA BIENES USADOS</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>7000.00000</MontoTotal>
+            <Descuento>
+                <MontoDescuento>7000.00000</MontoDescuento>
+                <CodigoDescuento>04</CodigoDescuento>
+                <NaturalezaDescuento>volumen</NaturalezaDescuento>
+            </Descuento>
+            <SubTotal>0.00000</SubTotal>
+            <BaseImponible>0.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>08</Codigo>
+                <Tarifa>13.00</Tarifa>
+                <FactorCalculoIVA>0.1300</FactorCalculoIVA>
+                <Monto>0.00000</Monto>
+            </Impuesto>
+            <ImpuestoAsumidoEmisorFabrica>0.00000</ImpuestoAsumidoEmisorFabrica>
+            <ImpuestoNeto>0.00000</ImpuestoNeto>
+            <MontoTotalLinea>0.00000</MontoTotalLinea>
+        </LineaDetalle>
+        <LineaDetalle>
+            <NumeroLinea>4</NumeroLinea>
+            <CodigoCABYS>3832001000000</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>20394</Codigo>
+            </CodigoComercial>
+            <Cantidad>7.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <Detalle>IVA BIENES USADOS</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>7000.00000</MontoTotal>
+            <Descuento>
+                <MontoDescuento>1050.00000</MontoDescuento>
+                <CodigoDescuento>01</CodigoDescuento>
+                <NaturalezaDescuento>regalia</NaturalezaDescuento>
+            </Descuento>
+            <SubTotal>5950.00000</SubTotal>
+            <BaseImponible>5950.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>08</Codigo>
+                <Tarifa>13.00</Tarifa>
+                <FactorCalculoIVA>0.1300</FactorCalculoIVA>
+                <Monto>773.50000</Monto>
+            </Impuesto>
+            <ImpuestoAsumidoEmisorFabrica>773.50000</ImpuestoAsumidoEmisorFabrica>
+            <ImpuestoNeto>0.00000</ImpuestoNeto>
+            <MontoTotalLinea>5950.00000</MontoTotalLinea>
+        </LineaDetalle>
+        <LineaDetalle>
+            <NumeroLinea>5</NumeroLinea>
+            <CodigoCABYS>3832001000000</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>20394</Codigo>
+            </CodigoComercial>
+            <Cantidad>7.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <Detalle>IVA BIENES USADOS</Detalle>
+            <PrecioUnitario>1000.00000</PrecioUnitario>
+            <MontoTotal>7000.00000</MontoTotal>
+            <Descuento>
+                <MontoDescuento>7000.00000</MontoDescuento>
+                <CodigoDescuento>01</CodigoDescuento>
+                <NaturalezaDescuento>regalia</NaturalezaDescuento>
+            </Descuento>
+            <SubTotal>0.00000</SubTotal>
+            <BaseImponible>0.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>08</Codigo>
+                <Tarifa>13.00</Tarifa>
+                <FactorCalculoIVA>0.1300</FactorCalculoIVA>
+                <Monto>0.00000</Monto>
+            </Impuesto>
+            <ImpuestoAsumidoEmisorFabrica>0.00000</ImpuestoAsumidoEmisorFabrica>
+            <ImpuestoNeto>0.00000</ImpuestoNeto>
+            <MontoTotalLinea>0.00000</MontoTotalLinea>
+        </LineaDetalle>
+    </DetalleServicio>
+    <ResumenFactura>
+        <CodigoTipoMoneda>
+            <CodigoMoneda>CRC</CodigoMoneda>
+            <TipoCambio>1.00000</TipoCambio>
+        </CodigoTipoMoneda>
+        <TotalServGravados>0.00000</TotalServGravados>
+        <TotalServExentos>0.00000</TotalServExentos>
+        <TotalServExonerado>0.00000</TotalServExonerado>
+        <TotalServNoSujeto>0.00000</TotalServNoSujeto>
+        <TotalMercanciasGravadas>35000.00000</TotalMercanciasGravadas>
+        <TotalMercanciasExentas>0.00000</TotalMercanciasExentas>
+        <TotalMercExonerada>0.00000</TotalMercExonerada>
+        <TotalMercNoSujeta>0.00000</TotalMercNoSujeta>
+        <TotalGravado>35000.00000</TotalGravado>
+        <TotalExento>0.00000</TotalExento>
+        <TotalExonerado>0.00000</TotalExonerado>
+        <TotalNoSujeto>0.00000</TotalNoSujeto>
+        <TotalVenta>35000.00000</TotalVenta>
+        <TotalDescuentos>16100.00000</TotalDescuentos>
+        <TotalVentaNeta>18900.00000</TotalVentaNeta>
+        <TotalDesgloseImpuesto>
+            <Codigo>08</Codigo>
+            <TotalMontoImpuesto>1683.50000</TotalMontoImpuesto>
+        </TotalDesgloseImpuesto>
+        <TotalImpuesto>1683.50000</TotalImpuesto>
+        <TotalImpAsumEmisorFabrica>773.50000</TotalImpAsumEmisorFabrica>
+        <TotalIVADevuelto>0.00000</TotalIVADevuelto>
+        <MedioPago>
+            <TipoMedioPago>01</TipoMedioPago>
+            <TotalMedioPago>20583.50000</TotalMedioPago>
+        </MedioPago>
+        <TotalComprobante>20583.50000</TotalComprobante>
+    </ResumenFactura>
+<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425">
+<ds:SignedInfo>
+<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+<ds:Reference Id="xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425-ref0" URI="">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>Qwdiz94EHIs61Ei+Vkkcz12s/O+nMYNAkmOm2V4b4s0=</ds:DigestValue>
+</ds:Reference>
+<ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425-signedprops">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>49A2uPw4LWPxIPn9Wdfdsj5cAHPXDo6ygp+YGXiw2CU=</ds:DigestValue>
+</ds:Reference>
+</ds:SignedInfo>
+<ds:SignatureValue Id="xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425-sigvalue">
+e5x+9kJ4anfpsqtmH8e4eq/MXHYTAB7E7kbUfb4Wtofi8NMu5pyzUa+SXRe/PrNJkmQwStmmh+B3&#13;
+RntZn4jF2a2Md5tFzr+HnDFL2nUFv50F1UUbyRI/xPVEiMCUVDgsqcPmlDEBpefPxXLL+fAUc/b1&#13;
+yR2iXkkla/lucK9rG8Txs+/SVRMtfKet7llGeLTim3bnZ04Nqd1qCKgOJOCGSUCfJbHKn4qVIgyN&#13;
+BpS6AlB3dhKsFcefL0XqAEIlecyUP433Xx7tAR3VnvCKxljij07oxIWSQ+sNHh3PSxn/U8Bv9TV+&#13;
+4Op+oUTSc7zY5z8PYPlAkbj+QZvTgCUwO7siSA==
+</ds:SignatureValue>
+<ds:KeyInfo>
+<ds:X509Data>
+<ds:X509Certificate>
+MIIFLDCCAxSgAwIBAgIGAX+Y0RroMA0GCSqGSIb3DQEBCwUAMG4xCzAJBgNVBAYTAkNSMSkwJwYD&#13;
+VQQKDCBNSU5JU1RFUklPIERFIEhBQ0lFTkRBIC0gU0FOREJPWDEMMAoGA1UECwwDREdUMSYwJAYD&#13;
+VQQDDB1DQSBQRVJTT05BIEpVUklESUNBIC0gU0FOREJPWDAeFw0yMjAzMTcxNjU4MzVaFw0yNjAz&#13;
+MTYxNjU4MzVaMHMxGTAXBgNVBAUTEENQSi0zLTEwMS0wODg2MDAxCzAJBgNVBAYTAkNSMRkwFwYD&#13;
+VQQKDBBQRVJTT05BIEpVUklESUNBMQwwCgYDVQQLDANDUEoxIDAeBgNVBAMMF0dCIFNZUyBTT0NJ&#13;
+RURBRCBBTk9OSU1BMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlMjmfYIO6E11/yRu&#13;
+lMqhhT/2hpyt6dB8RpqszITIhy6oRIH7U6vjl7mC7Ktl9Vz0Ag7QdSm4csw9OmjdE6UMifEh0KB9&#13;
+roz+UHd9LEF9d61vW0e8peke2+SqGiw/YSmk0UmtE0W1y24OtDV7xaNZOcYtiLBRYu7SpAg4BxlO&#13;
+yHMBty2k2UEJTjGDjeBtC69nsRLzQJf3j8bs6VWSk0Fk3GnCBIQFtYHXum62SfSOglt63VpKOk4K&#13;
+yXCcZByNgX6mL7wHUOzks/+TdXC8IkZ0XulzlINWoLeJQD3mdg6b/ANx3yZKS50LojcVMtx3pdIQ&#13;
+kbeNp5D37p9FBYPoyiMwkQIDAQABo4HKMIHHMB8GA1UdIwQYMBaAFKwoRfgvnUhfLB8AkOsyxaMH&#13;
+U4DhMB0GA1UdDgQWBBSZ66Wz2GYiTAl2Wep5a9efeE6X0DALBgNVHQ8EBAMCBsAwEwYDVR0lBAww&#13;
+CgYIKwYBBQUHAwQwYwYIKwYBBQUHAQEEVzBVMFMGCCsGAQUFBzAChkdodHRwczovL3BraS5jb21w&#13;
+cm9iYW50ZXNlbGVjdHJvbmljb3MuZ28uY3Ivc3RhZy9pbnRlcm1lZGlhdGUtcGotcGVtLmNydDAN&#13;
+BgkqhkiG9w0BAQsFAAOCAgEAjPBgoMXV0CCUtvGo5Clqwfdf90ZuVWJBozNU2nre2B9Eef9LwP9o&#13;
+lslfEp4juUK+VkJUPYkJgBZodSxO2tP9bKXMXQrkrgPuBTDi5o+it1yfVRonkNpLDRZRHVZZRjOm&#13;
+hVqzL1qLDZqoTk6IPWsr3y2a6A+g/MttSJ2ThUYssPFuDt7Y0kAWUuGlRuF+yQ5nqjK+dOrD/1vt&#13;
+WAsszcCswrQEJqv9/37fK3V3ilMi8c/nuHrIMFMviDxBTcUB6GsObi1ROp77DxbKg5Y2a/3jzP0P&#13;
+3XUwoZlSj/ATNQkxn4vU2xifp30OzxP4U0oMoJNojlg3z/8VuViGu20s+Wh/o2+Oh3PZFXvauaBc&#13;
+kyIWkjASUO3LbKXcVNDXNwOSUWTBFRRs69qw/L+sRQBKOVNU5GBVI96fIhY1fMQU5R03f1kBSdJM&#13;
+N8qpCwyb49H7ShKPrahZqhajWw2CNG2e+u1vR+2wFQnHom7Zqxvuvx3ukvEPgUsNwF760psEYmRb&#13;
+mSbreqi3ApynxLFNhrTnY/U8RotnKw3Tdrk01SC6OiMnVP554aYNUkOdumyj+fvZrthckNznYbcJ&#13;
+WeBbVOdK32SQoLADLT1tmirS6+qEYAI9B32eQ0FufBhFzkLTTPlBN3DC5o9XMUm7VdXS8huKhww8&#13;
+rpr27ev7UURMFEXx8D1gHVA=
+</ds:X509Certificate>
+<ds:X509IssuerSerial>
+<ds:X509IssuerName>cn=CA PERSONA JURIDICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ds:X509IssuerName>
+<ds:X509SerialNumber>1647536315112</ds:X509SerialNumber>
+</ds:X509IssuerSerial>
+<ds:X509SubjectName>cn=GB SYS SOCIEDAD ANONIMA,ou=CPJ,o=PERSONA JURIDICA,c=CR,serialNumber=CPJ-3-101-088600</ds:X509SubjectName>
+</ds:X509Data>
+</ds:KeyInfo>
+<ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" Target="#xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425"><xades:SignedProperties Id="xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425-signedprops"><xades:SignedSignatureProperties><xades:SigningTime>2025-07-04T11:22:14.289-06:00</xades:SigningTime><xades:SigningCertificate><xades:Cert><xades:CertDigest><ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ns2:DigestValue>7LUKAzKrgonBoEMGMi8kzYfbtSreGf/WbHBSmtrMyHA=</ns2:DigestValue></xades:CertDigest><xades:IssuerSerial><ns2:X509IssuerName>cn=CA PERSONA JURIDICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ns2:X509IssuerName><ns2:X509SerialNumber>1647536315112</ns2:X509SerialNumber></xades:IssuerSerial></xades:Cert></xades:SigningCertificate><xades:SignaturePolicyIdentifier><xades:SignaturePolicyId><xades:SigPolicyId><xades:Identifier>https://www.hacienda.go.cr/ATV/ComprobanteElectronico/docs/esquemas/2016/v4.3/Resoluci%C3%B3n_General_sobre_disposiciones_t%C3%A9cnicas_comprobantes_electr%C3%B3nicos_para_efectos_tributarios.pdf</xades:Identifier></xades:SigPolicyId><xades:SigPolicyHash><ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ns2:DigestValue>qejyRRM8RyeH+uO5XMcFUY6G1fYHho06sAHH7sue9gM=</ns2:DigestValue></xades:SigPolicyHash></xades:SignaturePolicyId></xades:SignaturePolicyIdentifier></xades:SignedSignatureProperties><xades:SignedDataObjectProperties><xades:DataObjectFormat ObjectReference="#xmldsig-0f2ce979-5a11-40af-8cb3-3a9cfad61425-ref0"><xades:MimeType>application/octet-stream</xades:MimeType></xades:DataObjectFormat></xades:SignedDataObjectProperties></xades:SignedProperties></xades:QualifyingProperties></ds:Object>
+</ds:Signature></FacturaElectronica>
