@@ -268,7 +268,7 @@ public class DocumentosModel : PageModel
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        var response = await client.GetAsync($"/api/Documentos/{id}/pdf");
+        var response = await client.GetAsync($"/api/Documentos/{id}/descargar-pdf");
 
         if (response.IsSuccessStatusCode)
         {
@@ -300,7 +300,7 @@ public class DocumentosModel : PageModel
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        var response = await client.GetAsync($"/api/Documentos/{id}/xml");
+        var response = await client.GetAsync($"/api/Documentos/{id}/descargar-xml");
 
         if (response.IsSuccessStatusCode)
         {

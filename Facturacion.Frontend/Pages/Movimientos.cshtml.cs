@@ -41,8 +41,8 @@ public class MovimientosModel : PageModel
         string? fechaInicio,
         string? fechaFin,
         int? tipoMovimiento,
-        int? productoId,
-        int? sucursalId)
+        Guid? productoId,
+        Guid? sucursalId)
     {
         try
         {
@@ -97,7 +97,7 @@ public class MovimientosModel : PageModel
     /// <summary>
     /// Handler to retrieve detailed information about a specific inventory movement
     /// </summary>
-    public async Task<IActionResult> OnGetDetailsAsync(int id)
+    public async Task<IActionResult> OnGetDetailsAsync(Guid id)
     {
         try
         {

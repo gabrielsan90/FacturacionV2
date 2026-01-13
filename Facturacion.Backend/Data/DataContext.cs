@@ -66,6 +66,7 @@ public class DataContext : IdentityDbContext<User>
     public DbSet<DocumentoReferencia> DocumentoReferencias { get; set; }
     public DbSet<DocumentoMedioPago> DocumentoMediosPago { get; set; }
     public DbSet<DocumentoOtraInformacion> DocumentoOtraInformacion { get; set; }
+    public DbSet<DocumentoOtroCargo> DocumentoOtrosCargos { get; set; }
     public DbSet<DocumentoExportacion> DocumentoExportaciones { get; set; }
     public DbSet<DocumentoReceptorMensaje> DocumentoReceptorMensajes { get; set; }
     public DbSet<ReciboPago> RecibosPago { get; set; }
@@ -1319,6 +1320,42 @@ public class DataContext : IdentityDbContext<User>
             .WithMany(doc => doc.OtraInformacion)
             .HasForeignKey(d => d.DocumentoId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // DocumentoOtroCargo (v4.4 - FASE 2)
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .HasIndex(e => e.DocumentoId)
+            .HasDatabaseName("IX_DocumentoOtroCargo_DocumentoId");
+
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .HasQueryFilter(e => !e.IsDeleted);
+
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .HasOne(d => d.Documento)
+            .WithMany(doc => doc.OtrosCargos)
+            .HasForeignKey(d => d.DocumentoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .Property(d => d.Monto)
+            .HasPrecision(18, 5);
+
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .HasOne(d => d.UsuarioCreacion)
+            .WithMany()
+            .HasForeignKey(d => d.UsuarioCreacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .HasOne(d => d.UsuarioModificacion)
+            .WithMany()
+            .HasForeignKey(d => d.UsuarioModificacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DocumentoOtroCargo>()
+            .HasOne(d => d.UsuarioEliminacion)
+            .WithMany()
+            .HasForeignKey(d => d.UsuarioEliminacionId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // DocumentoExportacion
         modelBuilder.Entity<DocumentoExportacion>()

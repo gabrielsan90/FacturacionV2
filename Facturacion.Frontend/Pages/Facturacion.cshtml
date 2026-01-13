@@ -467,60 +467,27 @@
                                             </div>
 
                                             <!-- Otros Cargos Section -->
-                                            <div class="row mb-3">
-                                                <div class="col-12">
-                                                    <hr>
-                                                    <h6 class="mb-3">
-                                                        <i class="fas fa-file-invoice-dollar"></i> Otros Cargos
-                                                        <small class="text-muted">- Cargos adicionales no relacionados con líneas de detalle</small>
-                                                    </h6>
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-info text-white">
+                                                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i> Otros Cargos</h5>
                                                 </div>
-                                            </div>
-
-                                            <div class="row mb-3">
-                                                <div class="col-md-3">
-                                                    <label for="OtrosCargosTipoDocumento" class="form-label">
-                                                        Tipo Documento
-                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Tipo de documento de soporte del cargo adicional"></i>
-                                                    </label>
-                                                    <select class="form-select" id="OtrosCargosTipoDocumento">
-                                                        <option value="">Seleccione...</option>
-                                                        <option value="01">01 - Gastos de envío</option>
-                                                        <option value="02">02 - Gastos de flete</option>
-                                                        <option value="03">03 - Gastos de seguro</option>
-                                                        <option value="04">04 - Gastos de embalaje</option>
-                                                        <option value="05">05 - Otros cargos</option>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label for="OtrosCargosDetalle" class="form-label">
-                                                        Detalle/Descripción
-                                                    </label>
-                                                    <input type="text" class="form-control" id="OtrosCargosDetalle" maxlength="200" placeholder="Descripción del cargo adicional">
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label for="OtrosCargosPorcentaje" class="form-label">
-                                                        Porcentaje (%)
-                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Porcentaje aplicado sobre el subtotal (opcional si ingresa monto)"></i>
-                                                    </label>
-                                                    <input type="number" class="form-control" id="OtrosCargosPorcentaje" step="0.01" min="0" max="100" placeholder="0.00">
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <label for="OtrosCargosMonto" class="form-label">
-                                                        Monto
-                                                        <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Monto fijo del cargo (opcional si ingresa porcentaje)"></i>
-                                                    </label>
-                                                    <input type="number" class="form-control" id="OtrosCargosMonto" step="0.01" min="0" placeholder="0.00">
-                                                </div>
-                                            </div>
-
-                                            <div class="row">
-                                                <div class="col-12">
-                                                    <div class="alert alert-info mb-0">
-                                                        <i class="fas fa-info-circle"></i> <strong>Nota:</strong>
-                                                        Los campos de esta sección son completamente opcionales. Si no aplican a su documento, puede dejarlos vacíos.
-                                                        Si ingresa otros cargos, puede especificar un porcentaje o un monto fijo, pero no ambos.
-                                                    </div>
+                                                <div class="card-body">
+                                                    <table class="table table-sm table-bordered" id="tableOtrosCargos">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th style="width: 200px;">Tipo de Documento</th>
+                                                                <th>Detalle</th>
+                                                                <th style="width: 150px;">Monto</th>
+                                                                <th style="width: 60px;"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="tbodyOtrosCargos">
+                                                            <!-- Filas dinámicas -->
+                                                        </tbody>
+                                                    </table>
+                                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="addOtherCharge()">
+                                                        <i class="fas fa-plus"></i> Agregar Otro Cargo
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -554,9 +521,9 @@
                                         <th style="width: 30%;">Descripción</th>
                                         <th style="width: 10%;">Cantidad</th>
                                         <th style="width: 12%;">Precio Unit.</th>
-                                        <th style="width: 10%;">Desc. %</th>
-                                        <th style="width: 10%;">Imp. %</th>
-                                        <th style="width: 13%;">Subtotal</th>
+                                        <th style="width: 10%;">Descuentos</th>
+                                        <th style="width: 10%;">Impuestos</th>
+                                        <th style="width: 13%;">Total Línea</th>
                                         <th style="width: 5%;">Acciones</th>
                                     </tr>
                                 </thead>
@@ -570,28 +537,97 @@
                             </table>
                         </div>
 
-                        <!-- Totals Section -->
+                        <!-- Totals Section - v4.4 Completo -->
                         <div class="row mt-4">
-                            <div class="col-md-8"></div>
-                            <div class="col-md-4">
-                                <table class="table table-sm">
-                                    <tr>
-                                        <td class="text-end"><strong>Subtotal:</strong></td>
-                                        <td class="text-end" id="lblSubtotal">₡0.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end"><strong>Descuentos:</strong></td>
-                                        <td class="text-end" id="lblDescuentos">₡0.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-end"><strong>Impuestos:</strong></td>
-                                        <td class="text-end" id="lblImpuestos">₡0.00</td>
-                                    </tr>
-                                    <tr class="table-primary">
-                                        <td class="text-end"><strong>TOTAL:</strong></td>
-                                        <td class="text-end"><strong id="lblTotal">₡0.00</strong></td>
-                                    </tr>
-                                </table>
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="fas fa-calculator"></i> Resumen de Totales (v4.4)</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Por Categoría -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <h6 class="text-muted border-bottom pb-2"><i class="fas fa-concierge-bell"></i> Servicios</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <td>Gravados:</td>
+                                                        <td class="text-end"><span id="lblServiciosGravados">₡0.00</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Exentos:</td>
+                                                        <td class="text-end"><span id="lblServiciosExentos">₡0.00</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Exonerados:</td>
+                                                        <td class="text-end"><span id="lblServiciosExonerados">₡0.00</span></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="text-muted border-bottom pb-2"><i class="fas fa-box"></i> Mercancías</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <td>Gravadas:</td>
+                                                        <td class="text-end"><span id="lblMercanciasGravadas">₡0.00</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Exentas:</td>
+                                                        <td class="text-end"><span id="lblMercanciasExentas">₡0.00</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Exoneradas:</td>
+                                                        <td class="text-end"><span id="lblMercanciasExoneradas">₡0.00</span></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <hr/>
+
+                                        <!-- Totales Consolidados -->
+                                        <table class="table table-bordered">
+                                            <tr>
+                                                <td><strong>Total Gravado:</strong></td>
+                                                <td class="text-end bg-light"><strong><span id="lblTotalGravado">₡0.00</span></strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Total Exento:</strong></td>
+                                                <td class="text-end bg-light"><strong><span id="lblTotalExento">₡0.00</span></strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Total Exonerado:</strong></td>
+                                                <td class="text-end bg-light"><strong><span id="lblTotalExonerado">₡0.00</span></strong></td>
+                                            </tr>
+                                            <tr class="table-secondary">
+                                                <td colspan="2"><hr class="my-1"/></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Subtotal (con descuentos aplicados):</strong></td>
+                                                <td class="text-end bg-info bg-opacity-10"><strong><span id="lblSubtotal">₡0.00</span></strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4"><small class="text-muted"><em>Descuentos aplicados:</em></small></td>
+                                                <td class="text-end"><small class="text-danger"><span id="lblDescuentos">₡0.00</span></small></td>
+                                            </tr>
+                                            <tr class="table-secondary">
+                                                <td colspan="2"><hr class="my-1"/></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Impuestos:</td>
+                                                <td class="text-end text-success"><strong><span id="lblImpuestos">₡0.00</span></strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Otros Cargos:</td>
+                                                <td class="text-end"><span id="lblOtrosCargos">₡0.00</span></td>
+                                            </tr>
+                                            <tr class="table-primary">
+                                                <td><strong style="font-size: 1.1em;">TOTAL COMPROBANTE:</strong></td>
+                                                <td class="text-end"><strong style="font-size: 1.2em;"><span id="lblTotal">₡0.00</span></strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -781,22 +817,61 @@
 
                     <!-- Quantities and Prices -->
                     <div class="row mb-3">
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label for="Linea_Cantidad" class="form-label">Cantidad <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="Linea_Cantidad" step="0.001" min="0.001" required placeholder="1.000">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label for="Linea_PrecioUnitario" class="form-label">Precio Unitario <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="Linea_PrecioUnitario" step="0.01" min="0" required placeholder="0.00">
                         </div>
-                        <div class="col-md-3">
-                            <label for="Linea_DescuentoPorcentaje" class="form-label">Descuento %</label>
-                            <input type="number" class="form-control" id="Linea_DescuentoPorcentaje" step="0.01" min="0" max="100" value="0" placeholder="0">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="Linea_ImpuestoPorcentaje" class="form-label">Impuesto %</label>
-                            <input type="number" class="form-control" id="Linea_ImpuestoPorcentaje" step="0.01" min="0" value="13" placeholder="13">
-                        </div>
+                    </div>
+
+                    <!-- Tabla de Descuentos Múltiples -->
+                    <div class="form-group mb-3">
+                        <label>Descuentos</label>
+                        <table class="table table-sm table-bordered" id="tableDescuentos">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 200px;">Naturaleza del Descuento</th>
+                                    <th style="width: 120px;">Tipo</th>
+                                    <th style="width: 120px;">Valor</th>
+                                    <th style="width: 120px;">Monto Descuento</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyDescuentos">
+                                <!-- Filas dinámicas -->
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addDiscountToLine()">
+                            <i class="fas fa-plus"></i> Agregar Descuento
+                        </button>
+                    </div>
+
+                    <!-- Tabla de Impuestos Múltiples -->
+                    <div class="form-group mb-3">
+                        <label>Impuestos (v4.4)</label>
+                        <table class="table table-sm table-bordered" id="tableImpuestos">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 150px;">Código Impuesto</th>
+                                    <th style="width: 200px;">Código Tarifa</th>
+                                    <th style="width: 80px;">Tarifa %</th>
+                                    <th style="width: 120px;">Monto Base</th>
+                                    <th style="width: 120px;">Monto Impuesto</th>
+                                    <th style="width: 80px;">Exoneración</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyImpuestos">
+                                <!-- Filas dinámicas -->
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addTaxToLine()">
+                            <i class="fas fa-plus"></i> Agregar Impuesto
+                        </button>
+                        <small class="text-muted d-block mt-1">Puede agregar múltiples impuestos según v4.4 (IVA, Selectivo, Servicios, etc.)</small>
                     </div>
 
                     <!-- Campos adicionales v4.4 -->
@@ -885,9 +960,45 @@
         const isEditMode = documentoId && documentoId !== '';
 
         let documentLines = [];
+        let otrosCargos = [];
         let sucursales = [];
         let terminales = [];
         let currentTipoDocumento = null;
+
+        // Estructura global de línea actual (para edición en modal)
+        let currentLine = {
+            numeroLinea: 0,
+            productoId: null,
+            codigo: '',
+            descripcion: '',
+            cantidad: 0,
+            precioUnitario: 0,
+            tipoTransaccion: '01',
+            cabys: '',
+            descuentos: [],
+            impuestos: [],
+            // Totales calculados
+            montoTotal: 0,
+            montoDescuento: 0,
+            subtotal: 0,
+            montoImpuesto: 0,
+            montoTotalLinea: 0
+        };
+
+        // Catálogo de tarifas IVA (según v4.4)
+        const tarifasIVA = {
+            '01': { nombre: '0% (Art. 32)', tarifa: 0 },
+            '02': { nombre: '1% Reducida', tarifa: 1 },
+            '03': { nombre: '2% Reducida', tarifa: 2 },
+            '04': { nombre: '4% Reducida', tarifa: 4 },
+            '05': { nombre: '0% Transitorio', tarifa: 0 },
+            '06': { nombre: '4% Transitorio', tarifa: 4 },
+            '07': { nombre: '8% Transitorio', tarifa: 8 },
+            '08': { nombre: '13% General', tarifa: 13 },
+            '09': { nombre: '0.5% Reducida', tarifa: 0.5 },
+            '10': { nombre: 'Exento', tarifa: 0 },
+            '11': { nombre: '0% Sin crédito', tarifa: 0 }
+        };
         let clienteSeleccionado = null;
         let documentoEnEdicion = null;
 
@@ -1106,8 +1217,8 @@
             });
 
             // Auto-calculate line subtotal
-            $('#Linea_Cantidad, #Linea_PrecioUnitario, #Linea_DescuentoPorcentaje, #Linea_ImpuestoPorcentaje').on('input', function () {
-                calculateLineSubtotal();
+            $('#Linea_Cantidad, #Linea_PrecioUnitario').on('input', function () {
+                calculateLineTotal();
             });
 
             // Form line submission
@@ -1650,31 +1761,293 @@
             $('#Linea_Descripcion').val(producto.nombre);
             $('#Linea_PrecioUnitario').val(producto.precioVenta.toFixed(2));
 
-            // Load impuesto percentage if available
+            // Limpiar impuestos existentes y agregar el del producto
+            currentLine.impuestos = [];
+            $('#tbodyImpuestos').html('');
+
+            // Si el producto tiene impuesto, agregarlo
             if (producto.impuesto && producto.impuesto.tarifa) {
-                $('#Linea_ImpuestoPorcentaje').val(producto.impuesto.tarifa);
+                // Determinar código de tarifa basado en el porcentaje
+                let codigoTarifa = '08'; // Default 13%
+                if (producto.impuesto.tarifa === 0) {
+                    codigoTarifa = '01'; // 0%
+                } else if (producto.impuesto.tarifa === 1) {
+                    codigoTarifa = '02';
+                } else if (producto.impuesto.tarifa === 2) {
+                    codigoTarifa = '03';
+                } else if (producto.impuesto.tarifa === 4) {
+                    codigoTarifa = '04';
+                } else if (producto.impuesto.tarifa === 8) {
+                    codigoTarifa = '07';
+                } else if (producto.impuesto.tarifa === 13) {
+                    codigoTarifa = '08';
+                }
+
+                currentLine.impuestos.push({
+                    codigoImpuesto: '01', // IVA
+                    codigoTarifa: codigoTarifa,
+                    tarifa: producto.impuesto.tarifa,
+                    montoBase: 0,
+                    montoImpuesto: 0,
+                    tieneExoneracion: false,
+                    exoneracion: null
+                });
+
+                renderTaxRow(0);
+            } else {
+                // Si no tiene impuesto, agregar uno por defecto
+                addTaxToLine();
             }
 
-            calculateLineSubtotal();
+            calculateLineTotal();
         }
 
+        // ==================== FUNCIONES DE GESTIÓN DE IMPUESTOS ====================
+
+        // Agregar impuesto a la línea actual
+        function addTaxToLine() {
+            const taxIndex = currentLine.impuestos.length;
+
+            currentLine.impuestos.push({
+                codigoImpuesto: '01', // IVA por defecto
+                codigoTarifa: '08', // 13% por defecto
+                tarifa: 13,
+                montoBase: 0,
+                montoImpuesto: 0,
+                tieneExoneracion: false,
+                exoneracion: null
+            });
+
+            renderTaxRow(taxIndex);
+            calculateLineTotal();
+        }
+
+        // Renderizar fila de impuesto
+        function renderTaxRow(taxIndex) {
+            const tax = currentLine.impuestos[taxIndex];
+
+            const row = `
+                <tr data-tax-index="${taxIndex}">
+                    <td>
+                        <select class="form-select form-select-sm" onchange="onTaxTypeChange(${taxIndex}, this.value)">
+                            <option value="01" ${tax.codigoImpuesto === '01' ? 'selected' : ''}>01 - IVA</option>
+                            <option value="02" ${tax.codigoImpuesto === '02' ? 'selected' : ''}>02 - Selectivo Consumo</option>
+                            <option value="03" ${tax.codigoImpuesto === '03' ? 'selected' : ''}>03 - Único Combustibles</option>
+                            <option value="04" ${tax.codigoImpuesto === '04' ? 'selected' : ''}>04 - Bebidas Alcohólicas</option>
+                            <option value="05" ${tax.codigoImpuesto === '05' ? 'selected' : ''}>05 - Bebidas Envasadas</option>
+                            <option value="06" ${tax.codigoImpuesto === '06' ? 'selected' : ''}>06 - Tabaco</option>
+                            <option value="07" ${tax.codigoImpuesto === '07' ? 'selected' : ''}>07 - Servicio 10%</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" onchange="onTarifaCodeChange(${taxIndex}, this.value)">
+                            ${Object.keys(tarifasIVA).map(code =>
+                                `<option value="${code}" ${tax.codigoTarifa === code ? 'selected' : ''}>${code} - ${tarifasIVA[code].nombre}</option>`
+                            ).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-end" value="${tax.tarifa}" readonly />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm text-end" value="${formatCurrency(tax.montoBase)}" readonly />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm text-end bg-success bg-opacity-10" value="${formatCurrency(tax.montoImpuesto)}" readonly />
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="chkExon_${taxIndex}"
+                                   ${tax.tieneExoneracion ? 'checked' : ''}
+                                   onchange="toggleExoneration(${taxIndex}, this.checked)" />
+                        </div>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeTax(${taxIndex})" title="Eliminar impuesto">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+                ${tax.tieneExoneracion ? `
+                <tr data-tax-index="${taxIndex}" class="exoneration-row bg-light">
+                    <td colspan="7">
+                        <div class="p-2">
+                            <strong class="text-primary">Datos de Exoneración</strong>
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-3">
+                                    <label class="form-label small">Tipo Documento</label>
+                                    <select class="form-select form-select-sm" onchange="onExonTipoChange(${taxIndex}, this.value)">
+                                        <option value="01" ${tax.exoneracion?.tipoDocumento === '01' ? 'selected' : ''}>01 - Compras DGT</option>
+                                        <option value="02" ${tax.exoneracion?.tipoDocumento === '02' ? 'selected' : ''}>02 - Diplomáticos</option>
+                                        <option value="03" ${tax.exoneracion?.tipoDocumento === '03' ? 'selected' : ''}>03 - Ley Especial</option>
+                                        <option value="04" ${tax.exoneracion?.tipoDocumento === '04' ? 'selected' : ''}>04 - DGH Local Genérica</option>
+                                        <option value="05" ${tax.exoneracion?.tipoDocumento === '05' ? 'selected' : ''}>05 - Transitorio V</option>
+                                        <option value="06" ${tax.exoneracion?.tipoDocumento === '06' ? 'selected' : ''}>06 - ICT Turismo</option>
+                                        <option value="07" ${tax.exoneracion?.tipoDocumento === '07' ? 'selected' : ''}>07 - Transitorio XVII</option>
+                                        <option value="08" ${tax.exoneracion?.tipoDocumento === '08' ? 'selected' : ''}>08 - Zona Franca</option>
+                                        <option value="99" ${tax.exoneracion?.tipoDocumento === '99' ? 'selected' : ''}>99 - Otros</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Número Documento</label>
+                                    <input type="text" class="form-control form-control-sm"
+                                           value="${tax.exoneracion?.numeroDocumento || ''}"
+                                           onchange="onExonNumeroChange(${taxIndex}, this.value)"
+                                           placeholder="AL-123456789-2025" maxlength="40" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Institución</label>
+                                    <input type="text" class="form-control form-control-sm"
+                                           value="${tax.exoneracion?.institucion || ''}"
+                                           onchange="onExonInstitucionChange(${taxIndex}, this.value)"
+                                           placeholder="Ministerio de Hacienda" maxlength="160" />
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">Fecha Emisión</label>
+                                    <input type="date" class="form-control form-control-sm"
+                                           value="${tax.exoneracion?.fechaEmision || ''}"
+                                           onchange="onExonFechaChange(${taxIndex}, this.value)" />
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small">% Exon.</label>
+                                    <input type="number" class="form-control form-control-sm text-end"
+                                           value="${tax.exoneracion?.porcentaje || 100}"
+                                           onchange="onExonPorcentajeChange(${taxIndex}, this.value)"
+                                           min="0" max="100" step="1" />
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                ` : ''}
+            `;
+
+            // Primero eliminar filas existentes de este impuesto
+            $(`tr[data-tax-index="${taxIndex}"]`).remove();
+
+            // Agregar nuevas filas
+            $('#tbodyImpuestos').append(row);
+        }
+
+        // Cuando cambia el tipo de impuesto
+        function onTaxTypeChange(taxIndex, codigoImpuesto) {
+            currentLine.impuestos[taxIndex].codigoImpuesto = codigoImpuesto;
+            calculateLineTotal();
+        }
+
+        // Cuando cambia el código de tarifa
+        function onTarifaCodeChange(taxIndex, codigoTarifa) {
+            currentLine.impuestos[taxIndex].codigoTarifa = codigoTarifa;
+            currentLine.impuestos[taxIndex].tarifa = tarifasIVA[codigoTarifa].tarifa;
+            calculateLineTotal();
+            renderTaxRow(taxIndex); // Re-renderizar para actualizar el % mostrado
+        }
+
+        // Eliminar impuesto
+        function removeTax(taxIndex) {
+            currentLine.impuestos.splice(taxIndex, 1);
+            $('#tbodyImpuestos').html('');
+            currentLine.impuestos.forEach((tax, idx) => renderTaxRow(idx));
+            calculateLineTotal();
+        }
+
+        // Resetear línea actual
+        function resetCurrentLine() {
+            currentLine = {
+                numeroLinea: 0,
+                productoId: null,
+                codigo: '',
+                descripcion: '',
+                cantidad: 0,
+                precioUnitario: 0,
+                tipoTransaccion: '01',
+                cabys: '',
+                descuentos: [],
+                impuestos: [],
+                montoTotal: 0,
+                montoDescuento: 0,
+                subtotal: 0,
+                montoImpuesto: 0,
+                montoTotalLinea: 0
+            };
+
+            $('#formLinea')[0].reset();
+            $('#tbodyImpuestos').html('');
+            $('#tbodyDescuentos').html('');
+        }
+
+        // ==================== CÁLCULOS DE LÍNEA ====================
+
+        function calculateLineTotal() {
+            const cantidad = parseFloat($('#Linea_Cantidad').val() || 0);
+            const precioUnitario = parseFloat($('#Linea_PrecioUnitario').val() || 0);
+
+            // 1. Monto Total
+            currentLine.cantidad = cantidad;
+            currentLine.precioUnitario = precioUnitario;
+            currentLine.montoTotal = cantidad * precioUnitario;
+
+            // 2. Calcular descuentos múltiples
+            currentLine.montoDescuento = 0;
+            currentLine.descuentos.forEach((desc, idx) => {
+                if (desc.tipo === 'porcentaje') {
+                    desc.monto = currentLine.montoTotal * (desc.valor / 100);
+                } else {
+                    desc.monto = desc.valor;
+                }
+                currentLine.montoDescuento += desc.monto;
+
+                // Actualizar UI de la fila
+                const row = $(`tr[data-discount-index="${idx}"]`);
+                if (row.length) {
+                    row.find('input[type="text"]').eq(1).val(formatCurrency(desc.monto));
+                }
+            });
+
+            // 3. Subtotal (base para impuestos)
+            currentLine.subtotal = currentLine.montoTotal - currentLine.montoDescuento;
+
+            // 4. Calcular impuestos (con exoneraciones)
+            currentLine.montoImpuesto = 0;
+            currentLine.impuestos.forEach((tax, idx) => {
+                tax.montoBase = currentLine.subtotal;
+                tax.montoImpuestoSinExoneracion = tax.montoBase * (tax.tarifa / 100);
+
+                // Aplicar exoneración
+                if (tax.tieneExoneracion && tax.exoneracion) {
+                    tax.exoneracion.monto = tax.montoImpuestoSinExoneracion * (tax.exoneracion.porcentaje / 100);
+                    tax.montoImpuesto = tax.montoImpuestoSinExoneracion - tax.exoneracion.monto;
+                } else {
+                    tax.montoImpuesto = tax.montoImpuestoSinExoneracion;
+                }
+
+                currentLine.montoImpuesto += tax.montoImpuesto;
+
+                // Actualizar UI de la fila (solo fila principal, no la de exoneración)
+                const row = $(`tr[data-tax-index="${idx}"]`).first();
+                if (row.length > 0) {
+                    row.find('input[type="text"]').eq(0).val(formatCurrency(tax.montoBase));
+                    row.find('input[type="text"]').eq(1).val(formatCurrency(tax.montoImpuesto));
+                }
+            });
+
+            // 5. Total Línea
+            currentLine.montoTotalLinea = currentLine.subtotal + currentLine.montoImpuesto;
+
+            // Actualizar UI del modal (si existe el label)
+            if ($('#lblSubtotalLinea').length > 0) {
+                $('#lblSubtotalLinea').text(formatCurrency(currentLine.montoTotalLinea));
+            }
+        }
+
+        // Mantener compatibilidad con código existente
         function calculateLineSubtotal() {
-            const cantidad = parseFloat($('#Linea_Cantidad').val()) || 0;
-            const precio = parseFloat($('#Linea_PrecioUnitario').val()) || 0;
-            const descPorcentaje = parseFloat($('#Linea_DescuentoPorcentaje').val()) || 0;
-            const impPorcentaje = parseFloat($('#Linea_ImpuestoPorcentaje').val()) || 0;
-
-            const montoTotal = cantidad * precio;
-            const descuento = montoTotal * (descPorcentaje / 100);
-            const subtotal = montoTotal - descuento;
-            const impuesto = subtotal * (impPorcentaje / 100);
-            const total = subtotal + impuesto;
-
-            $('#lblSubtotalLinea').text(formatCurrency(total));
+            calculateLineTotal();
         }
 
         function openLineModal(index = -1) {
-            $('#formLinea')[0].reset();
+            // Resetear línea actual
+            resetCurrentLine();
             $('#formLinea').removeClass('was-validated');
             $('#Linea_Index').val(index);
             $('#Linea_ProductoId').val(null).trigger('change');
@@ -1683,29 +2056,49 @@
                 // Edit mode
                 const line = documentLines[index];
                 $('#modalLineaTitle').text('Editar Línea');
+
+                // Copiar datos básicos
                 $('#Linea_Codigo').val(line.codigo);
                 $('#Linea_Descripcion').val(line.descripcion);
                 $('#Linea_Cantidad').val(line.cantidad);
                 $('#Linea_PrecioUnitario').val(line.precioUnitario);
-                $('#Linea_DescuentoPorcentaje').val(line.descuentoPorcentaje);
-                $('#Linea_ImpuestoPorcentaje').val(line.impuestoPorcentaje);
+
                 // Campos v4.4
-                $('#Linea_TipoTransaccion').val(line.tipoTransaccion || '');
+                $('#Linea_TipoTransaccion').val(line.tipoTransaccion || '01');
                 $('#Linea_CodigoCabys').val(line.codigoCabys || '');
                 $('#Linea_FormaFarmaceutica').val(line.formaFarmaceutica || '');
                 $('#Linea_DetalleSurtido').val(line.detalleSurtido || '');
-                calculateLineSubtotal();
+
+                // Copiar estructura completa a currentLine
+                currentLine = JSON.parse(JSON.stringify(line)); // Deep copy
+                currentLine.numeroLinea = index + 1;
+
+                // Renderizar descuentos
+                if (currentLine.descuentos && currentLine.descuentos.length > 0) {
+                    currentLine.descuentos.forEach((disc, idx) => {
+                        renderDiscountRow(idx);
+                    });
+                }
+
+                // Renderizar impuestos
+                if (currentLine.impuestos && currentLine.impuestos.length > 0) {
+                    currentLine.impuestos.forEach((tax, idx) => {
+                        renderTaxRow(idx);
+                    });
+                }
+
+                calculateLineTotal();
             } else {
                 // Add mode
                 $('#modalLineaTitle').text('Agregar Línea');
                 $('#Linea_Cantidad').val('1.000');
-                $('#Linea_DescuentoPorcentaje').val('0');
-                $('#Linea_ImpuestoPorcentaje').val('13');
-                // Clear v4.4 fields
-                $('#Linea_TipoTransaccion').val('');
+                $('#Linea_TipoTransaccion').val('01');
                 $('#Linea_CodigoCabys').val('');
                 $('#Linea_FormaFarmaceutica').val('');
                 $('#Linea_DetalleSurtido').val('');
+
+                // Agregar un impuesto por defecto (IVA 13%)
+                addTaxToLine();
             }
 
             $('#modalLinea').modal('show');
@@ -1717,45 +2110,37 @@
                 return;
             }
 
+            // Capturar datos del modal
+            currentLine.codigo = $('#Linea_Codigo').val();
+            currentLine.descripcion = $('#Linea_Descripcion').val();
+            currentLine.productoId = $('#Linea_ProductoId').val();
+            currentLine.tipoTransaccion = $('#Linea_TipoTransaccion').val() || '01';
+            currentLine.cabys = $('#Linea_CodigoCabys').val();
+            currentLine.codigoCabys = $('#Linea_CodigoCabys').val(); // Mantener compatibilidad
+            currentLine.formaFarmaceutica = $('#Linea_FormaFarmaceutica').val() || null;
+            currentLine.detalleSurtido = $('#Linea_DetalleSurtido').val() || null;
+
+            // Ya calculados por calculateLineTotal()
+            // currentLine.montoTotal, subtotal, montoImpuesto, descuentos, impuestos, etc.
+
+            // Agregar o actualizar en array
             const index = parseInt($('#Linea_Index').val());
-            const cantidad = parseFloat($('#Linea_Cantidad').val());
-            const precio = parseFloat($('#Linea_PrecioUnitario').val());
-            const descPorcentaje = parseFloat($('#Linea_DescuentoPorcentaje').val()) || 0;
-            const impPorcentaje = parseFloat($('#Linea_ImpuestoPorcentaje').val()) || 0;
-
-            const montoTotal = cantidad * precio;
-            const descuento = montoTotal * (descPorcentaje / 100);
-            const subtotal = montoTotal - descuento;
-            const impuesto = subtotal * (impPorcentaje / 100);
-            const total = subtotal + impuesto;
-
-            const line = {
-                codigo: $('#Linea_Codigo').val(),
-                descripcion: $('#Linea_Descripcion').val(),
-                cantidad: cantidad,
-                precioUnitario: precio,
-                descuentoPorcentaje: descPorcentaje,
-                impuestoPorcentaje: impPorcentaje,
-                montoDescuento: descuento,
-                montoImpuesto: impuesto,
-                subtotal: total,
-                // Campos v4.4
-                tipoTransaccion: $('#Linea_TipoTransaccion').val() || null,
-                codigoCabys: $('#Linea_CodigoCabys').val() || null,
-                formaFarmaceutica: $('#Linea_FormaFarmaceutica').val() || null,
-                detalleSurtido: $('#Linea_DetalleSurtido').val() || null
-            };
-
             if (index >= 0) {
-                // Update existing line
-                documentLines[index] = line;
+                // Actualizar existente
+                documentLines[index] = JSON.parse(JSON.stringify(currentLine)); // Deep copy
             } else {
-                // Add new line
-                documentLines.push(line);
+                // Nueva línea
+                currentLine.numeroLinea = documentLines.length + 1;
+                documentLines.push(JSON.parse(JSON.stringify(currentLine))); // Deep copy
             }
 
+            // Renderizar en tabla
             renderLines();
-            calculateTotals();
+
+            // Calcular totales del documento
+            calculateDocumentTotals();
+
+            // Cerrar modal
             $('#modalLinea').modal('hide');
         }
 
@@ -1775,15 +2160,26 @@
             }
 
             documentLines.forEach(function (line, index) {
+                const numImpuestos = (line.impuestos && line.impuestos.length) || 0;
+                const numDescuentos = (line.descuentos && line.descuentos.length) || 0;
+
                 tbody.append(`
                     <tr>
                         <td>${line.codigo || '-'}</td>
                         <td>${line.descripcion}</td>
-                        <td class="text-end">${line.cantidad.toFixed(3)}</td>
-                        <td class="text-end">${formatCurrency(line.precioUnitario)}</td>
-                        <td class="text-end">${line.descuentoPorcentaje.toFixed(2)}%</td>
-                        <td class="text-end">${line.impuestoPorcentaje.toFixed(2)}%</td>
-                        <td class="text-end">${formatCurrency(line.subtotal)}</td>
+                        <td class="text-end">${(line.cantidad || 0).toFixed(3)}</td>
+                        <td class="text-end">${formatCurrency(line.precioUnitario || 0)}</td>
+                        <td class="text-end">
+                            <span class="badge bg-warning" title="${numDescuentos} descuento(s) - Total: ${formatCurrency(line.montoDescuento || 0)}">
+                                ${numDescuentos} desc.
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-info" title="${numImpuestos} impuesto(s)">
+                                ${numImpuestos} imp.
+                            </span>
+                        </td>
+                        <td class="text-end"><strong>${formatCurrency(line.montoTotalLinea || 0)}</strong></td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-warning" onclick="editLine(${index})" title="Editar">
                                 <i class="fas fa-edit"></i>
@@ -1820,24 +2216,113 @@
             });
         }
 
-        function calculateTotals() {
-            let subtotal = 0;
-            let descuentos = 0;
-            let impuestos = 0;
+        // ==================== CÁLCULOS DE TOTALES DEL DOCUMENTO ====================
 
-            documentLines.forEach(function (line) {
-                const montoTotal = line.cantidad * line.precioUnitario;
-                subtotal += montoTotal;
-                descuentos += line.montoDescuento;
-                impuestos += line.montoImpuesto;
+        function calculateDocumentTotals() {
+            const totals = {
+                // Por categoría
+                totalServiciosGravados: 0,
+                totalServiciosExentos: 0,
+                totalServiciosExonerados: 0,
+                totalMercanciasGravadas: 0,
+                totalMercanciasExentas: 0,
+                totalMercanciasExoneradas: 0,
+
+                // Consolidados
+                totalGravado: 0,
+                totalExento: 0,
+                totalExonerado: 0,
+
+                // Operaciones
+                totalVenta: 0, // Suma de montoTotal (sin descuentos)
+                subtotal: 0, // Suma de subtotales de líneas (con descuentos aplicados)
+                totalDescuentos: 0,
+                ventaNeta: 0, // Igual a subtotal (ya tiene descuentos aplicados)
+                totalImpuestos: 0,
+                totalOtrosCargos: 0,
+                totalComprobante: 0
+            };
+
+            // Recorrer líneas
+            documentLines.forEach(linea => {
+                totals.totalVenta += linea.montoTotal || 0; // Sin descuentos
+                totals.subtotal += linea.subtotal || 0; // Con descuentos aplicados
+                totals.totalDescuentos += linea.montoDescuento || 0;
+                totals.totalImpuestos += linea.montoImpuesto || 0;
+
+                // Clasificar según tipo de transacción e impuestos
+                const esServicio = ['02', '04', '06', '08'].includes(linea.tipoTransaccion);
+                const tieneImpuestos = linea.impuestos && linea.impuestos.some(imp => imp.tarifa > 0);
+                const esExonerado = linea.impuestos && linea.impuestos.some(imp => imp.tieneExoneracion && imp.exoneracion);
+
+                // Usar el subtotal de la línea (ya con descuentos aplicados)
+                const montoLineaSubtotal = linea.subtotal || 0;
+
+                if (tieneImpuestos && !esExonerado) {
+                    // Gravado
+                    if (esServicio) {
+                        totals.totalServiciosGravados += montoLineaSubtotal;
+                    } else {
+                        totals.totalMercanciasGravadas += montoLineaSubtotal;
+                    }
+                } else if (esExonerado) {
+                    // Exonerado
+                    if (esServicio) {
+                        totals.totalServiciosExonerados += montoLineaSubtotal;
+                    } else {
+                        totals.totalMercanciasExoneradas += montoLineaSubtotal;
+                    }
+                } else {
+                    // Exento
+                    if (esServicio) {
+                        totals.totalServiciosExentos += montoLineaSubtotal;
+                    } else {
+                        totals.totalMercanciasExentas += montoLineaSubtotal;
+                    }
+                }
             });
 
-            const total = subtotal - descuentos + impuestos;
+            // Consolidados
+            totals.totalGravado = totals.totalServiciosGravados + totals.totalMercanciasGravadas;
+            totals.totalExento = totals.totalServiciosExentos + totals.totalMercanciasExentas;
+            totals.totalExonerado = totals.totalServiciosExonerados + totals.totalMercanciasExoneradas;
 
-            $('#lblSubtotal').text(formatCurrency(subtotal));
-            $('#lblDescuentos').text(formatCurrency(descuentos));
-            $('#lblImpuestos').text(formatCurrency(impuestos));
-            $('#lblTotal').text(formatCurrency(total));
+            // Venta Neta = Subtotal (que ya tiene descuentos aplicados)
+            totals.ventaNeta = totals.subtotal;
+
+            // Calcular total de otros cargos
+            totals.totalOtrosCargos = 0;
+            otrosCargos.forEach(cargo => {
+                totals.totalOtrosCargos += cargo.monto;
+            });
+
+            // Total Comprobante
+            totals.totalComprobante = totals.ventaNeta + totals.totalImpuestos + totals.totalOtrosCargos;
+
+            // Actualizar UI
+            $('#lblServiciosGravados').text(formatCurrency(totals.totalServiciosGravados));
+            $('#lblServiciosExentos').text(formatCurrency(totals.totalServiciosExentos));
+            $('#lblServiciosExonerados').text(formatCurrency(totals.totalServiciosExonerados));
+            $('#lblMercanciasGravadas').text(formatCurrency(totals.totalMercanciasGravadas));
+            $('#lblMercanciasExentas').text(formatCurrency(totals.totalMercanciasExentas));
+            $('#lblMercanciasExoneradas').text(formatCurrency(totals.totalMercanciasExoneradas));
+
+            $('#lblTotalGravado').text(formatCurrency(totals.totalGravado));
+            $('#lblTotalExento').text(formatCurrency(totals.totalExento));
+            $('#lblTotalExonerado').text(formatCurrency(totals.totalExonerado));
+
+            $('#lblSubtotal').text(formatCurrency(totals.subtotal));
+            $('#lblDescuentos').text(formatCurrency(totals.totalDescuentos));
+            $('#lblImpuestos').text(formatCurrency(totals.totalImpuestos));
+            $('#lblOtrosCargos').text(formatCurrency(totals.totalOtrosCargos));
+            $('#lblTotal').text(formatCurrency(totals.totalComprobante));
+
+            return totals;
+        }
+
+        // Alias para compatibilidad con código existente
+        function calculateTotals() {
+            calculateDocumentTotals();
         }
 
         function saveDocument(estado) {
@@ -2083,16 +2568,44 @@
                         formaFarmaceutica: line.formaFarmaceutica || null
                     };
 
-                    // Agregar descuentos si existen
-                    if (line.montoDescuento && line.montoDescuento > 0) {
+                    // Agregar descuentos múltiples (FASE 2)
+                    if (line.descuentos && line.descuentos.length > 0) {
+                        detalle.descuentos = line.descuentos.map(desc => ({
+                            naturaleza: desc.naturaleza || 'Descuento comercial',
+                            monto: desc.monto
+                        }));
+                    } else if (line.montoDescuento && line.montoDescuento > 0) {
+                        // Retrocompatibilidad con líneas antiguas
                         detalle.descuentos = [{
                             naturaleza: 'Descuento comercial',
                             monto: line.montoDescuento
                         }];
                     }
 
-                    // Agregar impuestos si existen
-                    if (line.impuestoPorcentaje && line.impuestoPorcentaje > 0) {
+                    // Agregar impuestos múltiples (v4.4 - FASE 2)
+                    if (line.impuestos && line.impuestos.length > 0) {
+                        detalle.impuestos = line.impuestos.map(imp => {
+                            const impuestoDTO = {
+                                codigoTarifa: imp.codigoTarifa,
+                                tarifa: imp.tarifa,
+                                monto: imp.montoImpuesto
+                            };
+
+                            // Agregar campos de exoneración si existen
+                            if (imp.tieneExoneracion && imp.exoneracion) {
+                                impuestoDTO.tieneExoneracion = true;
+                                impuestoDTO.tipoDocumentoExoneracion = imp.exoneracion.tipoDocumento;
+                                impuestoDTO.numeroDocumentoExoneracion = imp.exoneracion.numeroDocumento;
+                                impuestoDTO.institucionExoneracion = imp.exoneracion.institucion;
+                                impuestoDTO.fechaEmisionExoneracion = imp.exoneracion.fechaEmision;
+                                impuestoDTO.porcentajeExoneracion = imp.exoneracion.porcentaje;
+                                impuestoDTO.montoExoneracion = imp.exoneracion.monto;
+                            }
+
+                            return impuestoDTO;
+                        });
+                    } else if (line.impuestoPorcentaje && line.impuestoPorcentaje > 0) {
+                        // Retrocompatibilidad con líneas antiguas
                         detalle.impuestos = [{
                             codigoTarifa: line.impuestoPorcentaje === 13 ? '08' : '01',
                             tarifa: line.impuestoPorcentaje,
@@ -2130,27 +2643,13 @@
                 documento.numeroOrdenCompra = numeroOrdenCompra.trim();
             }
 
-            // Otros Cargos (if any field is filled)
-            const otrosCargosTipo = $('#OtrosCargosTipoDocumento').val();
-            const otrosCargosDetalle = $('#OtrosCargosDetalle').val();
-            const otrosCargosPorcentaje = parseFloat($('#OtrosCargosPorcentaje').val());
-            const otrosCargosMonto = parseFloat($('#OtrosCargosMonto').val());
-
-            // Solo incluir otros cargos si al menos el tipo o detalle están completados
-            if ((otrosCargosTipo && otrosCargosTipo !== '') ||
-                (otrosCargosDetalle && otrosCargosDetalle.trim() !== '')) {
-
-                documento.otrosCargos = {
-                    tipoDocumento: otrosCargosTipo || null,
-                    detalle: otrosCargosDetalle ? otrosCargosDetalle.trim() : null
-                };
-
-                // Agregar porcentaje o monto (priorizar monto si ambos están presentes)
-                if (otrosCargosMonto && otrosCargosMonto > 0) {
-                    documento.otrosCargos.monto = otrosCargosMonto;
-                } else if (otrosCargosPorcentaje && otrosCargosPorcentaje > 0) {
-                    documento.otrosCargos.porcentaje = otrosCargosPorcentaje;
-                }
+            // Otros Cargos - Múltiples (v4.4 - FASE 2)
+            if (otrosCargos && otrosCargos.length > 0) {
+                documento.otrosCargos = otrosCargos.map(cargo => ({
+                    tipoDocumento: cargo.tipoDocumento,
+                    detalle: cargo.detalle,
+                    monto: cargo.monto
+                }));
             }
 
             return documento;
@@ -2498,27 +2997,66 @@
                                     descripcion: detalle.descripcion || '',
                                     cantidad: detalle.cantidad || 1,
                                     precioUnitario: detalle.precioUnitario || 0,
+                                    tipoTransaccion: detalle.tipoTransaccion || '01',
+                                    codigoCabys: detalle.codigoCabys || '',
+                                    formaFarmaceutica: detalle.formaFarmaceutica || null,
+                                    detalleSurtido: detalle.detalleSurtido || null,
+                                    descuentos: [],
+                                    impuestos: [],
+                                    montoTotal: 0,
                                     montoDescuento: 0,
-                                    impuestoPorcentaje: 0,
-                                    montoImpuesto: 0
+                                    subtotal: 0,
+                                    montoImpuesto: 0,
+                                    montoTotalLinea: 0
                                 };
 
-                                // Extraer descuento si existe
+                                // Calcular monto total
+                                line.montoTotal = line.cantidad * line.precioUnitario;
+
+                                // Extraer descuentos (nuevo formato v4.4)
                                 if (detalle.descuentos && detalle.descuentos.length > 0) {
-                                    line.montoDescuento = detalle.descuentos[0].monto || 0;
+                                    detalle.descuentos.forEach(desc => {
+                                        line.descuentos.push({
+                                            naturaleza: desc.naturaleza || 'Descuento comercial',
+                                            monto: desc.monto || 0,
+                                            porcentaje: desc.porcentaje || 0
+                                        });
+                                        line.montoDescuento += desc.monto || 0;
+                                    });
+                                } else {
+                                    // Retrocompatibilidad: calcular descuento desde porcentaje si existe
+                                    line.descuentoPorcentaje = 0;
                                 }
 
-                                // Extraer impuesto si existe
+                                // Calcular subtotal
+                                line.subtotal = line.montoTotal - line.montoDescuento;
+
+                                // Extraer impuestos múltiples (nuevo formato v4.4)
                                 if (detalle.impuestos && detalle.impuestos.length > 0) {
-                                    line.impuestoPorcentaje = detalle.impuestos[0].tarifa || 0;
-                                    line.montoImpuesto = detalle.impuestos[0].monto || 0;
+                                    detalle.impuestos.forEach(imp => {
+                                        line.impuestos.push({
+                                            codigoImpuesto: imp.codigoImpuesto || '01',
+                                            codigoTarifa: imp.codigoTarifa || '08',
+                                            tarifa: imp.tarifa || 0,
+                                            montoBase: line.subtotal,
+                                            montoImpuesto: imp.monto || 0
+                                        });
+                                        line.montoImpuesto += imp.monto || 0;
+                                    });
+                                } else {
+                                    // Retrocompatibilidad
+                                    line.impuestoPorcentaje = 0;
                                 }
+
+                                // Calcular total de línea
+                                line.montoTotalLinea = line.subtotal + line.montoImpuesto;
 
                                 documentLines.push(line);
                             });
 
-                            // Actualizar la tabla de líneas
-                            updateLinesTable();
+                            // Renderizar las líneas y calcular totales
+                            renderLines();
+                            calculateDocumentTotals();
                         }
 
                         // Cerrar el loading
@@ -2555,10 +3093,242 @@
             return '₡' + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
         }
 
+        // ============================================
+        // GESTIÓN DE EXONERACIONES
+        // ============================================
+
+        function toggleExoneration(taxIndex, isChecked) {
+            currentLine.impuestos[taxIndex].tieneExoneracion = isChecked;
+
+            if (isChecked) {
+                currentLine.impuestos[taxIndex].exoneracion = {
+                    tipoDocumento: '01',
+                    numeroDocumento: '',
+                    institucion: '',
+                    fechaEmision: '',
+                    porcentaje: 100,
+                    monto: 0
+                };
+            } else {
+                currentLine.impuestos[taxIndex].exoneracion = null;
+            }
+
+            renderTaxRow(taxIndex);
+            calculateLineTotal();
+        }
+
+        function onExonTipoChange(taxIndex, value) {
+            currentLine.impuestos[taxIndex].exoneracion.tipoDocumento = value;
+        }
+
+        function onExonNumeroChange(taxIndex, value) {
+            currentLine.impuestos[taxIndex].exoneracion.numeroDocumento = value;
+        }
+
+        function onExonInstitucionChange(taxIndex, value) {
+            currentLine.impuestos[taxIndex].exoneracion.institucion = value;
+        }
+
+        function onExonFechaChange(taxIndex, value) {
+            currentLine.impuestos[taxIndex].exoneracion.fechaEmision = value;
+        }
+
+        function onExonPorcentajeChange(taxIndex, value) {
+            currentLine.impuestos[taxIndex].exoneracion.porcentaje = parseFloat(value) || 0;
+            calculateLineTotal();
+        }
+
+        // ============================================
+        // GESTIÓN DE OTROS CARGOS
+        // ============================================
+
+        function addOtherCharge() {
+            const chargeIndex = otrosCargos.length;
+
+            otrosCargos.push({
+                tipoDocumento: '01',
+                detalle: '',
+                monto: 0
+            });
+
+            renderOtherChargeRow(chargeIndex);
+        }
+
+        function renderOtherChargeRow(chargeIndex) {
+            const charge = otrosCargos[chargeIndex];
+
+            const row = `
+                <tr data-charge-index="${chargeIndex}">
+                    <td>
+                        <select class="form-select form-select-sm" onchange="onChargeTypeChange(${chargeIndex}, this.value)">
+                            <option value="01" ${charge.tipoDocumento === '01' ? 'selected' : ''}>01 - Contribución parafiscal</option>
+                            <option value="02" ${charge.tipoDocumento === '02' ? 'selected' : ''}>02 - Timbre Cruz Roja</option>
+                            <option value="03" ${charge.tipoDocumento === '03' ? 'selected' : ''}>03 - Timbre Bomberos</option>
+                            <option value="04" ${charge.tipoDocumento === '04' ? 'selected' : ''}>04 - Cobro tercero</option>
+                            <option value="05" ${charge.tipoDocumento === '05' ? 'selected' : ''}>05 - Costos Exportación</option>
+                            <option value="06" ${charge.tipoDocumento === '06' ? 'selected' : ''}>06 - Impuesto Servicio 10%</option>
+                            <option value="07" ${charge.tipoDocumento === '07' ? 'selected' : ''}>07 - Timbre Colegios</option>
+                            <option value="08" ${charge.tipoDocumento === '08' ? 'selected' : ''}>08 - Depósitos Garantía</option>
+                            <option value="09" ${charge.tipoDocumento === '09' ? 'selected' : ''}>09 - Multas</option>
+                            <option value="10" ${charge.tipoDocumento === '10' ? 'selected' : ''}>10 - Intereses Moratorios</option>
+                            <option value="99" ${charge.tipoDocumento === '99' ? 'selected' : ''}>99 - Otros Cargos</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm"
+                               value="${charge.detalle}"
+                               onchange="onChargeDetalleChange(${chargeIndex}, this.value)"
+                               placeholder="Descripción del cargo" maxlength="160" />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-end"
+                               value="${charge.monto}"
+                               onchange="onChargeMontoChange(${chargeIndex}, this.value)"
+                               step="0.01" min="0" />
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeOtherCharge(${chargeIndex})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            $('#tbodyOtrosCargos').append(row);
+        }
+
+        function onChargeTypeChange(chargeIndex, value) {
+            otrosCargos[chargeIndex].tipoDocumento = value;
+        }
+
+        function onChargeDetalleChange(chargeIndex, value) {
+            otrosCargos[chargeIndex].detalle = value;
+        }
+
+        function onChargeMontoChange(chargeIndex, value) {
+            otrosCargos[chargeIndex].monto = parseFloat(value) || 0;
+            calculateDocumentTotals();
+        }
+
+        function removeOtherCharge(chargeIndex) {
+            otrosCargos.splice(chargeIndex, 1);
+            renderAllOtherCharges();
+            calculateDocumentTotals();
+        }
+
+        function renderAllOtherCharges() {
+            $('#tbodyOtrosCargos').html('');
+            otrosCargos.forEach((charge, idx) => renderOtherChargeRow(idx));
+        }
+
+        // ============================================
+        // GESTIÓN DE DESCUENTOS POR LÍNEA
+        // ============================================
+
+        function addDiscountToLine() {
+            const discountIndex = currentLine.descuentos.length;
+
+            currentLine.descuentos.push({
+                naturaleza: '',
+                tipo: 'porcentaje', // o 'monto'
+                valor: 0,
+                monto: 0
+            });
+
+            renderDiscountRow(discountIndex);
+        }
+
+        function renderDiscountRow(discIndex) {
+            const disc = currentLine.descuentos[discIndex];
+
+            const row = `
+                <tr data-discount-index="${discIndex}">
+                    <td>
+                        <input type="text" class="form-control form-control-sm"
+                               value="${disc.naturaleza}"
+                               onchange="onDiscountNaturalezaChange(${discIndex}, this.value)"
+                               placeholder="Ej: Descuento por volumen" />
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" onchange="onDiscountTypeChange(${discIndex}, this.value)">
+                            <option value="porcentaje" ${disc.tipo === 'porcentaje' ? 'selected' : ''}>Porcentaje</option>
+                            <option value="monto" ${disc.tipo === 'monto' ? 'selected' : ''}>Monto Fijo</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-end"
+                               value="${disc.valor}"
+                               onchange="onDiscountValueChange(${discIndex}, this.value)"
+                               step="0.01" min="0" />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm text-end bg-warning bg-opacity-10"
+                               value="${formatCurrency(disc.monto)}" readonly />
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeDiscount(${discIndex})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            $('#tbodyDescuentos').append(row);
+        }
+
+        function onDiscountNaturalezaChange(discIndex, value) {
+            currentLine.descuentos[discIndex].naturaleza = value;
+        }
+
+        function onDiscountTypeChange(discIndex, tipo) {
+            currentLine.descuentos[discIndex].tipo = tipo;
+            calculateLineTotal();
+            refreshDiscountRow(discIndex);
+        }
+
+        function onDiscountValueChange(discIndex, value) {
+            currentLine.descuentos[discIndex].valor = parseFloat(value) || 0;
+            calculateLineTotal();
+            refreshDiscountRow(discIndex);
+        }
+
+        function refreshDiscountRow(discIndex) {
+            const disc = currentLine.descuentos[discIndex];
+            const row = $(`tr[data-discount-index="${discIndex}"]`);
+            row.find('input[type="text"]').eq(1).val(formatCurrency(disc.monto));
+        }
+
+        function removeDiscount(discIndex) {
+            currentLine.descuentos.splice(discIndex, 1);
+            $('#tbodyDescuentos').html('');
+            currentLine.descuentos.forEach((disc, idx) => renderDiscountRow(idx));
+            calculateLineTotal();
+        }
+
         // Global functions for inline onclick handlers
         window.editLine = editLine;
         window.deleteLine = deleteLine;
         window.seleccionarClienteModal = seleccionarClienteModal;
         window.seleccionarDocumentoModal = seleccionarDocumentoModal;
+        window.addTaxToLine = addTaxToLine;
+        window.onTaxTypeChange = onTaxTypeChange;
+        window.onTarifaCodeChange = onTarifaCodeChange;
+        window.removeTax = removeTax;
+        window.addDiscountToLine = addDiscountToLine;
+        window.onDiscountNaturalezaChange = onDiscountNaturalezaChange;
+        window.onDiscountTypeChange = onDiscountTypeChange;
+        window.onDiscountValueChange = onDiscountValueChange;
+        window.removeDiscount = removeDiscount;
+        window.toggleExoneration = toggleExoneration;
+        window.onExonTipoChange = onExonTipoChange;
+        window.onExonNumeroChange = onExonNumeroChange;
+        window.onExonInstitucionChange = onExonInstitucionChange;
+        window.onExonFechaChange = onExonFechaChange;
+        window.onExonPorcentajeChange = onExonPorcentajeChange;
+        window.addOtherCharge = addOtherCharge;
+        window.onChargeTypeChange = onChargeTypeChange;
+        window.onChargeDetalleChange = onChargeDetalleChange;
+        window.onChargeMontoChange = onChargeMontoChange;
+        window.removeOtherCharge = removeOtherCharge;
     </script>
 }

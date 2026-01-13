@@ -1,0 +1,2428 @@
+﻿{
+    "generatedAt":  "2026-01-08T22:40:21.8317808-06:00",
+    "counts":  {
+                   "matched":  103,
+                   "methodMismatch":  4,
+                   "unmatched":  47
+               },
+    "matched":  [
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/categorias/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Categorias.cshtml.cs",
+                                                       "line":  174
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CategoriasController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Categorias/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/clientes/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                       "line":  152
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ClientesController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Clientes/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/consecutivos/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  730
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ConsecutivosController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Consecutivos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/Documentos/{id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/DocumentoDetalle.cshtml.cs",
+                                                           "line":  93
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                           "line":  249
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Documentos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/empresas/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  326
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "EmpresasController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Empresas/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/gastos/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Gasto.cshtml.cs",
+                                                       "line":  163
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "GastosController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Gastos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/Inventarios/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  368
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Inventarios/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/productos/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                       "line":  172
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProductosController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Productos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/proveedores/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                       "line":  142
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProveedoresController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Proveedores/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/roles/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  243
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Roles/{id}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/sucursales/{id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  460
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Sucursales.cshtml.cs",
+                                                           "line":  195
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Sucursales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/terminales/{id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  604
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Terminales.cshtml.cs",
+                                                           "line":  211
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Terminales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "DELETE",
+                                         "endpoint":  "/api/usuarios/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                       "line":  243
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "UsuariosController",
+                                        "action":  "DeleteAsync",
+                                        "method":  "DELETE",
+                                        "endpoint":  "/api/Usuarios/{id}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/accounts/user-companies",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Shared/CompanySelector.cshtml.cs",
+                                                       "line":  50
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "AccountsController",
+                                        "action":  "GetUserCompaniesAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Accounts/user-companies"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/cabys/{codigo}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/MantenimientoCabys.cshtml.cs",
+                                                       "line":  100
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CabysController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Cabys/{codigo}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/catalogos/cantones/{provinciaId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                           "line":  197
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  140
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  318
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                           "line":  187
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "CatalogosController",
+                                        "action":  "GetCantonesByProvinciaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Catalogos/cantones/{provinciaId:int}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/catalogos/condiciones-venta",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/CondicionesVenta.cshtml.cs",
+                                                       "line":  42
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CatalogosController",
+                                        "action":  "GetCondicionesVenta",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Catalogos/condiciones-venta"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/catalogos/distritos/{provinciaId}/{cantonId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                           "line":  220
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  163
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  360
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                           "line":  210
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "CatalogosController",
+                                        "action":  "GetDistritosByCantonAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Catalogos/distritos/{provinciaId:int}/{cantonId:int}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/catalogos/impuestos",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/ImpuestosPage.cshtml.cs",
+                                                           "line":  42
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                           "line":  271
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "CatalogosController",
+                                        "action":  "GetImpuestos",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Catalogos/impuestos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/catalogos/provincias",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                           "line":  174
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  775
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  275
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                           "line":  164
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "CatalogosController",
+                                        "action":  "GetProvinciasAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Catalogos/provincias"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/catalogos/unidades-medida",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                           "line":  240
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/UnidadesMedidaPage.cshtml.cs",
+                                                           "line":  42
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "CatalogosController",
+                                        "action":  "GetUnidadesMedida",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Catalogos/unidades-medida"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/categorias/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Categorias.cshtml.cs",
+                                                       "line":  80
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CategoriasController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Categorias/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/categorias/empresa/{empresaId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                       "line":  209
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CategoriasController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Categorias/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Clientes/{clienteId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  457
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ClientesController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Clientes/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/clientes/{id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                           "line":  77
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  89
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "ClientesController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Clientes/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/clientes/empresa/{empresaId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                           "line":  55
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                           "line":  152
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  58
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "ClientesController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Clientes/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/consecutivos/empresa/{empresaId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  638
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ConsecutivosController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Consecutivos/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/dashboard/resumen",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Index.cshtml.cs",
+                                                       "line":  41
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DashboardController",
+                                        "action":  "GetResumenAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Dashboard/resumen"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/documentos/{documentoId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                           "line":  234
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                           "line":  410
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Documentos/{id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/DocumentoDetalle.cshtml.cs",
+                                                           "line":  50
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                           "line":  130
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  495
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Documentos/{id}/download-zip",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  379
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "DownloadZipAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos/{id:guid}/download-zip"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Documentos/{id}/respuesta-hacienda",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  356
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "GetRespuestaHaciendaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos/{id:guid}/respuesta-hacienda"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Documentos/{id}/xml",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  303
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "GenerarXmlAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos/{id:guid}/xml"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Documentos?empresaId={empresaId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                       "line":  182
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/documentos?empresaId={empresaId}\u0026tipoDocumento=10",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  113
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Documentos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/empresas",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  64
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Sucursales.cshtml.cs",
+                                                           "line":  232
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "EmpresasController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Empresas"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/empresas/{id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  112
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  120
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "EmpresasController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Empresas/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/empresas/active",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                       "line":  119
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "EmpresasController",
+                                        "action":  "GetActiveAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Empresas/active"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/gastos/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Gasto.cshtml.cs",
+                                                       "line":  73
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "GastosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Gastos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Inventarios/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  209
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Inventarios/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Inventarios/bajostock/{empresaId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  171
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "GetBajoStockAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Inventarios/bajostock/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Inventarios/empresa/{empresaId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  53
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Inventarios/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/MovimientosInventario/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Movimientos.cshtml.cs",
+                                                       "line":  111
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "MovimientosInventarioController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/MovimientosInventario/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/privilegios",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  85
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "PrivilegiosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Privilegios"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/productos/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                       "line":  90
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProductosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Productos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Productos/empresa/{empresaId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  151
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                           "line":  93
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Movimientos.cshtml.cs",
+                                                           "line":  149
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                           "line":  59
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "ProductosController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Productos/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/proveedores/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                       "line":  67
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProveedoresController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Proveedores/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/recibospago/{doc.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  127
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RecibosPagoController",
+                                        "action":  "GetRecibo",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/RecibosPago/{reciboId}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/recibospago/documento/{documentoId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  294
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RecibosPagoController",
+                                        "action":  "GetDetallePagosDocumento",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/RecibosPago/documento/{documentoId}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/recibospago/estadisticas/{empresaId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  183
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RecibosPagoController",
+                                        "action":  "GetEstadisticasCobranza",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/RecibosPago/estadisticas/{empresaId}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/recibospago/pendientes?empresaId={empresaId}\u0026soloVencidos={soloVencidos}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  72
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RecibosPagoController",
+                                        "action":  "GetDocumentosPendientes",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/RecibosPago/pendientes"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/recibospago/saldo/{documentoId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  248
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RecibosPagoController",
+                                        "action":  "GetSaldoPendiente",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/RecibosPago/saldo/{documentoId}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/reportes/gastos?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026categoriaGasto={categoriaGasto}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/ReporteGastos.cshtml.cs",
+                                                       "line":  43
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ReportesController",
+                                        "action":  "GetReporteGastosAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Reportes/gastos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/reportes/productos?categoriaId={categoriaId}\u0026estado={estado}\u0026stockBajo={stockBajo}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/ReporteProductos.cshtml.cs",
+                                                       "line":  44
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ReportesController",
+                                        "action":  "GetReporteProductosAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Reportes/productos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/roles",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                           "line":  51
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                           "line":  85
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Roles"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/roles/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  119
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Roles/{id}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/roles/{id}/privilegios",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  153
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "GetPrivilegiosAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Roles/{id}/privilegios"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/sucursales",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/AsignarProductosSucursal.cshtml.cs",
+                                                           "line":  44
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Sucursales.cshtml.cs",
+                                                           "line":  49
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Terminales.cshtml.cs",
+                                                           "line":  47
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "GetAllAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Sucursales"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/sucursales/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Sucursales.cshtml.cs",
+                                                       "line":  80
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Sucursales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Sucursales/empresa/{empresaId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                           "line":  174
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  361
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  495
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  213
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                           "line":  132
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Movimientos.cshtml.cs",
+                                                           "line":  187
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Sucursales/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/terminales/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Terminales.cshtml.cs",
+                                                       "line":  113
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Terminales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/Terminales/empresa/{empresaId}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                           "line":  196
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  244
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "GetByEmpresaAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Terminales/empresa/{empresaId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/terminales/sucursal/{sucursal.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  511
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "GetBySucursalAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Terminales/sucursal/{sucursalId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/terminales/sucursal/{sucursalId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Terminales.cshtml.cs",
+                                                       "line":  80
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "GetBySucursalAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Terminales/sucursal/{sucursalId:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/usuarios",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                       "line":  51
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "UsuariosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Usuarios"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "GET",
+                                         "endpoint":  "/api/usuarios/{id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                       "line":  153
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "UsuariosController",
+                                        "action":  "GetAsync",
+                                        "method":  "GET",
+                                        "endpoint":  "/api/Usuarios/{id}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/accounts/login",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Services/AuthService.cs",
+                                                       "line":  37
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "AccountsController",
+                                        "action":  "LoginAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Accounts/Login"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/accounts/switch-company",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Shared/CompanySelector.cshtml.cs",
+                                                       "line":  96
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "AccountsController",
+                                        "action":  "SwitchCompanyAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Accounts/switch-company"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/accounts/ValidateCredentials",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Auth/Login.cshtml.cs",
+                                                       "line":  70
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "AccountsController",
+                                        "action":  "ValidateCredentialsAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Accounts/ValidateCredentials"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/categorias",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Categorias.cshtml.cs",
+                                                       "line":  133
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CategoriasController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Categorias"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/clientes",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                       "line":  121
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ClientesController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Clientes"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/consecutivos",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  692
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ConsecutivosController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Consecutivos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Documentos",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                           "line":  221
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                           "line":  405
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Documentos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Documentos/{id}/procesar",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  334
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "ProcesarYEnviarAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Documentos/{id:guid}/procesar"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Documentos/{id}/reenviar",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  410
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "ReenviarAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Documentos/{id:guid}/reenviar"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Documentos/{id}/reintentar",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  480
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "ReintentarAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Documentos/{id:guid}/reintentar"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Documentos/enviar-correo",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                       "line":  435
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "EnviarCorreoAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Documentos/enviar-correo"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/empresas",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  260
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "EmpresasController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Empresas"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/gastos",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Gasto.cshtml.cs",
+                                                       "line":  124
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "GastosController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Gastos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Inventarios",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  245
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Inventarios"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Inventarios/{id}/ajuste",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  287
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "PostAjusteAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Inventarios/{id:guid}/ajuste"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/Inventarios/{id}/traslado",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Inventario.cshtml.cs",
+                                                       "line":  329
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "InventariosController",
+                                        "action":  "PostTrasladoAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Inventarios/{id:guid}/traslado"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/productos",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                       "line":  132
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProductosController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Productos"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/proveedores",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                       "line":  111
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProveedoresController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Proveedores"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/recibospago/generar?empresaId={empresaId}\u0026terminalId={terminalId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/RecibosPago.cshtml.cs",
+                                                       "line":  352
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RecibosPagoController",
+                                        "action":  "GenerarREP",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/RecibosPago/generar"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/roles",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  200
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Roles"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/sucursales",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  421
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Sucursales.cshtml.cs",
+                                                           "line":  155
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Sucursales"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/terminales",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  566
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Terminales.cshtml.cs",
+                                                           "line":  169
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Terminales"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "POST",
+                                         "endpoint":  "/api/usuarios",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                       "line":  200
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "UsuariosController",
+                                        "action":  "PostAsync",
+                                        "method":  "POST",
+                                        "endpoint":  "/api/Usuarios"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/categorias/{categoriaData.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Categorias.cshtml.cs",
+                                                       "line":  137
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "CategoriasController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Categorias/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/clientes/{clienteData.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Clientes.cshtml.cs",
+                                                       "line":  125
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ClientesController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Clientes/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/consecutivos/{consecutivo.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  696
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ConsecutivosController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Consecutivos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/Documentos/{documentoId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                       "line":  542
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "DocumentosController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Documentos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/empresas/{Empresa.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  264
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "EmpresasController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Empresas/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/gastos/{gastoData.id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Gasto.cshtml.cs",
+                                                       "line":  128
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "GastosController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Gastos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/productos/{productoData.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Productos.cshtml.cs",
+                                                       "line":  136
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProductosController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Productos/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/proveedores/{proveedorData.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                       "line":  115
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "ProveedoresController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Proveedores/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/roles/{id}/privilegios",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  282
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "UpdatePrivilegiosAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Roles/{id}/privilegios"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/roles/{rolId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Roles.cshtml.cs",
+                                                       "line":  196
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "RolesController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Roles/{id}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/sucursales/{sucursal.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                       "line":  425
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Sucursales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/sucursales/{sucursalData.Id}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Sucursales.cshtml.cs",
+                                                       "line":  159
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "SucursalesController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Sucursales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/terminales/{terminal.Id}",
+                                         "files":  [
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Empresas.cshtml.cs",
+                                                           "line":  570
+                                                       },
+                                                       {
+                                                           "file":  "Facturacion.Frontend/Pages/Terminales.cshtml.cs",
+                                                           "line":  173
+                                                       }
+                                                   ]
+                                     },
+                        "backend":  {
+                                        "controller":  "TerminalesController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Terminales/{id:guid}"
+                                    }
+                    },
+                    {
+                        "frontend":  {
+                                         "method":  "PUT",
+                                         "endpoint":  "/api/usuarios/{usuarioId}",
+                                         "files":  {
+                                                       "file":  "Facturacion.Frontend/Pages/Usuarios.cshtml.cs",
+                                                       "line":  196
+                                                   }
+                                     },
+                        "backend":  {
+                                        "controller":  "UsuariosController",
+                                        "action":  "PutAsync",
+                                        "method":  "PUT",
+                                        "endpoint":  "/api/Usuarios/{id}"
+                                    }
+                    }
+                ],
+    "methodMismatch":  [
+                           {
+                               "frontend":  {
+                                                "method":  "GET",
+                                                "endpoint":  "/api/cabys/buscar?termino={termino}",
+                                                "files":  {
+                                                              "file":  "Facturacion.Frontend/Pages/MantenimientoCabys.cshtml.cs",
+                                                              "line":  71
+                                                          }
+                                            },
+                               "backend":  {
+                                               "controller":  "CabysController",
+                                               "action":  "BuscarAsync",
+                                               "method":  "POST",
+                                               "endpoint":  "/api/Cabys/buscar"
+                                           }
+                           },
+                           {
+                               "frontend":  {
+                                                "method":  "GET",
+                                                "endpoint":  "/api/categorias",
+                                                "files":  [
+                                                              {
+                                                                  "file":  "Facturacion.Frontend/Pages/AsignarProductosSucursal.cshtml.cs",
+                                                                  "line":  73
+                                                              },
+                                                              {
+                                                                  "file":  "Facturacion.Frontend/Pages/Categorias.cshtml.cs",
+                                                                  "line":  49
+                                                              },
+                                                              {
+                                                                  "file":  "Facturacion.Frontend/Pages/ReporteProductos.cshtml.cs",
+                                                                  "line":  105
+                                                              }
+                                                          ]
+                                            },
+                               "backend":  {
+                                               "controller":  "CategoriasController",
+                                               "action":  "PostAsync",
+                                               "method":  "POST",
+                                               "endpoint":  "/api/Categorias"
+                                           }
+                           },
+                           {
+                               "frontend":  {
+                                                "method":  "GET",
+                                                "endpoint":  "/api/gastos",
+                                                "files":  {
+                                                              "file":  "Facturacion.Frontend/Pages/Gasto.cshtml.cs",
+                                                              "line":  43
+                                                          }
+                                            },
+                               "backend":  {
+                                               "controller":  "GastosController",
+                                               "action":  "PostAsync",
+                                               "method":  "POST",
+                                               "endpoint":  "/api/Gastos"
+                                           }
+                           },
+                           {
+                               "frontend":  {
+                                                "method":  "GET",
+                                                "endpoint":  "/api/proveedores",
+                                                "files":  [
+                                                              {
+                                                                  "file":  "Facturacion.Frontend/Pages/Gasto.cshtml.cs",
+                                                                  "line":  193
+                                                              },
+                                                              {
+                                                                  "file":  "Facturacion.Frontend/Pages/Proveedores.cshtml.cs",
+                                                                  "line":  45
+                                                              }
+                                                          ]
+                                            },
+                               "backend":  {
+                                               "controller":  "ProveedoresController",
+                                               "action":  "PostAsync",
+                                               "method":  "POST",
+                                               "endpoint":  "/api/Proveedores"
+                                           }
+                           }
+                       ],
+    "unmatched":  [
+                      {
+                          "frontend":  {
+                                           "method":  "DELETE",
+                                           "endpoint":  "/api/inventario/desasignar-producto/{asignacionId}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/AsignarProductosSucursal.cshtml.cs",
+                                                         "line":  192
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "DELETE",
+                                           "endpoint":  "/api/seguridad/cerrar-sesion/{sesionId}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Seguridad.cshtml.cs",
+                                                         "line":  163
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/cabys",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/MantenimientoCabys.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/codigos-tarifas-iva",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/CodigosTarifasIVA.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/formas-farmaceuticas",
+                                           "files":  [
+                                                         {
+                                                             "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                             "line":  573
+                                                         },
+                                                         {
+                                                             "file":  "Facturacion.Frontend/Pages/FormasFarmaceuticas.cshtml.cs",
+                                                             "line":  43
+                                                         }
+                                                     ]
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/formas-pago",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/FormasPago.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/monedas",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Monedas.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/tipos-codigos-producto",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/TiposCodigosProducto.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/tipos-documentos",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/TiposDocumentos.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/tipos-exoneracion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/TiposExoneracion.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/tipos-identificacion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/TiposIdentificacion.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/tipos-otros-cargos",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/TiposOtrosCargos.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/catalogos/tipos-referencias",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/TiposReferencias.cshtml.cs",
+                                                         "line":  42
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/correo/configuracion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ConfiguracionCorreo.cshtml.cs",
+                                                         "line":  43
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/Documentos/{id}/pdf",
+                                           "files":  [
+                                                         {
+                                                             "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                             "line":  271
+                                                         },
+                                                         {
+                                                             "file":  "Facturacion.Frontend/Pages/Index.cshtml.cs",
+                                                             "line":  111
+                                                         }
+                                                     ]
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/Documentos{queryString}",
+                                           "files":  [
+                                                         {
+                                                             "file":  "Facturacion.Frontend/Pages/Documentos.cshtml.cs",
+                                                             "line":  88
+                                                         },
+                                                         {
+                                                             "file":  "Facturacion.Frontend/Pages/Index.cshtml.cs",
+                                                             "line":  77
+                                                         }
+                                                     ]
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/inventario/productos-asignados?sucursalId={sucursalId}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/AsignarProductosSucursal.cshtml.cs",
+                                                         "line":  131
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/inventario/productos-disponibles?sucursalId={sucursalId}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/AsignarProductosSucursal.cshtml.cs",
+                                                         "line":  102
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/MovimientosInventario/empresa/{empresaId}{queryString}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Movimientos.cshtml.cs",
+                                                         "line":  79
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/recepciones",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Recepciones.cshtml.cs",
+                                                         "line":  43
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/recepciones/{id}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Recepciones.cshtml.cs",
+                                                         "line":  73
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/recepciones/{id}/xml",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Recepciones.cshtml.cs",
+                                                         "line":  103
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/documentos-emitidos/resumen?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026tipoDocumento={tipoDocumento}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteDocumentosEmitidos.cshtml.cs",
+                                                         "line":  74
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/documentos-emitidos?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026tipoDocumento={tipoDocumento}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteDocumentosEmitidos.cshtml.cs",
+                                                         "line":  43
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/documentos-recibidos/resumen?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026estadoRespuesta={estadoRespuesta}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteDocumentosRecibidos.cshtml.cs",
+                                                         "line":  74
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/documentos-recibidos?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026estadoRespuesta={estadoRespuesta}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteDocumentosRecibidos.cshtml.cs",
+                                                         "line":  43
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/gastos/graficos?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026categoriaGasto={categoriaGasto}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteGastos.cshtml.cs",
+                                                         "line":  105
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/gastos/resumen?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026categoriaGasto={categoriaGasto}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteGastos.cshtml.cs",
+                                                         "line":  74
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/gastos/top-proveedores?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026categoriaGasto={categoriaGasto}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteGastos.cshtml.cs",
+                                                         "line":  136
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/productos/resumen?categoriaId={categoriaId}\u0026estado={estado}\u0026stockBajo={stockBajo}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteProductos.cshtml.cs",
+                                                         "line":  75
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/ventas/grafico?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}\u0026agruparPor={agruparPor}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteVentas.cshtml.cs",
+                                                         "line":  74
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/ventas/resumen?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteVentas.cshtml.cs",
+                                                         "line":  43
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/ventas/top-clientes?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteVentas.cshtml.cs",
+                                                         "line":  105
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/reportes/ventas/top-productos?fechaInicio={fechaInicio}\u0026fechaFin={fechaFin}",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ReporteVentas.cshtml.cs",
+                                                         "line":  136
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/seguridad/audit-log",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Seguridad.cshtml.cs",
+                                                         "line":  105
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/seguridad/configuracion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Seguridad.cshtml.cs",
+                                                         "line":  43
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "GET",
+                                           "endpoint":  "/api/seguridad/sesiones-activas",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Seguridad.cshtml.cs",
+                                                         "line":  134
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/cabys/importar",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/MantenimientoCabys.cshtml.cs",
+                                                         "line":  130
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/correo/configuracion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ConfiguracionCorreo.cshtml.cs",
+                                                         "line":  75
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/correo/enviar-prueba",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ConfiguracionCorreo.cshtml.cs",
+                                                         "line":  138
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/correo/probar-conexion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/ConfiguracionCorreo.cshtml.cs",
+                                                         "line":  105
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/Documentos/{documentoId}/enviar",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Facturacion.cshtml.cs",
+                                                         "line":  464
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/inventario/asignar-productos",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/AsignarProductosSucursal.cshtml.cs",
+                                                         "line":  163
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/recepciones/responder",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Recepciones.cshtml.cs",
+                                                         "line":  136
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/recepciones/sincronizar",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Recepciones.cshtml.cs",
+                                                         "line":  166
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/seguridad/cerrar-todas-sesiones",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Seguridad.cshtml.cs",
+                                                         "line":  192
+                                                     }
+                                       }
+                      },
+                      {
+                          "frontend":  {
+                                           "method":  "POST",
+                                           "endpoint":  "/api/seguridad/configuracion",
+                                           "files":  {
+                                                         "file":  "Facturacion.Frontend/Pages/Seguridad.cshtml.cs",
+                                                         "line":  75
+                                                     }
+                                       }
+                      }
+                  ]
+}

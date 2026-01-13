@@ -5,7 +5,14 @@
       "Bash(git -C /mnt/d/Proyectos/2/Facturacion status --short)",
       "Bash(dotnet ef migrations:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet ef database:*)"
+      "Bash(dotnet ef database:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(dotnet tool restore:*)",
+      "Bash(dotnet tool update:*)",
+      "Bash(DOTNET_ROLL_FORWARD=Major dotnet ef migrations add:*)",
+      "Bash(DOTNET_ROLL_FORWARD=Major dotnet ef database update:*)",
+      "Bash(dotnet restore:*)"
     ],
     "deny": [],
     "ask": []

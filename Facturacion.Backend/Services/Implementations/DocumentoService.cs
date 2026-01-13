@@ -540,6 +540,14 @@ public class DocumentoService : IDocumentoService
                         MontoBase = 0, // Se calculará luego
                         MontoImpuesto = 0, // Se calculará luego
                         FactorIVADevuelto = impDTO.FactorIVA,
+                        // Campos de exoneración (v4.4 - FASE 2)
+                        TieneExoneracion = impDTO.TieneExoneracion,
+                        TipoDocumentoExoneracion = impDTO.TipoDocumentoExoneracion,
+                        NumeroDocumentoExoneracion = impDTO.NumeroDocumentoExoneracion,
+                        InstitucionExoneracion = impDTO.InstitucionExoneracion,
+                        FechaEmisionExoneracion = impDTO.FechaEmisionExoneracion,
+                        MontoExoneracion = impDTO.MontoExoneracion ?? 0,
+                        PorcentajeExoneracion = impDTO.PorcentajeExoneracion,
                         FechaCreacion = DateTime.UtcNow,
                         UsuarioCreacionId = userId
                     });
@@ -616,6 +624,24 @@ public class DocumentoService : IDocumentoService
                     DocumentoId = documento.Id,
                     Clave = oiDTO.Clave,
                     Valor = oiDTO.Valor,
+                    FechaCreacion = DateTime.UtcNow,
+                    UsuarioCreacionId = userId
+                });
+            }
+        }
+
+        // Agregar otros cargos (v4.4 - FASE 2)
+        if (dto.OtrosCargos != null)
+        {
+            foreach (var ocDTO in dto.OtrosCargos)
+            {
+                documento.OtrosCargos.Add(new DocumentoOtroCargo
+                {
+                    Id = Guid.NewGuid(),
+                    DocumentoId = documento.Id,
+                    TipoDocumento = ocDTO.TipoDocumento,
+                    Detalle = ocDTO.Detalle,
+                    Monto = ocDTO.Monto,
                     FechaCreacion = DateTime.UtcNow,
                     UsuarioCreacionId = userId
                 });

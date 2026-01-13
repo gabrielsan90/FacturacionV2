@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text;
@@ -30,125 +30,26 @@ public class ConfiguracionCorreoModel : PageModel
 
     public async Task<IActionResult> OnGetConfiguracionAsync()
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var response = await client.GetAsync("/api/correo/configuracion");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(data ?? new { });
-            }
-
-            return new JsonResult(new { });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading email config");
-            return new JsonResult(new { });
-        }
+        _logger.LogWarning("Correo: configuracion no disponible en backend");
+        return new JsonResult(new { unavailable = true, message = "No disponible en backend" });
     }
 
     public async Task<IActionResult> OnPostGuardarConfiguracionAsync([FromBody] dynamic config)
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var json = JsonSerializer.Serialize(config);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await client.PostAsync("/api/correo/configuracion", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return new JsonResult(new { success = true });
-            }
-
-            var error = await response.Content.ReadAsStringAsync();
-            return new JsonResult(new { success = false, message = error });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving email config");
-            return new JsonResult(new { success = false, message = "Error al guardar la configuración" });
-        }
+        _logger.LogWarning("Correo: guardar configuracion no disponible en backend");
+        return new JsonResult(new { success = false, message = "No disponible en backend" });
     }
 
     public async Task<IActionResult> OnPostProbarConexionAsync()
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-            client.Timeout = TimeSpan.FromSeconds(30);
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var response = await client.PostAsync("/api/correo/probar-conexion", null);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return new JsonResult(new { success = true });
-            }
-
-            var error = await response.Content.ReadAsStringAsync();
-            return new JsonResult(new { success = false, message = error });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error testing connection");
-            return new JsonResult(new { success = false, message = "Error al probar la conexión: " + ex.Message });
-        }
+        _logger.LogWarning("Correo: probar conexion no disponible en backend");
+        return new JsonResult(new { success = false, message = "No disponible en backend" });
     }
 
     public async Task<IActionResult> OnPostEnviarPruebaAsync([FromBody] dynamic testData)
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-            client.Timeout = TimeSpan.FromSeconds(30);
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var json = JsonSerializer.Serialize(testData);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await client.PostAsync("/api/correo/enviar-prueba", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return new JsonResult(new { success = true });
-            }
-
-            var error = await response.Content.ReadAsStringAsync();
-            return new JsonResult(new { success = false, message = error });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending test email");
-            return new JsonResult(new { success = false, message = "Error al enviar el correo: " + ex.Message });
-        }
+        _logger.LogWarning("Correo: enviar prueba no disponible en backend");
+        return new JsonResult(new { success = false, message = "No disponible en backend" });
     }
 }
+

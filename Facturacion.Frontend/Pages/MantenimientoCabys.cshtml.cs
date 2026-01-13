@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
@@ -15,7 +15,8 @@ public class MantenimientoCabysModel : PageModel
     public MantenimientoCabysModel(IHttpClientFactory httpClientFactory, ILogger<MantenimientoCabysModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;
+        _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
@@ -29,31 +30,7 @@ public class MantenimientoCabysModel : PageModel
 
     public async Task<IActionResult> OnGetDataAsync()
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var response = await client.GetAsync("/api/cabys");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<List<dynamic>>(_jsonOptions);
-                return new JsonResult(new { data = data ?? new List<dynamic>() });
-            }
-
-            return new JsonResult(new { data = new List<dynamic>() });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error loading CABYS");
-            return new JsonResult(new { data = new List<dynamic>() });
-        }
+        return new JsonResult(new { data = new List<object>() });
     }
 
     public async Task<IActionResult> OnGetBuscarAsync(string termino)
@@ -68,20 +45,28 @@ public class MantenimientoCabysModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync($"/api/cabys/buscar?termino={termino}");
+            var response = await client.GetAsync($"/api/Catalogos/cabys?busqueda={termino}");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<List<dynamic>>(_jsonOptions);
-                return new JsonResult(data ?? new List<dynamic>());
+                var payload = await response.Content.ReadFromJsonAsync<CabysResponse<List<CabysItem>>>(_jsonOptions);
+                var items = payload?.Data ?? new List<CabysItem>();
+                var resultado = items.Select(item => new
+                {
+                    codigo = item.Codigo ?? "",
+                    descripcion = item.Descripcion ?? "",
+                    categoria = item.Categoria ?? "",
+                    impuestoSugerido = item.TarifaImpuesto ?? 0
+                }).ToList();
+                return new JsonResult(resultado);
             }
 
-            return new JsonResult(new List<dynamic>());
+            return new JsonResult(new List<object>());
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error buscando CABYS");
-            return new JsonResult(new List<dynamic>());
+            return new JsonResult(new List<object>());
         }
     }
 
@@ -97,12 +82,23 @@ public class MantenimientoCabysModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync($"/api/cabys/{codigo}");
+            var response = await client.GetAsync($"/api/Catalogos/cabys/{codigo}");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(data);
+                var payload = await response.Content.ReadFromJsonAsync<CabysResponse<CabysItem>>(_jsonOptions);
+                if (payload?.Data == null)
+                {
+                    return new JsonResult(new { error = "No encontrado" });
+                }
+
+                return new JsonResult(new
+                {
+                    codigo = payload.Data.Codigo ?? "",
+                    descripcion = payload.Data.Descripcion ?? "",
+                    categoria = payload.Data.Categoria ?? "",
+                    impuestoSugerido = payload.Data.TarifaImpuesto ?? 0
+                });
             }
 
             return new JsonResult(new { error = "No encontrado" });
@@ -116,32 +112,21 @@ public class MantenimientoCabysModel : PageModel
 
     public async Task<IActionResult> OnPostImportarAsync()
     {
-        try
-        {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-            client.Timeout = TimeSpan.FromMinutes(5);
+        return new JsonResult(new { success = false, message = "No disponible en backend" });
+    }
 
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
+    private sealed class CabysResponse<T>
+    {
+        public bool Success { get; set; }
+        public T? Data { get; set; }
+    }
 
-            var response = await client.PostAsync("/api/cabys/importar", null);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(new { success = true, message = $"Catálogo importado exitosamente. {result?.registrosImportados ?? 0} registros" });
-            }
-
-            var error = await response.Content.ReadAsStringAsync();
-            return new JsonResult(new { success = false, message = error });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error importando CABYS");
-            return new JsonResult(new { success = false, message = "Error al importar el catálogo" });
-        }
+    private sealed class CabysItem
+    {
+        public string? Codigo { get; set; }
+        public string? Descripcion { get; set; }
+        public string? Categoria { get; set; }
+        public decimal? TarifaImpuesto { get; set; }
     }
 }
+

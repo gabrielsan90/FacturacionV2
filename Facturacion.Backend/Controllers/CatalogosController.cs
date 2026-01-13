@@ -1,6 +1,7 @@
 using Facturacion.Backend.Data;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Shared.Entities.Catalogos;
+using Facturacion.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -363,18 +364,269 @@ public class CatalogosController : ControllerBase
                 .OrderBy(c => c.Codigo)
                 .Select(c => new
                 {
-                    c.Codigo,
-                    c.Descripcion
+                    codigo = c.Codigo,
+                    nombre = c.Descripcion
                 })
                 .ToListAsync();
 
-            return Ok(new { success = true, data = condiciones });
+            return Ok(condiciones);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener condiciones de venta");
             return StatusCode(500, new { success = false, message = "Error al obtener condiciones de venta" });
         }
+    }
+
+    /// <summary>
+    /// Obtiene todas las formas de pago (alias de medios de pago)
+    /// </summary>
+    [HttpGet("formas-pago")]
+    public async Task<IActionResult> GetFormasPago()
+    {
+        try
+        {
+            var formas = await _context.Set<MedioPago>()
+                .Where(m => m.Activo)
+                .OrderBy(m => m.Codigo)
+                .Select(m => new
+                {
+                    codigo = m.Codigo,
+                    nombre = m.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(formas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener formas de pago");
+            return StatusCode(500, new { success = false, message = "Error al obtener formas de pago" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los tipos de documento electronico
+    /// </summary>
+    [HttpGet("tipos-documentos")]
+    public async Task<IActionResult> GetTiposDocumentos()
+    {
+        try
+        {
+            var tipos = await _context.Set<TipoDocumento>()
+                .Where(t => t.Activo)
+                .OrderBy(t => t.Codigo)
+                .Select(t => new
+                {
+                    codigo = t.Codigo,
+                    nombre = t.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de documentos");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de documentos" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los tipos de codigos de producto
+    /// </summary>
+    [HttpGet("tipos-codigos-producto")]
+    public async Task<IActionResult> GetTiposCodigosProducto()
+    {
+        try
+        {
+            var tipos = await _context.Set<TipoCodigo>()
+                .Where(t => t.Activo)
+                .OrderBy(t => t.Codigo)
+                .Select(t => new
+                {
+                    codigo = t.Codigo,
+                    nombre = t.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de codigos de producto");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de codigos de producto" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los tipos de exoneracion
+    /// </summary>
+    [HttpGet("tipos-exoneracion")]
+    public async Task<IActionResult> GetTiposExoneracion()
+    {
+        try
+        {
+            var codigos = await _context.Set<CodigoExoneracion>()
+                .Where(c => c.Activo)
+                .OrderBy(c => c.Codigo)
+                .Select(c => new
+                {
+                    codigo = c.Codigo,
+                    nombre = c.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(codigos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de exoneracion");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de exoneracion" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los tipos de identificacion
+    /// </summary>
+    [HttpGet("tipos-identificacion")]
+    public IActionResult GetTiposIdentificacion()
+    {
+        var nombres = new Dictionary<TipoIdentificacion, string>
+        {
+            [TipoIdentificacion.Fisica] = "Cedula Fisica",
+            [TipoIdentificacion.Juridica] = "Cedula Juridica",
+            [TipoIdentificacion.DIMEX] = "DIMEX",
+            [TipoIdentificacion.NITE] = "NITE",
+            [TipoIdentificacion.Pasaporte] = "Pasaporte",
+            [TipoIdentificacion.Extranjera] = "Extranjero no domiciliado",
+            [TipoIdentificacion.NoContribuyente] = "No contribuyente"
+        };
+
+        var tipos = Enum.GetValues<TipoIdentificacion>()
+            .Select(tipo => new
+            {
+                codigo = ((int)tipo).ToString("D2"),
+                nombre = nombres.TryGetValue(tipo, out var nombre) ? nombre : tipo.ToString()
+            })
+            .ToList();
+
+        return Ok(tipos);
+    }
+
+    /// <summary>
+    /// Obtiene los tipos de otros cargos
+    /// </summary>
+    [HttpGet("tipos-otros-cargos")]
+    public IActionResult GetTiposOtrosCargos()
+    {
+        var tipos = new[]
+        {
+            new { codigo = "01", nombre = "Gastos de flete" },
+            new { codigo = "02", nombre = "Gastos de seguro" },
+            new { codigo = "03", nombre = "Gastos de despacho" },
+            new { codigo = "04", nombre = "Gastos de envio" },
+            new { codigo = "99", nombre = "Otros" }
+        };
+
+        return Ok(tipos);
+    }
+
+    /// <summary>
+    /// Obtiene los tipos de referencia (razones de referencia)
+    /// </summary>
+    [HttpGet("tipos-referencias")]
+    public async Task<IActionResult> GetTiposReferencias()
+    {
+        try
+        {
+            var codigos = await _context.Set<CodigoReferencia>()
+                .Where(c => c.Activo)
+                .OrderBy(c => c.Codigo)
+                .Select(c => new
+                {
+                    codigo = c.Codigo,
+                    nombre = c.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(codigos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tipos de referencias");
+            return StatusCode(500, new { success = false, message = "Error al obtener tipos de referencias" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los codigos de tarifas IVA
+    /// </summary>
+    [HttpGet("codigos-tarifas-iva")]
+    public async Task<IActionResult> GetCodigosTarifasIva()
+    {
+        try
+        {
+            var tarifas = await _context.Set<TarifaIVA>()
+                .Where(t => t.Activo)
+                .OrderBy(t => t.Codigo)
+                .Select(t => new
+                {
+                    codigo = t.Codigo,
+                    tarifa = t.Porcentaje
+                })
+                .ToListAsync();
+
+            return Ok(tarifas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener codigos de tarifas IVA");
+            return StatusCode(500, new { success = false, message = "Error al obtener codigos de tarifas IVA" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene las formas farmaceuticas
+    /// </summary>
+    [HttpGet("formas-farmaceuticas")]
+    public async Task<IActionResult> GetFormasFarmaceuticas()
+    {
+        try
+        {
+            var formas = await _context.Set<FormaFarmaceutica>()
+                .Where(f => f.Activo)
+                .OrderBy(f => f.Codigo)
+                .Select(f => new
+                {
+                    codigo = f.Codigo,
+                    descripcion = f.Descripcion
+                })
+                .ToListAsync();
+
+            return Ok(formas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener formas farmaceuticas");
+            return StatusCode(500, new { success = false, message = "Error al obtener formas farmaceuticas" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene el catalogo de monedas
+    /// </summary>
+    [HttpGet("monedas")]
+    public IActionResult GetMonedas()
+    {
+        var monedas = new[]
+        {
+            new { codigo = "CRC", nombre = "Colon Costarricense" },
+            new { codigo = "USD", nombre = "Dolar Estadounidense" },
+            new { codigo = "EUR", nombre = "Euro" }
+        };
+
+        return Ok(monedas);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Facturacion.Shared.Entities;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
@@ -18,7 +19,8 @@ public class ProveedoresModel : PageModel
 
     public ProveedoresModel(IHttpClientFactory httpClientFactory)
     {
-        _httpClientFactory = httpClientFactory;        _jsonOptions = new JsonSerializerOptions
+        _httpClientFactory = httpClientFactory;
+        _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
@@ -42,7 +44,13 @@ public class ProveedoresModel : PageModel
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        var response = await client.GetAsync("/api/proveedores");
+        var empresaId = User.FindFirstValue("EmpresaId");
+        if (string.IsNullOrWhiteSpace(empresaId))
+        {
+            return new JsonResult(new List<Proveedor>());
+        }
+
+        var response = await client.GetAsync($"/api/Proveedores/empresa/{empresaId}");
 
         if (response.IsSuccessStatusCode)
         {
@@ -98,6 +106,17 @@ public class ProveedoresModel : PageModel
         if (!string.IsNullOrEmpty(token))
         {
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var empresaId = User.FindFirstValue("EmpresaId");
+        if (string.IsNullOrWhiteSpace(empresaId) || !Guid.TryParse(empresaId, out var empresaGuid))
+        {
+            return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
+        }
+
+        if (proveedorData.EmpresaId == Guid.Empty)
+        {
+            proveedorData.EmpresaId = empresaGuid;
         }
 
         var json = JsonSerializer.Serialize(proveedorData);

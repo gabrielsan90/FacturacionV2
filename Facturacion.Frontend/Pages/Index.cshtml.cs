@@ -95,7 +95,7 @@ public class IndexModel : PageModel
     /// <summary>
     /// Handler for PDF download
     /// </summary>
-    public async Task<IActionResult> OnGetDocumentoPdfAsync(int id)
+    public async Task<IActionResult> OnGetDocumentoPdfAsync(string id)
     {
         try
         {
@@ -108,7 +108,7 @@ public class IndexModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync($"/api/Documentos/{id}/pdf");
+            var response = await client.GetAsync($"/api/Documentos/{id}/descargar-pdf");
 
             if (response.IsSuccessStatusCode)
             {

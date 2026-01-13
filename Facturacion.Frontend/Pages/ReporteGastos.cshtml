@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model Facturacion.Frontend.Pages.ReporteGastosModel
 @{
     ViewData["Title"] = "Reporte: Gastos";
@@ -23,14 +23,9 @@
                 <input type="date" class="form-control" id="fechaFin" />
             </div>
             <div class="col-md-3">
-                <label class="form-label">Categoría Gasto</label>
+                <label class="form-label">CategorÃ­a Gasto</label>
                 <select class="form-select" id="categoriaGasto">
                     <option value="">Todas</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Suministros">Suministros</option>
-                    <option value="Mantenimiento">Mantenimiento</option>
-                    <option value="Transporte">Transporte</option>
-                    <option value="Otros">Otros</option>
                 </select>
             </div>
             <div class="col-md-3 d-flex align-items-end">
@@ -51,7 +46,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-0">Total Gastos</h6>
-                                <h4 class="mb-0" id="totalGastos">₡0.00</h4>
+                                <h4 class="mb-0" id="totalGastos">â‚¡0.00</h4>
                             </div>
                             <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
                         </div>
@@ -77,7 +72,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-0">Promedio</h6>
-                                <h4 class="mb-0" id="promedioGasto">₡0.00</h4>
+                                <h4 class="mb-0" id="promedioGasto">â‚¡0.00</h4>
                             </div>
                             <i class="fas fa-chart-bar fa-2x opacity-50"></i>
                         </div>
@@ -114,7 +109,7 @@
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">
-                        <h6 class="mb-0">Gastos por Categoría</h6>
+                        <h6 class="mb-0">Gastos por CategorÃ­a</h6>
                     </div>
                     <div class="card-body">
                         <canvas id="chartGastosCategoria" height="200"></canvas>
@@ -163,11 +158,11 @@
                 <tr>
                     <th>Fecha</th>
                     <th>Tipo</th>
-                    <th>Número</th>
+                    <th>NÃºmero</th>
                     <th>Proveedor</th>
-                    <th>Categoría</th>
+                    <th>CategorÃ­a</th>
                     <th>Monto</th>
-                    <th>Descripción</th>
+                    <th>DescripciÃ³n</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -190,8 +185,26 @@
         $('#fechaFin').val(hoy.toISOString().split('T')[0]);
         $('#fechaInicio').val(hace30Dias.toISOString().split('T')[0]);
 
+        cargarCategoriasGasto();
         cargarReporte();
     });
+
+    function cargarCategoriasGasto() {
+        $.ajax({
+            url: '?handler=CategoriasGasto',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#categoriaGasto');
+                select.empty().append('<option value=\"\">Todas</option>');
+                data.forEach(cat => {
+                    select.append(`<option value=\"${cat.id}\">${cat.nombre}</option>`);
+                });
+            }
+        });
+    }
 
     function cargarReporte() {
         loadDataTable();
@@ -303,7 +316,7 @@
                     }
                 });
 
-                // Chart Gastos por Categoría
+                // Chart Gastos por CategorÃ­a
                 if (chartGastosCategoria) {
                     chartGastosCategoria.destroy();
                 }
@@ -385,3 +398,4 @@
     }
 </script>
 }
+

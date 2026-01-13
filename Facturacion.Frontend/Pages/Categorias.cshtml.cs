@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Facturacion.Shared.Entities;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
@@ -20,7 +21,8 @@ public class CategoriasModel : PageModel
     public CategoriasModel(IHttpClientFactory httpClientFactory, ILogger<CategoriasModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;
+        _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
@@ -46,7 +48,13 @@ public class CategoriasModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync("/api/categorias");
+            var empresaId = User.FindFirstValue("EmpresaId");
+            if (string.IsNullOrWhiteSpace(empresaId))
+            {
+                return new JsonResult(new List<Categoria>());
+            }
+
+            var response = await client.GetAsync($"/api/Categorias/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -120,6 +128,17 @@ public class CategoriasModel : PageModel
             if (!string.IsNullOrEmpty(token))
             {
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var empresaId = User.FindFirstValue("EmpresaId");
+            if (string.IsNullOrWhiteSpace(empresaId) || !Guid.TryParse(empresaId, out var empresaGuid))
+            {
+                return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
+            }
+
+            if (categoriaData.EmpresaId == Guid.Empty)
+            {
+                categoriaData.EmpresaId = empresaGuid;
             }
 
             var json = JsonSerializer.Serialize(categoriaData);

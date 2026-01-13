@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Flujo - Facturación Electrónica CR v4.4</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid #374151;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: #1f2937;
+            border: 1px solid #374151;
+        }
+
+        .diagram-container {
+            padding: 40px;
+            overflow: auto;
+            min-height: calc(100vh - 200px);
+            display: flex;
+            justify-content: center;
+        }
+
+        .mermaid {
+            background: var(--bg-secondary);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #374151;
+        }
+
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #374151;
+            font-size: 0.85rem;
+            max-width: 280px;
+        }
+
+        .legend h4 {
+            margin-bottom: 12px;
+            color: var(--accent-cyan);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .color-factura { background: #3b82f6; }
+        .color-tiquete { background: #10b981; }
+        .color-nc { background: #f43f5e; }
+        .color-nd { background: #f59e0b; }
+        .color-export { background: #8b5cf6; }
+        .color-compra { background: #06b6d4; }
+
+        @media (max-width: 768px) {
+            .legend {
+                position: relative;
+                margin: 20px;
+                bottom: auto;
+                right: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>📊 Diagrama de Flujo - Facturación Electrónica CR v4.4</h1>
+        <p>Visualización completa de todos los escenarios y flujos de comprobantes electrónicos</p>
+    </header>
+
+    <div class="controls">
+        <button class="btn" onclick="zoomIn()">🔍 Zoom +</button>
+        <button class="btn" onclick="zoomOut()">🔍 Zoom -</button>
+        <button class="btn" onclick="resetZoom()">↺ Resetear</button>
+        <button class="btn btn-secondary" onclick="downloadSVG()">💾 Descargar SVG</button>
+    </div>
+
+    <div class="diagram-container" id="container">
+        <div class="mermaid" id="diagram">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#fff', 'primaryBorderColor': '#06b6d4', 'lineColor': '#06b6d4', 'secondaryColor': '#10b981', 'tertiaryColor': '#1f2937', 'fontSize': '14px'}}}%%
+
+flowchart TB
+    subgraph INICIO["🚀 INICIO - FACTURACIÓN ELECTRÓNICA CR v4.4"]
+        START([Iniciar Comprobante]) --> TIPO_DOC{{"Seleccionar<br/>Tipo Documento"}}
+    end
+
+    subgraph TIPOS["📋 TIPOS DE COMPROBANTES"]
+        TIPO_DOC -->|"01"| FE["📄 Factura Electrónica"]
+        TIPO_DOC -->|"02"| ND["📈 Nota de Débito"]
+        TIPO_DOC -->|"03"| NC["📉 Nota de Crédito"]
+        TIPO_DOC -->|"04"| TE["🎫 Tiquete Electrónico"]
+        TIPO_DOC -->|"08"| FEC["🛒 Factura de Compra"]
+        TIPO_DOC -->|"09"| FEX["🌎 Factura Exportación"]
+    end
+
+    subgraph ENCABEZADO["📝 ENCABEZADO"]
+        FE & ND & NC & TE & FEC & FEX --> CLAVE["🔑 Clave 50 dígitos"]
+        CLAVE --> CONSECUTIVO["📊 Consecutivo 20 dígitos"]
+        CONSECUTIVO --> FECHA["📅 Fecha Emisión"]
+        FECHA --> ACTIVIDAD["🏭 Código Actividad"]
+    end
+
+    subgraph PARTES["👥 EMISOR Y RECEPTOR"]
+        ACTIVIDAD --> EMISOR["🏢 Datos Emisor"]
+        EMISOR --> CHECK_REC{{"¿Receptor<br/>Requerido?"}}
+        CHECK_REC -->|"FE/NC/ND"| REC_REQ["✅ Receptor Obligatorio"]
+        CHECK_REC -->|"Tiquete"| REC_OPT["⚪ Receptor Opcional"]
+        CHECK_REC -->|"Exportación"| REC_EXT["🌐 Receptor Extranjero"]
+    end
+
+    subgraph CONDICIONES["💰 CONDICIONES"]
+        REC_REQ & REC_OPT & REC_EXT --> COND{{"Condición Venta"}}
+        COND -->|"01"| CONTADO["💵 Contado"]
+        COND -->|"02"| CREDITO["📅 Crédito"]
+        COND -->|"03-07"| OTRAS_COND["📋 Otras"]
+        COND -->|"08-15"| ESP_COND["🏛️ Especiales"]
+    end
+
+    subgraph DETALLE["📦 LÍNEAS DE DETALLE"]
+        CONTADO & CREDITO & OTRAS_COND & ESP_COND --> ADD_LINE["➕ Agregar Línea"]
+        ADD_LINE --> CABYS["🏷️ CABYS 13 dígitos"]
+        CABYS --> CANTIDAD["🔢 Cantidad"]
+        CANTIDAD --> PRECIO["💲 Precio"]
+        PRECIO --> DESC{{"¿Descuento?"}}
+        DESC -->|"Sí"| TIPO_DESC["🏷️ Tipo Descuento"]
+        DESC -->|"No"| SUBTOTAL
+        TIPO_DESC --> MONTO_DESC["💰 Monto"]
+        MONTO_DESC --> SUBTOTAL["📊 SubTotal"]
+    end
+
+    subgraph IMPUESTOS["🧾 IMPUESTOS"]
+        SUBTOTAL --> CHECK_GRAV{{"¿Gravado?"}}
+        CHECK_GRAV -->|"Gravado"| TIPO_IMP{{"Código Impuesto"}}
+        CHECK_GRAV -->|"Exento"| EXENTO["⭕ Sin IVA"]
+        
+        TIPO_IMP -->|"01"| IVA{{"Tarifa IVA"}}
+        TIPO_IMP -->|"02-12"| IMP_ESP["💰 Imp. Especiales"]
+        
+        IVA -->|"08"| T13["13% General"]
+        IVA -->|"07"| T8["8% Transitorio"]
+        IVA -->|"04"| T4["4% Reducida"]
+        IVA -->|"02-03"| T1_2["1-2% Reducida"]
+        IVA -->|"01,10"| T0["0% / Exento"]
+    end
+
+    subgraph EXONERACION["🎫 EXONERACIÓN"]
+        T13 & T8 & T4 & T1_2 & T0 & IMP_ESP --> CHECK_EXON{{"¿Exoneración?"}}
+        CHECK_EXON -->|"Sí"| DOC_EXON["📋 Doc. Exoneración"]
+        CHECK_EXON -->|"No"| IMP_NETO
+        DOC_EXON --> CALC_EXON["🔢 Calcular %"]
+        CALC_EXON --> IMP_NETO["💰 Impuesto Neto"]
+        EXENTO --> IMP_NETO
+    end
+
+    subgraph TOTAL_LINEA["📊 TOTAL LÍNEA"]
+        IMP_NETO --> TOTAL_LIN["📊 Total Línea"]
+        TOTAL_LIN --> MAS{{"¿Más líneas?"}}
+        MAS -->|"Sí"| ADD_LINE
+        MAS -->|"No"| OTROS_CARGOS
+    end
+
+    subgraph OTROS["💵 OTROS CARGOS"]
+        OTROS_CARGOS{{"¿Otros Cargos?"}}
+        OTROS_CARGOS -->|"Sí"| TIPO_CARGO["📋 Tipo Cargo"]
+        OTROS_CARGOS -->|"No"| RESUMEN
+        TIPO_CARGO --> MONTO_CARGO["💰 Monto"]
+        MONTO_CARGO --> RESUMEN
+    end
+
+    subgraph RESUMEN_SEC["📊 RESUMEN"]
+        RESUMEN["📋 Calcular Totales"]
+        RESUMEN --> TOTALES["💰 Total Comprobante"]
+        TOTALES --> MEDIO_PAGO{{"Medio Pago"}}
+        MEDIO_PAGO --> EFECTIVO["💵 Efectivo"]
+        MEDIO_PAGO --> TARJETA["💳 Tarjeta"]
+        MEDIO_PAGO --> TRANS["🏦 Transferencia"]
+    end
+
+    subgraph REFERENCIA["📎 REFERENCIA"]
+        EFECTIVO & TARJETA & TRANS --> CHECK_REF{{"¿Requiere Ref?"}}
+        CHECK_REF -->|"NC/ND"| INFO_REF["📋 Info Referencia"]
+        CHECK_REF -->|"No"| FIRMA
+        INFO_REF --> COD_REF{{"Código Ref"}}
+        COD_REF -->|"01"| ANULA["❌ Anula"]
+        COD_REF -->|"02"| CORRIGE["✏️ Corrige"]
+        COD_REF -->|"04-12"| OTROS_REF["📋 Otros"]
+        ANULA & CORRIGE & OTROS_REF --> FIRMA
+    end
+
+    subgraph FIRMA_SEC["🔐 FIRMA Y ENVÍO"]
+        FIRMA["🔐 Firma XAdES-BES"]
+        FIRMA --> XML["📄 Generar XML"]
+        XML --> VALIDAR{{"¿Válido?"}}
+        VALIDAR -->|"Sí"| ENVIAR["📤 Enviar Hacienda"]
+        VALIDAR -->|"No"| ERROR["❌ Corregir"]
+        ERROR --> ADD_LINE
+        ENVIAR --> RESP{{"Respuesta"}}
+        RESP -->|"✅"| ACEPTADO["✅ Aceptado"]
+        RESP -->|"❌"| RECHAZADO["❌ Rechazado"]
+        RESP -->|"⏳"| PROCESANDO["⏳ Procesando"]
+    end
+
+    subgraph FIN_SEC["🏁 FIN"]
+        ACEPTADO --> MSG{{"¿Respuesta Receptor?"}}
+        MSG -->|"1"| ACEPTA["✅ Acepta"]
+        MSG -->|"2"| PARCIAL["⚠️ Parcial"]
+        MSG -->|"3"| RECHAZA_R["❌ Rechaza"]
+        MSG -->|"No"| FIN
+        ACEPTA & PARCIAL & RECHAZA_R --> FIN([✅ Completado])
+        RECHAZADO --> CORREGIR["🔧 Corregir"]
+        CORREGIR --> ADD_LINE
+        PROCESANDO --> CONSULTAR["🔍 Consultar"]
+        CONSULTAR --> RESP
+    end
+
+    classDef startEnd fill:#10b981,stroke:#059669,color:#fff
+    classDef decision fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef error fill:#f43f5e,stroke:#e11d48,color:#fff
+    classDef success fill:#10b981,stroke:#059669,color:#fff
+    classDef warning fill:#f59e0b,stroke:#d97706,color:#fff
+
+    class START,FIN startEnd
+    class TIPO_DOC,CHECK_REC,COND,DESC,CHECK_GRAV,TIPO_IMP,IVA,CHECK_EXON,MAS,OTROS_CARGOS,MEDIO_PAGO,CHECK_REF,COD_REF,VALIDAR,RESP,MSG decision
+    class ERROR,RECHAZADO error
+    class ACEPTADO,ACEPTA success
+    class PROCESANDO,PARCIAL warning
+        </div>
+    </div>
+
+    <div class="legend">
+        <h4>📋 Leyenda - Tipos de Documento</h4>
+        <div class="legend-item">
+            <div class="legend-color color-factura"></div>
+            <span>01 - Factura Electrónica</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color color-nd"></div>
+            <span>02 - Nota de Débito</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color color-nc"></div>
+            <span>03 - Nota de Crédito</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color color-tiquete"></div>
+            <span>04 - Tiquete Electrónico</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color color-compra"></div>
+            <span>08 - Factura de Compra</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color color-export"></div>
+            <span>09 - Factura Exportación</span>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            themeVariables: {
+                primaryColor: '#3b82f6',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#06b6d4',
+                lineColor: '#06b6d4',
+                secondaryColor: '#10b981',
+                tertiaryColor: '#1f2937',
+                fontSize: '14px'
+            }
+        });
+
+        let currentZoom = 1;
+
+        function zoomIn() {
+            currentZoom += 0.1;
+            document.getElementById('diagram').style.transform = `scale(${currentZoom})`;
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(0.3, currentZoom - 0.1);
+            document.getElementById('diagram').style.transform = `scale(${currentZoom})`;
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            document.getElementById('diagram').style.transform = 'scale(1)';
+        }
+
+        function downloadSVG() {
+            const svg = document.querySelector('.mermaid svg');
+            if (svg) {
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'diagrama-facturacion-cr-v44.svg';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+    </script>
+</body>
+</html>

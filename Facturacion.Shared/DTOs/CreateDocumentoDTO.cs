@@ -97,6 +97,9 @@ public class CreateDocumentoDTO
     // Otra información (key-value pairs)
     public List<CreateDocumentoOtraInformacionDTO>? OtraInformacion { get; set; }
 
+    // Otros cargos a nivel de documento (v4.4)
+    public List<CreateDocumentoOtroCargoDTO>? OtrosCargos { get; set; }
+
     // Información de exportación (solo para FEE)
     public CreateDocumentoExportacionDTO? Exportacion { get; set; }
 }
@@ -204,6 +207,24 @@ public class CreateDocumentoDetalleImpuestoDTO
     public decimal? FactorIVA { get; set; }
 
     public decimal? MontoExportacion { get; set; }
+
+    // Campos de exoneración (v4.4)
+    public bool TieneExoneracion { get; set; }
+
+    [MaxLength(2)]
+    public string? TipoDocumentoExoneracion { get; set; }
+
+    [MaxLength(40)]
+    public string? NumeroDocumentoExoneracion { get; set; }
+
+    [MaxLength(160)]
+    public string? InstitucionExoneracion { get; set; }
+
+    public DateTime? FechaEmisionExoneracion { get; set; }
+
+    public decimal? PorcentajeExoneracion { get; set; }
+
+    public decimal? MontoExoneracion { get; set; }
 }
 
 /// <summary>
@@ -284,4 +305,20 @@ public class CreateDocumentoExportacionDTO
 
     [MaxLength(100)]
     public string? IncotermVenta { get; set; }
+}
+
+/// <summary>
+/// DTO para crear otro cargo del documento
+/// </summary>
+public class CreateDocumentoOtroCargoDTO
+{
+    [Required]
+    [MaxLength(2)]
+    public string TipoDocumento { get; set; } = null!;
+
+    [MaxLength(200)]
+    public string? Detalle { get; set; }
+
+    [Required]
+    public decimal Monto { get; set; }
 }

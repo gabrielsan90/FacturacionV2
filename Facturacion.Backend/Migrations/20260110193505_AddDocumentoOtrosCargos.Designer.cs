@@ -4,6 +4,7 @@ using Facturacion.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Facturacion.Backend.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260110193505_AddDocumentoOtrosCargos")]
+    partial class AddDocumentoOtrosCargos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4197,18 +4200,15 @@ namespace Facturacion.Backend.Migrations
 
                     b.HasOne("Facturacion.Shared.Entities.User", "UsuarioCreacion")
                         .WithMany()
-                        .HasForeignKey("UsuarioCreacionId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("UsuarioCreacionId");
 
                     b.HasOne("Facturacion.Shared.Entities.User", "UsuarioEliminacion")
                         .WithMany()
-                        .HasForeignKey("UsuarioEliminacionId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("UsuarioEliminacionId");
 
                     b.HasOne("Facturacion.Shared.Entities.User", "UsuarioModificacion")
                         .WithMany()
-                        .HasForeignKey("UsuarioModificacionId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("UsuarioModificacionId");
 
                     b.Navigation("Documento");
 

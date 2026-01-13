@@ -519,6 +519,11 @@ public class Documento
     public ICollection<DocumentoOtraInformacion> OtraInformacion { get; set; } = new List<DocumentoOtraInformacion>();
 
     /// <summary>
+    /// Otros cargos del documento (v4.4)
+    /// </summary>
+    public ICollection<DocumentoOtroCargo> OtrosCargos { get; set; } = new List<DocumentoOtroCargo>();
+
+    /// <summary>
     /// Información específica de exportación (solo para FEE - tipo 09)
     /// </summary>
     public DocumentoExportacion? Exportacion { get; set; }

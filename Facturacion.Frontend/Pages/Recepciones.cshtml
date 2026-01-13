@@ -73,6 +73,17 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3" id="divMontosParciales" style="display: none;">
+                        <div class="col-md-6">
+                            <label class="form-label">Monto Aceptado <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="MontoAceptado" min="0" step="0.01" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Monto Impuesto Aceptado <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="MontoImpuestoAceptado" min="0" step="0.01" />
+                        </div>
+                    </div>
+
                     <div class="row mb-3" id="divDetalleRespuesta" style="display: none;">
                         <div class="col-md-12">
                             <label class="form-label">Detalle de Rechazo/Aceptación Parcial</label>
@@ -207,12 +218,19 @@
     function setupEventHandlers() {
         $('#TipoRespuesta').on('change', function() {
             const valor = $(this).val();
-            if (valor === '2' || valor === '3') {
-                $('#divDetalleRespuesta').show();
-                $('#DetalleRespuesta').prop('required', true);
-            } else {
-                $('#divDetalleRespuesta').hide();
-                $('#DetalleRespuesta').prop('required', false);
+            const requiereDetalle = valor === '2' || valor === '3';
+            const requiereMontos = valor === '2';
+
+            $('#divDetalleRespuesta').toggle(requiereDetalle);
+            $('#DetalleRespuesta').prop('required', requiereDetalle);
+
+            $('#divMontosParciales').toggle(requiereMontos);
+            $('#MontoAceptado').prop('required', requiereMontos);
+            $('#MontoImpuestoAceptado').prop('required', requiereMontos);
+
+            if (!requiereMontos) {
+                $('#MontoAceptado').val('');
+                $('#MontoImpuestoAceptado').val('');
             }
         });
     }
@@ -233,6 +251,11 @@
                 $('#TipoRespuesta').val('');
                 $('#DetalleRespuesta').val('');
                 $('#divDetalleRespuesta').hide();
+                $('#MontoAceptado').val('');
+                $('#MontoImpuestoAceptado').val('');
+                $('#divMontosParciales').hide();
+                $('#MontoAceptado').prop('required', false);
+                $('#MontoImpuestoAceptado').prop('required', false);
                 $('#formResponder').removeClass('was-validated');
 
                 $('#modalResponder').modal('show');
@@ -244,10 +267,14 @@
     }
 
     function enviarRespuesta() {
+        const montoAceptado = $('#MontoAceptado').val();
+        const montoImpuestoAceptado = $('#MontoImpuestoAceptado').val();
         const respuestaData = {
             id: $('#Recepcion_Id').val(),
             tipoRespuesta: parseInt($('#TipoRespuesta').val()),
-            detalleRespuesta: $('#DetalleRespuesta').val() || null
+            detalleRespuesta: $('#DetalleRespuesta').val() || null,
+            montoAceptado: montoAceptado ? parseFloat(montoAceptado) : null,
+            montoImpuestoAceptado: montoImpuestoAceptado ? parseFloat(montoImpuestoAceptado) : null
         };
 
         $.ajax({

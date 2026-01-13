@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturación Electrónica Costa Rica v4.4 - Simulador Completo</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1f2937;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-purple: #8b5cf6;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --border-color: #374151;
+            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --gradient-2: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+        }
+
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header .version {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+            font-size: 0.9rem;
+            padding: 6px 16px;
+            background: rgba(6, 182, 212, 0.1);
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar h3::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+        }
+
+        /* Scenario Cards */
+        .scenario-group {
+            margin-bottom: 24px;
+        }
+
+        .scenario-group-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            padding-left: 8px;
+        }
+
+        .scenario-btn {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            text-align: left;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .scenario-btn:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(4px);
+        }
+
+        .scenario-btn.active {
+            border-color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.15);
+        }
+
+        .scenario-btn .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .icon-factura { background: rgba(59, 130, 246, 0.2); }
+        .icon-tiquete { background: rgba(16, 185, 129, 0.2); }
+        .icon-nc { background: rgba(244, 63, 94, 0.2); }
+        .icon-nd { background: rgba(245, 158, 11, 0.2); }
+        .icon-export { background: rgba(139, 92, 246, 0.2); }
+        .icon-compra { background: rgba(6, 182, 212, 0.2); }
+
+        /* Main Content */
+        .main-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 16px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent-cyan);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent-cyan);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            padding: 24px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form Sections */
+        .form-section {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-section-title .badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .badge-required { background: rgba(244, 63, 94, 0.2); color: var(--accent-rose); }
+        .badge-optional { background: rgba(107, 114, 128, 0.2); color: var(--text-muted); }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        .form-group select {
+            cursor: pointer;
+        }
+
+        /* Detail Lines */
+        .detail-lines {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            display: grid;
+            grid-template-columns: 60px 120px 1fr 100px 100px 80px 100px 100px 120px 50px;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-row {
+            display: grid;
+            grid-template-columns: 60px 120px 1fr 100px 100px 80px 100px 100px 120px 50px;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .detail-row input,
+        .detail-row select {
+            padding: 8px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .detail-row .calculated {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-emerald);
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+        }
+
+        .btn-remove-line {
+            background: rgba(244, 63, 94, 0.2);
+            border: none;
+            color: var(--accent-rose);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-remove-line:hover {
+            background: var(--accent-rose);
+            color: white;
+        }
+
+        .btn-add-line {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-add-line:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Totals Section */
+        .totals-section {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+        }
+
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .total-item {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .total-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .total-item .value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .total-item.highlight {
+            background: var(--gradient-1);
+        }
+
+        .total-item.highlight .label,
+        .total-item.highlight .value {
+            color: white;
+        }
+
+        /* XML Preview */
+        .xml-preview {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 600px;
+            overflow: auto;
+        }
+
+        .xml-preview pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .xml-preview .tag { color: var(--accent-rose); }
+        .xml-preview .attr { color: var(--accent-amber); }
+        .xml-preview .value { color: var(--accent-emerald); }
+        .xml-preview .comment { color: var(--text-muted); }
+
+        /* Buttons */
+        .btn-primary {
+            padding: 14px 28px;
+            background: var(--gradient-1);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            padding: 14px 28px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .actions-bar {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        /* Info Cards */
+        .info-card {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-card.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .info-card.success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .info-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Tax Breakdown */
+        .tax-breakdown {
+            margin-top: 20px;
+        }
+
+        .tax-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tax-row .tax-name {
+            color: var(--text-secondary);
+        }
+
+        .tax-row .tax-amount {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-emerald);
+        }
+
+        /* Exoneration Section */
+        .exoneration-section {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .exoneration-section h4 {
+            color: var(--accent-purple);
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        /* Checkbox styling */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-cyan);
+        }
+
+        .checkbox-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Scenario Info */
+        .scenario-info {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent-cyan);
+        }
+
+        .scenario-info h4 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .scenario-info p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .detail-header,
+            .detail-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <span class="version">Versión 4.4 | Hacienda Costa Rica</span>
+            <h1>🇨🇷 Simulador de Facturación Electrónica</h1>
+            <p>Herramienta completa para simular y validar todos los escenarios de comprobantes electrónicos</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Sidebar con escenarios -->
+            <aside class="sidebar">
+                <h3>Escenarios de Prueba</h3>
+                
+                <div class="scenario-group">
+                    <div class="scenario-group-title">Facturas Electrónicas</div>
+                    <button class="scenario-btn active" data-scenario="factura-mixta" onclick="loadScenario('factura-mixta')">
+                        <span class="icon icon-factura">📄</span>
+                        <span>Mercancías Gravadas + Exentas</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="factura-iva-variado" onclick="loadScenario('factura-iva-variado')">
+                        <span class="icon icon-factura">📄</span>
+                        <span>IVA Múltiples Tarifas</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="factura-descuentos" onclick="loadScenario('factura-descuentos')">
+                        <span class="icon icon-factura">📄</span>
+                        <span>Con Descuentos</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="factura-exoneracion" onclick="loadScenario('factura-exoneracion')">
+                        <span class="icon icon-factura">📄</span>
+                        <span>Con Exoneración</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="factura-otros-cargos" onclick="loadScenario('factura-otros-cargos')">
+                        <span class="icon icon-factura">📄</span>
+                        <span>Con Otros Cargos</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="factura-dolares" onclick="loadScenario('factura-dolares')">
+                        <span class="icon icon-factura">💵</span>
+                        <span>En Dólares (USD)</span>
+                    </button>
+                </div>
+
+                <div class="scenario-group">
+                    <div class="scenario-group-title">Tiquetes Electrónicos</div>
+                    <button class="scenario-btn" data-scenario="tiquete-simple" onclick="loadScenario('tiquete-simple')">
+                        <span class="icon icon-tiquete">🎫</span>
+                        <span>Tiquete Simple</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="tiquete-servicios" onclick="loadScenario('tiquete-servicios')">
+                        <span class="icon icon-tiquete">🎫</span>
+                        <span>Servicios Gravados/Exentos</span>
+                    </button>
+                </div>
+
+                <div class="scenario-group">
+                    <div class="scenario-group-title">Notas de Crédito/Débito</div>
+                    <button class="scenario-btn" data-scenario="nota-credito" onclick="loadScenario('nota-credito')">
+                        <span class="icon icon-nc">📉</span>
+                        <span>Nota de Crédito</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="nota-debito" onclick="loadScenario('nota-debito')">
+                        <span class="icon icon-nd">📈</span>
+                        <span>Nota de Débito</span>
+                    </button>
+                </div>
+
+                <div class="scenario-group">
+                    <div class="scenario-group-title">Exportación</div>
+                    <button class="scenario-btn" data-scenario="factura-exportacion" onclick="loadScenario('factura-exportacion')">
+                        <span class="icon icon-export">🌎</span>
+                        <span>Factura de Exportación</span>
+                    </button>
+                </div>
+
+                <div class="scenario-group">
+                    <div class="scenario-group-title">Factura de Compra</div>
+                    <button class="scenario-btn" data-scenario="factura-compra" onclick="loadScenario('factura-compra')">
+                        <span class="icon icon-compra">🛒</span>
+                        <span>Compra a No Obligado</span>
+                    </button>
+                </div>
+
+                <div class="scenario-group">
+                    <div class="scenario-group-title">Impuestos Especiales</div>
+                    <button class="scenario-btn" data-scenario="factura-bebidas" onclick="loadScenario('factura-bebidas')">
+                        <span class="icon icon-factura">🍺</span>
+                        <span>Bebidas Alcohólicas</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="factura-combustibles" onclick="loadScenario('factura-combustibles')">
+                        <span class="icon icon-factura">⛽</span>
+                        <span>Combustibles</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('documento')">📝 Documento</button>
+                    <button class="tab" onclick="showTab('emisor')">🏢 Emisor</button>
+                    <button class="tab" onclick="showTab('receptor')">👤 Receptor</button>
+                    <button class="tab" onclick="showTab('detalle')">📦 Detalle</button>
+                    <button class="tab" onclick="showTab('resumen')">📊 Resumen</button>
+                    <button class="tab" onclick="showTab('xml')">⚙️ XML</button>
+                </div>
+
+                <!-- Tab: Documento -->
+                <div id="tab-documento" class="tab-content active animate-in">
+                    <div class="scenario-info" id="scenario-description">
+                        <h4>📌 Escenario: Factura con Mercancías Gravadas y Exentas</h4>
+                        <p>Este escenario simula una factura que incluye productos con diferentes tratamientos fiscales: mercancías gravadas al 13% IVA estándar y mercancías exentas de impuesto.</p>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Tipo de Documento
+                            <span class="badge badge-required">Requerido</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo de Comprobante</label>
+                                <select id="tipoDocumento" onchange="updateDocumentType()">
+                                    <option value="01">01 - Factura Electrónica</option>
+                                    <option value="02">02 - Nota de Débito Electrónica</option>
+                                    <option value="03">03 - Nota de Crédito Electrónica</option>
+                                    <option value="04">04 - Tiquete Electrónico</option>
+                                    <option value="08">08 - Factura Electrónica de Compra</option>
+                                    <option value="09">09 - Factura Electrónica de Exportación</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Condición de Venta</label>
+                                <select id="condicionVenta">
+                                    <option value="01">01 - Contado</option>
+                                    <option value="02">02 - Crédito</option>
+                                    <option value="03">03 - Consignación</option>
+                                    <option value="04">04 - Apartado</option>
+                                    <option value="05">05 - Arrendamiento con opción de compra</option>
+                                    <option value="06">06 - Arrendamiento en función financiera</option>
+                                    <option value="07">07 - Cobro a favor de un tercero</option>
+                                    <option value="08">08 - Servicios prestados al Estado a crédito</option>
+                                    <option value="10">10 - Venta a crédito IVA hasta 90 días</option>
+                                    <option value="12">12 - Venta Mercancía No Nacionalizada</option>
+                                    <option value="13">13 - Venta Bienes Usados No Contribuyente</option>
+                                    <option value="14">14 - Arrendamiento Operativo</option>
+                                    <option value="15">15 - Arrendamiento Financiero</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Plazo Crédito (días)</label>
+                                <input type="number" id="plazoCredito" placeholder="30" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Medio de Pago</label>
+                                <select id="medioPago">
+                                    <option value="01">01 - Efectivo</option>
+                                    <option value="02">02 - Tarjeta</option>
+                                    <option value="03">03 - Cheque</option>
+                                    <option value="04">04 - Transferencia - depósito bancario</option>
+                                    <option value="05">05 - Recaudado por terceros</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Identificación del Documento
+                            <span class="badge badge-required">Requerido</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Clave (50 dígitos)</label>
+                                <input type="text" id="clave" maxlength="50" readonly placeholder="Se genera automáticamente">
+                            </div>
+                            <div class="form-group">
+                                <label>Número Consecutivo (20 dígitos)</label>
+                                <input type="text" id="consecutivo" maxlength="20" placeholder="00100001010000000001">
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha de Emisión</label>
+                                <input type="datetime-local" id="fechaEmision">
+                            </div>
+                            <div class="form-group">
+                                <label>Código Actividad Emisor (6 dígitos)</label>
+                                <input type="text" id="codigoActividad" maxlength="6" placeholder="620101">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Moneda
+                            <span class="badge badge-required">Requerido</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Código Moneda</label>
+                                <select id="codigoMoneda" onchange="updateCurrency()">
+                                    <option value="CRC">CRC - Colón Costarricense</option>
+                                    <option value="USD">USD - Dólar Estadounidense</option>
+                                    <option value="EUR">EUR - Euro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Cambio</label>
+                                <input type="number" id="tipoCambio" step="0.00001" value="1" placeholder="1.00000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="seccionReferencia" style="display: none;">
+                        <h4 class="form-section-title">
+                            Información de Referencia
+                            <span class="badge badge-optional">Condicional</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo Documento Referencia</label>
+                                <select id="tipoDocReferencia">
+                                    <option value="01">01 - Factura electrónica</option>
+                                    <option value="02">02 - Nota de débito electrónica</option>
+                                    <option value="03">03 - Nota de crédito electrónica</option>
+                                    <option value="04">04 - Tiquete electrónico</option>
+                                    <option value="05">05 - Nota de despacho</option>
+                                    <option value="06">06 - Contrato</option>
+                                    <option value="07">07 - Procedimiento</option>
+                                    <option value="08">08 - Comprobante en contingencia</option>
+                                    <option value="09">09 - Devolución mercadería</option>
+                                    <option value="10">10 - Comprobante rechazado por Hacienda</option>
+                                    <option value="11">11 - Sustituye factura rechazada por receptor</option>
+                                    <option value="12">12 - Sustituye factura de exportación</option>
+                                    <option value="13">13 - Facturación mes vencido</option>
+                                    <option value="14">14 - Comprobante régimen especial</option>
+                                    <option value="15">15 - Sustituye FEC</option>
+                                    <option value="16">16 - Comprobante proveedor no domiciliado</option>
+                                    <option value="17">17 - NC a FEC</option>
+                                    <option value="18">18 - ND a FEC</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Número Documento Referencia</label>
+                                <input type="text" id="numeroReferencia" maxlength="50" placeholder="Clave del documento">
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha Documento Referencia</label>
+                                <input type="datetime-local" id="fechaReferencia">
+                            </div>
+                            <div class="form-group">
+                                <label>Código Referencia</label>
+                                <select id="codigoReferencia">
+                                    <option value="01">01 - Anula documento de referencia</option>
+                                    <option value="02">02 - Corrige texto</option>
+                                    <option value="04">04 - Referencia a otro documento</option>
+                                    <option value="05">05 - Sustituye contingencia</option>
+                                    <option value="06">06 - Devolución de mercancía</option>
+                                    <option value="07">07 - Sustituye comprobante</option>
+                                    <option value="08">08 - Factura endosada</option>
+                                    <option value="09">09 - NC financiera</option>
+                                    <option value="10">10 - ND financiera</option>
+                                    <option value="11">11 - Proveedor no domiciliado</option>
+                                    <option value="12">12 - Crédito por exoneración posterior</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Razón</label>
+                                <textarea id="razonReferencia" rows="2" maxlength="180" placeholder="Descripción del motivo de la referencia"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Emisor -->
+                <div id="tab-emisor" class="tab-content">
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Datos del Emisor
+                            <span class="badge badge-required">Requerido</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo Identificación</label>
+                                <select id="emisorTipoId">
+                                    <option value="01">01 - Cédula Física</option>
+                                    <option value="02" selected>02 - Cédula Jurídica</option>
+                                    <option value="03">03 - DIMEX</option>
+                                    <option value="04">04 - NITE</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Número Identificación</label>
+                                <input type="text" id="emisorNumeroId" maxlength="12" placeholder="3101234567">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Nombre o Razón Social</label>
+                                <input type="text" id="emisorNombre" maxlength="100" placeholder="Empresa Ejemplo S.A.">
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre Comercial</label>
+                                <input type="text" id="emisorNombreComercial" maxlength="80" placeholder="Mi Negocio">
+                            </div>
+                            <div class="form-group">
+                                <label>Correo Electrónico</label>
+                                <input type="email" id="emisorCorreo" maxlength="160" placeholder="facturacion@empresa.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="text" id="emisorTelefono" maxlength="20" placeholder="22223333">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Ubicación del Emisor
+                            <span class="badge badge-required">Requerido</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Provincia</label>
+                                <select id="emisorProvincia">
+                                    <option value="1">1 - San José</option>
+                                    <option value="2">2 - Alajuela</option>
+                                    <option value="3">3 - Cartago</option>
+                                    <option value="4">4 - Heredia</option>
+                                    <option value="5">5 - Guanacaste</option>
+                                    <option value="6">6 - Puntarenas</option>
+                                    <option value="7">7 - Limón</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cantón</label>
+                                <input type="text" id="emisorCanton" maxlength="2" placeholder="01">
+                            </div>
+                            <div class="form-group">
+                                <label>Distrito</label>
+                                <input type="text" id="emisorDistrito" maxlength="2" placeholder="01">
+                            </div>
+                            <div class="form-group">
+                                <label>Barrio</label>
+                                <input type="text" id="emisorBarrio" maxlength="2" placeholder="01">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Otras Señas</label>
+                                <textarea id="emisorOtrasSenas" rows="2" maxlength="250" placeholder="100 metros norte del parque central"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Receptor -->
+                <div id="tab-receptor" class="tab-content">
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Datos del Receptor
+                            <span class="badge badge-optional" id="receptorBadge">Condicional</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo Identificación</label>
+                                <select id="receptorTipoId">
+                                    <option value="">Sin identificación</option>
+                                    <option value="01">01 - Cédula Física</option>
+                                    <option value="02">02 - Cédula Jurídica</option>
+                                    <option value="03">03 - DIMEX</option>
+                                    <option value="04">04 - NITE</option>
+                                    <option value="05">05 - Extranjero</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Número Identificación</label>
+                                <input type="text" id="receptorNumeroId" maxlength="20" placeholder="101230456">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Nombre</label>
+                                <input type="text" id="receptorNombre" maxlength="100" placeholder="Juan Pérez">
+                            </div>
+                            <div class="form-group">
+                                <label>Correo Electrónico</label>
+                                <input type="email" id="receptorCorreo" maxlength="160" placeholder="cliente@correo.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Código Actividad Receptor</label>
+                                <input type="text" id="receptorCodigoActividad" maxlength="6" placeholder="620101">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="seccionExportacion" style="display: none;">
+                        <h4 class="form-section-title">
+                            Datos de Exportación
+                            <span class="badge badge-required">Requerido para Exportación</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Identificación Extranjero</label>
+                                <input type="text" id="idExtranjero" maxlength="20" placeholder="Pasaporte o ID">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Nombre Extranjero</label>
+                                <input type="text" id="nombreExtranjero" maxlength="100" placeholder="Foreign Client Inc.">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Detalle -->
+                <div id="tab-detalle" class="tab-content">
+                    <div class="info-card">
+                        <p>💡 <strong>Tip:</strong> El sistema calcula automáticamente los impuestos según el código CABYS seleccionado y la tarifa de IVA aplicable.</p>
+                    </div>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">
+                            Líneas de Detalle
+                            <span class="badge badge-required">Mínimo 1 línea</span>
+                        </h4>
+                        
+                        <div class="detail-lines" id="detailLinesContainer">
+                            <div class="detail-header">
+                                <span>#</span>
+                                <span>CABYS</span>
+                                <span>Descripción</span>
+                                <span>Cantidad</span>
+                                <span>Precio Unit.</span>
+                                <span>IVA %</span>
+                                <span>Descuento</span>
+                                <span>Subtotal</span>
+                                <span>Total Línea</span>
+                                <span></span>
+                            </div>
+                            <!-- Detail rows will be added here dynamically -->
+                        </div>
+
+                        <button class="btn-add-line" onclick="addDetailLine()">
+                            + Agregar Línea de Detalle
+                        </button>
+                    </div>
+
+                    <div class="exoneration-section" id="exonerationSection" style="display: none;">
+                        <h4>🎫 Configuración de Exoneración</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo de Exoneración</label>
+                                <select id="tipoExoneracion">
+                                    <option value="01">01 - Compras autorizadas DGT</option>
+                                    <option value="02">02 - Ventas exentas a diplomáticos</option>
+                                    <option value="03">03 - Autorizado por Ley Especial</option>
+                                    <option value="04">04 - Exenciones DGH Local Genérica</option>
+                                    <option value="05">05 - Transitorio V (ingeniería, arquitectura)</option>
+                                    <option value="06">06 - Servicios turísticos ICT</option>
+                                    <option value="07">07 - Transitorio XVII (reciclaje)</option>
+                                    <option value="08">08 - Zona Franca</option>
+                                    <option value="09">09 - Servicios complementarios exportación</option>
+                                    <option value="10">10 - Corporaciones municipales</option>
+                                    <option value="11">11 - DGH Autorización Local Concreta</option>
+                                    <option value="99">99 - Otros</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Número Documento Exoneración</label>
+                                <input type="text" id="numDocExoneracion" maxlength="40" placeholder="AL-123456789-2024">
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre Institución</label>
+                                <input type="text" id="institucionExoneracion" maxlength="160" placeholder="Ministerio de Hacienda">
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha Emisión</label>
+                                <input type="date" id="fechaExoneracion">
+                            </div>
+                            <div class="form-group">
+                                <label>% Exoneración</label>
+                                <input type="number" id="porcentajeExoneracion" min="0" max="100" step="1" value="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="otrosCargosSection" style="display: none;">
+                        <h4 class="form-section-title">
+                            Otros Cargos
+                            <span class="badge badge-optional">Opcional</span>
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo Documento</label>
+                                <select id="tipoDocOtrosCargos">
+                                    <option value="01">01 - Contribución parafiscal</option>
+                                    <option value="02">02 - Timbre de la Cruz Roja</option>
+                                    <option value="03">03 - Timbre Bomberos</option>
+                                    <option value="04">04 - Cobro de un tercero</option>
+                                    <option value="05">05 - Costos de Exportación</option>
+                                    <option value="06">06 - Impuesto de servicio 10%</option>
+                                    <option value="07">07 - Timbre Colegios Profesionales</option>
+                                    <option value="08">08 - Depósitos de Garantía</option>
+                                    <option value="09">09 - Multas o Penalizaciones</option>
+                                    <option value="10">10 - Intereses Moratorios</option>
+                                    <option value="99">99 - Otros Cargos</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Detalle</label>
+                                <input type="text" id="detalleOtrosCargos" maxlength="160" placeholder="Descripción del cargo">
+                            </div>
+                            <div class="form-group">
+                                <label>Monto</label>
+                                <input type="number" id="montoOtrosCargos" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Resumen -->
+                <div id="tab-resumen" class="tab-content">
+                    <div class="form-section">
+                        <h4 class="form-section-title">📊 Resumen de la Factura</h4>
+                        
+                        <div class="totals-grid">
+                            <div class="total-item">
+                                <div class="label">Total Servicios Gravados</div>
+                                <div class="value" id="totalServGravados">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Servicios Exentos</div>
+                                <div class="value" id="totalServExentos">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Servicios Exonerados</div>
+                                <div class="value" id="totalServExonerado">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Mercancías Gravadas</div>
+                                <div class="value" id="totalMercGravadas">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Mercancías Exentas</div>
+                                <div class="value" id="totalMercExentas">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Mercancías Exoneradas</div>
+                                <div class="value" id="totalMercExonerado">₡0.00</div>
+                            </div>
+                        </div>
+
+                        <div class="tax-breakdown">
+                            <h4 style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary);">Desglose de Impuestos</h4>
+                            <div id="taxBreakdown">
+                                <!-- Tax breakdown rows will be added dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="totals-grid" style="margin-top: 24px;">
+                            <div class="total-item">
+                                <div class="label">Total Gravado</div>
+                                <div class="value" id="totalGravado">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Exento</div>
+                                <div class="value" id="totalExento">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Exonerado</div>
+                                <div class="value" id="totalExonerado">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Venta</div>
+                                <div class="value" id="totalVenta">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Descuentos</div>
+                                <div class="value" id="totalDescuentos">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Venta Neta</div>
+                                <div class="value" id="totalVentaNeta">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Impuesto</div>
+                                <div class="value" id="totalImpuesto">₡0.00</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="label">Total Otros Cargos</div>
+                                <div class="value" id="totalOtrosCargos">₡0.00</div>
+                            </div>
+                            <div class="total-item highlight">
+                                <div class="label">TOTAL COMPROBANTE</div>
+                                <div class="value" id="totalComprobante">₡0.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions-bar">
+                        <button class="btn-primary" onclick="calculateTotals()">
+                            🔄 Recalcular Totales
+                        </button>
+                        <button class="btn-secondary" onclick="showTab('xml')">
+                            ⚙️ Ver XML Generado
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab: XML -->
+                <div id="tab-xml" class="tab-content">
+                    <div class="info-card success">
+                        <p>✅ XML generado según especificación v4.4 de Hacienda Costa Rica. Incluye todos los namespaces y estructura requerida.</p>
+                    </div>
+
+                    <div class="xml-preview">
+                        <pre id="xmlOutput"><!-- XML will be generated here --></pre>
+                    </div>
+
+                    <div class="actions-bar">
+                        <button class="btn-primary" onclick="generateXML()">
+                            🔄 Regenerar XML
+                        </button>
+                        <button class="btn-secondary" onclick="copyXML()">
+                            📋 Copiar al Portapapeles
+                        </button>
+                        <button class="btn-secondary" onclick="downloadXML()">
+                            💾 Descargar XML
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Facturación Electrónica Costa Rica v4.4
+        // Simulador Completo
+        // ==========================================
+
+        // Estado de la aplicación
+        let appState = {
+            tipoDocumento: '01',
+            detailLines: [],
+            lineCounter: 0,
+            moneda: 'CRC',
+            simboloMoneda: '₡',
+            tipoCambio: 1,
+            hasExoneration: false,
+            hasOtrosCargos: false,
+            currentScenario: 'factura-mixta'
+        };
+
+        // Catálogo de códigos de tarifa IVA
+        const tarifasIVA = {
+            '01': { nombre: '0% (Art. 32)', tarifa: 0 },
+            '02': { nombre: '1% Reducida', tarifa: 1 },
+            '03': { nombre: '2% Reducida', tarifa: 2 },
+            '04': { nombre: '4% Reducida', tarifa: 4 },
+            '05': { nombre: '0% Transitorio', tarifa: 0 },
+            '06': { nombre: '4% Transitorio', tarifa: 4 },
+            '07': { nombre: '8% Transitorio', tarifa: 8 },
+            '08': { nombre: '13% General', tarifa: 13 },
+            '09': { nombre: '0.5% Reducida', tarifa: 0.5 },
+            '10': { nombre: 'Exento', tarifa: 0 },
+            '11': { nombre: '0% Sin crédito', tarifa: 0 }
+        };
+
+        // Escenarios predefinidos
+        const escenarios = {
+            'factura-mixta': {
+                titulo: 'Factura con Mercancías Gravadas y Exentas',
+                descripcion: 'Este escenario simula una factura que incluye productos con diferentes tratamientos fiscales: mercancías gravadas al 13% IVA estándar y mercancías exentas de impuesto.',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '4322001010100', descripcion: 'Laptop HP 15 pulgadas', cantidad: 2, precio: 450000, tarifa: '08', tipo: 'mercancia' },
+                    { cabys: '2112200010100', descripcion: 'Arroz grano largo (canasta básica)', cantidad: 10, precio: 1500, tarifa: '10', tipo: 'mercancia' },
+                    { cabys: '4322001010200', descripcion: 'Mouse inalámbrico', cantidad: 5, precio: 15000, tarifa: '08', tipo: 'mercancia' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'factura-iva-variado': {
+                titulo: 'Factura con IVA de Múltiples Tarifas',
+                descripcion: 'Factura que incluye productos y servicios con diferentes tarifas de IVA: 13%, 4%, 2%, 1%, y 0%.',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '4322001010100', descripcion: 'Computadora de escritorio', cantidad: 1, precio: 550000, tarifa: '08', tipo: 'mercancia' },
+                    { cabys: '8531110010100', descripcion: 'Servicio de capacitación', cantidad: 10, precio: 25000, tarifa: '04', tipo: 'servicio' },
+                    { cabys: '6910220010100', descripcion: 'Servicio de transporte de carga', cantidad: 1, precio: 75000, tarifa: '03', tipo: 'servicio' },
+                    { cabys: '9620200000000', descripcion: 'Servicios veterinarios', cantidad: 1, precio: 35000, tarifa: '02', tipo: 'servicio' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'factura-descuentos': {
+                titulo: 'Factura con Descuentos',
+                descripcion: 'Factura que incluye líneas con diferentes tipos de descuentos aplicados.',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '4322001010100', descripcion: 'Monitor 24 pulgadas', cantidad: 3, precio: 125000, tarifa: '08', tipo: 'mercancia', descuento: 10 },
+                    { cabys: '4322001010200', descripcion: 'Teclado mecánico', cantidad: 5, precio: 45000, tarifa: '08', tipo: 'mercancia', descuento: 15 },
+                    { cabys: '8531110010100', descripcion: 'Servicio de instalación', cantidad: 1, precio: 50000, tarifa: '08', tipo: 'servicio', descuento: 0 }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'factura-exoneracion': {
+                titulo: 'Factura con Exoneración',
+                descripcion: 'Factura dirigida a una entidad con documento de exoneración que reduce o elimina el IVA.',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '4322001010100', descripcion: 'Servidor de red', cantidad: 1, precio: 2500000, tarifa: '08', tipo: 'mercancia', exonerado: true },
+                    { cabys: '8531110010100', descripcion: 'Servicio de configuración', cantidad: 20, precio: 35000, tarifa: '08', tipo: 'servicio', exonerado: true }
+                ],
+                showExoneration: true,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'factura-otros-cargos': {
+                titulo: 'Factura con Otros Cargos',
+                descripcion: 'Factura que incluye cargos adicionales como timbres, impuesto de servicio, etc.',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '5520100010100', descripcion: 'Hospedaje habitación doble', cantidad: 3, precio: 85000, tarifa: '08', tipo: 'servicio' },
+                    { cabys: '5610100010100', descripcion: 'Servicio de restaurante', cantidad: 6, precio: 15000, tarifa: '08', tipo: 'servicio' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: true,
+                showReferencia: false
+            },
+            'factura-dolares': {
+                titulo: 'Factura en Dólares (USD)',
+                descripcion: 'Factura emitida en moneda extranjera con tipo de cambio del día.',
+                tipoDoc: '01',
+                moneda: 'USD',
+                tipoCambio: 515.50,
+                lineas: [
+                    { cabys: '8220000010100', descripcion: 'Consultoría empresarial', cantidad: 40, precio: 150, tarifa: '08', tipo: 'servicio' },
+                    { cabys: '4322001010100', descripcion: 'Licencia de software', cantidad: 5, precio: 299.99, tarifa: '08', tipo: 'mercancia' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'tiquete-simple': {
+                titulo: 'Tiquete Electrónico Simple',
+                descripcion: 'Tiquete electrónico para venta al consumidor final sin identificación del receptor.',
+                tipoDoc: '04',
+                lineas: [
+                    { cabys: '4711100010100', descripcion: 'Artículo de librería', cantidad: 3, precio: 2500, tarifa: '08', tipo: 'mercancia' },
+                    { cabys: '4711100010200', descripcion: 'Cuaderno universitario', cantidad: 2, precio: 3500, tarifa: '08', tipo: 'mercancia' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'tiquete-servicios': {
+                titulo: 'Tiquete con Servicios Gravados y Exentos',
+                descripcion: 'Tiquete que incluye servicios con diferentes tratamientos fiscales.',
+                tipoDoc: '04',
+                lineas: [
+                    { cabys: '8610100010100', descripcion: 'Consulta médica general', cantidad: 1, precio: 35000, tarifa: '10', tipo: 'servicio' },
+                    { cabys: '9601100010100', descripcion: 'Corte de cabello', cantidad: 1, precio: 8000, tarifa: '08', tipo: 'servicio' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'nota-credito': {
+                titulo: 'Nota de Crédito Electrónica',
+                descripcion: 'Nota de crédito para anular o ajustar una factura emitida anteriormente.',
+                tipoDoc: '03',
+                lineas: [
+                    { cabys: '4322001010100', descripcion: 'Devolución - Laptop HP', cantidad: 1, precio: 450000, tarifa: '08', tipo: 'mercancia' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: true
+            },
+            'nota-debito': {
+                titulo: 'Nota de Débito Electrónica',
+                descripcion: 'Nota de débito para cobrar montos adicionales sobre una factura existente.',
+                tipoDoc: '02',
+                lineas: [
+                    { cabys: '8510000010100', descripcion: 'Cargo por mora', cantidad: 1, precio: 15000, tarifa: '08', tipo: 'servicio' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: true
+            },
+            'factura-exportacion': {
+                titulo: 'Factura de Exportación',
+                descripcion: 'Factura electrónica de exportación para ventas al exterior, exentas de IVA.',
+                tipoDoc: '09',
+                lineas: [
+                    { cabys: '0111000010100', descripcion: 'Café oro exportación', cantidad: 100, precio: 3500, tarifa: '01', tipo: 'mercancia' },
+                    { cabys: '0113000010100', descripcion: 'Banano fresco exportación', cantidad: 500, precio: 450, tarifa: '01', tipo: 'mercancia' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: true,
+                showReferencia: false
+            },
+            'factura-compra': {
+                titulo: 'Factura Electrónica de Compra',
+                descripcion: 'Factura de compra emitida a un vendedor no obligado tributario.',
+                tipoDoc: '08',
+                lineas: [
+                    { cabys: '0111000010100', descripcion: 'Compra de granos a productor', cantidad: 50, precio: 2500, tarifa: '10', tipo: 'mercancia' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'factura-bebidas': {
+                titulo: 'Factura con Bebidas Alcohólicas',
+                descripcion: 'Factura que incluye bebidas alcohólicas con impuesto específico (Ley 8707).',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '1101100010100', descripcion: 'Cerveza nacional 6 pack', cantidad: 10, precio: 5500, tarifa: '08', tipo: 'mercancia', impuestoEspecial: '04' },
+                    { cabys: '1101200010100', descripcion: 'Vino tinto importado', cantidad: 3, precio: 12000, tarifa: '08', tipo: 'mercancia', impuestoEspecial: '04' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            },
+            'factura-combustibles': {
+                titulo: 'Factura de Combustibles',
+                descripcion: 'Factura de venta de combustibles con impuesto único.',
+                tipoDoc: '01',
+                lineas: [
+                    { cabys: '1920000010100', descripcion: 'Gasolina Super', cantidad: 50, precio: 958, tarifa: '01', tipo: 'mercancia', impuestoEspecial: '03' },
+                    { cabys: '1920000010200', descripcion: 'Diesel', cantidad: 100, precio: 875, tarifa: '01', tipo: 'mercancia', impuestoEspecial: '03' }
+                ],
+                showExoneration: false,
+                showOtrosCargos: false,
+                showReferencia: false
+            }
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Establecer fecha actual
+            const now = new Date();
+            document.getElementById('fechaEmision').value = now.toISOString().slice(0, 16);
+            
+            // Cargar escenario inicial
+            loadScenario('factura-mixta');
+            
+            // Event listeners
+            document.getElementById('condicionVenta').addEventListener('change', function() {
+                const plazoInput = document.getElementById('plazoCredito');
+                plazoInput.disabled = !['02', '08', '10'].includes(this.value);
+            });
+
+            // Generar clave automática
+            generateClave();
+        }
+
+        function loadScenario(scenarioId) {
+            const scenario = escenarios[scenarioId];
+            if (!scenario) return;
+
+            appState.currentScenario = scenarioId;
+            
+            // Actualizar UI
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.scenario === scenarioId) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Actualizar descripción
+            document.getElementById('scenario-description').innerHTML = `
+                <h4>📌 Escenario: ${scenario.titulo}</h4>
+                <p>${scenario.descripcion}</p>
+            `;
+
+            // Configurar tipo de documento
+            document.getElementById('tipoDocumento').value = scenario.tipoDoc;
+            appState.tipoDocumento = scenario.tipoDoc;
+            updateDocumentType();
+
+            // Configurar moneda
+            if (scenario.moneda) {
+                document.getElementById('codigoMoneda').value = scenario.moneda;
+                document.getElementById('tipoCambio').value = scenario.tipoCambio || 1;
+                updateCurrency();
+            } else {
+                document.getElementById('codigoMoneda').value = 'CRC';
+                document.getElementById('tipoCambio').value = 1;
+                updateCurrency();
+            }
+
+            // Mostrar/ocultar secciones
+            document.getElementById('seccionReferencia').style.display = scenario.showReferencia ? 'block' : 'none';
+            document.getElementById('exonerationSection').style.display = scenario.showExoneration ? 'block' : 'none';
+            document.getElementById('otrosCargosSection').style.display = scenario.showOtrosCargos ? 'block' : 'none';
+            appState.hasExoneration = scenario.showExoneration;
+            appState.hasOtrosCargos = scenario.showOtrosCargos;
+
+            // Limpiar líneas existentes
+            appState.detailLines = [];
+            appState.lineCounter = 0;
+
+            // Cargar líneas del escenario
+            scenario.lineas.forEach(linea => {
+                addDetailLine(linea);
+            });
+
+            // Calcular totales
+            calculateTotals();
+            generateXML();
+        }
+
+        function showTab(tabName) {
+            // Ocultar todos los contenidos
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Desactivar todos los tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar contenido seleccionado
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Activar tab seleccionado
+            event.target.classList.add('active');
+
+            // Si es el tab de XML, regenerar
+            if (tabName === 'xml') {
+                generateXML();
+            }
+            
+            // Si es resumen, recalcular
+            if (tabName === 'resumen') {
+                calculateTotals();
+            }
+        }
+
+        function updateDocumentType() {
+            const tipoDoc = document.getElementById('tipoDocumento').value;
+            appState.tipoDocumento = tipoDoc;
+            
+            // Mostrar/ocultar sección de referencia según el tipo
+            const showRef = ['02', '03'].includes(tipoDoc);
+            document.getElementById('seccionReferencia').style.display = showRef ? 'block' : 'none';
+            
+            // Mostrar/ocultar sección de exportación
+            document.getElementById('seccionExportacion').style.display = tipoDoc === '09' ? 'block' : 'none';
+            
+            // Actualizar badge del receptor
+            const receptorBadge = document.getElementById('receptorBadge');
+            if (tipoDoc === '04') {
+                receptorBadge.textContent = 'Opcional';
+                receptorBadge.className = 'badge badge-optional';
+            } else if (tipoDoc === '01') {
+                receptorBadge.textContent = 'Requerido';
+                receptorBadge.className = 'badge badge-required';
+            }
+            
+            generateClave();
+        }
+
+        function updateCurrency() {
+            const moneda = document.getElementById('codigoMoneda').value;
+            appState.moneda = moneda;
+            
+            const simbolos = { 'CRC': '₡', 'USD': '$', 'EUR': '€' };
+            appState.simboloMoneda = simbolos[moneda] || moneda;
+            
+            appState.tipoCambio = parseFloat(document.getElementById('tipoCambio').value) || 1;
+            
+            // Actualizar displays
+            calculateTotals();
+        }
+
+        function generateClave() {
+            const tipoDoc = appState.tipoDocumento;
+            const now = new Date();
+            const dia = String(now.getDate()).padStart(2, '0');
+            const mes = String(now.getMonth() + 1).padStart(2, '0');
+            const anio = String(now.getFullYear()).slice(-2);
+            
+            // Estructura de la clave (50 dígitos)
+            // País(3) + Día(2) + Mes(2) + Año(2) + Cédula(12) + Consecutivo(20) + Situación(1) + Seguridad(8)
+            const pais = '506';
+            const fecha = dia + mes + anio;
+            const cedula = '310123456700'; // Ejemplo
+            const consecutivo = '00100001' + tipoDoc.padStart(2, '0') + '0000000001';
+            const situacion = '1'; // Normal
+            const seguridad = String(Math.floor(Math.random() * 100000000)).padStart(8, '0');
+            
+            const clave = pais + fecha + cedula + consecutivo + situacion + seguridad;
+            document.getElementById('clave').value = clave;
+            document.getElementById('consecutivo').value = consecutivo;
+        }
+
+        function addDetailLine(presetData = null) {
+            appState.lineCounter++;
+            const lineNumber = appState.lineCounter;
+            
+            const lineData = presetData || {
+                cabys: '4322001010100',
+                descripcion: 'Producto/Servicio',
+                cantidad: 1,
+                precio: 0,
+                tarifa: '08',
+                tipo: 'mercancia',
+                descuento: 0
+            };
+            
+            appState.detailLines.push({
+                numero: lineNumber,
+                ...lineData
+            });
+            
+            const container = document.getElementById('detailLinesContainer');
+            const row = document.createElement('div');
+            row.className = 'detail-row';
+            row.id = `line-${lineNumber}`;
+            
+            row.innerHTML = `
+                <span>${lineNumber}</span>
+                <input type="text" value="${lineData.cabys}" maxlength="13" onchange="updateLine(${lineNumber}, 'cabys', this.value)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">
+                <input type="text" value="${lineData.descripcion}" maxlength="200" onchange="updateLine(${lineNumber}, 'descripcion', this.value)">
+                <input type="number" value="${lineData.cantidad}" min="0.001" step="0.001" onchange="updateLine(${lineNumber}, 'cantidad', this.value)">
+                <input type="number" value="${lineData.precio}" min="0" step="0.01" onchange="updateLine(${lineNumber}, 'precio', this.value)">
+                <select onchange="updateLine(${lineNumber}, 'tarifa', this.value)">
+                    <option value="01" ${lineData.tarifa === '01' ? 'selected' : ''}>0%</option>
+                    <option value="02" ${lineData.tarifa === '02' ? 'selected' : ''}>1%</option>
+                    <option value="03" ${lineData.tarifa === '03' ? 'selected' : ''}>2%</option>
+                    <option value="04" ${lineData.tarifa === '04' ? 'selected' : ''}>4%</option>
+                    <option value="07" ${lineData.tarifa === '07' ? 'selected' : ''}>8%</option>
+                    <option value="08" ${lineData.tarifa === '08' ? 'selected' : ''}>13%</option>
+                    <option value="10" ${lineData.tarifa === '10' ? 'selected' : ''}>Exento</option>
+                </select>
+                <input type="number" value="${lineData.descuento || 0}" min="0" step="0.01" onchange="updateLine(${lineNumber}, 'descuento', this.value)" placeholder="0.00">
+                <input type="text" class="calculated" value="${formatMoney(lineData.cantidad * lineData.precio * (1 - (lineData.descuento || 0) / 100))}" readonly>
+                <input type="text" class="calculated" id="total-line-${lineNumber}" value="${formatMoney(calculateLineTotal(lineData))}" readonly>
+                <button class="btn-remove-line" onclick="removeLine(${lineNumber})">✕</button>
+            `;
+            
+            container.appendChild(row);
+            calculateTotals();
+        }
+
+        function updateLine(lineNumber, field, value) {
+            const lineIndex = appState.detailLines.findIndex(l => l.numero === lineNumber);
+            if (lineIndex === -1) return;
+            
+            if (['cantidad', 'precio', 'descuento'].includes(field)) {
+                value = parseFloat(value) || 0;
+            }
+            
+            appState.detailLines[lineIndex][field] = value;
+            
+            // Recalcular la línea
+            const line = appState.detailLines[lineIndex];
+            const subtotal = line.cantidad * line.precio * (1 - (line.descuento || 0) / 100);
+            const total = calculateLineTotal(line);
+            
+            const row = document.getElementById(`line-${lineNumber}`);
+            const inputs = row.querySelectorAll('.calculated');
+            inputs[0].value = formatMoney(subtotal);
+            inputs[1].value = formatMoney(total);
+            
+            calculateTotals();
+        }
+
+        function removeLine(lineNumber) {
+            const lineIndex = appState.detailLines.findIndex(l => l.numero === lineNumber);
+            if (lineIndex > -1) {
+                appState.detailLines.splice(lineIndex, 1);
+            }
+            
+            const row = document.getElementById(`line-${lineNumber}`);
+            if (row) row.remove();
+            
+            calculateTotals();
+        }
+
+        function calculateLineTotal(line) {
+            const subtotal = line.cantidad * line.precio;
+            const descuentoMonto = subtotal * (line.descuento || 0) / 100;
+            const baseImponible = subtotal - descuentoMonto;
+            const tarifaInfo = tarifasIVA[line.tarifa] || { tarifa: 0 };
+            const impuesto = baseImponible * tarifaInfo.tarifa / 100;
+            return baseImponible + impuesto;
+        }
+
+        function calculateTotals() {
+            let totals = {
+                servGravados: 0,
+                servExentos: 0,
+                servExonerado: 0,
+                mercGravadas: 0,
+                mercExentas: 0,
+                mercExonerado: 0,
+                totalDescuentos: 0,
+                impuestos: {}
+            };
+            
+            appState.detailLines.forEach(line => {
+                const subtotal = line.cantidad * line.precio;
+                const descuento = subtotal * (line.descuento || 0) / 100;
+                const baseImponible = subtotal - descuento;
+                const tarifaInfo = tarifasIVA[line.tarifa] || { tarifa: 0 };
+                const impuesto = baseImponible * tarifaInfo.tarifa / 100;
+                
+                totals.totalDescuentos += descuento;
+                
+                // Clasificar por tipo y estado fiscal
+                const isExento = line.tarifa === '10';
+                const isExonerado = line.exonerado || false;
+                
+                if (line.tipo === 'servicio') {
+                    if (isExonerado) {
+                        totals.servExonerado += baseImponible;
+                    } else if (isExento) {
+                        totals.servExentos += baseImponible;
+                    } else if (tarifaInfo.tarifa > 0) {
+                        totals.servGravados += baseImponible;
+                    } else {
+                        totals.servExentos += baseImponible;
+                    }
+                } else {
+                    if (isExonerado) {
+                        totals.mercExonerado += baseImponible;
+                    } else if (isExento) {
+                        totals.mercExentas += baseImponible;
+                    } else if (tarifaInfo.tarifa > 0) {
+                        totals.mercGravadas += baseImponible;
+                    } else {
+                        totals.mercExentas += baseImponible;
+                    }
+                }
+                
+                // Acumular impuestos por tarifa
+                if (tarifaInfo.tarifa > 0 && !isExonerado) {
+                    const key = `IVA ${tarifaInfo.tarifa}%`;
+                    totals.impuestos[key] = (totals.impuestos[key] || 0) + impuesto;
+                }
+            });
+            
+            const totalGravado = totals.servGravados + totals.mercGravadas;
+            const totalExento = totals.servExentos + totals.mercExentas;
+            const totalExonerado = totals.servExonerado + totals.mercExonerado;
+            const totalVenta = totalGravado + totalExento + totalExonerado;
+            const totalVentaNeta = totalVenta - totals.totalDescuentos;
+            const totalImpuesto = Object.values(totals.impuestos).reduce((a, b) => a + b, 0);
+            const totalOtrosCargos = parseFloat(document.getElementById('montoOtrosCargos')?.value || 0);
+            const totalComprobante = totalVentaNeta + totalImpuesto + totalOtrosCargos;
+            
+            // Actualizar UI
+            document.getElementById('totalServGravados').textContent = formatMoney(totals.servGravados);
+            document.getElementById('totalServExentos').textContent = formatMoney(totals.servExentos);
+            document.getElementById('totalServExonerado').textContent = formatMoney(totals.servExonerado);
+            document.getElementById('totalMercGravadas').textContent = formatMoney(totals.mercGravadas);
+            document.getElementById('totalMercExentas').textContent = formatMoney(totals.mercExentas);
+            document.getElementById('totalMercExonerado').textContent = formatMoney(totals.mercExonerado);
+            document.getElementById('totalGravado').textContent = formatMoney(totalGravado);
+            document.getElementById('totalExento').textContent = formatMoney(totalExento);
+            document.getElementById('totalExonerado').textContent = formatMoney(totalExonerado);
+            document.getElementById('totalVenta').textContent = formatMoney(totalVenta);
+            document.getElementById('totalDescuentos').textContent = formatMoney(totals.totalDescuentos);
+            document.getElementById('totalVentaNeta').textContent = formatMoney(totalVentaNeta);
+            document.getElementById('totalImpuesto').textContent = formatMoney(totalImpuesto);
+            document.getElementById('totalOtrosCargos').textContent = formatMoney(totalOtrosCargos);
+            document.getElementById('totalComprobante').textContent = formatMoney(totalComprobante);
+            
+            // Actualizar desglose de impuestos
+            const taxBreakdown = document.getElementById('taxBreakdown');
+            taxBreakdown.innerHTML = '';
+            Object.entries(totals.impuestos).forEach(([name, amount]) => {
+                taxBreakdown.innerHTML += `
+                    <div class="tax-row">
+                        <span class="tax-name">${name}</span>
+                        <span class="tax-amount">${formatMoney(amount)}</span>
+                    </div>
+                `;
+            });
+            
+            if (Object.keys(totals.impuestos).length === 0) {
+                taxBreakdown.innerHTML = '<div class="tax-row"><span class="tax-name">Sin impuestos aplicables</span><span class="tax-amount">₡0.00</span></div>';
+            }
+            
+            return { totalVentaNeta, totalImpuesto, totalComprobante, ...totals };
+        }
+
+        function formatMoney(amount) {
+            return appState.simboloMoneda + Number(amount).toLocaleString('es-CR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function generateXML() {
+            const tipoDoc = document.getElementById('tipoDocumento').value;
+            const rootElements = {
+                '01': { name: 'FacturaElectronica', ns: 'facturaElectronica' },
+                '02': { name: 'NotaDebitoElectronica', ns: 'notaDebitoElectronica' },
+                '03': { name: 'NotaCreditoElectronica', ns: 'notaCreditoElectronica' },
+                '04': { name: 'TiqueteElectronico', ns: 'tiqueteElectronico' },
+                '08': { name: 'FacturaElectronicaCompra', ns: 'facturaElectronicaCompra' },
+                '09': { name: 'FacturaElectronicaExportacion', ns: 'facturaElectronicaExportacion' }
+            };
+            
+            const root = rootElements[tipoDoc] || rootElements['01'];
+            const namespace = `https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/${root.ns}`;
+            
+            const totals = calculateTotals();
+            
+            let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<${root.name} xmlns="${namespace}" 
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    
+    <!-- ENCABEZADO -->
+    <Clave>${escapeXml(document.getElementById('clave').value)}</Clave>
+    <ProveedorSistemas>${escapeXml(document.getElementById('emisorNumeroId').value || '3101234567')}</ProveedorSistemas>
+    <CodigoActividadEmisor>${escapeXml(document.getElementById('codigoActividad').value || '620101')}</CodigoActividadEmisor>`;
+
+            // Código actividad receptor (solo para facturas)
+            if (['01', '03'].includes(tipoDoc)) {
+                const codActReceptor = document.getElementById('receptorCodigoActividad').value;
+                if (codActReceptor) {
+                    xml += `
+    <CodigoActividadReceptor>${escapeXml(codActReceptor)}</CodigoActividadReceptor>`;
+                }
+            }
+
+            xml += `
+    <NumeroConsecutivo>${escapeXml(document.getElementById('consecutivo').value)}</NumeroConsecutivo>
+    <FechaEmision>${new Date(document.getElementById('fechaEmision').value).toISOString()}</FechaEmision>
+    
+    <!-- EMISOR -->
+    <Emisor>
+        <Nombre>${escapeXml(document.getElementById('emisorNombre').value || 'Empresa Ejemplo S.A.')}</Nombre>
+        <Identificacion>
+            <Tipo>${escapeXml(document.getElementById('emisorTipoId').value)}</Tipo>
+            <Numero>${escapeXml(document.getElementById('emisorNumeroId').value || '3101234567')}</Numero>
+        </Identificacion>`;
+
+            const nombreComercial = document.getElementById('emisorNombreComercial').value;
+            if (nombreComercial) {
+                xml += `
+        <NombreComercial>${escapeXml(nombreComercial)}</NombreComercial>`;
+            }
+
+            xml += `
+        <Ubicacion>
+            <Provincia>${escapeXml(document.getElementById('emisorProvincia').value)}</Provincia>
+            <Canton>${escapeXml(document.getElementById('emisorCanton').value || '01')}</Canton>
+            <Distrito>${escapeXml(document.getElementById('emisorDistrito').value || '01')}</Distrito>
+            <Barrio>${escapeXml(document.getElementById('emisorBarrio').value || '01')}</Barrio>
+            <OtrasSenas>${escapeXml(document.getElementById('emisorOtrasSenas').value || 'San José, Costa Rica')}</OtrasSenas>
+        </Ubicacion>`;
+
+            const emisorTel = document.getElementById('emisorTelefono').value;
+            if (emisorTel) {
+                xml += `
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>${escapeXml(emisorTel)}</NumTelefono>
+        </Telefono>`;
+            }
+
+            xml += `
+        <CorreoElectronico>${escapeXml(document.getElementById('emisorCorreo').value || 'facturacion@empresa.com')}</CorreoElectronico>
+    </Emisor>`;
+
+            // RECEPTOR (condicional según tipo documento)
+            const receptorTipoId = document.getElementById('receptorTipoId').value;
+            if (receptorTipoId || tipoDoc === '01') {
+                xml += `
+    
+    <!-- RECEPTOR -->
+    <Receptor>`;
+                if (receptorTipoId) {
+                    xml += `
+        <Nombre>${escapeXml(document.getElementById('receptorNombre').value || 'Cliente General')}</Nombre>
+        <Identificacion>
+            <Tipo>${escapeXml(receptorTipoId)}</Tipo>
+            <Numero>${escapeXml(document.getElementById('receptorNumeroId').value || '101230456')}</Numero>
+        </Identificacion>`;
+                } else {
+                    xml += `
+        <Nombre>Cliente General</Nombre>`;
+                }
+
+                const receptorCorreo = document.getElementById('receptorCorreo').value;
+                if (receptorCorreo) {
+                    xml += `
+        <CorreoElectronico>${escapeXml(receptorCorreo)}</CorreoElectronico>`;
+                }
+                xml += `
+    </Receptor>`;
+            }
+
+            xml += `
+    
+    <!-- CONDICIONES DE VENTA -->
+    <CondicionVenta>${escapeXml(document.getElementById('condicionVenta').value)}</CondicionVenta>`;
+
+            const plazoCredito = document.getElementById('plazoCredito').value;
+            if (plazoCredito && !document.getElementById('plazoCredito').disabled) {
+                xml += `
+    <PlazoCredito>${escapeXml(plazoCredito)}</PlazoCredito>`;
+            }
+
+            xml += `
+    
+    <!-- DETALLE DEL SERVICIO -->
+    <DetalleServicio>`;
+
+            let lineNum = 0;
+            appState.detailLines.forEach(line => {
+                lineNum++;
+                const subtotal = line.cantidad * line.precio;
+                const descuento = subtotal * (line.descuento || 0) / 100;
+                const baseImponible = subtotal - descuento;
+                const tarifaInfo = tarifasIVA[line.tarifa] || { tarifa: 0 };
+                const impuesto = baseImponible * tarifaInfo.tarifa / 100;
+                const impuestoNeto = impuesto; // Podría reducirse con exoneración
+                const totalLinea = baseImponible + impuestoNeto;
+
+                xml += `
+        <LineaDetalle>
+            <NumeroLinea>${lineNum}</NumeroLinea>
+            <CodigoCABYS>${escapeXml(line.cabys)}</CodigoCABYS>
+            <Cantidad>${line.cantidad.toFixed(3)}</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <Detalle>${escapeXml(line.descripcion)}</Detalle>
+            <PrecioUnitario>${line.precio.toFixed(5)}</PrecioUnitario>
+            <MontoTotal>${subtotal.toFixed(5)}</MontoTotal>`;
+
+                if (descuento > 0) {
+                    xml += `
+            <Descuento>
+                <MontoDescuento>${descuento.toFixed(5)}</MontoDescuento>
+                <CodigoDescuento>07</CodigoDescuento>
+                <NaturalezaDescuento>Descuento comercial</NaturalezaDescuento>
+            </Descuento>`;
+                }
+
+                xml += `
+            <SubTotal>${baseImponible.toFixed(5)}</SubTotal>
+            <BaseImponible>${baseImponible.toFixed(5)}</BaseImponible>`;
+
+                // Impuesto (si no es exento)
+                if (tarifaInfo.tarifa > 0) {
+                    xml += `
+            <Impuesto>
+                <Codigo>01</Codigo>
+                <CodigoTarifaIVA>${escapeXml(line.tarifa)}</CodigoTarifaIVA>
+                <Tarifa>${tarifaInfo.tarifa.toFixed(2)}</Tarifa>
+                <Monto>${impuesto.toFixed(5)}</Monto>
+            </Impuesto>`;
+                }
+
+                xml += `
+            <ImpuestoNeto>${impuestoNeto.toFixed(5)}</ImpuestoNeto>
+            <MontoTotalLinea>${totalLinea.toFixed(5)}</MontoTotalLinea>
+        </LineaDetalle>`;
+            });
+
+            xml += `
+    </DetalleServicio>`;
+
+            // Otros Cargos (si aplica)
+            const montoOtrosCargos = parseFloat(document.getElementById('montoOtrosCargos')?.value || 0);
+            if (appState.hasOtrosCargos && montoOtrosCargos > 0) {
+                xml += `
+    
+    <!-- OTROS CARGOS -->
+    <OtrosCargos>
+        <TipoDocumentoOC>${escapeXml(document.getElementById('tipoDocOtrosCargos')?.value || '06')}</TipoDocumentoOC>
+        <Detalle>${escapeXml(document.getElementById('detalleOtrosCargos')?.value || 'Impuesto de servicio')}</Detalle>
+        <MontoCargo>${montoOtrosCargos.toFixed(5)}</MontoCargo>
+    </OtrosCargos>`;
+            }
+
+            xml += `
+    
+    <!-- RESUMEN DE FACTURA -->
+    <ResumenFactura>
+        <CodigoTipoMoneda>
+            <CodigoMoneda>${appState.moneda}</CodigoMoneda>
+            <TipoCambio>${appState.tipoCambio.toFixed(5)}</TipoCambio>
+        </CodigoTipoMoneda>`;
+
+            // Totales condicionales
+            if (totals.servGravados > 0) {
+                xml += `
+        <TotalServGravados>${totals.servGravados.toFixed(5)}</TotalServGravados>`;
+            }
+            if (totals.servExentos > 0) {
+                xml += `
+        <TotalServExentos>${totals.servExentos.toFixed(5)}</TotalServExentos>`;
+            }
+            if (totals.servExonerado > 0) {
+                xml += `
+        <TotalServExonerado>${totals.servExonerado.toFixed(5)}</TotalServExonerado>`;
+            }
+            if (totals.mercGravadas > 0) {
+                xml += `
+        <TotalMercanciasGravadas>${totals.mercGravadas.toFixed(5)}</TotalMercanciasGravadas>`;
+            }
+            if (totals.mercExentas > 0) {
+                xml += `
+        <TotalMercanciasExentas>${totals.mercExentas.toFixed(5)}</TotalMercanciasExentas>`;
+            }
+            if (totals.mercExonerado > 0) {
+                xml += `
+        <TotalMercExonerada>${totals.mercExonerado.toFixed(5)}</TotalMercExonerada>`;
+            }
+
+            const totalGravado = totals.servGravados + totals.mercGravadas;
+            const totalExento = totals.servExentos + totals.mercExentas;
+            const totalExonerado = totals.servExonerado + totals.mercExonerado;
+            const totalVenta = totalGravado + totalExento + totalExonerado;
+
+            xml += `
+        <TotalGravado>${totalGravado.toFixed(5)}</TotalGravado>
+        <TotalExento>${totalExento.toFixed(5)}</TotalExento>
+        <TotalExonerado>${totalExonerado.toFixed(5)}</TotalExonerado>
+        <TotalVenta>${totalVenta.toFixed(5)}</TotalVenta>`;
+
+            if (totals.totalDescuentos > 0) {
+                xml += `
+        <TotalDescuentos>${totals.totalDescuentos.toFixed(5)}</TotalDescuentos>`;
+            }
+
+            const totalVentaNeta = totalVenta - totals.totalDescuentos;
+            const totalImpuesto = Object.values(totals.impuestos).reduce((a, b) => a + b, 0);
+
+            xml += `
+        <TotalVentaNeta>${totalVentaNeta.toFixed(5)}</TotalVentaNeta>
+        <TotalImpuesto>${totalImpuesto.toFixed(5)}</TotalImpuesto>`;
+
+            if (montoOtrosCargos > 0) {
+                xml += `
+        <TotalOtrosCargos>${montoOtrosCargos.toFixed(5)}</TotalOtrosCargos>`;
+            }
+
+            const totalComprobante = totalVentaNeta + totalImpuesto + montoOtrosCargos;
+            xml += `
+        <TotalComprobante>${totalComprobante.toFixed(5)}</TotalComprobante>
+        
+        <!-- MEDIO DE PAGO -->
+        <MedioPago>
+            <FormaPago>${escapeXml(document.getElementById('medioPago').value)}</FormaPago>
+        </MedioPago>
+    </ResumenFactura>`;
+
+            // Información de Referencia (para NC/ND)
+            if (['02', '03'].includes(tipoDoc)) {
+                const numRef = document.getElementById('numeroReferencia').value;
+                if (numRef) {
+                    xml += `
+    
+    <!-- INFORMACIÓN DE REFERENCIA -->
+    <InformacionReferencia>
+        <TipoDocIR>${escapeXml(document.getElementById('tipoDocReferencia').value)}</TipoDocIR>
+        <Numero>${escapeXml(numRef)}</Numero>
+        <FechaEmisionIR>${new Date(document.getElementById('fechaReferencia').value || new Date()).toISOString()}</FechaEmisionIR>
+        <Codigo>${escapeXml(document.getElementById('codigoReferencia').value)}</Codigo>
+        <Razon>${escapeXml(document.getElementById('razonReferencia').value || 'Ajuste de factura')}</Razon>
+    </InformacionReferencia>`;
+                }
+            }
+
+            xml += `
+    
+    <!-- FIRMA DIGITAL (Placeholder - requiere certificado real) -->
+    <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:SignedInfo>
+            <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+            <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+            <ds:Reference URI="">
+                <ds:Transforms>
+                    <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+                </ds:Transforms>
+                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <ds:DigestValue><!-- Digest calculado --></ds:DigestValue>
+            </ds:Reference>
+        </ds:SignedInfo>
+        <ds:SignatureValue><!-- Firma digital XAdES-BES --></ds:SignatureValue>
+        <ds:KeyInfo>
+            <ds:X509Data>
+                <ds:X509Certificate><!-- Certificado Base64 --></ds:X509Certificate>
+            </ds:X509Data>
+        </ds:KeyInfo>
+    </ds:Signature>
+    
+</${root.name}>`;
+
+            // Formatear y mostrar
+            const formattedXml = formatXmlDisplay(xml);
+            document.getElementById('xmlOutput').innerHTML = formattedXml;
+        }
+
+        function escapeXml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+        function formatXmlDisplay(xml) {
+            return xml
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/&lt;(\/?[\w:]+)/g, '&lt;<span class="tag">$1</span>')
+                .replace(/(\w+)=/g, '<span class="attr">$1</span>=')
+                .replace(/"([^"]*)"/g, '"<span class="value">$1</span>"')
+                .replace(/&lt;!--([^>]*?)--&gt;/g, '<span class="comment">&lt;!--$1--&gt;</span>');
+        }
+
+        function copyXML() {
+            const xmlText = document.getElementById('xmlOutput').textContent;
+            // Reconstituir el XML original sin formato HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = document.getElementById('xmlOutput').innerHTML;
+            const plainXml = tempDiv.textContent || tempDiv.innerText;
+            
+            navigator.clipboard.writeText(plainXml).then(() => {
+                alert('XML copiado al portapapeles');
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+            });
+        }
+
+        function downloadXML() {
+            generateXML();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = document.getElementById('xmlOutput').innerHTML;
+            const plainXml = tempDiv.textContent || tempDiv.innerText;
+            
+            const blob = new Blob([plainXml], { type: 'application/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `comprobante_${document.getElementById('clave').value || 'temp'}.xml`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

@@ -274,10 +274,10 @@ public class FacturacionModel : PageModel
 
             var response = await client.GetAsync("/api/Catalogos/provincias");
 
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
 
                 // Check if response has success/data structure or is direct array
                 if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("success", out var successProp))
@@ -323,16 +323,21 @@ public class FacturacionModel : PageModel
                 var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
 
                 // Check if response has success/data structure or is direct array
-                if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("success", out var successProp))
-                {
-                    if (successProp.GetBoolean() && data.TryGetProperty("data", out var dataProp))
+                    if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("success", out var successProp))
                     {
-                        return new JsonResult(new { success = true, data = dataProp });
+                        if (successProp.GetBoolean() && data.TryGetProperty("data", out var dataProp))
+                        {
+                            return new JsonResult(new { success = true, data = dataProp });
+                        }
                     }
-                }
 
-                return new JsonResult(JsonSerializer.Deserialize<object>(content, _jsonOptions));
-            }
+                    if (data.ValueKind == JsonValueKind.Array)
+                    {
+                        return new JsonResult(new { success = true, data });
+                    }
+
+                    return new JsonResult(JsonSerializer.Deserialize<object>(content, _jsonOptions));
+                }
 
             _logger.LogWarning("Failed to load cantones. Status code: {StatusCode}", response.StatusCode);
             return new JsonResult(new { success = false, data = new List<object>() });
@@ -461,7 +466,7 @@ public class FacturacionModel : PageModel
             }
 
             var content = new StringContent("", Encoding.UTF8, "application/json");
-            var response = await client.PostAsync($"/api/Documentos/{documentoId}/enviar", content);
+            var response = await client.PostAsync($"/api/Documentos/{documentoId}/procesar", content);
 
             if (response.IsSuccessStatusCode)
             {
