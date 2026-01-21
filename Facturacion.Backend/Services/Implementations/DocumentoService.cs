@@ -1,4 +1,5 @@
 using Facturacion.Backend.Data;
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
@@ -443,7 +444,7 @@ public class DocumentoService : IDocumentoService
             Estado = EstadoDocumento.Borrador,
             Ambiente = empresa.Ambiente, // Usar el ambiente configurado en la empresa
             ActividadEconomica = dto.ActividadEconomica,
-            FechaEmision = dto.FechaEmision ?? DateTime.Now,
+            FechaEmision = dto.FechaEmision ?? FechaCostaRicaHelper.ObtenerAhoraCostaRica(),
             ClienteId = dto.ClienteId,
             ProveedorId = dto.ProveedorId,
             ReceptorTipoIdentificacion = dto.ReceptorTipoIdentificacion,

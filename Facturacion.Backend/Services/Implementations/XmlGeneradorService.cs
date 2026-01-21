@@ -1,4 +1,5 @@
 using Facturacion.Backend.Data;
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Enums;
@@ -414,7 +415,8 @@ public class XmlGeneradorService : IXmlGeneradorService
     private XElement GenerarFechaEmision(Documento doc, XNamespace ns)
     {
         // Formato: 2025-01-15T10:30:00-06:00
-        string fecha = doc.FechaEmision.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
+        var fechaCostaRica = FechaCostaRicaHelper.AsignarOffsetCostaRica(doc.FechaEmision);
+        string fecha = fechaCostaRica.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
         return new XElement(ns + "FechaEmision", fecha);
     }
 
