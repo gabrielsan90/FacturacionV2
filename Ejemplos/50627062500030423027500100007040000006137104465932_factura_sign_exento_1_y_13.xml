@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><TiqueteElectronico xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/tiqueteElectronico" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2007/XMLSchema-versioning"><Clave>50627062500030423027500100007040000006137104465932</Clave><ProveedorSistemas>304230275</ProveedorSistemas><CodigoActividadEmisor>552004</CodigoActividadEmisor><NumeroConsecutivo>00100007040000006137</NumeroConsecutivo><FechaEmision>2025-06-27T10:25:45</FechaEmision><Emisor><Nombre>JOSE MATA DIAZ</Nombre><Identificacion><Tipo>01</Tipo><Numero>304230275</Numero></Identificacion><NombreComercial>SINMATA</NombreComercial><Ubicacion><Provincia>3</Provincia><Canton>05</Canton><Distrito>01</Distrito><OtrasSenas>CARTAGO, TURRIALBA, TURRIALBA, TURRIALBA POR LA PISTA</OtrasSenas></Ubicacion><Telefono><CodigoPais>506</CodigoPais><NumTelefono>86420700</NumTelefono></Telefono><CorreoElectronico>jose.mata@sinmata.com</CorreoElectronico></Emisor><CondicionVenta>01</CondicionVenta><DetalleServicio><LineaDetalle><NumeroLinea>1</NumeroLinea><CodigoCABYS>0196201001000</CodigoCABYS><CodigoComercial><Tipo>04</Tipo><Codigo>PPP9</Codigo></CodigoComercial><Cantidad>3</Cantidad><UnidadMedida>Unid</UnidadMedida><Detalle>NATILLA CREMOSA</Detalle><PrecioUnitario>900.00000</PrecioUnitario><MontoTotal>2700.00000</MontoTotal><SubTotal>2700.00000</SubTotal><BaseImponible>2700.00000</BaseImponible><Impuesto><Codigo>01</Codigo><CodigoTarifaIVA>02</CodigoTarifaIVA><Tarifa>1.00000</Tarifa><Monto>27.00000</Monto></Impuesto><ImpuestoAsumidoEmisorFabrica>0</ImpuestoAsumidoEmisorFabrica><ImpuestoNeto>27.0</ImpuestoNeto><MontoTotalLinea>2727.00000</MontoTotalLinea></LineaDetalle><LineaDetalle><NumeroLinea>2</NumeroLinea><CodigoCABYS>0196201001000</CodigoCABYS><CodigoComercial><Tipo>04</Tipo><Codigo>PPP8</Codigo></CodigoComercial><Cantidad>1</Cantidad><UnidadMedida>Unid</UnidadMedida><Detalle>NATILLA 1/4</Detalle><PrecioUnitario>400.00000</PrecioUnitario><MontoTotal>400.00000</MontoTotal><SubTotal>400.00000</SubTotal><BaseImponible>400.00000</BaseImponible><Impuesto><Codigo>01</Codigo><CodigoTarifaIVA>02</CodigoTarifaIVA><Tarifa>1.00000</Tarifa><Monto>4.00000</Monto></Impuesto><ImpuestoAsumidoEmisorFabrica>0</ImpuestoAsumidoEmisorFabrica><ImpuestoNeto>4.0</ImpuestoNeto><MontoTotalLinea>404.00000</MontoTotalLinea></LineaDetalle><LineaDetalle><NumeroLinea>3</NumeroLinea><CodigoCABYS>4815001010200</CodigoCABYS><CodigoComercial><Tipo>04</Tipo><Codigo>JERINGA</Codigo></CodigoComercial><Cantidad>2</Cantidad><UnidadMedida>Unid</UnidadMedida><Detalle>JERINGA</Detalle><PrecioUnitario>50.00000</PrecioUnitario><MontoTotal>100.00000</MontoTotal><SubTotal>100.00000</SubTotal><BaseImponible>100.00000</BaseImponible><Impuesto><Codigo>01</Codigo><CodigoTarifaIVA>10</CodigoTarifaIVA><Tarifa>0.00000</Tarifa><Monto>0.00000</Monto></Impuesto><ImpuestoAsumidoEmisorFabrica>0</ImpuestoAsumidoEmisorFabrica><ImpuestoNeto>0.0</ImpuestoNeto><MontoTotalLinea>100.00000</MontoTotalLinea></LineaDetalle><LineaDetalle><NumeroLinea>4</NumeroLinea><CodigoCABYS>2225101010100</CodigoCABYS><CodigoComercial><Tipo>04</Tipo><Codigo>QM</Codigo></CodigoComercial><Cantidad>2.67</Cantidad><UnidadMedida>Kg</UnidadMedida><Detalle>QUESO MOZZARELLA</Detalle><PrecioUnitario>4336.28319</PrecioUnitario><MontoTotal>11577.87611</MontoTotal><SubTotal>11577.87611</SubTotal><BaseImponible>11577.87611</BaseImponible><Impuesto><Codigo>01</Codigo><CodigoTarifaIVA>08</CodigoTarifaIVA><Tarifa>13.00000</Tarifa><Monto>1505.12389</Monto></Impuesto><ImpuestoAsumidoEmisorFabrica>0</ImpuestoAsumidoEmisorFabrica><ImpuestoNeto>1505.12389</ImpuestoNeto><MontoTotalLinea>13083.00000</MontoTotalLinea></LineaDetalle></DetalleServicio><ResumenFactura><CodigoTipoMoneda><CodigoMoneda>CRC</CodigoMoneda><TipoCambio>1.00000</TipoCambio></CodigoTipoMoneda><TotalServGravados>0.00000</TotalServGravados><TotalServExentos>0.00000</TotalServExentos><TotalServExonerado>0.00000</TotalServExonerado><TotalServNoSujeto>0.00000</TotalServNoSujeto><TotalMercanciasGravadas>14677.87611</TotalMercanciasGravadas><TotalMercanciasExentas>100.00000</TotalMercanciasExentas><TotalMercExonerada>0.00000</TotalMercExonerada><TotalMercNoSujeta>0.00000</TotalMercNoSujeta><TotalGravado>14677.87611</TotalGravado><TotalExento>100.00000</TotalExento><TotalExonerado>0.00000</TotalExonerado><TotalNoSujeto>0.00000</TotalNoSujeto><TotalVenta>14777.87611</TotalVenta><TotalDescuentos>0.00000</TotalDescuentos><TotalVentaNeta>14777.87611</TotalVentaNeta><TotalDesgloseImpuesto><Codigo>01</Codigo><CodigoTarifaIVA>02</CodigoTarifaIVA><TotalMontoImpuesto>31.00000</TotalMontoImpuesto></TotalDesgloseImpuesto><TotalDesgloseImpuesto><Codigo>01</Codigo><CodigoTarifaIVA>08</CodigoTarifaIVA><TotalMontoImpuesto>1505.12389</TotalMontoImpuesto></TotalDesgloseImpuesto><TotalDesgloseImpuesto><Codigo>01</Codigo><CodigoTarifaIVA>10</CodigoTarifaIVA><TotalMontoImpuesto>0.00000</TotalMontoImpuesto></TotalDesgloseImpuesto><TotalImpuesto>1536.12389</TotalImpuesto><TotalImpAsumEmisorFabrica>0</TotalImpAsumEmisorFabrica><TotalIVADevuelto>0.00000</TotalIVADevuelto><TotalOtrosCargos>0.00000</TotalOtrosCargos><TotalComprobante>16314.00000</TotalComprobante></ResumenFactura><Otros/><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="xmldsig-f58cf781-ce99-4192-b100-131fb5a199ca">
+<ds:SignedInfo>
+<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+<ds:Reference Id="xmldsig-f58cf781-ce99-4192-b100-131fb5a199ca-ref0" URI="">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>ccrtRaUDVuH0qbd60UOTxelMFVnK9wKzmTXP4iMhY0Y=</ds:DigestValue>
+</ds:Reference>
+<ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#xmldsig-f58cf781-ce99-4192-b100-131fb5a199ca-signedprops">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>/Clko94tan75CtrXgA2m1m7hkIwweQqvUY17d/Av6gs=</ds:DigestValue>
+</ds:Reference>
+</ds:SignedInfo>
+<ds:SignatureValue Id="xmldsig-f58cf781-ce99-4192-b100-131fb5a199ca-sigvalue">
+ZON8TPTrpiDTyMYUFboXJRXo1UCDeqNc8BsSd9Oezb5226jpMFbJgKh7dB9UcCREDzEd2JuuR6Vv&#13;
+L+m9lkOKNCrAmUHx4RSOCC0SG2tgj5lRyeFSXNXmYlF7U8qfSCN5+ask+IkC6XvWuH1GglucwXPO&#13;
+0/RR5KsHeMw4GdYxvBDfDeP9m09CvTtc/aHzcmm1nxu2UfPkLk3dltViKfQM85XO0v7NcMzXH1wL&#13;
+S2rggGIBeCnGSR2U6tY1+Dc9ci+xg2TvicFCyCADX2+GxME9V+0FnMs0AukE1A93ZXM0Ej3liae9&#13;
+30csP5sCtXnWBTfyDM631jwybq41Wby3Mg73ag==
+</ds:SignatureValue>
+<ds:KeyInfo>
+<ds:X509Data>
+<ds:X509Certificate>
+MIIFVzCCAz+gAwIBAgIGAZOXWvoKMA0GCSqGSIb3DQEBCwUAMGwxCzAJBgNVBAYTAkNSMSkwJwYD&#13;
+VQQKDCBNSU5JU1RFUklPIERFIEhBQ0lFTkRBIC0gU0FOREJPWDEMMAoGA1UECwwDREdUMSQwIgYD&#13;
+VQQDDBtDQSBQRVJTT05BIEZJU0lDQSAtIFNBTkRCT1gwHhcNMjQxMjA1MTUwNTQyWhcNMjgxMjA0&#13;
+MTUwNTQyWjCBnzEZMBcGA1UEBRMQQ1BGLTAzLTA0MjMtMDI3NTESMBAGA1UEBAwJTUFUQSBESUFa&#13;
+MRcwFQYDVQQqDA5KT1NFIEFMRVhBTkRFUjELMAkGA1UEBhMCQ1IxFzAVBgNVBAoMDlBFUlNPTkEg&#13;
+RklTSUNBMQwwCgYDVQQLDANDUEYxITAfBgNVBAMMGEpPU0UgQUxFWEFOREVSIE1BVEEgRElBWjCC&#13;
+ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKBCc09+03HnXvcxmyFFcYdyXRqyWOJmBB4g&#13;
+egX+DN6tikHQTI8RIjCtCTIithVDDRjeB63zXPdKGDbJJshHvB70+UVBzU4Pt5d02FI6CMUj/8ND&#13;
+gBYltVagNQtu99onGUfW7jTM5WIx896li7UHt97zqfvjtU+s8DULq4KmlrFUqH70vdw3wHWKM3T+&#13;
+glvzuHNSOISwws0W66F3qPfJVyKfLyK86nif0Em4PEG6/50mzNXCGARifI4BLGaQteekZYB0MXHU&#13;
+Om6j9B/sU89U5HERlY74BoZK52QwDdaAATAHpGb2tZueJ/0SyS3NDkEgkb+Dcx1Y4mzaLOHGNpqo&#13;
+XT8CAwEAAaOByjCBxzAfBgNVHSMEGDAWgBRGI9JET79XWSHkv5PVMJuVTOP3hzAdBgNVHQ4EFgQU&#13;
+nEGD9MOrK39dIAwCYiea1S2w3b4wCwYDVR0PBAQDAgbAMBMGA1UdJQQMMAoGCCsGAQUFBwMEMGMG&#13;
+CCsGAQUFBwEBBFcwVTBTBggrBgEFBQcwAoZHaHR0cHM6Ly9wa2kuY29tcHJvYmFudGVzZWxlY3Ry&#13;
+b25pY29zLmdvLmNyL3N0YWcvaW50ZXJtZWRpYXRlLXBmLXBlbS5jcnQwDQYJKoZIhvcNAQELBQAD&#13;
+ggIBAAMOvPabDnf9Aof767NI2bs9Qsm+nN//l8ZPEsnSw8kiLOSUYfuYqj6RnqjYLM+9sXj6xEcT&#13;
+ZC8WVT4kyiml3HBAGiEIV0pnUhYQ1S8/9nrokfpf9ceRhknqT261XrcMXV8vUJMTUMPhN+YeXgEh&#13;
+nz1lBX6zlXgpta+h2JBeH3CGI80WSfw+vBDZgrQ37XsvULK/gyXPPJrzjDS12S5xoeoUqdDuN+2W&#13;
+dsCeRU87CgOiXIT2nS1NuxSZG1Y8qjEWAwBKPC5+6ehbYAikejg1siKdJ4UrM7Vg0fExGjMKefNY&#13;
+Vkl4YrnGrtxzyP6TTD3VnHmsMdB7mOO0Kyecq84Xn9VfnvArFzn9MNWbF533lm2RH5X9oCgrJC4m&#13;
+mB2Yx393QGJx3O+lD98qp+mF7mKx6FojTFG28EhZANlxCLsfT4BbpQIRUQiLkb7BzN4BdNY7AcCt&#13;
+LhenQ2tktpV5uHf2fqnDSYvDRZpChoDzTNZmcqwMizgOYC8auE/vQRuXJn2CIp1QJR3RQkTuqQfb&#13;
+4ylroNL/sDE+dy4AJExCF34/dGuHn/G/2QwYJX4KbypEWINTzj90I9EqLVmCrmgd4oYpJgzmyc1z&#13;
+Ed2CaxVTpKVzKo0pucZHxDyeX5Xn/iyFQcTNwQ47haz+hmGk+33ksA5bfUoYNsdlQ9WH8V7qihtd&#13;
+/pfn
+</ds:X509Certificate>
+<ds:X509IssuerSerial>
+<ds:X509IssuerName>cn=CA PERSONA FISICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ds:X509IssuerName>
+<ds:X509SerialNumber>1733411142154</ds:X509SerialNumber>
+</ds:X509IssuerSerial>
+<ds:X509SubjectName>cn=JOSE ALEXANDER MATA DIAZ,ou=CPF,o=PERSONA FISICA,c=CR,givenName=JOSE ALEXANDER,sn=MATA DIAZ,serialNumber=CPF-03-0423-0275</ds:X509SubjectName>
+</ds:X509Data>
+</ds:KeyInfo>
+<ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" Target="#xmldsig-f58cf781-ce99-4192-b100-131fb5a199ca"><xades:SignedProperties Id="xmldsig-f58cf781-ce99-4192-b100-131fb5a199ca-signedprops"><xades:SignedSignatureProperties><xades:SigningTime>2025-06-27T10:25:45.521-06:00</xades:SigningTime><xades:SigningCertificate><xades:Cert><xades:CertDigest><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>4hFvknqEX9vgYEBVyGalg/TJS0wgSPXM8AieVEqdRls=</ds:DigestValue></xades:CertDigest><xades:IssuerSerial><ds:X509IssuerName>cn=CA PERSONA FISICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ds:X509IssuerName><ds:X509SerialNumber>1733411142154</ds:X509SerialNumber></xades:IssuerSerial></xades:Cert></xades:SigningCertificate><xades:SignaturePolicyIdentifier><xades:SignaturePolicyId><xades:SigPolicyId><xades:Identifier>https://cdn.comprobanteselectronicos.go.cr/xml-schemas/Resoluci%C3%B3n_General_sobre_disposiciones_t%C3%A9cnicas_comprobantes_electr%C3%B3nicos_para_efectos_tributarios.pdf</xades:Identifier></xades:SigPolicyId><xades:SigPolicyHash><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>nVCrSwvK8dNnGHwfLYAzNAQMe5FCQjMl2Pf+Nfu5IBw=</ds:DigestValue></xades:SigPolicyHash></xades:SignaturePolicyId></xades:SignaturePolicyIdentifier></xades:SignedSignatureProperties></xades:SignedProperties></xades:QualifyingProperties></ds:Object>
+</ds:Signature></TiqueteElectronico>

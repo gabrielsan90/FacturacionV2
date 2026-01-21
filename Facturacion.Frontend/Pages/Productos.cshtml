@@ -89,12 +89,46 @@
                         </div>
                     </div>
 
+                    <!-- Código CAByS -->
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Código CAByS (13 dígitos)</label>
-                            <input type="text" class="form-control" id="Producto_CodigoCabys" maxlength="13"
-                                   pattern="\d{13}" placeholder="0000000000000" />
-                            <small class="text-muted">Código de bienes y servicios del Ministerio de Hacienda</small>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Código CAByS <span class="text-danger">*</span></label>
+                            <input type="hidden" id="Producto_CabysId" />
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="buscarCabys"
+                                       placeholder="Buscar por código o descripción (ej: 1234567890123, computadora)">
+                                <button type="button" class="btn btn-outline-primary" onclick="buscarCabys()">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="limpiarCabys()" title="Limpiar selección">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="cabysSeleccionado" class="mt-2" style="display: none;">
+                                <span class="badge bg-success p-2">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    <span id="cabysCodigoTexto"></span> - <span id="cabysDescripcionTexto"></span>
+                                </span>
+                            </div>
+                            <small class="text-muted">Código de bienes y servicios obligatorio para facturación electrónica v4.4</small>
+
+                            <!-- Resultados de búsqueda CABYS -->
+                            <div id="resultadosCabys" class="mt-2" style="display: none;">
+                                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Descripción</th>
+                                                <th>IVA</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbodyResultadosCabys"></tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -363,6 +397,9 @@
         $('#Producto_ControlarInventario').prop('checked', true);
         $('#modalTitle').text('Nuevo Producto/Servicio');
 
+        // Limpiar CABYS seleccionado
+        limpiarCabys();
+
         // Load all dropdowns
         $.when(loadCategorias(), loadUnidadesMedida(), loadImpuestos())
             .done(function() {
@@ -388,7 +425,13 @@
                         $('#Producto_Codigo').val(data.codigo);
                         $('#Producto_Nombre').val(data.nombre);
                         $('#Producto_Descripcion').val(data.descripcion || '');
-                        $('#Producto_CodigoCabys').val(data.codigoCabys || '');
+
+                        // Cargar CABYS seleccionado
+                        limpiarCabys();
+                        if (data.cabysId && data.cabys) {
+                            seleccionarCabys(data.cabysId, data.cabys.codigo, data.cabys.descripcion);
+                        }
+
                         $('#Producto_UnidadMedidaId').val(data.unidadMedidaId || '');
                         $('#Producto_PrecioVenta').val(data.precioVenta);
                         $('#Producto_Costo').val(data.costo || '');
@@ -429,6 +472,7 @@
             codigo: $('#Producto_Codigo').val(),
             nombre: $('#Producto_Nombre').val(),
             descripcion: $('#Producto_Descripcion').val() || null,
+            cabysId: $('#Producto_CabysId').val() ? parseInt($('#Producto_CabysId').val()) : null,
             unidadMedidaId: $('#Producto_UnidadMedidaId').val() ? parseInt($('#Producto_UnidadMedidaId').val()) : 0,
             precioVenta: parseFloat($('#Producto_PrecioVenta').val()),
             costo: $('#Producto_Costo').val() ? parseFloat($('#Producto_Costo').val()) : null,
@@ -511,5 +555,84 @@
             $('#Producto_StockMinimo').val('');
         }
     }
+
+    // ========================================
+    // Funciones para búsqueda y selección de CABYS
+    // ========================================
+
+    function buscarCabys() {
+        const query = $('#buscarCabys').val().trim();
+        if (!query || query.length < 2) {
+            showWarning('Ingrese al menos 2 caracteres para buscar');
+            return;
+        }
+
+        $.ajax({
+            url: '?handler=BuscarCabys&q=' + encodeURIComponent(query),
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const resultados = response.data;
+                    const tbody = $('#tbodyResultadosCabys');
+                    tbody.empty();
+
+                    if (resultados.length === 0) {
+                        tbody.append('<tr><td colspan="4" class="text-center text-muted">No se encontraron resultados</td></tr>');
+                    } else {
+                        resultados.forEach(cabys => {
+                            const impuesto = cabys.impuesto !== null ? cabys.impuesto + '%' : '-';
+                            const row = `
+                                <tr>
+                                    <td><code>${cabys.codigo}</code></td>
+                                    <td>${cabys.descripcion.substring(0, 80)}${cabys.descripcion.length > 80 ? '...' : ''}</td>
+                                    <td>${impuesto}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-xs btn-success"
+                                                onclick="seleccionarCabys(${cabys.id}, '${cabys.codigo}', '${cabys.descripcion.replace(/'/g, "\\'")}')">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            tbody.append(row);
+                        });
+                    }
+                    $('#resultadosCabys').show();
+                } else {
+                    showError(response.message || 'Error al buscar códigos CABYS');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function seleccionarCabys(id, codigo, descripcion) {
+        $('#Producto_CabysId').val(id);
+        $('#cabysCodigoTexto').text(codigo);
+        $('#cabysDescripcionTexto').text(descripcion.substring(0, 60) + (descripcion.length > 60 ? '...' : ''));
+        $('#cabysSeleccionado').show();
+        $('#resultadosCabys').hide();
+        $('#buscarCabys').val('');
+    }
+
+    function limpiarCabys() {
+        $('#Producto_CabysId').val('');
+        $('#cabysSeleccionado').hide();
+        $('#resultadosCabys').hide();
+        $('#buscarCabys').val('');
+    }
+
+    // Búsqueda con Enter
+    $('#buscarCabys').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            buscarCabys();
+        }
+    });
 </script>
 }

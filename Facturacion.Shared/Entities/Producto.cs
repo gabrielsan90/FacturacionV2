@@ -59,6 +59,12 @@ public class Producto
     [Display(Name = "Categoría")]
     public Guid? CategoriaId { get; set; }
 
+    /// <summary>
+    /// Código CAByS obligatorio para facturación electrónica v4.4
+    /// </summary>
+    [Display(Name = "Código CAByS")]
+    public int? CabysId { get; set; }
+
     [Display(Name = "Activo")]
     public bool Activo { get; set; }
 
@@ -89,6 +95,7 @@ public class Producto
     public UnidadMedida? UnidadMedida { get; set; }
     public Impuesto? Impuesto { get; set; }
     public Categoria? Categoria { get; set; }
+    public CAByS? Cabys { get; set; }
     public User? UsuarioCreacion { get; set; }
     public User? UsuarioModificacion { get; set; }
     public User? UsuarioEliminacion { get; set; }

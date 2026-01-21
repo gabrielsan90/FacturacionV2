@@ -475,6 +475,13 @@ public class DataContext : IdentityDbContext<User>
             .HasForeignKey(p => p.CategoriaId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Producto - CAByS (Código de Bienes y Servicios)
+        modelBuilder.Entity<Producto>()
+            .HasOne(p => p.Cabys)
+            .WithMany()
+            .HasForeignKey(p => p.CabysId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Producto - Usuario Creación
         modelBuilder.Entity<Producto>()
             .HasOne(p => p.UsuarioCreacion)

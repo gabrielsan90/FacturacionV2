@@ -401,10 +401,18 @@ public class Documento
     public DateTime? FechaRespuestaHacienda { get; set; }
 
     /// <summary>
-    /// Mensaje de respuesta de Hacienda
+    /// Mensaje de respuesta de Hacienda (resumen de texto)
     /// </summary>
     [Display(Name = "Mensaje Hacienda")]
     public string? MensajeHacienda { get; set; }
+
+    /// <summary>
+    /// Lista de mensajes estructurados de Hacienda (errores, advertencias, info)
+    /// Almacenado como JSON para preservar la estructura completa
+    /// Contiene: Codigo, Mensaje, Detalle, Tipo
+    /// </summary>
+    [Display(Name = "Mensajes Hacienda (JSON)")]
+    public string? MensajesHaciendaJson { get; set; }
 
     /// <summary>
     /// XML de respuesta de Hacienda

@@ -130,6 +130,42 @@ public class XsdValidacionService : IXsdValidacionService
 
                 if (e.Severity == XmlSeverityType.Error)
                 {
+                    // v4.4: ds:Signature es obligatorio (minOccurs=1) en el XSD, pero la firma se agrega
+                    // DESPUÉS de la validación XSD. Por lo tanto, ignoramos los errores relacionados
+                    // con el elemento Signature faltante y los tratamos como advertencias.
+                    // Estos errores típicamente contienen:
+                    // - "'Signature' in namespace 'http://www.w3.org/2000/09/xmldsig#'"
+                    // - "has incomplete content" cuando solo falta Signature
+                    bool esErrorSignatureFaltante = e.Message.Contains("'Signature'") &&
+                                                    e.Message.Contains("http://www.w3.org/2000/09/xmldsig#");
+
+                    // También detectar cuando el mensaje dice "incomplete content" y menciona Signature
+                    // como uno de los elementos esperados al final de la lista
+                    bool esIncompleteConSignature = e.Message.Contains("has incomplete content") &&
+                                                    e.Message.Contains("Signature");
+
+                    if (esErrorSignatureFaltante || esIncompleteConSignature)
+                    {
+                        // Verificar si el error SOLO es por Signature faltante
+                        // Si hay otros elementos faltantes además de Signature, es un error real
+                        // El mensaje típico es: "expected: 'InformacionReferencia, Otros' ... 'Signature'"
+                        // Si menciona otros elementos obligatorios, es error; si solo es Signature, es advertencia
+
+                        // Detectar si el error menciona elementos obligatorios faltantes (no opcionales)
+                        // InformacionReferencia y Otros son opcionales en el documento
+                        bool soloSignatureFaltante = !e.Message.Contains("has incomplete content") ||
+                                                     (e.Message.Contains("InformacionReferencia") ||
+                                                      e.Message.Contains("Otros") ||
+                                                      e.Message.EndsWith("'Signature' in namespace 'http://www.w3.org/2000/09/xmldsig#'."));
+
+                        if (soloSignatureFaltante)
+                        {
+                            advertenciasValidacion.Add($"[Ignorado - Firma pendiente] {mensaje}");
+                            _logger.LogInformation("Advertencia XSD (Signature faltante - se agregará después): {Mensaje}", mensaje);
+                            return; // No agregar como error
+                        }
+                    }
+
                     erroresValidacion.Add(mensaje);
                     _logger.LogWarning("Error de validación XSD: {Mensaje}", mensaje);
                 }
@@ -233,14 +269,14 @@ public class XsdValidacionService : IXsdValidacionService
                 "MensajeReceptor_V4.4.xsd"
             };
 
-            var todosPresentses = true;
+            var todosPresentes = true;
             foreach (var archivo in archivosRequeridos)
             {
                 var rutaCompleta = Path.Combine(_rutaBaseXsd, archivo);
                 if (!File.Exists(rutaCompleta))
                 {
                     _logger.LogWarning("Archivo XSD faltante: {Archivo}", archivo);
-                    todosPresentses = false;
+                    todosPresentes = false;
                 }
                 else
                 {
@@ -248,16 +284,16 @@ public class XsdValidacionService : IXsdValidacionService
                 }
             }
 
-            if (todosPresentses)
+            if (todosPresentes)
             {
-                _logger.LogInformation("Todos los archivos XSD requeridos están presentes");
+                _logger.LogInformation("Todos los archivos XSD requeridos estan presentes");
             }
             else
             {
                 _logger.LogWarning("Faltan algunos archivos XSD requeridos");
             }
 
-            return todosPresentses;
+            return todosPresentes;
         }
         catch (Exception ex)
         {

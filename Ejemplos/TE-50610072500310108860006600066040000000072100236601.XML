@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><TiqueteElectronico xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/tiqueteElectronico" xmlns:ns2="http://www.w3.org/2000/09/xmldsig#">
+    <Clave>50610072500310108860006600066040000000072100236601</Clave>
+    <ProveedorSistemas>3101088600</ProveedorSistemas>
+    <CodigoActividadEmisor>722003</CodigoActividadEmisor>
+    <NumeroConsecutivo>06600066040000000072</NumeroConsecutivo>
+    <FechaEmision>2025-07-10T10:18:02.960767</FechaEmision>
+    <Emisor>
+        <Nombre>GB SYS SOCIEDAD ANONIMA</Nombre>
+        <Identificacion>
+            <Tipo>02</Tipo>
+            <Numero>3101088600</Numero>
+        </Identificacion>
+        <Registrofiscal8707>12345</Registrofiscal8707>
+        <NombreComercial>GLOBAL BUSINNESS SYSTEM</NombreComercial>
+        <Ubicacion>
+            <Provincia>1</Provincia>
+            <Canton>18</Canton>
+            <Distrito>01</Distrito>
+            <Barrio>AHOGADOS (PARTE)</Barrio>
+            <OtrasSenas>Curridabat, San Jose, Costa Rica, 500 mts. Sur y 25 mts. Oeste de Pops.</OtrasSenas>
+        </Ubicacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>22347876</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>herman.barrantes@gbsys.com</CorreoElectronico>
+    </Emisor>
+    <Receptor>
+        <Nombre>HERMAN BARRANTES VIQUEZ</Nombre>
+        <Identificacion>
+            <Tipo>05</Tipo>
+            <Numero>123456789</Numero>
+        </Identificacion>
+        <OtrasSenasExtranjero>En la chingada grande</OtrasSenasExtranjero>
+        <CorreoElectronico>herman.barrantes@gbsys.com</CorreoElectronico>
+    </Receptor>
+    <CondicionVenta>01</CondicionVenta>
+    <PlazoCredito>0</PlazoCredito>
+    <DetalleServicio>
+        <LineaDetalle>
+            <NumeroLinea>1</NumeroLinea>
+            <CodigoCABYS>6921000009900</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>20379</Codigo>
+            </CodigoComercial>
+            <Cantidad>7.000</Cantidad>
+            <UnidadMedida>m³</UnidadMedida>
+            <Detalle>Agua Potable</Detalle>
+            <PrecioUnitario>3000.00000</PrecioUnitario>
+            <MontoTotal>21000.00000</MontoTotal>
+            <SubTotal>21000.00000</SubTotal>
+            <BaseImponible>21000.00000</BaseImponible>
+            <Impuesto>
+                <Codigo>01</Codigo>
+                <CodigoTarifaIVA>08</CodigoTarifaIVA>
+                <Tarifa>13.00</Tarifa>
+                <Monto>2730.00000</Monto>
+            </Impuesto>
+            <ImpuestoAsumidoEmisorFabrica>0.00000</ImpuestoAsumidoEmisorFabrica>
+            <ImpuestoNeto>2730.00000</ImpuestoNeto>
+            <MontoTotalLinea>23730.00000</MontoTotalLinea>
+        </LineaDetalle>
+    </DetalleServicio>
+    <ResumenFactura>
+        <CodigoTipoMoneda>
+            <CodigoMoneda>CRC</CodigoMoneda>
+            <TipoCambio>1.00000</TipoCambio>
+        </CodigoTipoMoneda>
+        <TotalServGravados>21000.00000</TotalServGravados>
+        <TotalServExentos>0.00000</TotalServExentos>
+        <TotalServExonerado>0.00000</TotalServExonerado>
+        <TotalServNoSujeto>0.00000</TotalServNoSujeto>
+        <TotalMercanciasGravadas>0.00000</TotalMercanciasGravadas>
+        <TotalMercanciasExentas>0.00000</TotalMercanciasExentas>
+        <TotalMercExonerada>0.00000</TotalMercExonerada>
+        <TotalMercNoSujeta>0.00000</TotalMercNoSujeta>
+        <TotalGravado>21000.00000</TotalGravado>
+        <TotalExento>0.00000</TotalExento>
+        <TotalExonerado>0.00000</TotalExonerado>
+        <TotalNoSujeto>0.00000</TotalNoSujeto>
+        <TotalVenta>21000.00000</TotalVenta>
+        <TotalDescuentos>0.00000</TotalDescuentos>
+        <TotalVentaNeta>21000.00000</TotalVentaNeta>
+        <TotalDesgloseImpuesto>
+            <Codigo>01</Codigo>
+            <CodigoTarifaIVA>08</CodigoTarifaIVA>
+            <TotalMontoImpuesto>2730.00000</TotalMontoImpuesto>
+        </TotalDesgloseImpuesto>
+        <TotalImpuesto>2730.00000</TotalImpuesto>
+        <TotalImpAsumEmisorFabrica>0.00000</TotalImpAsumEmisorFabrica>
+        <TotalIVADevuelto>0.00000</TotalIVADevuelto>
+        <MedioPago>
+            <TipoMedioPago>01</TipoMedioPago>
+            <TotalMedioPago>23730.00000</TotalMedioPago>
+        </MedioPago>
+        <TotalComprobante>23730.00000</TotalComprobante>
+    </ResumenFactura>
+<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534">
+<ds:SignedInfo>
+<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+<ds:Reference Id="xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534-ref0" URI="">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>yIIRZJP89vHCHro8w1cyfoDPyiamzFCuLjEmVYK+Dfk=</ds:DigestValue>
+</ds:Reference>
+<ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534-signedprops">
+<ds:Transforms>
+<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+</ds:Transforms>
+<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+<ds:DigestValue>A6jgciSuNroEMSB9RpCXAW73v7JWQMb9fO6IiR8Udxs=</ds:DigestValue>
+</ds:Reference>
+</ds:SignedInfo>
+<ds:SignatureValue Id="xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534-sigvalue">
+j/PqbFI8LU02ZDz9nbSF1jacVnMFghul2IB8XbxJgdmY+pCWCoJjFIR5tP28IzdKkIChd2p6WjVd&#13;
+sKg79AGH9L+3gFOO5jqJQSBgOqlGNdowFxeCcVfLNJFk653pygaRebdvdLFQAIh3tdpBEhsYdPz7&#13;
+y848KQEH6zy+Yo6iPMYx3gNZ/92hDg1Pi5BjNkzdedLRl49h7ort3XJDST9vOS+uzgWBOIRQeLs7&#13;
+k3crF1K9uCQaRqoSyjFn8PLyCXqA/S5pLFRSrAo+FdU0vplY+eu7QCAk4LMkBOO19rToFMM7wsRA&#13;
+nLrJUpiUA+VEkQrAxIXsKFZVAgtoEFInN8O2Zg==
+</ds:SignatureValue>
+<ds:KeyInfo>
+<ds:X509Data>
+<ds:X509Certificate>
+MIIFLDCCAxSgAwIBAgIGAX+Y0RroMA0GCSqGSIb3DQEBCwUAMG4xCzAJBgNVBAYTAkNSMSkwJwYD&#13;
+VQQKDCBNSU5JU1RFUklPIERFIEhBQ0lFTkRBIC0gU0FOREJPWDEMMAoGA1UECwwDREdUMSYwJAYD&#13;
+VQQDDB1DQSBQRVJTT05BIEpVUklESUNBIC0gU0FOREJPWDAeFw0yMjAzMTcxNjU4MzVaFw0yNjAz&#13;
+MTYxNjU4MzVaMHMxGTAXBgNVBAUTEENQSi0zLTEwMS0wODg2MDAxCzAJBgNVBAYTAkNSMRkwFwYD&#13;
+VQQKDBBQRVJTT05BIEpVUklESUNBMQwwCgYDVQQLDANDUEoxIDAeBgNVBAMMF0dCIFNZUyBTT0NJ&#13;
+RURBRCBBTk9OSU1BMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlMjmfYIO6E11/yRu&#13;
+lMqhhT/2hpyt6dB8RpqszITIhy6oRIH7U6vjl7mC7Ktl9Vz0Ag7QdSm4csw9OmjdE6UMifEh0KB9&#13;
+roz+UHd9LEF9d61vW0e8peke2+SqGiw/YSmk0UmtE0W1y24OtDV7xaNZOcYtiLBRYu7SpAg4BxlO&#13;
+yHMBty2k2UEJTjGDjeBtC69nsRLzQJf3j8bs6VWSk0Fk3GnCBIQFtYHXum62SfSOglt63VpKOk4K&#13;
+yXCcZByNgX6mL7wHUOzks/+TdXC8IkZ0XulzlINWoLeJQD3mdg6b/ANx3yZKS50LojcVMtx3pdIQ&#13;
+kbeNp5D37p9FBYPoyiMwkQIDAQABo4HKMIHHMB8GA1UdIwQYMBaAFKwoRfgvnUhfLB8AkOsyxaMH&#13;
+U4DhMB0GA1UdDgQWBBSZ66Wz2GYiTAl2Wep5a9efeE6X0DALBgNVHQ8EBAMCBsAwEwYDVR0lBAww&#13;
+CgYIKwYBBQUHAwQwYwYIKwYBBQUHAQEEVzBVMFMGCCsGAQUFBzAChkdodHRwczovL3BraS5jb21w&#13;
+cm9iYW50ZXNlbGVjdHJvbmljb3MuZ28uY3Ivc3RhZy9pbnRlcm1lZGlhdGUtcGotcGVtLmNydDAN&#13;
+BgkqhkiG9w0BAQsFAAOCAgEAjPBgoMXV0CCUtvGo5Clqwfdf90ZuVWJBozNU2nre2B9Eef9LwP9o&#13;
+lslfEp4juUK+VkJUPYkJgBZodSxO2tP9bKXMXQrkrgPuBTDi5o+it1yfVRonkNpLDRZRHVZZRjOm&#13;
+hVqzL1qLDZqoTk6IPWsr3y2a6A+g/MttSJ2ThUYssPFuDt7Y0kAWUuGlRuF+yQ5nqjK+dOrD/1vt&#13;
+WAsszcCswrQEJqv9/37fK3V3ilMi8c/nuHrIMFMviDxBTcUB6GsObi1ROp77DxbKg5Y2a/3jzP0P&#13;
+3XUwoZlSj/ATNQkxn4vU2xifp30OzxP4U0oMoJNojlg3z/8VuViGu20s+Wh/o2+Oh3PZFXvauaBc&#13;
+kyIWkjASUO3LbKXcVNDXNwOSUWTBFRRs69qw/L+sRQBKOVNU5GBVI96fIhY1fMQU5R03f1kBSdJM&#13;
+N8qpCwyb49H7ShKPrahZqhajWw2CNG2e+u1vR+2wFQnHom7Zqxvuvx3ukvEPgUsNwF760psEYmRb&#13;
+mSbreqi3ApynxLFNhrTnY/U8RotnKw3Tdrk01SC6OiMnVP554aYNUkOdumyj+fvZrthckNznYbcJ&#13;
+WeBbVOdK32SQoLADLT1tmirS6+qEYAI9B32eQ0FufBhFzkLTTPlBN3DC5o9XMUm7VdXS8huKhww8&#13;
+rpr27ev7UURMFEXx8D1gHVA=
+</ds:X509Certificate>
+<ds:X509IssuerSerial>
+<ds:X509IssuerName>cn=CA PERSONA JURIDICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ds:X509IssuerName>
+<ds:X509SerialNumber>1647536315112</ds:X509SerialNumber>
+</ds:X509IssuerSerial>
+<ds:X509SubjectName>cn=GB SYS SOCIEDAD ANONIMA,ou=CPJ,o=PERSONA JURIDICA,c=CR,serialNumber=CPJ-3-101-088600</ds:X509SubjectName>
+</ds:X509Data>
+</ds:KeyInfo>
+<ds:Object><xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" xmlns:xades141="http://uri.etsi.org/01903/v1.4.1#" Target="#xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534"><xades:SignedProperties Id="xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534-signedprops"><xades:SignedSignatureProperties><xades:SigningTime>2025-07-10T10:18:08.208-06:00</xades:SigningTime><xades:SigningCertificate><xades:Cert><xades:CertDigest><ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ns2:DigestValue>7LUKAzKrgonBoEMGMi8kzYfbtSreGf/WbHBSmtrMyHA=</ns2:DigestValue></xades:CertDigest><xades:IssuerSerial><ns2:X509IssuerName>cn=CA PERSONA JURIDICA - SANDBOX,ou=DGT,o=MINISTERIO DE HACIENDA - SANDBOX,c=CR</ns2:X509IssuerName><ns2:X509SerialNumber>1647536315112</ns2:X509SerialNumber></xades:IssuerSerial></xades:Cert></xades:SigningCertificate><xades:SignaturePolicyIdentifier><xades:SignaturePolicyId><xades:SigPolicyId><xades:Identifier>https://www.hacienda.go.cr/ATV/ComprobanteElectronico/docs/esquemas/2016/v4.3/Resoluci%C3%B3n_General_sobre_disposiciones_t%C3%A9cnicas_comprobantes_electr%C3%B3nicos_para_efectos_tributarios.pdf</xades:Identifier></xades:SigPolicyId><xades:SigPolicyHash><ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ns2:DigestValue>qejyRRM8RyeH+uO5XMcFUY6G1fYHho06sAHH7sue9gM=</ns2:DigestValue></xades:SigPolicyHash></xades:SignaturePolicyId></xades:SignaturePolicyIdentifier></xades:SignedSignatureProperties><xades:SignedDataObjectProperties><xades:DataObjectFormat ObjectReference="#xmldsig-8f0e1f66-f11f-4b02-a26d-afdce7186534-ref0"><xades:MimeType>application/octet-stream</xades:MimeType></xades:DataObjectFormat></xades:SignedDataObjectProperties></xades:SignedProperties></xades:QualifyingProperties></ds:Object>
+</ds:Signature></TiqueteElectronico>

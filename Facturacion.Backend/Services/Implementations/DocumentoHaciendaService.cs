@@ -1,3 +1,4 @@
+using System.Text;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -202,11 +203,18 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             string ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
 
-            // IMPORTANTE: Usar el método con OAuth2 que obtiene automáticamente un token válido
-            var respuestaHacienda = await _haciendaApi.EnviarDocumentoConTokenAsync(
+            // Obtener el cliente si existe para incluirlo en el payload
+            Cliente? cliente = documento.ClienteId.HasValue
+                ? await _context.Set<Cliente>().FirstOrDefaultAsync(c => c.Id == documento.ClienteId)
+                : null;
+
+            // IMPORTANTE: Usar el método con Emisor/Receptor que obtiene el tipo de identificación
+            // correctamente de las entidades (la clave NO contiene el tipo de identificación)
+            var respuestaHacienda = await _haciendaApi.EnviarDocumentoConEmisorReceptorAsync(
                 documento.Clave,
                 documento.XmlFirmado!,
-                empresa.Id, // EmpresaId para obtener el token válido
+                empresa,
+                cliente,
                 ambiente
             );
 
@@ -216,6 +224,14 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             // IMPORTANTE: Solo establecer FechaRespuestaHacienda cuando hay una respuesta FINAL
             // Si el documento queda en "Procesando", NO establecer la fecha para que el BackgroundService lo consulte
             documento.XmlRespuestaHacienda = respuestaHacienda.RespuestaXml;
+
+            // Guardar los mensajes estructurados como JSON para poder visualizarlos posteriormente
+            if (respuestaHacienda.Mensajes != null && respuestaHacienda.Mensajes.Any())
+            {
+                documento.MensajesHaciendaJson = System.Text.Json.JsonSerializer.Serialize(
+                    respuestaHacienda.Mensajes,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = false });
+            }
 
             var estadoRespuesta = respuestaHacienda.IndEstado.ToLower();
 
@@ -439,15 +455,61 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 documento.Estado = EstadoDocumento.Aceptado;
                 documento.MensajeHacienda = "Documento aceptado por Hacienda";
                 documento.FechaRespuestaHacienda = DateTime.Now;
+
+                // Guardar XML de respuesta si existe
+                if (!string.IsNullOrWhiteSpace(respuestaHacienda.RespuestaXml))
+                {
+                    try
+                    {
+                        documento.XmlRespuestaHacienda = Encoding.UTF8.GetString(Convert.FromBase64String(respuestaHacienda.RespuestaXml));
+                    }
+                    catch
+                    {
+                        documento.XmlRespuestaHacienda = respuestaHacienda.RespuestaXml;
+                    }
+                }
+
+                // Guardar mensajes estructurados
+                if (respuestaHacienda.Mensajes != null && respuestaHacienda.Mensajes.Any())
+                {
+                    documento.MensajesHaciendaJson = System.Text.Json.JsonSerializer.Serialize(
+                        respuestaHacienda.Mensajes,
+                        new System.Text.Json.JsonSerializerOptions { WriteIndented = false });
+                }
+
                 await _context.SaveChangesAsync();
             }
             else if (respuestaHacienda.IndEstado.ToLower() == "rechazado" &&
                      documento.Estado != EstadoDocumento.Rechazado)
             {
-                var mensajes = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Mensaje));
+                var mensajes = respuestaHacienda.Mensajes != null && respuestaHacienda.Mensajes.Any()
+                    ? string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Mensaje))
+                    : "Sin detalle de rechazo";
                 documento.Estado = EstadoDocumento.Rechazado;
                 documento.MensajeHacienda = $"Rechazado: {mensajes}";
                 documento.FechaRespuestaHacienda = DateTime.Now;
+
+                // Guardar XML de respuesta si existe
+                if (!string.IsNullOrWhiteSpace(respuestaHacienda.RespuestaXml))
+                {
+                    try
+                    {
+                        documento.XmlRespuestaHacienda = Encoding.UTF8.GetString(Convert.FromBase64String(respuestaHacienda.RespuestaXml));
+                    }
+                    catch
+                    {
+                        documento.XmlRespuestaHacienda = respuestaHacienda.RespuestaXml;
+                    }
+                }
+
+                // Guardar mensajes estructurados (IMPORTANTE para ver errores de rechazo)
+                if (respuestaHacienda.Mensajes != null && respuestaHacienda.Mensajes.Any())
+                {
+                    documento.MensajesHaciendaJson = System.Text.Json.JsonSerializer.Serialize(
+                        respuestaHacienda.Mensajes,
+                        new System.Text.Json.JsonSerializerOptions { WriteIndented = false });
+                }
+
                 await _context.SaveChangesAsync();
             }
 

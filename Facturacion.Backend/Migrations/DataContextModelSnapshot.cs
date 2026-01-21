@@ -834,6 +834,10 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("Barrio")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("Canton")
                         .HasColumnType("int");
 
@@ -1127,6 +1131,9 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("nvarchar(2)");
 
                     b.Property<string>("MensajeHacienda")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MensajesHaciendaJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Moneda")
@@ -2256,6 +2263,10 @@ namespace Facturacion.Backend.Migrations
                     b.Property<int>("Ambiente")
                         .HasColumnType("int");
 
+                    b.Property<string>("Barrio")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("Canton")
                         .HasColumnType("int");
 
@@ -2917,6 +2928,9 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<int?>("CabysId")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("CategoriaId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2989,6 +3003,8 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CabysId");
 
                     b.HasIndex("CategoriaId");
 
@@ -4535,6 +4551,11 @@ namespace Facturacion.Backend.Migrations
 
             modelBuilder.Entity("Facturacion.Shared.Entities.Producto", b =>
                 {
+                    b.HasOne("Facturacion.Shared.Entities.Catalogos.CAByS", "Cabys")
+                        .WithMany()
+                        .HasForeignKey("CabysId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Facturacion.Shared.Entities.Categoria", "Categoria")
                         .WithMany("Productos")
                         .HasForeignKey("CategoriaId")
@@ -4572,6 +4593,8 @@ namespace Facturacion.Backend.Migrations
                         .WithMany()
                         .HasForeignKey("UsuarioModificacionId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Cabys");
 
                     b.Navigation("Categoria");
 

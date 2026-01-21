@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FacturaElectronicaExportacion xmlns="https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaExportacion"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Clave>50603072500070205094900100001090000000005169560670</Clave>
+    <ProveedorSistemas>702050949</ProveedorSistemas>
+    <CodigoActividadEmisor>749903</CodigoActividadEmisor>
+    <NumeroConsecutivo>00100001090000000005</NumeroConsecutivo>
+    <FechaEmision>2025-07-03T13:02:34-06:00</FechaEmision>
+    <Emisor>
+        <Nombre>Giovanni Josue Arias Hernandez</Nombre>
+        <Identificacion>
+            <Tipo>01</Tipo>
+            <Numero>702050949</Numero>
+        </Identificacion>
+        <Ubicacion>
+            <Provincia>7</Provincia>
+            <Canton>02</Canton>
+            <Distrito>01</Distrito>
+            <OtrasSenas>Quintas del Corinto</OtrasSenas>
+        </Ubicacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>85538369</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>giovanni_arias@hotmail.com</CorreoElectronico>
+    </Emisor>
+    <Receptor>
+        <Nombre>Giovanni Josue Arias Hernandez</Nombre>
+        <Identificacion>
+            <Tipo>01</Tipo>
+            <Numero>702050949</Numero>
+        </Identificacion>
+        <Telefono>
+            <CodigoPais>506</CodigoPais>
+            <NumTelefono>27109238</NumTelefono>
+        </Telefono>
+        <CorreoElectronico>giovanni_arias@hotmail.com</CorreoElectronico>
+    </Receptor>
+    <CondicionVenta>01</CondicionVenta>
+    <DetalleServicio>
+        <LineaDetalle>
+            <NumeroLinea>1</NumeroLinea>
+            <PartidaArancelaria>551414151515</PartidaArancelaria>
+            <CodigoCABYS>3424003000100</CodigoCABYS>
+            <CodigoComercial>
+                <Tipo>01</Tipo>
+                <Codigo>2</Codigo>
+            </CodigoComercial>
+            <Cantidad>1.000</Cantidad>
+            <UnidadMedida>Unid</UnidadMedida>
+            <TipoTransaccion>01</TipoTransaccion>
+            <Detalle>BOCINA (PITO) ALTA FRECUENCIA 24V 430Hz (91mm)</Detalle>
+            <PrecioUnitario>10000.00000</PrecioUnitario>
+            <MontoTotal>10000.00000</MontoTotal>
+            <SubTotal>10000.00000</SubTotal>
+            <Impuesto>
+                <Codigo>01</Codigo>
+                <CodigoTarifaIVA>08</CodigoTarifaIVA>
+                <Tarifa>13.00</Tarifa>
+                <Monto>1300.00000</Monto>
+                <MontoExportacion>1300.00000</MontoExportacion>
+            </Impuesto>
+            <MontoTotalLinea>11300.00000</MontoTotalLinea>
+        </LineaDetalle>
+    </DetalleServicio>
+    <ResumenFactura>
+        <CodigoTipoMoneda>
+            <CodigoMoneda>CRC</CodigoMoneda>
+            <TipoCambio>1</TipoCambio>
+        </CodigoTipoMoneda>
+        <TotalServGravados>0.00000</TotalServGravados>
+        <TotalServExentos>0.00000</TotalServExentos>
+        <TotalMercanciasGravadas>10000.00000</TotalMercanciasGravadas>
+        <TotalMercanciasExentas>0.00000</TotalMercanciasExentas>
+        <TotalGravado>10000.00000</TotalGravado>
+        <TotalExento>0.00000</TotalExento>
+        <TotalVenta>10000.00000</TotalVenta>
+        <TotalVentaNeta>10000.00000</TotalVentaNeta>
+        <TotalDesgloseImpuesto>
+            <Codigo>01</Codigo>
+            <CodigoTarifaIVA>08</CodigoTarifaIVA>
+            <TotalMontoImpuesto>1300.00000</TotalMontoImpuesto>
+        </TotalDesgloseImpuesto>
+        <TotalImpuesto>1300.00000</TotalImpuesto>
+        <MedioPago>
+            <TipoMedioPago>01</TipoMedioPago>
+            <TotalMedioPago>11300</TotalMedioPago>
+        </MedioPago>
+        <TotalComprobante>11300.00000</TotalComprobante>
+    </ResumenFactura>
+    <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="Signature-1bce74db-7f58-336a-a76d-94462cfcb8ba">
+        <ds:SignedInfo>
+            <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+            <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+            <ds:Reference Id="Reference-5d24a37f-d086-e2cc-144c-ef14089ff991" URI="">
+                <ds:Transforms>
+                    <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+                </ds:Transforms>
+                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <ds:DigestValue>jJW1W8syuq+1Owr6pIjAvKAn8dhOUyu1sP+0Tu+eLuM=</ds:DigestValue>
+            </ds:Reference>
+            <ds:Reference Id="ReferenceKeyInfo" URI="#KeyInfoId-Signature-1bce74db-7f58-336a-a76d-94462cfcb8ba">
+                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <ds:DigestValue>+n4Lu2tZOhKUSWKTV/+oshSiTXh5+5ZCF+uPdg1tPOM=</ds:DigestValue>
+            </ds:Reference>
+            <ds:Reference Type="http://uri.etsi.org/01903#SignedProperties" URI="#SignedProperties-Signature-1bce74db-7f58-336a-a76d-94462cfcb8ba">
+                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                <ds:DigestValue>x2Kvd5Vyhy64CprRBPOw1ApAMVsE5qvRZmwJAdwsjrM=</ds:DigestValue>
+            </ds:Reference>
+        </ds:SignedInfo>
+        <ds:SignatureValue Id="SignatureValue-06605998-5b91-1841-8cc6-d07a46d49931">Oc7FWLZZtuuswABynk9D0GJUppFzQmP4ODK3YnCG21sUL4c0a2AjPhcX01l3u3nJrbOlkCAgCCxQhxjdKTE3WiR536nQzkgl/nOl/nF/0xpl1YErV2tCol8vLW4/6NrbASP5cCgfM/SA8jE2guQPppUPkJEwcUe5ut+EPzurSFdM7WWUjIuNrONtYGwB0ykP9yyEMYOqYeadaT8RCsiFX5UTsLqMK8RplYGb5eJ0ttKma5D538lvQRdPMvIjc4rRPwLonqHkCHb9WJLbXDx9gph9kSXsIuP9nl2QIxJFIdKZW/jmpBPFdcfYsJLFc3fAGbwBlFj8QdUHkEo9SMLerg==</ds:SignatureValue>
+        <ds:KeyInfo Id="KeyInfoId-Signature-1bce74db-7f58-336a-a76d-94462cfcb8ba">
+            <ds:X509Data>
+                <ds:X509Certificate>MIIFYzCCA0ugAwIBAgIGAZaHDJEYMA0GCSqGSIb3DQEBCwUAMGwxCzAJBgNVBAYTAkNSMSkwJwYDVQQKDCBNSU5JU1RFUklPIERFIEhBQ0lFTkRBIC0gU0FOREJPWDEMMAoGA1UECwwDREdUMSQwIgYDVQQDDBtDQSBQRVJTT05BIEZJU0lDQSAtIFNBTkRCT1gwHhcNMjUwNDMwMTQxNDI5WhcNMjkwNDI5MTQxNDI5WjCBqzEZMBcGA1UEBRMQQ1BGLTA3LTAyMDUtMDk0OTEYMBYGA1UEBAwPQVJJQVMgSEVSTkFOREVaMRcwFQYDVQQqDA5HSU9WQU5OSSBKT1NVRTELMAkGA1UEBhMCQ1IxFzAVBgNVBAoMDlBFUlNPTkEgRklTSUNBMQwwCgYDVQQLDANDUEYxJzAlBgNVBAMMHkdJT1ZBTk5JIEpPU1VFIEFSSUFTIEhFUk5BTkRFWjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJnSb8Z5hwju0P6EqWOcNdrtris3F2eR8yuYUnhEvb0oiJBU4+9VIupAB5MvDNZJzC2mN0VWyjzSsPA5deMT4j789CoDcrCevTa9UmFPXVPbFky4YFXVhajyRvu/0N6fHJsQnaq7yZ7kWqRHGliFIV50GwYk/pa+JDZ7ua5BTq5mbur1jAwL79acohTIsGx/WBC2XHjttJc7uXVTQDJNngrLVsxs0VQlxCe8WEGK2cikCdMH/auopRqjNWp4cRYoxXVKf5RkQYnWChp5kVKQZuHCiOSp7t5VESeL8Oj2cl5x26PN3qwI+FXxjV5hJlLi4Vk+KHRMic4gWI3fP1mZ80UCAwEAAaOByjCBxzAfBgNVHSMEGDAWgBRGI9JET79XWSHkv5PVMJuVTOP3hzAdBgNVHQ4EFgQUg7+XQX9dOejYWAeMbmV8eNgf6tIwCwYDVR0PBAQDAgbAMBMGA1UdJQQMMAoGCCsGAQUFBwMEMGMGCCsGAQUFBwEBBFcwVTBTBggrBgEFBQcwAoZHaHR0cHM6Ly9wa2kuY29tcHJvYmFudGVzZWxlY3Ryb25pY29zLmdvLmNyL3N0YWcvaW50ZXJtZWRpYXRlLXBmLXBlbS5jcnQwDQYJKoZIhvcNAQELBQADggIBAIQVB4fJRQQ1n51T5vrq5q4UGaTPzwX6hGwwBuSiJ4cVPT7bxyua7pF+iT6mUYW+Pl6kGEZKeSon8r/C7HsTtqbhvf83YH1pyJMhWlWqqvGX52XsXd5jHLZOuOy+K4UZfzpU+VfCMpH1EkG/c54+JlAhSO5lHRKciBnXe5U6uyQAoTAoEgzpZ0IH3sqF11oZ+COPvz2nH5T2TOncQbMYjwo5aPMkotrwekkhuafTnpUxhjdYaWgsCCnZht+CHwwqG6uLFR3shlzU9iFegbVvUITvxD2cZfevqtNvtNCNGmIIAIJ5r/WrOjp63Reqx201kRtoNvtm8nlakbKYbCZTj1qGuI61P0kqFqEuvRaxhVfoyonur3AH073Rwv3JLCJ7C7sV7tufOmEjwv9T4l2weaduuPbNki3AZgnLPfn/7K4k/OlTBxdX0Y0m/p4VyUKou6hxyHdjrMUZYg3IX0gGQA0DihZ4c2fD4urCFAAnUtwzVGFCKoOAd/JkINWknnNbgfVrwaJz4HQl07X8tgh03Am/382dPzPBVpYaYjDVmt6+yJ+sgYZEDANJKp8PlLmb+wLx0lTbon7OSIQI8CRngHuuUkrVWw11Ik8oPrj934rENWqO0YVsPoAWwtvHJcYElVwARJE+9g/rZJgOjjv1UyUyDisjl+ufiXWxi0sOKxxI</ds:X509Certificate>
+            </ds:X509Data>
+            <ds:KeyValue>
+                <ds:RSAKeyValue>
+                    <ds:Modulus>mdJvxnmHCO7Q/oSpY5w12u2uKzcXZ5HzK5hSeES9vSiIkFTj71Ui6kAHky8M1knMLaY3RVbKPNKw8Dl14xPiPvz0KgNysJ69Nr1SYU9dU9sWTLhgVdWFqPJG+7/Q3p8cmxCdqrvJnuRapEcaWIUhXnQbBiT+lr4kNnu5rkFOrmZu6vWMDAvv1pyiFMiwbH9YELZceO20lzu5dVNAMk2eCstWzGzRVCXEJ7xYQYrZyKQJ0wf9q6ilGqM1anhxFijFdUp/lGRBidYKGnmRUpBm4cKI5Knu3lURJ4vw6PZyXnHbo83erAj4VfGNXmEmUuLhWT4odEyJziBYjd8/WZnzRQ==</ds:Modulus>
+                    <ds:Exponent>AQAB</ds:Exponent>
+                </ds:RSAKeyValue>
+            </ds:KeyValue>
+        </ds:KeyInfo>
+        <ds:Object Id="XadesObjectId-cdfaad6a-afc3-d5c8-d2c4-65da00cef5c2">
+            <xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Id="QualifyingProperties-a9a3d12b-bda6-19ce-5559-aab98f944f1f" Target="#Signature-1bce74db-7f58-336a-a76d-94462cfcb8ba">
+                <xades:SignedProperties Id="SignedProperties-Signature-1bce74db-7f58-336a-a76d-94462cfcb8ba">
+                    <xades:SignedSignatureProperties>
+                        <xades:SigningTime>2025-07-03T13:02:39-06:00</xades:SigningTime>
+                        <xades:SigningCertificate>
+                            <xades:Cert>
+                                <xades:CertDigest>
+                                    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                                    <ds:DigestValue>lW16QSOQraNQDQYKeVv8c35CnWZAuoIFi3e7fHc9klY=</ds:DigestValue>
+                                </xades:CertDigest>
+                                <xades:IssuerSerial>
+                                    <ds:X509IssuerName>CN=CA PERSONA FISICA - SANDBOX, OU=DGT, O=MINISTERIO DE HACIENDA - SANDBOX, C=CR</ds:X509IssuerName>
+                                    <ds:X509SerialNumber>1746022469912</ds:X509SerialNumber>
+                                </xades:IssuerSerial>
+                            </xades:Cert>
+                        </xades:SigningCertificate>
+                        <xades:SignaturePolicyIdentifier>
+                            <xades:SignaturePolicyId>
+                                <xades:SigPolicyId>
+                                    <xades:Identifier>https://cdn.comprobanteselectronicos.go.cr/xml-schemas/Resoluci%C3%B3n_General_sobre_disposiciones_t%C3%A9cnicas_comprobantes_electr%C3%B3nicos_para_efectos_tributarios.pdf</xades:Identifier>
+                                    <xades:Description/>
+                                </xades:SigPolicyId>
+                                <xades:SigPolicyHash>
+                                    <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+                                    <ds:DigestValue>3gQCr0HYSdoxi0ZaRaJ4qs3mHfI=</ds:DigestValue>
+                                </xades:SigPolicyHash>
+                            </xades:SignaturePolicyId>
+                        </xades:SignaturePolicyIdentifier>
+                    </xades:SignedSignatureProperties>
+                    <xades:SignedDataObjectProperties>
+                        <xades:DataObjectFormat ObjectReference="#Reference-5d24a37f-d086-e2cc-144c-ef14089ff991">
+                            <xades:MimeType>text/xml</xades:MimeType>
+                            <xades:Encoding>UTF-8</xades:Encoding>
+                        </xades:DataObjectFormat>
+                    </xades:SignedDataObjectProperties>
+                </xades:SignedProperties>
+            </xades:QualifyingProperties>
+        </ds:Object>
+    </ds:Signature>
+</FacturaElectronicaExportacion>

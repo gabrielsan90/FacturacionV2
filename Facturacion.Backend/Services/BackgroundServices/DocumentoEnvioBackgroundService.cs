@@ -200,31 +200,86 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                 if (!string.IsNullOrEmpty(estado.Estado))
                 {
                     var estadoAnterior = documento.Estado;
+                    var respHacienda = estado.RespuestaHacienda;
 
                     switch (estado.Estado.ToLowerInvariant())
                     {
                         case "aceptado":
-                            documento.Estado = EstadoDocumento.Aceptado;
-                            documento.FechaRespuestaHacienda = DateTime.Now;
-                            documento.MensajeHacienda = estado.Mensaje;
+                            // Solo actualizar si cambió el estado (ConsultarEstadoAsync ya pudo haberlo actualizado)
+                            if (documento.Estado != EstadoDocumento.Aceptado)
+                            {
+                                documento.Estado = EstadoDocumento.Aceptado;
+                                documento.FechaRespuestaHacienda = DateTime.Now;
 
-                            _logger.LogInformation("Documento {Clave} cambió de {EstadoAnterior} a Aceptado",
-                                documento.Clave, estadoAnterior);
+                                // Guardar mensaje detallado
+                                if (respHacienda?.Mensajes != null && respHacienda.Mensajes.Any())
+                                {
+                                    documento.MensajeHacienda = "Aceptado: " + string.Join("; ", respHacienda.Mensajes.Select(m => m.Mensaje));
+                                    documento.MensajesHaciendaJson = System.Text.Json.JsonSerializer.Serialize(respHacienda.Mensajes);
+                                }
+                                else
+                                {
+                                    documento.MensajeHacienda = estado.Mensaje ?? "Documento aceptado por Hacienda";
+                                }
 
-                            await CrearNotificacionEstadoAsync(notificacionService, documento,
-                                TipoNotificacion.DocumentoAceptado, "success", "fa-check-circle");
+                                // Guardar XML de respuesta
+                                if (!string.IsNullOrWhiteSpace(respHacienda?.RespuestaXml))
+                                {
+                                    try
+                                    {
+                                        documento.XmlRespuestaHacienda = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(respHacienda.RespuestaXml));
+                                    }
+                                    catch
+                                    {
+                                        documento.XmlRespuestaHacienda = respHacienda.RespuestaXml;
+                                    }
+                                }
+
+                                _logger.LogInformation("Documento {Clave} cambió de {EstadoAnterior} a Aceptado",
+                                    documento.Clave, estadoAnterior);
+
+                                await CrearNotificacionEstadoAsync(notificacionService, documento,
+                                    TipoNotificacion.DocumentoAceptado, "success", "fa-check-circle");
+                            }
                             break;
 
                         case "rechazado":
-                            documento.Estado = EstadoDocumento.Rechazado;
-                            documento.FechaRespuestaHacienda = DateTime.Now;
-                            documento.MensajeHacienda = estado.Mensaje;
+                            // Solo actualizar si cambió el estado
+                            if (documento.Estado != EstadoDocumento.Rechazado)
+                            {
+                                documento.Estado = EstadoDocumento.Rechazado;
+                                documento.FechaRespuestaHacienda = DateTime.Now;
 
-                            _logger.LogWarning("Documento {Clave} cambió de {EstadoAnterior} a Rechazado: {Mensaje}",
-                                documento.Clave, estadoAnterior, estado.Mensaje);
+                                // Guardar mensaje detallado con errores
+                                if (respHacienda?.Mensajes != null && respHacienda.Mensajes.Any())
+                                {
+                                    documento.MensajeHacienda = "Rechazado: " + string.Join("; ", respHacienda.Mensajes.Select(m => m.Mensaje));
+                                    documento.MensajesHaciendaJson = System.Text.Json.JsonSerializer.Serialize(respHacienda.Mensajes);
+                                }
+                                else
+                                {
+                                    documento.MensajeHacienda = estado.Mensaje ?? "Documento rechazado por Hacienda";
+                                }
 
-                            await CrearNotificacionEstadoAsync(notificacionService, documento,
-                                TipoNotificacion.DocumentoRechazado, "danger", "fa-times-circle");
+                                // Guardar XML de respuesta
+                                if (!string.IsNullOrWhiteSpace(respHacienda?.RespuestaXml))
+                                {
+                                    try
+                                    {
+                                        documento.XmlRespuestaHacienda = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(respHacienda.RespuestaXml));
+                                    }
+                                    catch
+                                    {
+                                        documento.XmlRespuestaHacienda = respHacienda.RespuestaXml;
+                                    }
+                                }
+
+                                _logger.LogWarning("Documento {Clave} cambió de {EstadoAnterior} a Rechazado: {Mensaje}",
+                                    documento.Clave, estadoAnterior, documento.MensajeHacienda);
+
+                                await CrearNotificacionEstadoAsync(notificacionService, documento,
+                                    TipoNotificacion.DocumentoRechazado, "danger", "fa-times-circle");
+                            }
                             break;
 
                         case "procesando":

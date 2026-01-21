@@ -746,6 +746,162 @@ public class EmpresasModel : PageModel
     }
 
     // ========================================
+    // ACTIVIDADES ECONÓMICAS HANDLERS
+    // ========================================
+
+    public async Task<IActionResult> OnGetActividadesEconomicasAsync(Guid empresaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/empresas/{empresaId}/actividades-economicas");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+                return new JsonResult(new { success = true, data });
+            }
+
+            return new JsonResult(new { success = false, message = "Error al obtener las actividades económicas" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting actividades economicas for empresa {EmpresaId}", empresaId);
+            return new JsonResult(new { success = false, message = "Error al obtener las actividades económicas" });
+        }
+    }
+
+    public async Task<IActionResult> OnPostAddActividadEconomicaAsync([FromBody] AddActividadEconomicaDTO request)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.PostAsJsonAsync($"/api/empresas/{request.EmpresaId}/actividades-economicas", new
+            {
+                codigoActividad = request.CodigoActividad,
+                esPrincipal = request.EsPrincipal
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+                return new JsonResult(new { success = true, data, message = "Actividad económica agregada" });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding actividad economica");
+            return new JsonResult(new { success = false, message = "Error al agregar la actividad económica" });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteActividadEconomicaAsync(Guid empresaId, int actividadId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.DeleteAsync($"/api/empresas/{empresaId}/actividades-economicas/{actividadId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new JsonResult(new { success = true, message = "Actividad económica eliminada" });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting actividad economica {ActividadId} from empresa {EmpresaId}", actividadId, empresaId);
+            return new JsonResult(new { success = false, message = "Error al eliminar la actividad económica" });
+        }
+    }
+
+    public async Task<IActionResult> OnPostSetActividadPrincipalAsync(Guid empresaId, int actividadId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.PutAsync($"/api/empresas/{empresaId}/actividades-economicas/{actividadId}/principal", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new JsonResult(new { success = true, message = "Actividad económica establecida como principal" });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting actividad economica {ActividadId} as principal for empresa {EmpresaId}", actividadId, empresaId);
+            return new JsonResult(new { success = false, message = "Error al establecer la actividad como principal" });
+        }
+    }
+
+    public async Task<IActionResult> OnGetBuscarActividadesAsync(string q)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            {
+                return new JsonResult(new { success = false, message = "Ingrese al menos 2 caracteres para buscar" });
+            }
+
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // Buscar en catálogo local por código o descripción
+            var response = await client.GetAsync($"/api/actividadeseconomicas/buscar-local?q={Uri.EscapeDataString(q)}&top=20");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+                return new JsonResult(new { success = true, data });
+            }
+
+            _logger.LogWarning("Error al buscar actividades: {StatusCode}", response.StatusCode);
+            return new JsonResult(new { success = false, message = "Error al buscar actividades económicas" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching actividades economicas");
+            return new JsonResult(new { success = false, message = "Error al buscar actividades económicas" });
+        }
+    }
+
+    // ========================================
     // PRIVATE HELPER METHODS
     // ========================================
 
@@ -839,4 +995,11 @@ public class EmpresasModel : PageModel
             return false;
         }
     }
+}
+
+public class AddActividadEconomicaDTO
+{
+    public Guid EmpresaId { get; set; }
+    public string CodigoActividad { get; set; } = null!;
+    public bool EsPrincipal { get; set; }
 }

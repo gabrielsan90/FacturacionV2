@@ -107,6 +107,15 @@ public class ProductosController : ControllerBase
             }
         }
 
+        // Validar código CABYS si se especifica
+        if (producto.CabysId.HasValue)
+        {
+            if (!await _context.CatalogosCAByS.AnyAsync(c => c.Id == producto.CabysId.Value && c.Activo))
+            {
+                return BadRequest("El código CABYS especificado no existe o no está activo.");
+            }
+        }
+
         // Establecer usuario de creación
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         producto.UsuarioCreacionId = userId;
@@ -176,6 +185,15 @@ public class ProductosController : ControllerBase
             if (categoria == null || categoria.EmpresaId != producto.EmpresaId)
             {
                 return BadRequest("La categoría especificada no existe o no pertenece a la empresa.");
+            }
+        }
+
+        // Validar código CABYS si se especifica
+        if (producto.CabysId.HasValue)
+        {
+            if (!await _context.CatalogosCAByS.AnyAsync(c => c.Id == producto.CabysId.Value && c.Activo))
+            {
+                return BadRequest("El código CABYS especificado no existe o no está activo.");
             }
         }
 

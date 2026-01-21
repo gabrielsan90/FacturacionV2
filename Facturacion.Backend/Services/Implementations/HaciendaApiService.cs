@@ -1,5 +1,7 @@
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
+using Facturacion.Shared.Entities;
+using Facturacion.Shared.Enums;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -280,7 +282,168 @@ public class HaciendaApiService : IHaciendaApiService
     }
 
     /// <summary>
-    /// Consulta el estado de un documento en Hacienda usando OAuth2 Bearer token (método recomendado)
+    /// Envia un documento firmado a Hacienda con informacion completa del emisor y receptor
+    /// METODO PREFERIDO: Obtiene el tipo de identificacion correctamente de las entidades
+    /// en lugar de extraerlo de la clave (que no contiene este dato)
+    /// </summary>
+    public async Task<HaciendaRespuesta> EnviarDocumentoConEmisorReceptorAsync(
+        string clave,
+        string xmlFirmado,
+        Empresa empresa,
+        Cliente? receptor,
+        string ambiente = "stag")
+    {
+        try
+        {
+            _logger.LogInformation("Enviando documento a Hacienda con datos completos. Clave: {Clave}, Ambiente: {Ambiente}, Empresa: {EmpresaId}",
+                clave, ambiente, empresa.Id);
+
+            // 1. Obtener token valido de Hacienda
+            var token = await _tokenService.ObtenerTokenValidoAsync(empresa.Id, ambiente);
+
+            _logger.LogDebug("Token OAuth2 obtenido exitosamente para empresa {EmpresaId}", empresa.Id);
+
+            // 2. Obtener URL segun ambiente
+            var url = ambiente.ToLower() == "prod" ? UrlRecepcionProd : UrlRecepcionStag;
+
+            // 3. Convertir XML a Base64
+            var xmlBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(xmlFirmado));
+
+            // 4. Construir payload con datos correctos del emisor (desde la entidad, NO de la clave)
+            var payload = ConstruirPayloadConEmisorReceptor(clave, xmlBase64, empresa, receptor);
+
+            var jsonPayload = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            _logger.LogDebug("Payload JSON preparado para envio a Hacienda con emisor y receptor");
+
+            // 5. Crear HttpClient
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(_configuration.GetValue<int>("HaciendaApi:Timeout", 30));
+
+            // 6. Crear request con OAuth2 Bearer token
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+            };
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            _logger.LogDebug("Request configurado con Bearer token. Enviando a {Url}", url);
+
+            // 7. Enviar request
+            var response = await httpClient.SendAsync(request);
+
+            // 8. Leer respuesta
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            _logger.LogInformation("Respuesta de Hacienda recibida. Status: {StatusCode}",
+                response.StatusCode);
+
+            // 9. Procesar respuesta segun codigo HTTP
+            return await ProcesarRespuestaHaciendaAsync(clave, response, responseContent);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Error de conexion con Hacienda al enviar documento");
+            return new HaciendaRespuesta
+            {
+                Clave = clave,
+                Fecha = DateTime.Now,
+                IndEstado = "error",
+                Mensajes = new List<HaciendaMensaje>
+                {
+                    new HaciendaMensaje
+                    {
+                        Codigo = "HTTP_ERROR",
+                        Mensaje = "Error de conexion con Hacienda",
+                        Detalle = ex.Message,
+                        Tipo = "error"
+                    }
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al enviar documento a Hacienda con emisor/receptor");
+            return new HaciendaRespuesta
+            {
+                Clave = clave,
+                Fecha = DateTime.Now,
+                IndEstado = "error",
+                Mensajes = new List<HaciendaMensaje>
+                {
+                    new HaciendaMensaje
+                    {
+                        Codigo = "INTERNAL_ERROR",
+                        Mensaje = "Error interno al procesar la solicitud",
+                        Detalle = ex.Message,
+                        Tipo = "error"
+                    }
+                }
+            };
+        }
+    }
+
+    /// <summary>
+    /// Construye el payload JSON con datos correctos del emisor y receptor
+    /// El tipo de identificacion se obtiene de las entidades, NO de la clave
+    /// </summary>
+    private object ConstruirPayloadConEmisorReceptor(string clave, string xmlBase64, Empresa empresa, Cliente? receptor)
+    {
+        // Obtener tipo de identificacion del emisor desde la entidad
+        string tipoIdEmisor = ObtenerCodigoTipoIdentificacion(empresa.TipoIdentificacion);
+
+        var payload = new Dictionary<string, object>
+        {
+            { "clave", clave },
+            { "fecha", DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz") },
+            { "emisor", new {
+                tipoIdentificacion = tipoIdEmisor,
+                numeroIdentificacion = empresa.NumeroIdentificacion
+            }},
+            { "comprobanteXml", xmlBase64 }
+        };
+
+        // Incluir receptor si existe y tiene identificacion
+        if (receptor != null && !string.IsNullOrWhiteSpace(receptor.NumeroIdentificacion))
+        {
+            payload["receptor"] = new
+            {
+                tipoIdentificacion = ObtenerCodigoTipoIdentificacion(receptor.TipoIdentificacion),
+                numeroIdentificacion = receptor.NumeroIdentificacion
+            };
+
+            _logger.LogDebug("Receptor incluido en payload: Tipo={TipoId}, Numero={NumeroId}",
+                ObtenerCodigoTipoIdentificacion(receptor.TipoIdentificacion),
+                receptor.NumeroIdentificacion);
+        }
+
+        return payload;
+    }
+
+    /// <summary>
+    /// Convierte el enum TipoIdentificacion al codigo de 2 digitos de Hacienda
+    /// </summary>
+    private string ObtenerCodigoTipoIdentificacion(TipoIdentificacion tipo)
+    {
+        return tipo switch
+        {
+            TipoIdentificacion.Fisica => "01",
+            TipoIdentificacion.Juridica => "02",
+            TipoIdentificacion.DIMEX => "03",
+            TipoIdentificacion.NITE => "04",
+            TipoIdentificacion.Pasaporte => "05",
+            TipoIdentificacion.Extranjera => "06",
+            TipoIdentificacion.NoContribuyente => "07",
+            _ => "01" // Default a Fisica
+        };
+    }
+
+    /// <summary>
+    /// Consulta el estado de un documento en Hacienda usando OAuth2 Bearer token (metodo recomendado)
     /// </summary>
     public async Task<HaciendaRespuesta> ConsultarEstadoConTokenAsync(
         string clave,
@@ -457,6 +620,13 @@ public class HaciendaApiService : IHaciendaApiService
         {
             _logger.LogInformation("Consulta exitosa. Documento procesado por Hacienda. Clave: {Clave}", clave);
 
+            // Validar que el contenido no esté vacío
+            if (string.IsNullOrWhiteSpace(responseContent))
+            {
+                _logger.LogWarning("Respuesta 200 de Hacienda sin contenido para clave {Clave}", clave);
+                return Task.FromResult(CrearRespuestaError(clave, "EMPTY_RESPONSE", "Respuesta vacía de Hacienda", "El servidor respondió 200 pero sin contenido"));
+            }
+
             try
             {
                 // Deserializar respuesta JSON de Hacienda
@@ -559,50 +729,54 @@ public class HaciendaApiService : IHaciendaApiService
         {
             _logger.LogInformation("Documento aceptado para procesamiento. Status: 202 Accepted. Clave: {Clave}", clave);
 
-            // Intentar parsear respuesta JSON si existe
-            try
+            // Intentar parsear respuesta JSON si existe y no está vacía
+            if (!string.IsNullOrWhiteSpace(responseContent))
             {
-                var consultaRespuesta = JsonSerializer.Deserialize<HaciendaConsultaRespuesta>(
-                    responseContent,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (consultaRespuesta != null && !string.IsNullOrWhiteSpace(consultaRespuesta.RespuestaXml))
+                try
                 {
-                    var mensajeXml = ParsearXmlRespuestaHacienda(consultaRespuesta.RespuestaXml);
+                    var consultaRespuesta = JsonSerializer.Deserialize<HaciendaConsultaRespuesta>(
+                        responseContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                    if (mensajeXml != null)
+                    if (consultaRespuesta != null && !string.IsNullOrWhiteSpace(consultaRespuesta.RespuestaXml))
                     {
-                        string indEstado = mensajeXml.Mensaje switch
-                        {
-                            "1" => "aceptado",
-                            "2" => "aceptado_parcial",
-                            "3" => "rechazado",
-                            _ => "procesando"
-                        };
+                        var mensajeXml = ParsearXmlRespuestaHacienda(consultaRespuesta.RespuestaXml);
 
-                        return Task.FromResult(new HaciendaRespuesta
+                        if (mensajeXml != null)
                         {
-                            Clave = clave,
-                            Fecha = DateTime.Now,
-                            IndEstado = indEstado,
-                            RespuestaXml = consultaRespuesta.RespuestaXml,
-                            Mensajes = new List<HaciendaMensaje>
+                            string indEstado = mensajeXml.Mensaje switch
                             {
-                                new HaciendaMensaje
+                                "1" => "aceptado",
+                                "2" => "aceptado_parcial",
+                                "3" => "rechazado",
+                                _ => "procesando"
+                            };
+
+                            return Task.FromResult(new HaciendaRespuesta
+                            {
+                                Clave = clave,
+                                Fecha = DateTime.Now,
+                                IndEstado = indEstado,
+                                RespuestaXml = consultaRespuesta.RespuestaXml,
+                                Mensajes = new List<HaciendaMensaje>
                                 {
-                                    Codigo = mensajeXml.Mensaje,
-                                    Mensaje = mensajeXml.EstadoTexto,
-                                    Detalle = mensajeXml.DetalleMensaje,
-                                    Tipo = mensajeXml.EsRechazado ? "error" : "info"
+                                    new HaciendaMensaje
+                                    {
+                                        Codigo = mensajeXml.Mensaje,
+                                        Mensaje = mensajeXml.EstadoTexto,
+                                        Detalle = mensajeXml.DetalleMensaje,
+                                        Tipo = mensajeXml.EsRechazado ? "error" : "info"
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
                 }
-            }
-            catch (JsonException)
-            {
-                // Si no se puede parsear JSON, continuar con respuesta básica
+                catch (JsonException ex)
+                {
+                    // Si no se puede parsear JSON, continuar con respuesta básica
+                    _logger.LogWarning(ex, "No se pudo parsear respuesta JSON de Hacienda para clave {Clave}", clave);
+                }
             }
 
             return Task.FromResult(new HaciendaRespuesta
@@ -857,14 +1031,16 @@ public class HaciendaApiService : IHaciendaApiService
             }
 
             // Extraer campos del XML
+            XNamespace ns = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/mensajeHacienda";
+
             var mensajeXml = new HaciendaMensajeRespuestaXml
             {
-                Clave = root.Element("Clave")?.Value ?? string.Empty,
-                NombreEmisor = root.Element("NombreEmisor")?.Value ?? string.Empty,
-                TipoIdentificacionEmisor = root.Element("TipoIdentificacionEmisor")?.Value ?? string.Empty,
-                NumeroCedulaEmisor = root.Element("NumeroCedulaEmisor")?.Value ?? string.Empty,
-                Mensaje = root.Element("Mensaje")?.Value ?? string.Empty,
-                DetalleMensaje = root.Element("DetalleMensaje")?.Value ?? string.Empty
+                Clave = root.Element(ns + "Clave")?.Value ?? string.Empty,
+                NombreEmisor = root.Element(ns + "NombreEmisor")?.Value ?? string.Empty,
+                TipoIdentificacionEmisor = root.Element(ns + "TipoIdentificacionEmisor")?.Value ?? string.Empty,
+                NumeroCedulaEmisor = root.Element(ns + "NumeroCedulaEmisor")?.Value ?? string.Empty,
+                Mensaje = root.Element(ns + "Mensaje")?.Value ?? string.Empty,
+                DetalleMensaje = root.Element(ns + "DetalleMensaje")?.Value ?? string.Empty
             };
 
             // Extraer montos (opcionales)

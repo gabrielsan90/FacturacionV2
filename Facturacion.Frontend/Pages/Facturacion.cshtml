@@ -122,7 +122,7 @@
                                                     Actividad Económica (CIIU4) <span class="text-danger">*</span>
                                                     <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Código CIIU4 de la actividad económica principal de su empresa. Se carga automáticamente pero puede modificarse para este documento"></i>
                                                 </label>
-                                                <input type="text" class="form-control" id="EmisorActividadEconomica" maxlength="10" placeholder="Código CIIU4 (ej: 620900)" required>
+                                                <input type="text" class="form-control" id="EmisorActividadEconomica" maxlength="10" placeholder="Código CIIU4 (ej: 6202.0)" required>
                                                 <small class="text-muted">Este campo se carga automáticamente desde la actividad económica principal de su empresa, pero puede editarse si es necesario para este documento específico</small>
                                                 <div class="invalid-feedback">La actividad económica del emisor es obligatoria.</div>
                                             </div>
@@ -336,7 +336,7 @@
                                                     Actividad Económica (CIIU4)
                                                     <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Código CIIU4 de la actividad económica del cliente. Se carga automáticamente pero puede modificarse"></i>
                                                 </label>
-                                                <input type="text" class="form-control" id="ClienteActividadEconomica" maxlength="10" placeholder="Código CIIU4 (ej: 620900)">
+                                                <input type="text" class="form-control" id="ClienteActividadEconomica" maxlength="10" placeholder="Código CIIU4 (ej: 6202.0)">
                                                 <small class="text-muted">Este campo se carga automáticamente desde los datos del cliente, pero puede editarse si es necesario</small>
                                             </div>
                                         </div>
@@ -537,99 +537,106 @@
                             </table>
                         </div>
 
-                        <!-- Totals Section - v4.4 Completo -->
+                        <!-- Totals Section - Resumen de Factura segun Hacienda v4.4 -->
                         <div class="row mt-4">
-                            <div class="col-md-12">
+                            <div class="col-md-6">
+                                <!-- Totales por tipo (Servicios y Mercancías) -->
                                 <div class="card">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="mb-0"><i class="fas fa-calculator"></i> Resumen de Totales (v4.4)</h5>
+                                    <div class="card-header bg-light py-2">
+                                        <strong><i class="fas fa-list-ol"></i> Desglose por Tipo</strong>
                                     </div>
-                                    <div class="card-body">
-                                        <!-- Por Categoría -->
-                                        <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <h6 class="text-muted border-bottom pb-2"><i class="fas fa-concierge-bell"></i> Servicios</h6>
-                                                <table class="table table-sm">
-                                                    <tr>
-                                                        <td>Gravados:</td>
-                                                        <td class="text-end"><span id="lblServiciosGravados">₡0.00</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Exentos:</td>
-                                                        <td class="text-end"><span id="lblServiciosExentos">₡0.00</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Exonerados:</td>
-                                                        <td class="text-end"><span id="lblServiciosExonerados">₡0.00</span></td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <h6 class="text-muted border-bottom pb-2"><i class="fas fa-box"></i> Mercancías</h6>
-                                                <table class="table table-sm">
-                                                    <tr>
-                                                        <td>Gravadas:</td>
-                                                        <td class="text-end"><span id="lblMercanciasGravadas">₡0.00</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Exentas:</td>
-                                                        <td class="text-end"><span id="lblMercanciasExentas">₡0.00</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Exoneradas:</td>
-                                                        <td class="text-end"><span id="lblMercanciasExoneradas">₡0.00</span></td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                        </div>
-
-                                        <hr/>
-
-                                        <!-- Totales Consolidados -->
-                                        <table class="table table-bordered">
-                                            <tr>
-                                                <td><strong>Total Gravado:</strong></td>
-                                                <td class="text-end bg-light"><strong><span id="lblTotalGravado">₡0.00</span></strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Total Exento:</strong></td>
-                                                <td class="text-end bg-light"><strong><span id="lblTotalExento">₡0.00</span></strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Total Exonerado:</strong></td>
-                                                <td class="text-end bg-light"><strong><span id="lblTotalExonerado">₡0.00</span></strong></td>
-                                            </tr>
-                                            <tr class="table-secondary">
-                                                <td colspan="2"><hr class="my-1"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Subtotal (con descuentos aplicados):</strong></td>
-                                                <td class="text-end bg-info bg-opacity-10"><strong><span id="lblSubtotal">₡0.00</span></strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td class="ps-4"><small class="text-muted"><em>Descuentos aplicados:</em></small></td>
-                                                <td class="text-end"><small class="text-danger"><span id="lblDescuentos">₡0.00</span></small></td>
-                                            </tr>
-                                            <tr class="table-secondary">
-                                                <td colspan="2"><hr class="my-1"/></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Impuestos:</td>
-                                                <td class="text-end text-success"><strong><span id="lblImpuestos">₡0.00</span></strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Otros Cargos:</td>
-                                                <td class="text-end"><span id="lblOtrosCargos">₡0.00</span></td>
-                                            </tr>
-                                            <tr class="table-primary">
-                                                <td><strong style="font-size: 1.1em;">TOTAL COMPROBANTE:</strong></td>
-                                                <td class="text-end"><strong style="font-size: 1.2em;"><span id="lblTotal">₡0.00</span></strong></td>
-                                            </tr>
+                                    <div class="card-body py-2">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-muted">Servicios Gravados:</td>
+                                                    <td class="text-end" id="lblServGravados">₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-muted">Servicios Exentos:</td>
+                                                    <td class="text-end" id="lblServExentos">₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-muted">Servicios Exonerados:</td>
+                                                    <td class="text-end" id="lblServExonerados">₡0.00</td>
+                                                </tr>
+                                                <tr class="border-top">
+                                                    <td class="text-muted">Mercancías Gravadas:</td>
+                                                    <td class="text-end" id="lblMercGravadas">₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-muted">Mercancías Exentas:</td>
+                                                    <td class="text-end" id="lblMercExentas">₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-muted">Mercancías Exoneradas:</td>
+                                                    <td class="text-end" id="lblMercExoneradas">₡0.00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Resumen de Totales -->
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white py-2">
+                                        <strong><i class="fas fa-calculator"></i> Resumen de Factura</strong>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tbody>
+                                                <tr>
+                                                    <td>Total Gravado:</td>
+                                                    <td class="text-end" id="lblTotalGravado">₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total Exento:</td>
+                                                    <td class="text-end" id="lblTotalExento">₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total Exonerado:</td>
+                                                    <td class="text-end" id="lblTotalExonerado">₡0.00</td>
+                                                </tr>
+                                                <tr class="border-top">
+                                                    <td><strong>Total Venta:</strong></td>
+                                                    <td class="text-end" id="lblTotalVenta">₡0.00</td>
+                                                </tr>
+                                                <tr class="text-danger">
+                                                    <td>Total Descuentos:</td>
+                                                    <td class="text-end" id="lblTotalDescuentos">-₡0.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total Venta Neta:</strong></td>
+                                                    <td class="text-end" id="lblTotalVentaNeta">₡0.00</td>
+                                                </tr>
+                                                <tr class="text-info">
+                                                    <td>Total Impuestos:</td>
+                                                    <td class="text-end" id="lblTotalImpuestos">₡0.00</td>
+                                                </tr>
+                                                <tr class="text-muted small">
+                                                    <td>IVA Devuelto:</td>
+                                                    <td class="text-end" id="lblIVADevuelto">₡0.00</td>
+                                                </tr>
+                                                <tr class="text-muted small">
+                                                    <td>Otros Cargos:</td>
+                                                    <td class="text-end" id="lblOtrosCargos">₡0.00</td>
+                                                </tr>
+                                                <tr class="table-primary border-top">
+                                                    <td><strong class="fs-5">TOTAL COMPROBANTE:</strong></td>
+                                                    <td class="text-end"><strong class="fs-5" id="lblTotalComprobante">₡0.00</strong></td>
+                                                </tr>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <!-- Campos ocultos para compatibilidad -->
+                        <span id="lblSubtotal" style="display:none;">0</span>
+                        <span id="lblDescuentos" style="display:none;">0</span>
+                        <span id="lblImpuestos" style="display:none;">0</span>
+                        <span id="lblTotal" style="display:none;">0</span>
                     </div>
                 </div>
             </div>
@@ -641,9 +648,16 @@
                 <div class="card shadow">
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
-                            <a href="/Documentos" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Cancelar
-                            </a>
+                            <div>
+                                <a href="/Documentos" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                                <!-- Boton Validar con indicador de errores -->
+                                <button type="button" class="btn btn-info btn-validar" id="btnValidar" title="Validar documento antes de enviar">
+                                    <i class="fas fa-check-double"></i> Validar
+                                    <span class="badge bg-danger rounded-pill" style="display: none;">0</span>
+                                </button>
+                            </div>
                             <div>
                                 <button type="button" class="btn btn-warning me-2" id="btnGuardarBorrador">
                                     <i class="fas fa-save"></i> Guardar como Borrador
@@ -651,6 +665,14 @@
                                 <button type="button" class="btn btn-success" id="btnGuardarYEnviar">
                                     <i class="fas fa-paper-plane"></i> Guardar y Enviar a Hacienda
                                 </button>
+                            </div>
+                        </div>
+                        <!-- Resumen de validacion inline (opcional) -->
+                        <div id="validationSummaryInline" class="mt-3" style="display: none;">
+                            <div class="alert alert-danger mb-0">
+                                <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Errores de Validacion</h6>
+                                <hr class="my-2">
+                                <ul id="listaErroresInline" class="mb-0 small"></ul>
                             </div>
                         </div>
                     </div>
@@ -874,6 +896,50 @@
                         <small class="text-muted d-block mt-1">Puede agregar múltiples impuestos según v4.4 (IVA, Selectivo, Servicios, etc.)</small>
                     </div>
 
+                    <!-- Unidad de medida y Tipo -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="Linea_UnidadMedida" class="form-label">Unidad de Medida <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Linea_UnidadMedida" required>
+                                <option value="Unid">Unid - Unidad</option>
+                                <option value="Kg">Kg - Kilogramo</option>
+                                <option value="g">g - Gramo</option>
+                                <option value="L">L - Litro</option>
+                                <option value="mL">mL - Mililitro</option>
+                                <option value="m">m - Metro</option>
+                                <option value="m2">m² - Metro cuadrado</option>
+                                <option value="m3">m³ - Metro cúbico</option>
+                                <option value="Sp">Sp - Servicios profesionales</option>
+                                <option value="Spe">Spe - Servicios personales</option>
+                                <option value="Os">Os - Otros servicios</option>
+                                <option value="Al">Al - Alquiler</option>
+                                <option value="h">h - Hora</option>
+                                <option value="d">d - Día</option>
+                                <option value="Cm">Cm - Comisión</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="Linea_TipoProducto" class="form-label">Tipo de Producto</label>
+                            <select class="form-select" id="Linea_TipoProducto">
+                                <option value="mercancia">Mercancía (Bien)</option>
+                                <option value="servicio">Servicio</option>
+                            </select>
+                            <small class="text-muted">Se detecta automáticamente por la unidad</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="Linea_CodigoTarifaIVA" class="form-label">Código Tarifa IVA</label>
+                            <select class="form-select" id="Linea_CodigoTarifaIVA">
+                                <option value="08">08 - Tarifa general 13%</option>
+                                <option value="01">01 - Tarifa 0%</option>
+                                <option value="02">02 - Tarifa reducida 1%</option>
+                                <option value="03">03 - Tarifa reducida 2%</option>
+                                <option value="04">04 - Tarifa reducida 4%</option>
+                                <option value="10">10 - Exento</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Campos adicionales v4.4 -->
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -898,7 +964,13 @@
                         </div>
                         <div class="col-md-6">
                             <label for="Linea_CodigoCabys" class="form-label">Código CAByS <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="Linea_CodigoCabys" maxlength="13" placeholder="1234567890123">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="Linea_CodigoCabys" maxlength="13" placeholder="1234567890123">
+                                <button class="btn btn-outline-secondary" type="button" id="btnBuscarCabys" title="Buscar código CABYS">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <small id="lblCabysDescripcion" class="text-info fw-semibold" style="display: none;"></small>
                             <small class="text-muted">13 caracteres - Obligatorio desde 01/06/2025</small>
                         </div>
                     </div>
@@ -954,6 +1026,70 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <style>
+        /* Estilos para validaciones en tiempo real */
+        .validation-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        .validation-success {
+            border-color: #28a745 !important;
+        }
+        .validation-warning {
+            border-color: #ffc107 !important;
+            box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25) !important;
+        }
+        .field-error-message {
+            color: #dc3545;
+            font-size: 0.85em;
+            margin-top: 4px;
+            display: none;
+        }
+        .field-error-message.show {
+            display: block;
+        }
+        .validation-summary {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .validation-summary ul {
+            margin-bottom: 0;
+        }
+        .validation-summary li {
+            margin-bottom: 5px;
+        }
+        .validation-icon {
+            margin-right: 5px;
+        }
+        .btn-validar {
+            position: relative;
+        }
+        .btn-validar .badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 0.7em;
+        }
+        /* Indicador de campo obligatorio */
+        .campo-obligatorio::after {
+            content: " *";
+            color: #dc3545;
+        }
+        /* Animacion para errores */
+        @@keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        /* Linea con error en tabla */
+        .linea-con-error {
+            background-color: #f8d7da !important;
+        }
+    </style>
+
     <script>
         const empresaId = '@Model.EmpresaId';
         const documentoId = '@Model.DocumentoId';
@@ -1002,9 +1138,628 @@
         let clienteSeleccionado = null;
         let documentoEnEdicion = null;
 
+        // ============================================
+        // SISTEMA DE VALIDACIONES EN TIEMPO REAL
+        // Segun especificaciones Hacienda CR v4.4
+        // ============================================
+
+        const ValidacionesFE = {
+            // Configuracion de tipos de identificacion segun Hacienda v4.4
+            tiposIdentificacion: {
+                '1': { nombre: 'Cedula Fisica', digitos: 9, regex: /^\d{9}$/ },
+                '2': { nombre: 'Cedula Juridica', digitos: 10, regex: /^\d{10}$/ },
+                '3': { nombre: 'DIMEX', digitos: [11, 12], regex: /^\d{11,12}$/ },
+                '4': { nombre: 'NITE', digitos: 10, regex: /^\d{10}$/ },
+                '5': { nombre: 'Pasaporte', digitos: null, regex: /^.{1,20}$/ },
+                '6': { nombre: 'Extranjera', digitos: null, regex: /^.{1,20}$/ }
+            },
+
+            // Condiciones de venta que son credito (no requieren medio de pago inmediato)
+            condicionesCredito: ['02', '08', '10'],
+
+            // Codigos de tarifa IVA validos segun Hacienda v4.4
+            codigosTarifaIVA: {
+                '01': { tarifa: 0, descripcion: 'Tarifa 0% - No sujeto' },
+                '02': { tarifa: 1, descripcion: 'Tarifa 1% - Canasta basica' },
+                '03': { tarifa: 2, descripcion: 'Tarifa 2% - Medicamentos' },
+                '04': { tarifa: 4, descripcion: 'Tarifa 4% - Boletos aereos' },
+                '05': { tarifa: 0, descripcion: 'Transitorio 0%' },
+                '06': { tarifa: 1, descripcion: 'Transitorio 1%' },
+                '07': { tarifa: 2, descripcion: 'Transitorio 2%' },
+                '08': { tarifa: 13, descripcion: 'Tarifa 13% - General' },
+                '10': { tarifa: 0, descripcion: 'Exento' }
+            },
+
+            // Codigos de referencia validos para NC/ND
+            codigosReferencia: ['01', '02', '03', '04', '05', '11', '99'],
+
+            // Almacena errores encontrados
+            errores: [],
+
+            // Limpia errores previos
+            limpiarErrores: function() {
+                this.errores = [];
+                // Limpiar clases de error
+                $('.validation-error, .validation-warning').removeClass('validation-error validation-warning');
+                $('.field-error-message').removeClass('show').text('');
+            },
+
+            // Agrega un error
+            agregarError: function(campo, mensaje, tipo = 'error') {
+                this.errores.push({
+                    campo: campo,
+                    mensaje: mensaje,
+                    tipo: tipo
+                });
+            },
+
+            // Marca un campo como invalido
+            marcarCampoInvalido: function(selector, mensaje) {
+                const $campo = $(selector);
+                $campo.addClass('validation-error').removeClass('validation-success');
+
+                // Buscar o crear mensaje de error
+                let $errorMsg = $campo.siblings('.field-error-message');
+                if ($errorMsg.length === 0) {
+                    $errorMsg = $('<div class="field-error-message"></div>');
+                    $campo.after($errorMsg);
+                }
+                $errorMsg.text(mensaje).addClass('show');
+            },
+
+            // Marca un campo como valido
+            marcarCampoValido: function(selector) {
+                const $campo = $(selector);
+                $campo.removeClass('validation-error validation-warning').addClass('validation-success');
+                $campo.siblings('.field-error-message').removeClass('show');
+            },
+
+            // Limpia validacion de un campo
+            limpiarCampo: function(selector) {
+                const $campo = $(selector);
+                $campo.removeClass('validation-error validation-warning validation-success');
+                $campo.siblings('.field-error-message').removeClass('show');
+            },
+
+            // ========================================
+            // VALIDACIONES INDIVIDUALES
+            // ========================================
+
+            // Valida tipo de documento
+            validarTipoDocumento: function() {
+                const tipo = $('#TipoDocumento').val();
+                if (!tipo) {
+                    this.marcarCampoInvalido('#TipoDocumento', 'Seleccione un tipo de documento');
+                    this.agregarError('TipoDocumento', 'Tipo de documento es obligatorio');
+                    return false;
+                }
+                this.marcarCampoValido('#TipoDocumento');
+                return true;
+            },
+
+            // Valida actividad economica (6 caracteres: puede ser 6 digitos o formato XXXX.X)
+            validarActividadEconomica: function(selector, nombreCampo) {
+                const valor = $(selector).val();
+                if (!valor) {
+                    this.marcarCampoInvalido(selector, 'La actividad economica es obligatoria');
+                    this.agregarError(nombreCampo, 'Actividad economica es obligatoria');
+                    return false;
+                }
+                // Acepta: 620900 (6 digitos) o 6202.0, 7020.0 (formato con punto)
+                if (!/^(\d{6}|\d{4}\.\d|\d{5}\.\d?)$/.test(valor)) {
+                    this.marcarCampoInvalido(selector, 'Formato: 6 digitos o con punto (ej: 620900, 6202.0)');
+                    this.agregarError(nombreCampo, 'Formato invalido: debe ser 6 caracteres (ej: 620900 o 6202.0)');
+                    return false;
+                }
+                this.marcarCampoValido(selector);
+                return true;
+            },
+
+            // Valida condicion de venta
+            validarCondicionVenta: function() {
+                const condicion = $('#CondicionVenta').val();
+                if (!condicion) {
+                    this.marcarCampoInvalido('#CondicionVenta', 'Seleccione una condicion de venta');
+                    this.agregarError('CondicionVenta', 'Condicion de venta es obligatoria');
+                    return false;
+                }
+                this.marcarCampoValido('#CondicionVenta');
+                return true;
+            },
+
+            // Valida medio de pago
+            validarMedioPago: function() {
+                const condicion = $('#CondicionVenta').val();
+                const medioPago = $('#MedioPago').val();
+
+                // Si es credito, el medio de pago no es obligatorio
+                if (this.condicionesCredito.includes(condicion)) {
+                    this.limpiarCampo('#MedioPago');
+                    return true;
+                }
+
+                if (!medioPago) {
+                    this.marcarCampoInvalido('#MedioPago', 'Seleccione un medio de pago');
+                    this.agregarError('MedioPago', 'Medio de pago es obligatorio para ventas de contado');
+                    return false;
+                }
+                this.marcarCampoValido('#MedioPago');
+                return true;
+            },
+
+            // Valida plazo de credito
+            validarPlazoCredito: function() {
+                const condicion = $('#CondicionVenta').val();
+                const plazo = $('#PlazoCreditoDias').val();
+
+                if (condicion === '02') { // Credito
+                    if (!plazo || parseInt(plazo) < 1) {
+                        this.marcarCampoInvalido('#PlazoCreditoDias', 'Ingrese el plazo de credito en dias');
+                        this.agregarError('PlazoCreditoDias', 'Plazo de credito obligatorio para ventas a credito');
+                        return false;
+                    }
+                    this.marcarCampoValido('#PlazoCreditoDias');
+                }
+                return true;
+            },
+
+            // Valida nombre del receptor
+            validarReceptorNombre: function() {
+                const tipo = $('#TipoDocumento').val();
+                const nombre = $('#ClienteNombre').val();
+
+                // Tiquetes (04) no requieren receptor obligatorio
+                if (tipo === '4') {
+                    this.limpiarCampo('#ClienteNombre');
+                    return true;
+                }
+
+                if (!nombre || nombre.trim() === '') {
+                    this.marcarCampoInvalido('#ClienteNombre', 'El nombre del receptor es obligatorio');
+                    this.agregarError('ClienteNombre', 'Nombre del receptor es obligatorio para Facturas');
+                    return false;
+                }
+
+                if (nombre.length > 200) {
+                    this.marcarCampoInvalido('#ClienteNombre', 'Maximo 200 caracteres');
+                    this.agregarError('ClienteNombre', 'Nombre excede 200 caracteres');
+                    return false;
+                }
+
+                this.marcarCampoValido('#ClienteNombre');
+                return true;
+            },
+
+            // Valida numero de identificacion segun tipo
+            validarReceptorIdentificacion: function() {
+                const tipoDoc = $('#TipoDocumento').val();
+                const tipoId = $('#ClienteTipoIdentificacion').val();
+                const numero = $('#ClienteIdentificacion').val();
+
+                // Tiquetes no requieren identificacion obligatoria
+                if (tipoDoc === '4') {
+                    this.limpiarCampo('#ClienteIdentificacion');
+                    return true;
+                }
+
+                if (!numero) {
+                    this.marcarCampoInvalido('#ClienteIdentificacion', 'El numero de identificacion es obligatorio');
+                    this.agregarError('ClienteIdentificacion', 'Numero de identificacion es obligatorio');
+                    return false;
+                }
+
+                const config = this.tiposIdentificacion[tipoId];
+                if (!config) {
+                    this.limpiarCampo('#ClienteIdentificacion');
+                    return true;
+                }
+
+                if (!config.regex.test(numero)) {
+                    let mensaje = '';
+                    if (Array.isArray(config.digitos)) {
+                        mensaje = `${config.nombre} debe tener ${config.digitos[0]}-${config.digitos[1]} digitos`;
+                    } else if (config.digitos) {
+                        mensaje = `${config.nombre} debe tener exactamente ${config.digitos} digitos`;
+                    } else {
+                        mensaje = `Formato invalido para ${config.nombre}`;
+                    }
+                    this.marcarCampoInvalido('#ClienteIdentificacion', mensaje);
+                    this.agregarError('ClienteIdentificacion', mensaje);
+                    return false;
+                }
+
+                this.marcarCampoValido('#ClienteIdentificacion');
+                return true;
+            },
+
+            // Valida actividad economica del receptor (obligatoria en v4.4 para Facturas)
+            validarReceptorActividadEconomica: function() {
+                const tipoDoc = $('#TipoDocumento').val();
+                const actividad = $('#ClienteActividadEconomica').val();
+
+                // Solo obligatorio para Facturas (no Tiquetes)
+                if (tipoDoc === '4') {
+                    this.limpiarCampo('#ClienteActividadEconomica');
+                    return true;
+                }
+
+                // En v4.4, la actividad economica del receptor es recomendada pero no bloqueante
+                // Marcamos advertencia pero no error
+                if (!actividad || actividad.trim() === '') {
+                    // Solo advertencia, no error
+                    $('#ClienteActividadEconomica').addClass('validation-warning');
+                    return true;
+                }
+
+                // Acepta: 620900 (6 digitos) o 6202.0, 7020.0 (formato con punto)
+                if (!/^(\d{6}|\d{4}\.\d|\d{5}\.\d?)$/.test(actividad)) {
+                    this.marcarCampoInvalido('#ClienteActividadEconomica', 'Formato: 6 digitos o con punto (ej: 6202.0)');
+                    this.agregarError('ClienteActividadEconomica', 'Formato invalido de actividad economica del receptor');
+                    return false;
+                }
+
+                this.marcarCampoValido('#ClienteActividadEconomica');
+                return true;
+            },
+
+            // Valida que haya al menos una linea
+            validarLineasMinimo: function() {
+                if (documentLines.length === 0) {
+                    this.agregarError('Lineas', 'Debe agregar al menos una linea de detalle');
+                    return false;
+                }
+                return true;
+            },
+
+            // Valida una linea individual
+            validarLinea: function(linea, index) {
+                let valida = true;
+                const numeroLinea = index + 1;
+
+                // Codigo CABYS obligatorio (13 digitos)
+                if (!linea.codigoCabys) {
+                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Codigo CABYS es obligatorio`);
+                    valida = false;
+                } else if (!/^\d{13}$/.test(linea.codigoCabys)) {
+                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Codigo CABYS debe tener 13 digitos`);
+                    valida = false;
+                }
+
+                // Cantidad > 0
+                if (!linea.cantidad || linea.cantidad <= 0) {
+                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Cantidad debe ser mayor a 0`);
+                    valida = false;
+                }
+
+                // Precio unitario >= 0
+                if (linea.precioUnitario === undefined || linea.precioUnitario === null || linea.precioUnitario < 0) {
+                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Precio unitario debe ser mayor o igual a 0`);
+                    valida = false;
+                }
+
+                // Descripcion obligatoria
+                if (!linea.descripcion || linea.descripcion.trim() === '') {
+                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Descripcion es obligatoria`);
+                    valida = false;
+                }
+
+                return valida;
+            },
+
+            // Valida todas las lineas
+            validarTodasLasLineas: function() {
+                let todasValidas = true;
+
+                // Marcar todas las filas como limpias primero
+                $('#tbodyLineas tr').removeClass('linea-con-error');
+
+                documentLines.forEach((linea, index) => {
+                    if (!this.validarLinea(linea, index)) {
+                        todasValidas = false;
+                        // Marcar fila con error
+                        $(`#tbodyLineas tr:eq(${index})`).addClass('linea-con-error');
+                    }
+                });
+
+                return todasValidas;
+            },
+
+            // Valida calculos de totales
+            validarCalculos: function() {
+                let subtotalCalculado = 0;
+                let descuentosCalculados = 0;
+                let impuestosCalculados = 0;
+
+                documentLines.forEach(linea => {
+                    const montoTotal = linea.cantidad * linea.precioUnitario;
+                    subtotalCalculado += montoTotal;
+                    descuentosCalculados += linea.montoDescuento || 0;
+                    impuestosCalculados += linea.montoImpuesto || 0;
+                });
+
+                const totalCalculado = subtotalCalculado - descuentosCalculados + impuestosCalculados;
+
+                // Los totales se calculan automaticamente, solo verificamos coherencia
+                return true;
+            },
+
+            // Valida referencias para NC/ND
+            validarReferencias: function() {
+                const tipoDoc = $('#TipoDocumento').val();
+
+                // Solo obligatorio para NC (03) y ND (02)
+                if (tipoDoc !== '2' && tipoDoc !== '3') {
+                    return true;
+                }
+
+                const claveRef = $('#DocumentoReferenciaNumero').val();
+                const codigoRef = $('#RazonReferencia').val();
+
+                // Clave de referencia obligatoria
+                if (!claveRef) {
+                    this.marcarCampoInvalido('#DocumentoReferenciaNumero', 'Seleccione un documento de referencia');
+                    this.agregarError('DocumentoReferencia', 'Documento de referencia es obligatorio para NC/ND');
+                    return false;
+                }
+
+                // Codigo de referencia obligatorio
+                if (!codigoRef) {
+                    this.marcarCampoInvalido('#RazonReferencia', 'Seleccione una razon');
+                    this.agregarError('RazonReferencia', 'Razon de referencia es obligatoria para NC/ND');
+                    return false;
+                }
+
+                // Validar que el codigo sea valido
+                if (!this.codigosReferencia.includes(codigoRef)) {
+                    this.marcarCampoInvalido('#RazonReferencia', 'Codigo de referencia invalido');
+                    this.agregarError('RazonReferencia', 'Codigo de referencia debe ser: 01-05, 11 o 99');
+                    return false;
+                }
+
+                this.marcarCampoValido('#DocumentoReferenciaNumero');
+                this.marcarCampoValido('#RazonReferencia');
+                return true;
+            },
+
+            // Valida campos de exportacion
+            validarExportacion: function() {
+                const tipoDoc = $('#TipoDocumento').val();
+
+                if (tipoDoc !== '9') {
+                    return true;
+                }
+
+                let valido = true;
+
+                if (!$('#Incoterm').val()) {
+                    this.marcarCampoInvalido('#Incoterm', 'Seleccione un Incoterm');
+                    this.agregarError('Incoterm', 'Incoterm es obligatorio para Facturas de Exportacion');
+                    valido = false;
+                } else {
+                    this.marcarCampoValido('#Incoterm');
+                }
+
+                if (!$('#PaisDestino').val()) {
+                    this.marcarCampoInvalido('#PaisDestino', 'Seleccione un pais de destino');
+                    this.agregarError('PaisDestino', 'Pais de destino es obligatorio para Facturas de Exportacion');
+                    valido = false;
+                } else {
+                    this.marcarCampoValido('#PaisDestino');
+                }
+
+                return valido;
+            },
+
+            // Valida direccion del receptor
+            validarDireccionReceptor: function() {
+                const tipoDoc = $('#TipoDocumento').val();
+                const tipoId = $('#ClienteTipoIdentificacion').val();
+
+                // Tiquetes no requieren direccion
+                if (tipoDoc === '4') {
+                    return true;
+                }
+
+                let valido = true;
+
+                // Clientes nacionales requieren provincia, canton, distrito
+                if (tipoId !== '6') {
+                    if (!$('#ClienteProvincia').val()) {
+                        this.marcarCampoInvalido('#ClienteProvincia', 'Seleccione una provincia');
+                        this.agregarError('ClienteProvincia', 'Provincia es obligatoria');
+                        valido = false;
+                    } else {
+                        this.marcarCampoValido('#ClienteProvincia');
+                    }
+
+                    if (!$('#ClienteCanton').val()) {
+                        this.marcarCampoInvalido('#ClienteCanton', 'Seleccione un canton');
+                        this.agregarError('ClienteCanton', 'Canton es obligatorio');
+                        valido = false;
+                    } else {
+                        this.marcarCampoValido('#ClienteCanton');
+                    }
+
+                    if (!$('#ClienteDistrito').val()) {
+                        this.marcarCampoInvalido('#ClienteDistrito', 'Seleccione un distrito');
+                        this.agregarError('ClienteDistrito', 'Distrito es obligatorio');
+                        valido = false;
+                    } else {
+                        this.marcarCampoValido('#ClienteDistrito');
+                    }
+                }
+
+                // Otras senas siempre obligatorio segun v4.4
+                if (!$('#ClienteOtrasSenas').val()) {
+                    this.marcarCampoInvalido('#ClienteOtrasSenas', 'Direccion exacta es obligatoria segun Hacienda v4.4');
+                    this.agregarError('ClienteOtrasSenas', 'Otras senas (direccion) es obligatorio');
+                    valido = false;
+                } else {
+                    this.marcarCampoValido('#ClienteOtrasSenas');
+                }
+
+                return valido;
+            },
+
+            // ========================================
+            // VALIDACION COMPLETA
+            // ========================================
+
+            validarTodo: function(mostrarResumen = true) {
+                this.limpiarErrores();
+
+                let esValido = true;
+
+                // 1. Datos del documento
+                if (!this.validarTipoDocumento()) esValido = false;
+                if (!this.validarActividadEconomica('#EmisorActividadEconomica', 'ActividadEconomica')) esValido = false;
+                if (!this.validarCondicionVenta()) esValido = false;
+                if (!this.validarMedioPago()) esValido = false;
+                if (!this.validarPlazoCredito()) esValido = false;
+
+                // 2. Datos del receptor
+                if (!this.validarReceptorNombre()) esValido = false;
+                if (!this.validarReceptorIdentificacion()) esValido = false;
+                if (!this.validarReceptorActividadEconomica()) esValido = false;
+                if (!this.validarDireccionReceptor()) esValido = false;
+
+                // 3. Lineas de detalle
+                if (!this.validarLineasMinimo()) esValido = false;
+                if (!this.validarTodasLasLineas()) esValido = false;
+
+                // 4. Calculos
+                if (!this.validarCalculos()) esValido = false;
+
+                // 5. Referencias (NC/ND)
+                if (!this.validarReferencias()) esValido = false;
+
+                // 6. Exportacion
+                if (!this.validarExportacion()) esValido = false;
+
+                // Mostrar resumen si se solicita
+                if (mostrarResumen) {
+                    this.mostrarResumenValidacion(esValido);
+                }
+
+                return esValido;
+            },
+
+            // Muestra resumen de validacion con SweetAlert2
+            mostrarResumenValidacion: function(esValido) {
+                if (esValido) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Validacion Exitosa',
+                        text: 'El documento cumple con todas las validaciones requeridas por Hacienda v4.4',
+                        confirmButtonText: 'Excelente',
+                        timer: 3000
+                    });
+                } else {
+                    let htmlErrores = '<div class="validation-summary text-start"><ul class="list-unstyled">';
+
+                    this.errores.forEach(error => {
+                        const icono = error.tipo === 'warning'
+                            ? '<i class="fas fa-exclamation-triangle text-warning validation-icon"></i>'
+                            : '<i class="fas fa-times-circle text-danger validation-icon"></i>';
+                        htmlErrores += `<li>${icono}${error.mensaje}</li>`;
+                    });
+
+                    htmlErrores += '</ul></div>';
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Errores de Validacion',
+                        html: htmlErrores,
+                        confirmButtonText: 'Corregir Errores',
+                        width: '600px'
+                    });
+                }
+            },
+
+            // Obtiene cantidad de errores
+            getCantidadErrores: function() {
+                return this.errores.length;
+            }
+        };
+
+        // ============================================
+        // VALIDACION DE LINEA EN MODAL
+        // ============================================
+        const ValidacionLinea = {
+            validarCabysCodigo: function() {
+                const codigo = $('#Linea_CodigoCabys').val();
+
+                if (!codigo) {
+                    ValidacionesFE.marcarCampoInvalido('#Linea_CodigoCabys', 'Codigo CABYS es obligatorio (13 digitos)');
+                    return false;
+                }
+
+                if (!/^\d{13}$/.test(codigo)) {
+                    ValidacionesFE.marcarCampoInvalido('#Linea_CodigoCabys', 'Debe tener exactamente 13 digitos numericos');
+                    return false;
+                }
+
+                ValidacionesFE.marcarCampoValido('#Linea_CodigoCabys');
+                return true;
+            },
+
+            validarCantidad: function() {
+                const cantidad = parseFloat($('#Linea_Cantidad').val());
+
+                if (!cantidad || cantidad <= 0) {
+                    ValidacionesFE.marcarCampoInvalido('#Linea_Cantidad', 'Cantidad debe ser mayor a 0');
+                    return false;
+                }
+
+                ValidacionesFE.marcarCampoValido('#Linea_Cantidad');
+                return true;
+            },
+
+            validarPrecio: function() {
+                const precio = parseFloat($('#Linea_PrecioUnitario').val());
+
+                if (precio === undefined || precio === null || isNaN(precio) || precio < 0) {
+                    ValidacionesFE.marcarCampoInvalido('#Linea_PrecioUnitario', 'Precio debe ser mayor o igual a 0');
+                    return false;
+                }
+
+                ValidacionesFE.marcarCampoValido('#Linea_PrecioUnitario');
+                return true;
+            },
+
+            validarDescripcion: function() {
+                const descripcion = $('#Linea_Descripcion').val();
+
+                if (!descripcion || descripcion.trim() === '') {
+                    ValidacionesFE.marcarCampoInvalido('#Linea_Descripcion', 'Descripcion es obligatoria');
+                    return false;
+                }
+
+                if (descripcion.length > 500) {
+                    ValidacionesFE.marcarCampoInvalido('#Linea_Descripcion', 'Maximo 500 caracteres');
+                    return false;
+                }
+
+                ValidacionesFE.marcarCampoValido('#Linea_Descripcion');
+                return true;
+            },
+
+            validarTodo: function() {
+                let valido = true;
+
+                if (!this.validarCabysCodigo()) valido = false;
+                if (!this.validarCantidad()) valido = false;
+                if (!this.validarPrecio()) valido = false;
+                if (!this.validarDescripcion()) valido = false;
+
+                return valido;
+            }
+        };
+
         $(document).ready(function () {
             initializeForm();
             setupEventHandlers();
+            setupValidationHandlers(); // Nuevo: configurar validaciones en tiempo real
             loadInitialData();
 
             // Si estamos en modo edición, cargar el documento
@@ -1012,6 +1767,136 @@
                 loadDocumentoParaEditar(documentoId);
             }
         });
+
+        // ============================================
+        // CONFIGURACION DE VALIDACIONES EN TIEMPO REAL
+        // ============================================
+        function setupValidationHandlers() {
+            // Validacion en tiempo real para tipo de documento
+            $('#TipoDocumento').on('change', function() {
+                ValidacionesFE.validarTipoDocumento();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de actividad economica del emisor
+            $('#EmisorActividadEconomica').on('blur input', function() {
+                ValidacionesFE.validarActividadEconomica('#EmisorActividadEconomica', 'ActividadEconomica');
+                actualizarContadorErrores();
+            });
+
+            // Validacion de condicion de venta
+            $('#CondicionVenta').on('change', function() {
+                ValidacionesFE.validarCondicionVenta();
+                ValidacionesFE.validarMedioPago();
+                ValidacionesFE.validarPlazoCredito();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de medio de pago
+            $('#MedioPago').on('change', function() {
+                ValidacionesFE.validarMedioPago();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de plazo de credito
+            $('#PlazoCreditoDias').on('blur input', function() {
+                ValidacionesFE.validarPlazoCredito();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de nombre del receptor
+            $('#ClienteNombre').on('blur input', function() {
+                ValidacionesFE.validarReceptorNombre();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de tipo de identificacion
+            $('#ClienteTipoIdentificacion').on('change', function() {
+                ValidacionesFE.validarReceptorIdentificacion();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de numero de identificacion
+            $('#ClienteIdentificacion').on('blur input', function() {
+                ValidacionesFE.validarReceptorIdentificacion();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de actividad economica del receptor
+            $('#ClienteActividadEconomica').on('blur input', function() {
+                ValidacionesFE.validarReceptorActividadEconomica();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de direccion
+            $('#ClienteProvincia, #ClienteCanton, #ClienteDistrito').on('change', function() {
+                ValidacionesFE.validarDireccionReceptor();
+                actualizarContadorErrores();
+            });
+
+            $('#ClienteOtrasSenas').on('blur input', function() {
+                ValidacionesFE.validarDireccionReceptor();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de referencias
+            $('#DocumentoReferenciaNumero, #RazonReferencia').on('change blur', function() {
+                ValidacionesFE.validarReferencias();
+                actualizarContadorErrores();
+            });
+
+            // Validacion de exportacion
+            $('#Incoterm, #PaisDestino').on('change', function() {
+                ValidacionesFE.validarExportacion();
+                actualizarContadorErrores();
+            });
+
+            // Validaciones en modal de linea
+            $('#Linea_CodigoCabys').on('blur input', function() {
+                ValidacionLinea.validarCabysCodigo();
+            });
+
+            $('#Linea_Cantidad').on('blur input', function() {
+                ValidacionLinea.validarCantidad();
+            });
+
+            $('#Linea_PrecioUnitario').on('blur input', function() {
+                ValidacionLinea.validarPrecio();
+            });
+
+            $('#Linea_Descripcion').on('blur input', function() {
+                ValidacionLinea.validarDescripcion();
+            });
+        }
+
+        function actualizarContadorErrores() {
+            // Ejecutar validacion silenciosa
+            ValidacionesFE.limpiarErrores();
+
+            // Solo validar campos visibles/activos
+            if (currentTipoDocumento) {
+                ValidacionesFE.validarTipoDocumento();
+                ValidacionesFE.validarCondicionVenta();
+                ValidacionesFE.validarMedioPago();
+
+                if ($('#ClienteId').val()) {
+                    ValidacionesFE.validarReceptorNombre();
+                    ValidacionesFE.validarReceptorIdentificacion();
+                }
+
+                ValidacionesFE.validarReferencias();
+                ValidacionesFE.validarExportacion();
+            }
+
+            const errores = ValidacionesFE.getCantidadErrores();
+            const $badge = $('#btnValidar .badge');
+
+            if (errores > 0) {
+                $badge.text(errores).removeClass('bg-success').addClass('bg-danger').show();
+            } else {
+                $badge.text('0').removeClass('bg-danger').addClass('bg-success').hide();
+            }
+        }
 
         function initializeForm() {
             // Initialize Select2 for Cliente
@@ -1221,10 +2106,59 @@
                 calculateLineTotal();
             });
 
+            // Detección automática de tipo de producto basada en unidad de medida
+            $('#Linea_UnidadMedida').on('change', function () {
+                const unidad = $(this).val();
+                // Unidades que indican servicios según Hacienda v4.4
+                const unidadesServicio = ['Sp', 'Spe', 'Os', 'Al', 'h', 'd', 'Cm'];
+                const esServicio = unidadesServicio.includes(unidad);
+
+                // Auto-seleccionar tipo de producto
+                $('#Linea_TipoProducto').val(esServicio ? 'servicio' : 'mercancia');
+
+                // Auto-seleccionar tipo de transacción v4.4 si está vacío
+                const tipoTransaccion = $('#Linea_TipoTransaccion').val();
+                if (!tipoTransaccion) {
+                    $('#Linea_TipoTransaccion').val(esServicio ? '02' : '01'); // 02 = Venta de servicios, 01 = Venta de bienes
+                }
+            });
+
+            // CABYS code change - search for description
+            $('#Linea_CodigoCabys').on('input', function () {
+                const codigo = $(this).val().trim();
+                if (codigo.length === 13) {
+                    buscarCabysPorCodigo(codigo);
+                } else {
+                    $('#lblCabysDescripcion').hide();
+                }
+            });
+
+            // CABYS search button
+            $('#btnBuscarCabys').on('click', function () {
+                const codigo = $('#Linea_CodigoCabys').val().trim();
+                if (codigo.length >= 3) {
+                    buscarCabysPorCodigo(codigo);
+                } else {
+                    showWarning('Ingrese al menos 3 caracteres del código CABYS');
+                }
+            });
+
             // Form line submission
             $('#formLinea').on('submit', function (e) {
                 e.preventDefault();
                 addOrUpdateLine();
+            });
+
+            // Boton Validar
+            $('#btnValidar').on('click', function () {
+                const esValido = ValidacionesFE.validarTodo(true);
+
+                // Actualizar resumen inline
+                if (!esValido) {
+                    mostrarErroresInline();
+                } else {
+                    $('#validationSummaryInline').hide();
+                }
             });
 
             // Save buttons
@@ -1233,8 +2167,35 @@
             });
 
             $('#btnGuardarYEnviar').on('click', function () {
+                // Validar antes de enviar a Hacienda
+                if (!ValidacionesFE.validarTodo(true)) {
+                    mostrarErroresInline();
+                    return;
+                }
                 saveDocument(2); // Estado: Pendiente, then send
             });
+        }
+
+        // Mostrar errores de validacion en panel inline
+        function mostrarErroresInline() {
+            const $lista = $('#listaErroresInline');
+            $lista.empty();
+
+            ValidacionesFE.errores.forEach(error => {
+                const iconClass = error.tipo === 'warning' ? 'text-warning fa-exclamation-triangle' : 'text-danger fa-times-circle';
+                $lista.append(`<li><i class="fas ${iconClass} me-1"></i>${error.mensaje}</li>`);
+            });
+
+            if (ValidacionesFE.errores.length > 0) {
+                $('#validationSummaryInline').show();
+
+                // Scroll al resumen de errores
+                $('html, body').animate({
+                    scrollTop: $('#validationSummaryInline').offset().top - 100
+                }, 500);
+            } else {
+                $('#validationSummaryInline').hide();
+            }
         }
 
         function loadInitialData() {
@@ -1799,7 +2760,19 @@
                 addTaxToLine();
             }
 
-            calculateLineTotal();
+            // Load CABYS code and description if available
+            if (producto.cabys && producto.cabys.codigo) {
+                $('#Linea_CodigoCabys').val(producto.cabys.codigo);
+                $('#lblCabysDescripcion').text(producto.cabys.descripcion).show();
+            } else if (producto.cabysId) {
+                // If only cabysId is available, search for the CABYS description
+                buscarCabysPorCodigo($('#Linea_CodigoCabys').val());
+            } else {
+                $('#Linea_CodigoCabys').val('');
+                $('#lblCabysDescripcion').hide();
+            }
+
+            calculateLineSubtotal();
         }
 
         // ==================== FUNCIONES DE GESTIÓN DE IMPUESTOS ====================
@@ -2045,6 +3018,31 @@
             calculateLineTotal();
         }
 
+        function buscarCabysPorCodigo(codigo) {
+            if (!codigo || codigo.length < 3) {
+                $('#lblCabysDescripcion').hide();
+                return;
+            }
+
+            $.ajax({
+                url: '?handler=BuscarCabys&codigo=' + encodeURIComponent(codigo),
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        $('#lblCabysDescripcion').text(response.data.descripcion).show();
+                    } else {
+                        $('#lblCabysDescripcion').text('Código no encontrado').show();
+                    }
+                },
+                error: function() {
+                    $('#lblCabysDescripcion').hide();
+                }
+            });
+        }
+
         function openLineModal(index = -1) {
             // Resetear línea actual
             resetCurrentLine();
@@ -2062,49 +3060,59 @@
                 $('#Linea_Descripcion').val(line.descripcion);
                 $('#Linea_Cantidad').val(line.cantidad);
                 $('#Linea_PrecioUnitario').val(line.precioUnitario);
-
+                $('#Linea_DescuentoPorcentaje').val(line.descuentoPorcentaje);
+                $('#Linea_ImpuestoPorcentaje').val(line.impuestoPorcentaje);
+                // Campos para clasificacion de totales
+                $('#Linea_UnidadMedida').val(line.unidadMedida || 'Unid');
+                $('#Linea_TipoProducto').val(line.tipoProducto || 'mercancia');
+                $('#Linea_CodigoTarifaIVA').val(line.codigoTarifaIVA || '08');
                 // Campos v4.4
                 $('#Linea_TipoTransaccion').val(line.tipoTransaccion || '01');
                 $('#Linea_CodigoCabys').val(line.codigoCabys || '');
                 $('#Linea_FormaFarmaceutica').val(line.formaFarmaceutica || '');
                 $('#Linea_DetalleSurtido').val(line.detalleSurtido || '');
-
-                // Copiar estructura completa a currentLine
-                currentLine = JSON.parse(JSON.stringify(line)); // Deep copy
-                currentLine.numeroLinea = index + 1;
-
-                // Renderizar descuentos
-                if (currentLine.descuentos && currentLine.descuentos.length > 0) {
-                    currentLine.descuentos.forEach((disc, idx) => {
-                        renderDiscountRow(idx);
-                    });
+                // Buscar descripción CABYS si hay código
+                if (line.codigoCabys) {
+                    buscarCabysPorCodigo(line.codigoCabys);
+                } else {
+                    $('#lblCabysDescripcion').hide();
                 }
-
-                // Renderizar impuestos
-                if (currentLine.impuestos && currentLine.impuestos.length > 0) {
-                    currentLine.impuestos.forEach((tax, idx) => {
-                        renderTaxRow(idx);
-                    });
-                }
-
-                calculateLineTotal();
+                calculateLineSubtotal();
             } else {
                 // Add mode
                 $('#modalLineaTitle').text('Agregar Línea');
                 $('#Linea_Cantidad').val('1.000');
-                $('#Linea_TipoTransaccion').val('01');
+                $('#Linea_DescuentoPorcentaje').val('0');
+                $('#Linea_ImpuestoPorcentaje').val('13');
+                // Defaults para clasificacion
+                $('#Linea_UnidadMedida').val('Unid');
+                $('#Linea_TipoProducto').val('mercancia');
+                $('#Linea_CodigoTarifaIVA').val('08');
+                // Clear v4.4 fields
+                $('#Linea_TipoTransaccion').val('');
                 $('#Linea_CodigoCabys').val('');
                 $('#Linea_FormaFarmaceutica').val('');
                 $('#Linea_DetalleSurtido').val('');
-
-                // Agregar un impuesto por defecto (IVA 13%)
-                addTaxToLine();
+                $('#lblCabysDescripcion').hide();
             }
 
             $('#modalLinea').modal('show');
         }
 
         function addOrUpdateLine() {
+            // Primero validar con el sistema de validaciones personalizado
+            if (!ValidacionLinea.validarTodo()) {
+                // Mostrar mensaje de error especifico
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Datos incompletos',
+                    text: 'Por favor complete todos los campos obligatorios de la linea',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+
+            // Luego validar el formulario HTML5
             if (!$('#formLinea')[0].checkValidity()) {
                 $('#formLinea').addClass('was-validated');
                 return;
@@ -2125,6 +3133,40 @@
 
             // Agregar o actualizar en array
             const index = parseInt($('#Linea_Index').val());
+            const cantidad = parseFloat($('#Linea_Cantidad').val());
+            const precio = parseFloat($('#Linea_PrecioUnitario').val());
+            const descPorcentaje = parseFloat($('#Linea_DescuentoPorcentaje').val()) || 0;
+            const impPorcentaje = parseFloat($('#Linea_ImpuestoPorcentaje').val()) || 0;
+
+            const montoTotal = cantidad * precio;
+            const descuento = montoTotal * (descPorcentaje / 100);
+            const subtotal = montoTotal - descuento;
+            const impuesto = subtotal * (impPorcentaje / 100);
+            const total = subtotal + impuesto;
+
+            const line = {
+                codigo: $('#Linea_Codigo').val(),
+                descripcion: $('#Linea_Descripcion').val(),
+                cantidad: cantidad,
+                precioUnitario: precio,
+                descuentoPorcentaje: descPorcentaje,
+                impuestoPorcentaje: impPorcentaje,
+                montoDescuento: descuento,
+                montoImpuesto: impuesto,
+                subtotal: total,
+                // Campos para clasificacion de totales
+                unidadMedida: $('#Linea_UnidadMedida').val() || 'Unid',
+                tipoProducto: $('#Linea_TipoProducto').val() || 'mercancia',
+                codigoTarifaIVA: $('#Linea_CodigoTarifaIVA').val() || '08',
+                // Campos v4.4
+                tipoTransaccion: $('#Linea_TipoTransaccion').val() || null,
+                codigoCabys: $('#Linea_CodigoCabys').val() || null,
+                formaFarmaceutica: $('#Linea_FormaFarmaceutica').val() || null,
+                detalleSurtido: $('#Linea_DetalleSurtido').val() || null,
+                // Exoneracion (si aplica)
+                exoneracionPorcentaje: 0
+            };
+
             if (index >= 0) {
                 // Actualizar existente
                 documentLines[index] = JSON.parse(JSON.stringify(currentLine)); // Deep copy
@@ -2136,11 +3178,8 @@
 
             // Renderizar en tabla
             renderLines();
-
-            // Calcular totales del documento
-            calculateDocumentTotals();
-
-            // Cerrar modal
+            calculateTotals();
+            actualizarContadorErrores(); // Actualizar contador despues de agregar linea
             $('#modalLinea').modal('hide');
         }
 
@@ -2216,113 +3255,99 @@
             });
         }
 
-        // ==================== CÁLCULOS DE TOTALES DEL DOCUMENTO ====================
+        function calculateTotals() {
+            // Inicializar todos los totales
+            let servGravados = 0, servExentos = 0, servExonerados = 0;
+            let mercGravadas = 0, mercExentas = 0, mercExoneradas = 0;
+            let totalDescuentos = 0, totalImpuestos = 0;
+            let ivaDevuelto = 0, otrosCargos = 0;
 
-        function calculateDocumentTotals() {
-            const totals = {
-                // Por categoría
-                totalServiciosGravados: 0,
-                totalServiciosExentos: 0,
-                totalServiciosExonerados: 0,
-                totalMercanciasGravadas: 0,
-                totalMercanciasExentas: 0,
-                totalMercanciasExoneradas: 0,
+            documentLines.forEach(function (line) {
+                const montoTotal = line.cantidad * line.precioUnitario;
+                const descuento = line.montoDescuento || 0;
+                const subtotalLinea = montoTotal - descuento; // SubTotal de la linea (despues de descuento)
+                const impuesto = line.montoImpuesto || 0;
 
-                // Consolidados
-                totalGravado: 0,
-                totalExento: 0,
-                totalExonerado: 0,
+                totalDescuentos += descuento;
+                totalImpuestos += impuesto;
 
-                // Operaciones
-                totalVenta: 0, // Suma de montoTotal (sin descuentos)
-                subtotal: 0, // Suma de subtotales de líneas (con descuentos aplicados)
-                totalDescuentos: 0,
-                ventaNeta: 0, // Igual a subtotal (ya tiene descuentos aplicados)
-                totalImpuestos: 0,
-                totalOtrosCargos: 0,
-                totalComprobante: 0
-            };
+                // Determinar si es servicio o mercancia
+                // Servicios: unidades Sp, Spe, Os, Al (alquiler), etc.
+                const unidadesServicio = ['Sp', 'Spe', 'Os', 'Al', 'Alc', 'h', 'd', 'Ser'];
+                const esServicio = line.unidadMedida && unidadesServicio.some(u =>
+                    line.unidadMedida.toLowerCase().includes(u.toLowerCase())
+                ) || (line.tipoProducto === 'servicio');
 
-            // Recorrer líneas
-            documentLines.forEach(linea => {
-                totals.totalVenta += linea.montoTotal || 0; // Sin descuentos
-                totals.subtotal += linea.subtotal || 0; // Con descuentos aplicados
-                totals.totalDescuentos += linea.montoDescuento || 0;
-                totals.totalImpuestos += linea.montoImpuesto || 0;
+                // Determinar tipo de gravamen basado en tarifa de impuesto
+                // Gravado: tarifa > 0
+                // Exento: tarifa = 0 (o codigo tarifa 01, 10)
+                // Exonerado: tiene exoneracion aplicada
+                const esExonerado = line.exoneracionPorcentaje > 0 || line.tipoGravamen === 'exonerado';
+                const esGravado = !esExonerado && (line.impuestoPorcentaje > 0);
+                const esExento = !esExonerado && !esGravado;
 
-                // Clasificar según tipo de transacción e impuestos
-                const esServicio = ['02', '04', '06', '08'].includes(linea.tipoTransaccion);
-                const tieneImpuestos = linea.impuestos && linea.impuestos.some(imp => imp.tarifa > 0);
-                const esExonerado = linea.impuestos && linea.impuestos.some(imp => imp.tieneExoneracion && imp.exoneracion);
-
-                // Usar el subtotal de la línea (ya con descuentos aplicados)
-                const montoLineaSubtotal = linea.subtotal || 0;
-
-                if (tieneImpuestos && !esExonerado) {
-                    // Gravado
-                    if (esServicio) {
-                        totals.totalServiciosGravados += montoLineaSubtotal;
-                    } else {
-                        totals.totalMercanciasGravadas += montoLineaSubtotal;
-                    }
-                } else if (esExonerado) {
-                    // Exonerado
-                    if (esServicio) {
-                        totals.totalServiciosExonerados += montoLineaSubtotal;
-                    } else {
-                        totals.totalMercanciasExoneradas += montoLineaSubtotal;
-                    }
+                // Clasificar el subtotal de la linea
+                if (esServicio) {
+                    if (esGravado) servGravados += subtotalLinea;
+                    else if (esExento) servExentos += subtotalLinea;
+                    else if (esExonerado) servExonerados += subtotalLinea;
                 } else {
-                    // Exento
-                    if (esServicio) {
-                        totals.totalServiciosExentos += montoLineaSubtotal;
-                    } else {
-                        totals.totalMercanciasExentas += montoLineaSubtotal;
-                    }
+                    // Mercancia
+                    if (esGravado) mercGravadas += subtotalLinea;
+                    else if (esExento) mercExentas += subtotalLinea;
+                    else if (esExonerado) mercExoneradas += subtotalLinea;
                 }
             });
 
-            // Consolidados
-            totals.totalGravado = totals.totalServiciosGravados + totals.totalMercanciasGravadas;
-            totals.totalExento = totals.totalServiciosExentos + totals.totalMercanciasExentas;
-            totals.totalExonerado = totals.totalServiciosExonerados + totals.totalMercanciasExoneradas;
+            // Calcular totales consolidados
+            const totalGravado = servGravados + mercGravadas;
+            const totalExento = servExentos + mercExentas;
+            const totalExonerado = servExonerados + mercExoneradas;
 
-            // Venta Neta = Subtotal (que ya tiene descuentos aplicados)
-            totals.ventaNeta = totals.subtotal;
+            // TotalVenta = suma de SubTotales (despues de descuentos de linea)
+            const totalVenta = totalGravado + totalExento + totalExonerado;
 
-            // Calcular total de otros cargos
-            totals.totalOtrosCargos = 0;
-            otrosCargos.forEach(cargo => {
-                totals.totalOtrosCargos += cargo.monto;
-            });
+            // TotalVentaNeta = TotalVenta (descuentos ya aplicados en SubTotal)
+            const totalVentaNeta = totalVenta;
 
-            // Total Comprobante
-            totals.totalComprobante = totals.ventaNeta + totals.totalImpuestos + totals.totalOtrosCargos;
+            // TotalComprobante = TotalVentaNeta + Impuestos + OtrosCargos - IVADevuelto
+            const totalComprobante = totalVentaNeta + totalImpuestos + otrosCargos - ivaDevuelto;
 
-            // Actualizar UI
-            $('#lblServiciosGravados').text(formatCurrency(totals.totalServiciosGravados));
-            $('#lblServiciosExentos').text(formatCurrency(totals.totalServiciosExentos));
-            $('#lblServiciosExonerados').text(formatCurrency(totals.totalServiciosExonerados));
-            $('#lblMercanciasGravadas').text(formatCurrency(totals.totalMercanciasGravadas));
-            $('#lblMercanciasExentas').text(formatCurrency(totals.totalMercanciasExentas));
-            $('#lblMercanciasExoneradas').text(formatCurrency(totals.totalMercanciasExoneradas));
+            // Actualizar UI - Desglose por tipo
+            $('#lblServGravados').text(formatCurrency(servGravados));
+            $('#lblServExentos').text(formatCurrency(servExentos));
+            $('#lblServExonerados').text(formatCurrency(servExonerados));
+            $('#lblMercGravadas').text(formatCurrency(mercGravadas));
+            $('#lblMercExentas').text(formatCurrency(mercExentas));
+            $('#lblMercExoneradas').text(formatCurrency(mercExoneradas));
 
-            $('#lblTotalGravado').text(formatCurrency(totals.totalGravado));
-            $('#lblTotalExento').text(formatCurrency(totals.totalExento));
-            $('#lblTotalExonerado').text(formatCurrency(totals.totalExonerado));
+            // Actualizar UI - Resumen
+            $('#lblTotalGravado').text(formatCurrency(totalGravado));
+            $('#lblTotalExento').text(formatCurrency(totalExento));
+            $('#lblTotalExonerado').text(formatCurrency(totalExonerado));
+            $('#lblTotalVenta').text(formatCurrency(totalVenta));
+            $('#lblTotalDescuentos').text('-' + formatCurrency(totalDescuentos));
+            $('#lblTotalVentaNeta').text(formatCurrency(totalVentaNeta));
+            $('#lblTotalImpuestos').text(formatCurrency(totalImpuestos));
+            $('#lblIVADevuelto').text(formatCurrency(ivaDevuelto));
+            $('#lblOtrosCargos').text(formatCurrency(otrosCargos));
+            $('#lblTotalComprobante').text(formatCurrency(totalComprobante));
 
-            $('#lblSubtotal').text(formatCurrency(totals.subtotal));
-            $('#lblDescuentos').text(formatCurrency(totals.totalDescuentos));
-            $('#lblImpuestos').text(formatCurrency(totals.totalImpuestos));
-            $('#lblOtrosCargos').text(formatCurrency(totals.totalOtrosCargos));
-            $('#lblTotal').text(formatCurrency(totals.totalComprobante));
+            // Campos ocultos para compatibilidad
+            const subtotalAntiguo = documentLines.reduce((sum, l) => sum + (l.cantidad * l.precioUnitario), 0);
+            $('#lblSubtotal').text(formatCurrency(subtotalAntiguo));
+            $('#lblDescuentos').text(formatCurrency(totalDescuentos));
+            $('#lblImpuestos').text(formatCurrency(totalImpuestos));
+            $('#lblTotal').text(formatCurrency(totalComprobante));
 
-            return totals;
-        }
-
-        // Alias para compatibilidad con código existente
-        function calculateTotals() {
-            calculateDocumentTotals();
+            // Guardar totales calculados para uso en buildDocumentoObject
+            window.totalesCalculados = {
+                servGravados, servExentos, servExonerados,
+                mercGravadas, mercExentas, mercExoneradas,
+                totalGravado, totalExento, totalExonerado,
+                totalVenta, totalDescuentos, totalVentaNeta,
+                totalImpuestos, ivaDevuelto, otrosCargos, totalComprobante
+            };
         }
 
         function saveDocument(estado) {
@@ -2395,113 +3420,192 @@
         }
 
         function validateForm() {
-            const form = $('#formFacturacion')[0];
+            // ========================================
+            // VALIDACION COMPLETA USANDO EL NUEVO SISTEMA
+            // Segun especificaciones Hacienda CR v4.4
+            // ========================================
 
+            // Validaciones basicas que no estan en el sistema de validaciones
             if (!currentTipoDocumento) {
-                Swal.fire('Validación', 'Seleccione un tipo de documento.', 'warning');
+                Swal.fire('Validacion', 'Seleccione un tipo de documento.', 'warning');
                 return false;
             }
 
             if (!$('#SucursalId').val()) {
-                Swal.fire('Validación', 'Seleccione una sucursal.', 'warning');
+                Swal.fire('Validacion', 'Seleccione una sucursal.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#SucursalId', 'Seleccione una sucursal');
                 return false;
             }
+            ValidacionesFE.marcarCampoValido('#SucursalId');
 
             if (!$('#TerminalId').val()) {
-                Swal.fire('Validación', 'Seleccione una terminal.', 'warning');
+                Swal.fire('Validacion', 'Seleccione una terminal.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#TerminalId', 'Seleccione una terminal');
                 return false;
             }
+            ValidacionesFE.marcarCampoValido('#TerminalId');
 
             if (!$('#EmisorActividadEconomica').val()) {
-                Swal.fire('Validación', 'La actividad económica del emisor es obligatoria.', 'warning');
+                Swal.fire('Validacion', 'La actividad economica del emisor es obligatoria.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#EmisorActividadEconomica', 'Actividad economica obligatoria');
                 return false;
             }
 
             if (!$('#ClienteId').val()) {
-                Swal.fire('Validación', 'Seleccione un cliente.', 'warning');
+                Swal.fire('Validacion', 'Seleccione un cliente.', 'warning');
                 return false;
             }
 
-            // Validate client data (mandatory fields for electronic invoice)
-            if (!$('#ClienteNombre').val()) {
-                Swal.fire('Validación', 'El nombre del cliente es obligatorio.', 'warning');
-                return false;
+            // Validar nombre del receptor (obligatorio para Facturas, no para Tiquetes)
+            if (currentTipoDocumento !== '4') { // No es Tiquete
+                if (!$('#ClienteNombre').val()) {
+                    Swal.fire('Validacion', 'El nombre del cliente es obligatorio para Facturas.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteNombre', 'Nombre obligatorio');
+                    return false;
+                }
+                ValidacionesFE.marcarCampoValido('#ClienteNombre');
+
+                if (!$('#ClienteIdentificacion').val()) {
+                    Swal.fire('Validacion', 'El numero de identificacion del cliente es obligatorio.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteIdentificacion', 'Identificacion obligatoria');
+                    return false;
+                }
             }
 
-            if (!$('#ClienteIdentificacion').val()) {
-                Swal.fire('Validación', 'El número de identificación del cliente es obligatorio.', 'warning');
-                return false;
-            }
-
-            // Validate address for national clients (not foreign)
+            // Validar formato de identificacion segun tipo
             const tipoId = $('#ClienteTipoIdentificacion').val();
+            const numId = $('#ClienteIdentificacion').val();
+            if (numId && tipoId) {
+                const configTipo = ValidacionesFE.tiposIdentificacion[tipoId];
+                if (configTipo && !configTipo.regex.test(numId)) {
+                    let msgFormato = '';
+                    if (Array.isArray(configTipo.digitos)) {
+                        msgFormato = `${configTipo.nombre} debe tener ${configTipo.digitos[0]}-${configTipo.digitos[1]} digitos`;
+                    } else if (configTipo.digitos) {
+                        msgFormato = `${configTipo.nombre} debe tener ${configTipo.digitos} digitos`;
+                    }
+                    Swal.fire('Validacion', msgFormato, 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteIdentificacion', msgFormato);
+                    return false;
+                }
+                ValidacionesFE.marcarCampoValido('#ClienteIdentificacion');
+            }
+
+            // Validar direccion para clientes nacionales
             if (tipoId !== '6') { // Not Extranjera
                 if (!$('#ClienteProvincia').val()) {
-                    Swal.fire('Validación', 'La provincia es obligatoria para clientes nacionales.', 'warning');
+                    Swal.fire('Validacion', 'La provincia es obligatoria para clientes nacionales.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteProvincia', 'Provincia obligatoria');
                     return false;
                 }
+                ValidacionesFE.marcarCampoValido('#ClienteProvincia');
 
                 if (!$('#ClienteCanton').val()) {
-                    Swal.fire('Validación', 'El cantón es obligatorio para clientes nacionales.', 'warning');
+                    Swal.fire('Validacion', 'El canton es obligatorio para clientes nacionales.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteCanton', 'Canton obligatorio');
                     return false;
                 }
+                ValidacionesFE.marcarCampoValido('#ClienteCanton');
 
                 if (!$('#ClienteDistrito').val()) {
-                    Swal.fire('Validación', 'El distrito es obligatorio para clientes nacionales.', 'warning');
+                    Swal.fire('Validacion', 'El distrito es obligatorio para clientes nacionales.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteDistrito', 'Distrito obligatorio');
                     return false;
                 }
+                ValidacionesFE.marcarCampoValido('#ClienteDistrito');
             } else {
                 // Foreign client - require country code
                 if (!$('#ClienteCodigoPais').val()) {
-                    Swal.fire('Validación', 'El código de país es obligatorio para clientes extranjeros.', 'warning');
+                    Swal.fire('Validacion', 'El codigo de pais es obligatorio para clientes extranjeros.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteCodigoPais', 'Codigo de pais obligatorio');
                     return false;
                 }
+                ValidacionesFE.marcarCampoValido('#ClienteCodigoPais');
             }
 
-            // Validar OtrasSenas (OBLIGATORIO según XSD v4.4: minOccurs=1, maxLength=250)
+            // Validar OtrasSenas (OBLIGATORIO segun XSD v4.4: minOccurs=1, maxLength=250)
             if (!$('#ClienteOtrasSenas').val()) {
-                Swal.fire('Validación', 'Las otras señas (dirección exacta) son obligatorias según Hacienda v4.4.', 'warning');
+                Swal.fire('Validacion', 'Las otras senas (direccion exacta) son obligatorias segun Hacienda v4.4.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#ClienteOtrasSenas', 'Direccion exacta obligatoria');
                 return false;
             }
+            ValidacionesFE.marcarCampoValido('#ClienteOtrasSenas');
 
             if (!$('#CondicionVenta').val()) {
-                Swal.fire('Validación', 'Seleccione una condición de venta.', 'warning');
+                Swal.fire('Validacion', 'Seleccione una condicion de venta.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#CondicionVenta', 'Condicion de venta obligatoria');
                 return false;
             }
+            ValidacionesFE.marcarCampoValido('#CondicionVenta');
 
-            if (!$('#MedioPago').val()) {
-                Swal.fire('Validación', 'Seleccione un medio de pago.', 'warning');
-                return false;
+            // Medio de pago solo obligatorio para ventas de contado
+            const condicionVenta = $('#CondicionVenta').val();
+            if (!ValidacionesFE.condicionesCredito.includes(condicionVenta)) {
+                if (!$('#MedioPago').val()) {
+                    Swal.fire('Validacion', 'Seleccione un medio de pago (obligatorio para ventas de contado).', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#MedioPago', 'Medio de pago obligatorio');
+                    return false;
+                }
+                ValidacionesFE.marcarCampoValido('#MedioPago');
+            }
+
+            // Validar plazo de credito si condicion es credito
+            if (condicionVenta === '02') {
+                const plazo = $('#PlazoCreditoDias').val();
+                if (!plazo || parseInt(plazo) < 1) {
+                    Swal.fire('Validacion', 'Ingrese el plazo de credito en dias.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#PlazoCreditoDias', 'Plazo obligatorio');
+                    return false;
+                }
+                ValidacionesFE.marcarCampoValido('#PlazoCreditoDias');
             }
 
             // Validate Moneda
             if (!$('#Moneda').val()) {
-                Swal.fire('Validación', 'Seleccione una moneda.', 'warning');
+                Swal.fire('Validacion', 'Seleccione una moneda.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#Moneda', 'Moneda obligatoria');
                 return false;
             }
+            ValidacionesFE.marcarCampoValido('#Moneda');
 
             // Validate Tipo de Cambio
             const tipoCambio = parseFloat($('#TipoCambio').val());
             if (!tipoCambio || tipoCambio <= 0) {
-                Swal.fire('Validación', 'El tipo de cambio debe ser mayor a 0.', 'warning');
+                Swal.fire('Validacion', 'El tipo de cambio debe ser mayor a 0.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#TipoCambio', 'Tipo de cambio invalido');
                 return false;
             }
+            ValidacionesFE.marcarCampoValido('#TipoCambio');
 
             // Validate Tipo de Cambio for non-CRC currencies
             const moneda = $('#Moneda').val();
             if (moneda !== 'CRC' && !$('#TipoCambio').val()) {
-                Swal.fire('Validación', 'Debe ingresar el tipo de cambio para la moneda seleccionada.', 'warning');
+                Swal.fire('Validacion', 'Debe ingresar el tipo de cambio para la moneda seleccionada.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#TipoCambio', 'Ingrese tipo de cambio');
                 return false;
             }
 
             // Validate NC/ND specific fields
             if ((currentTipoDocumento === '2' || currentTipoDocumento === '3')) {
                 if (!$('#DocumentoReferenciaId').val()) {
-                    Swal.fire('Validación', 'Seleccione un documento de referencia.', 'warning');
+                    Swal.fire('Validacion', 'Seleccione un documento de referencia.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#DocumentoReferenciaNumero', 'Documento de referencia obligatorio');
                     return false;
                 }
+                ValidacionesFE.marcarCampoValido('#DocumentoReferenciaNumero');
+
                 if (!$('#RazonReferencia').val()) {
-                    Swal.fire('Validación', 'Seleccione una razón para la NC/ND.', 'warning');
+                    Swal.fire('Validacion', 'Seleccione una razon para la NC/ND.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#RazonReferencia', 'Razon obligatoria');
+                    return false;
+                }
+                ValidacionesFE.marcarCampoValido('#RazonReferencia');
+
+                // Validar codigo de referencia
+                const codigoRef = $('#RazonReferencia').val();
+                if (!ValidacionesFE.codigosReferencia.includes(codigoRef)) {
+                    Swal.fire('Validacion', 'Codigo de referencia invalido. Valores permitidos: 01-05, 11, 99', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#RazonReferencia', 'Codigo invalido');
                     return false;
                 }
             }
@@ -2509,14 +3613,61 @@
             // Validate FEE specific fields
             if (currentTipoDocumento === '9') {
                 if (!$('#Incoterm').val()) {
-                    Swal.fire('Validación', 'Seleccione un Incoterm.', 'warning');
+                    Swal.fire('Validacion', 'Seleccione un Incoterm.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#Incoterm', 'Incoterm obligatorio');
                     return false;
                 }
+                ValidacionesFE.marcarCampoValido('#Incoterm');
+
                 if (!$('#PaisDestino').val()) {
-                    Swal.fire('Validación', 'Seleccione un país de destino.', 'warning');
+                    Swal.fire('Validacion', 'Seleccione un pais de destino.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#PaisDestino', 'Pais destino obligatorio');
+                    return false;
+                }
+                ValidacionesFE.marcarCampoValido('#PaisDestino');
+            }
+
+            // Validar lineas de detalle
+            if (documentLines.length === 0) {
+                Swal.fire('Validacion', 'Debe agregar al menos una linea de detalle.', 'warning');
+                return false;
+            }
+
+            // Validar cada linea
+            for (let i = 0; i < documentLines.length; i++) {
+                const linea = documentLines[i];
+                const numLinea = i + 1;
+
+                // Validar codigo CABYS (obligatorio, 13 digitos)
+                if (!linea.codigoCabys) {
+                    Swal.fire('Validacion', `Linea ${numLinea}: Codigo CABYS es obligatorio.`, 'warning');
+                    $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
+                    return false;
+                }
+
+                if (!/^\d{13}$/.test(linea.codigoCabys)) {
+                    Swal.fire('Validacion', `Linea ${numLinea}: Codigo CABYS debe tener exactamente 13 digitos.`, 'warning');
+                    $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
+                    return false;
+                }
+
+                // Validar cantidad
+                if (!linea.cantidad || linea.cantidad <= 0) {
+                    Swal.fire('Validacion', `Linea ${numLinea}: Cantidad debe ser mayor a 0.`, 'warning');
+                    $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
+                    return false;
+                }
+
+                // Validar descripcion
+                if (!linea.descripcion || linea.descripcion.trim() === '') {
+                    Swal.fire('Validacion', `Linea ${numLinea}: Descripcion es obligatoria.`, 'warning');
+                    $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
                     return false;
                 }
             }
+
+            // Limpiar estilos de error de lineas si todo esta bien
+            $('#tbodyLineas tr').removeClass('linea-con-error shake');
 
             return true;
         }
@@ -2561,6 +3712,7 @@
                         descripcion: line.descripcion,
                         cantidad: line.cantidad,
                         unidadMedidaId: 1, // Default unit
+                        unidadMedida: line.unidadMedida || 'Unid', // Código de unidad para clasificación
                         precioUnitario: line.precioUnitario,
                         // Campos v4.4
                         tipoTransaccion: line.tipoTransaccion || null,
@@ -2607,7 +3759,7 @@
                     } else if (line.impuestoPorcentaje && line.impuestoPorcentaje > 0) {
                         // Retrocompatibilidad con líneas antiguas
                         detalle.impuestos = [{
-                            codigoTarifa: line.impuestoPorcentaje === 13 ? '08' : '01',
+                            codigoTarifa: line.codigoTarifaIVA || '08', // Usar el código de tarifa seleccionado
                             tarifa: line.impuestoPorcentaje,
                             monto: line.montoImpuesto
                         }];
