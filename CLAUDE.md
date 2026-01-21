@@ -35,7 +35,7 @@ dotnet build Facturacion.Backend/Facturacion.Backend.csproj
 
 ### Run Projects
 ```bash
-# Run Backend API (default port: 7030)
+# Run Backend API (configured ports: HTTPS 7501, HTTP 5001)
 cd Facturacion.Backend
 dotnet run
 
@@ -60,6 +60,10 @@ dotnet ef database update MigrationName
 
 # Remove last migration (if not applied)
 dotnet ef migrations remove
+
+# If dotnet-ef version conflicts occur, use:
+DOTNET_ROLL_FORWARD=Major dotnet ef migrations add MigrationName
+DOTNET_ROLL_FORWARD=Major dotnet ef database update
 ```
 
 ### Testing
@@ -199,7 +203,7 @@ $.ajax({
 
 ## Database Schema Highlights
 
-**55+ Entity Framework migrations** establishing:
+**60+ Entity Framework migrations** establishing:
 
 ### Core Entities
 - `User` - System users (ASP.NET Identity)
@@ -214,8 +218,10 @@ $.ajax({
 ### Electronic Documents (Hacienda v4.4)
 - `Documento` - Main document (FE, TE, NC, ND, FEC, FEE, MR, REP)
 - `DocumentoDetalle` - Line items
-- `DocumentoDetalleImpuesto` - Taxes per line
-- `DocumentoDetalleDescuento` - Discounts per line
+- `DocumentoDetalleImpuesto` - Taxes per line (supports multiple taxes per line - FASE 2)
+- `DocumentoDetalleDescuento` - Discounts per line (supports multiple discounts per line - FASE 2)
+- `DocumentoDetalleExoneracion` - Exonerations per line (FASE 2)
+- `DocumentoOtroCargo` - Additional charges (otros cargos - FASE 2)
 - `DocumentoMedioPago` - Payment methods
 
 ### Catalog Entities (Costa Rica specific)
@@ -308,14 +314,17 @@ Follow Costa Rica Hacienda requirements:
 1. Create entity class in `Facturacion.Shared/Entities/`
 2. Create DTOs in `Facturacion.Shared/DTOs/` (if needed)
 3. Add `DbSet<T>` to `DataContext.cs`
-4. Create migration: `dotnet ef migrations add Add[Entity]`
-5. Update database: `dotnet ef database update`
-6. Create repository interface/implementation (if complex queries needed)
-7. Create Unit of Work interface/implementation (if custom repository)
-8. Register in DI container (`Program.cs`)
-9. Create API controller in `Backend/Controllers/`
-10. Create Razor Page in `Frontend/Pages/`
-11. Implement page handlers with IHttpClientFactory pattern
+4. **CRITICAL**: Configure navigation properties in `DataContext.OnModelCreating` if entity has relationships to `User` or other entities
+   - Use `HasOne().WithMany().HasForeignKey().OnDelete(DeleteBehavior.Restrict)` pattern
+   - Missing navigation property configurations will cause runtime 500 errors when saving entities
+5. Create migration: `dotnet ef migrations add Add[Entity]`
+6. Update database: `dotnet ef database update`
+7. Create repository interface/implementation (if complex queries needed)
+8. Create Unit of Work interface/implementation (if custom repository)
+9. Register in DI container (`Program.cs`)
+10. Create API controller in `Backend/Controllers/`
+11. Create Razor Page in `Frontend/Pages/`
+12. Implement page handlers with IHttpClientFactory pattern
 
 ### Creating a New Page
 
@@ -340,13 +349,15 @@ Currently no automated tests configured. When implementing tests:
 
 ## Common Gotchas
 
-1. **IHttpClientFactory Pattern**: Always use named client "FacturacionApi" in Frontend
-2. **JWT Cookie**: Frontend must extract JWT from cookie "jwtAdmin" and pass as Bearer token
-3. **Soft Delete**: Most entities use soft delete (mark inactive) rather than physical deletion
-4. **Multi-tenancy**: Always filter by `EmpresaId` where applicable
-5. **Consecutive Numbering**: Format is `SSS-TTTTT-NNNNNNNN-TT` (Sucursal-Terminal-Sequential-Type)
-6. **Digital Signatures**: Use FirmaXadesNet for XAdES-EPES signatures (Hacienda requirement)
-7. **DataTables Spanish**: Always set language to Spanish: `url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'`
+1. **Navigation Property Configuration**: ALL navigation properties to User entities MUST be explicitly configured in `DataContext.OnModelCreating()` using `HasOne().WithMany().HasForeignKey().OnDelete(DeleteBehavior.Restrict)`. Missing configurations cause HTTP 500 errors at runtime when saving entities.
+2. **IHttpClientFactory Pattern**: Always use named client "FacturacionApi" in Frontend
+3. **JWT Cookie**: Frontend must extract JWT from cookie "jwtAdmin" and pass as Bearer token
+4. **Soft Delete**: Most entities use soft delete (mark inactive) rather than physical deletion
+5. **Multi-tenancy**: Always filter by `EmpresaId` where applicable
+6. **Consecutive Numbering**: Format is `SSS-TTTTT-NNNNNNNN-TT` (Sucursal-Terminal-Sequential-Type)
+7. **Digital Signatures**: Use FirmaXadesNet for XAdES-EPES signatures (Hacienda requirement)
+8. **DataTables Spanish**: Always set language to Spanish: `url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'`
+9. **Port Configuration**: Backend uses HTTPS port 7501 and HTTP port 5001 (configured in launchSettings.json)
 
 ## Documentation Files
 
@@ -468,7 +479,9 @@ Task(
 
 ## Version Control
 
-- **Current Branch**: `codex`
 - **Main Branch**: `master`
 - Use descriptive commit messages
-- Recent commits show work on digital signatures (FIRMAXADES)
+- Recent commits show work on:
+  - Digital signatures (FIRMAXADES)
+  - Hacienda v4.4 FASE 2 features (multiple taxes, discounts, exonerations, otros cargos)
+  - Navigation property configurations for new entities
