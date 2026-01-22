@@ -53,6 +53,12 @@ public class UpdateDocumentoDTO
     public string? CondicionVenta { get; set; }
     public int? PlazoCreditoDias { get; set; }
 
+    /// <summary>
+    /// Número de orden de compra del receptor (opcional)
+    /// </summary>
+    [MaxLength(50)]
+    public string? NumeroOrdenCompra { get; set; }
+
     // Medio de pago
     [MaxLength(2)]
     public string? MedioPago { get; set; }

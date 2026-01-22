@@ -784,9 +784,17 @@
                                 `;
                             }
 
+                            // Ver PDF en nueva ventana
+                            buttons += `
+                                <button class="btn btn-sm btn-primary" onclick="viewPDF('${row.id}')" title="Ver PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            `;
+
+                            // Descargar PDF
                             buttons += `
                                 <button class="btn btn-sm btn-secondary" onclick="downloadPDF('${row.id}')" title="Descargar PDF">
-                                    <i class="fas fa-file-pdf"></i>
+                                    <i class="fas fa-download"></i>
                                 </button>
                             `;
 
@@ -858,7 +866,7 @@
                     url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
                 },
                 pageLength: 25,
-                order: [[5, 'desc']], // Ordenar por Fecha Emisión descendente (más recientes primero)
+                order: [[5, 'desc']], // Ordenar por numero documento descendente (más recientes primero)
                 ordering: true // Asegurar que el ordenamiento esté habilitado
             });
         }
@@ -1107,9 +1115,45 @@
             });
         }
 
+        function viewPDF(id) {
+            // Open PDF in new window/tab for viewing (inline mode)
+            const pdfUrl = `?handler=Pdf&id=${id}&download=false`;
+            const newWindow = window.open(pdfUrl, '_blank');
+
+            if (!newWindow) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Popup bloqueado',
+                    text: 'Por favor, permita las ventanas emergentes para visualizar el PDF.',
+                    confirmButtonText: 'Descargar en su lugar',
+                    showCancelButton: true,
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        downloadPDF(id);
+                    }
+                });
+            }
+        }
+
         function downloadPDF(id) {
-            // Directly navigate to the PDF handler which will return the file
-            window.location.href = `?handler=Pdf&id=${id}`;
+            // Show loading indicator
+            Swal.fire({
+                title: 'Generando PDF...',
+                text: 'Por favor espere mientras se genera el documento.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Directly navigate to the PDF handler in download mode (attachment)
+            window.location.href = `?handler=Pdf&id=${id}&download=true`;
+
+            // Close loading after a short delay
+            setTimeout(() => {
+                Swal.close();
+            }, 2000);
         }
 
         function downloadXML(id) {

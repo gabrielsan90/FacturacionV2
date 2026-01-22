@@ -656,11 +656,12 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             errores.Add("El total del documento debe ser mayor a cero");
         }
 
-        // Validar que el subtotal calculado coincida
-        var subtotalCalculado = documento.Detalles?.Sum(d => d.MontoTotalLinea) ?? 0;
-        if (Math.Abs(subtotalCalculado - documento.TotalVenta) > 0.01m)
+        // Validar que TotalVenta coincida con los totales por categoría según Hacienda v4.4
+        // TotalVenta = TotalGravado + TotalExento + TotalExonerado (usando MontoTotal, antes de descuentos)
+        var totalVentaEsperado = documento.TotalGravado + documento.TotalExento + documento.TotalExonerado;
+        if (Math.Abs(totalVentaEsperado - documento.TotalVenta) > 0.01m)
         {
-            errores.Add($"El total del documento ({documento.TotalVenta}) no coincide con la suma de las líneas ({subtotalCalculado})");
+            errores.Add($"TotalVenta ({documento.TotalVenta}) no coincide con TotalGravado + TotalExento + TotalExonerado ({totalVentaEsperado})");
         }
 
         // Validar plazo de crédito si la condición de venta es crédito

@@ -174,15 +174,23 @@ public class ValidacionCalculosService : IValidacionCalculosService
                 $"Actual: {documento.TotalImpuestos:F5}");
         }
 
-        // Verificar total de venta = Suma de MontoTotalLinea
-        var totalVentaEsperado = documento.Detalles.Sum(d => d.MontoTotalLinea) + documento.TotalOtrosCargos;
+        // Verificar TotalVenta según Hacienda v4.4
+        // TotalVenta = TotalGravado + TotalExento + TotalExonerado (usando MontoTotal, ANTES de descuentos)
+        var totalVentaEsperado = documento.TotalGravado + documento.TotalExento + documento.TotalExonerado;
         if (Math.Abs(documento.TotalVenta - totalVentaEsperado) > TOLERANCIA)
         {
             resultado.AgregarError(
                 $"TotalVenta incorrecto. Esperado: {totalVentaEsperado:F5}, " +
                 $"Actual: {documento.TotalVenta:F5}. " +
-                $"Debe ser la suma de MontoTotalLinea de todas las líneas + OtrosCargos");
+                $"Debe ser TotalGravado + TotalExento + TotalExonerado");
         }
+
+        // Verificar TotalComprobante según Hacienda v4.4
+        // TotalComprobante = TotalVentaNeta + TotalImpuesto + TotalOtrosCargos - IVADevuelto
+        var totalVentaNeta = documento.TotalVenta - documento.TotalDescuentos;
+        var totalComprobanteEsperado = totalVentaNeta + documento.TotalImpuestos + documento.TotalOtrosCargos - (documento.IVADevuelto ?? 0m);
+        var totalComprobanteActual = documento.Detalles.Sum(d => d.MontoTotalLinea) - documento.TotalDescuentos + documento.TotalOtrosCargos;
+        // Nota: TotalComprobante no se valida aquí porque se calcula en XmlGeneradorService
 
         // Validar máximo 5 decimales en totales del documento
         ValidarMaximoDecimalesDocumento(documento, resultado);

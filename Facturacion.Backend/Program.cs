@@ -14,6 +14,9 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure QuestPDF License (Community License for open source projects)
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 // Add services to the container
 builder.Services.AddMemoryCache(); // Required for TipoCambioBCCRService
 builder.Services.AddHttpClient(); // Required for IHttpClientFactory (Hacienda API, TipoCambio BCCR, etc.)
@@ -206,6 +209,9 @@ builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.ITipoCambioBC
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IEncryptionService, Facturacion.Backend.Services.Implementations.EncryptionService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IHaciendaErrorService, Facturacion.Backend.Services.Implementations.HaciendaErrorService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IXsdValidacionService, Facturacion.Backend.Services.Implementations.XsdValidacionService>();
+
+// Dependency Injection - PDF Generation Service
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IPdfGeneradorService, Facturacion.Backend.Services.Implementations.PdfGeneradorService>();
 
 // Dependency Injection - Servicios de APIs de Hacienda (CABYS, Actividades Económicas, Exoneraciones)
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.ICabysService, Facturacion.Backend.Services.Implementations.CabysService>();

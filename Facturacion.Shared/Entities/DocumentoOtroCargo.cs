@@ -46,6 +46,14 @@ public class DocumentoOtroCargo
     public string TipoDocumento { get; set; } = null!;
 
     /// <summary>
+    /// Tipo de documento otro - Obligatorio cuando TipoDocumento = 99
+    /// Descripción del tipo de documento cuando se usa código 99 (Otros)
+    /// </summary>
+    [Display(Name = "Tipo Documento Otro")]
+    [MaxLength(160, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? TipoDocumentoOtro { get; set; }
+
+    /// <summary>
     /// Detalle o descripción del cargo
     /// </summary>
     [Display(Name = "Detalle")]

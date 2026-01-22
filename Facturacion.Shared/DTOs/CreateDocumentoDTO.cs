@@ -62,6 +62,12 @@ public class CreateDocumentoDTO
 
     public int? PlazoCreditoDias { get; set; }
 
+    /// <summary>
+    /// Número de orden de compra del receptor (opcional)
+    /// </summary>
+    [MaxLength(50)]
+    public string? NumeroOrdenCompra { get; set; }
+
     // Medio de pago
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     [MaxLength(2)]
@@ -187,6 +193,15 @@ public class CreateDocumentoDetalleDescuentoDTO
 
     [Required]
     public decimal Monto { get; set; }
+
+    /// <summary>
+    /// Código del tipo de descuento según catálogo Hacienda v4.4
+    /// 01-Regalía, 02-Regalía IVA cliente, 03-Bonificación, 04-Volumen,
+    /// 05-Estacional, 06-Promocional, 07-Comercial, 08-Frecuencia, 09-Sostenido, 99-Otros
+    /// Si no se proporciona, se usa "07" (Descuento Comercial) por defecto
+    /// </summary>
+    [MaxLength(2)]
+    public string? CodigoDescuento { get; set; }
 }
 
 /// <summary>
@@ -194,6 +209,13 @@ public class CreateDocumentoDetalleDescuentoDTO
 /// </summary>
 public class CreateDocumentoDetalleImpuestoDTO
 {
+    /// <summary>
+    /// Código del impuesto según Hacienda (01-IVA, 02-Selectivo, 03-Combustible, etc.)
+    /// Si no se proporciona, se infiere del CodigoTarifa
+    /// </summary>
+    [MaxLength(2)]
+    public string? CodigoImpuesto { get; set; }
+
     [Required]
     [MaxLength(2)]
     public string CodigoTarifa { get; set; } = null!;

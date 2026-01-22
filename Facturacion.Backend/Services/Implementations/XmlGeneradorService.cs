@@ -387,24 +387,99 @@ public class XmlGeneradorService : IXmlGeneradorService
     }
 
     /// <summary>
-    /// v4.4 - OPCIONAL: Genera el elemento OtrosCargos
-    /// Para cargos adicionales como flete, seguros, etc.
+    /// v4.4 - OPCIONAL: Genera los elementos OtrosCargos (puede haber múltiples)
+    /// Para cargos adicionales como flete, seguros, timbres, etc.
     /// </summary>
     private XElement? GenerarOtrosCargos(Documento doc, XNamespace ns)
     {
-        // Si no hay otros cargos o el monto es 0, no generar el elemento
-        if (doc.TotalOtrosCargos <= 0)
-            return null;
+        // Si hay OtrosCargos individuales en la colección, usarlos
+        if (doc.OtrosCargos != null && doc.OtrosCargos.Any(c => !c.IsDeleted && c.Monto > 0))
+        {
+            var cargosActivos = doc.OtrosCargos.Where(c => !c.IsDeleted && c.Monto > 0).ToList();
 
-        // Por ahora, generamos un solo cargo genérico si hay monto
-        // En el futuro se puede expandir para múltiples cargos con tipos específicos
-        var otrosCargos = new XElement(ns + "OtrosCargos",
-            new XElement(ns + "TipoDocumento", "06"), // 06 = Otros cargos
-            new XElement(ns + "Detalle", "Otros cargos"),
-            new XElement(ns + "MontoCargo", FormatearDecimal(doc.TotalOtrosCargos, 5))
-        );
+            // Retornar el primer cargo (Hacienda acepta múltiples pero como elementos separados)
+            // Para múltiples cargos, se deben agregar como hermanos en el XML
+            var primerCargo = cargosActivos.First();
+            var tipoDoc = primerCargo.TipoDocumento ?? "99";
 
-        return otrosCargos;
+            var elementos = new List<object>
+            {
+                new XElement(ns + "TipoDocumentoOC", tipoDoc)
+            };
+
+            // TipoDocumentoOTROS es obligatorio cuando TipoDocumentoOC = 99 (según XSD v4.4)
+            if (tipoDoc == "99")
+            {
+                var tipoOtro = !string.IsNullOrWhiteSpace(primerCargo.TipoDocumentoOtro)
+                    ? primerCargo.TipoDocumentoOtro
+                    : primerCargo.Detalle ?? "Otros cargos";
+                elementos.Add(new XElement(ns + "TipoDocumentoOTROS", tipoOtro));
+            }
+
+            elementos.Add(new XElement(ns + "Detalle", primerCargo.Detalle ?? "Otros cargos"));
+            elementos.Add(new XElement(ns + "MontoCargo", FormatearDecimal(primerCargo.Monto, 5)));
+
+            return new XElement(ns + "OtrosCargos", elementos.ToArray());
+        }
+
+        // Fallback: Si solo hay TotalOtrosCargos sin detalle, generar cargo genérico
+        if (doc.TotalOtrosCargos > 0)
+        {
+            return new XElement(ns + "OtrosCargos",
+                new XElement(ns + "TipoDocumentoOC", "99"),
+                new XElement(ns + "TipoDocumentoOTROS", "Otros cargos"), // Obligatorio cuando TipoDocumentoOC = 99 (XSD v4.4)
+                new XElement(ns + "Detalle", "Otros cargos"),
+                new XElement(ns + "MontoCargo", FormatearDecimal(doc.TotalOtrosCargos, 5))
+            );
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// v4.4 - Genera todos los elementos OtrosCargos como lista
+    /// </summary>
+    private List<XElement> GenerarTodosOtrosCargos(Documento doc, XNamespace ns)
+    {
+        var elementos = new List<XElement>();
+
+        if (doc.OtrosCargos != null && doc.OtrosCargos.Any(c => !c.IsDeleted && c.Monto > 0))
+        {
+            foreach (var cargo in doc.OtrosCargos.Where(c => !c.IsDeleted && c.Monto > 0))
+            {
+                var tipoDoc = cargo.TipoDocumento ?? "99";
+                var cargoElementos = new List<object>
+                {
+                    new XElement(ns + "TipoDocumentoOC", tipoDoc)
+                };
+
+                // TipoDocumentoOTROS es obligatorio cuando TipoDocumentoOC = 99 (según XSD v4.4)
+                if (tipoDoc == "99")
+                {
+                    var tipoOtro = !string.IsNullOrWhiteSpace(cargo.TipoDocumentoOtro)
+                        ? cargo.TipoDocumentoOtro
+                        : cargo.Detalle ?? "Otros cargos";
+                    cargoElementos.Add(new XElement(ns + "TipoDocumentoOTROS", tipoOtro));
+                }
+
+                cargoElementos.Add(new XElement(ns + "Detalle", cargo.Detalle ?? "Otros cargos"));
+                cargoElementos.Add(new XElement(ns + "MontoCargo", FormatearDecimal(cargo.Monto, 5)));
+
+                elementos.Add(new XElement(ns + "OtrosCargos", cargoElementos.ToArray()));
+            }
+        }
+        else if (doc.TotalOtrosCargos > 0)
+        {
+            // Fallback: cargo genérico
+            elementos.Add(new XElement(ns + "OtrosCargos",
+                new XElement(ns + "TipoDocumentoOC", "99"),
+                new XElement(ns + "TipoDocumentoOTROS", "Otros cargos"), // Obligatorio cuando TipoDocumentoOC = 99 (XSD v4.4)
+                new XElement(ns + "Detalle", "Otros cargos"),
+                new XElement(ns + "MontoCargo", FormatearDecimal(doc.TotalOtrosCargos, 5))
+            ));
+        }
+
+        return elementos;
     }
 
     private XElement GenerarNumeroConsecutivo(Documento doc, XNamespace ns)
@@ -765,8 +840,10 @@ public class XmlGeneradorService : IXmlGeneradorService
             {
                 foreach (var desc in linea.Descuentos)
                 {
+                    // v4.4: ORDEN EXACTO según XSD: MontoDescuento, CodigoDescuento, NaturalezaDescuento
                     lineaDetalle.Add(new XElement(ns + "Descuento",
                         new XElement(ns + "MontoDescuento", FormatearDecimal(desc.MontoDescuento, 5)),
+                        new XElement(ns + "CodigoDescuento", desc.CodigoDescuento ?? "07"), // v4.4 OBLIGATORIO - Default: 07 Comercial
                         new XElement(ns + "NaturalezaDescuento", desc.NaturalezaDescuento ?? "Descuento comercial")
                     ));
                 }
@@ -922,19 +999,15 @@ public class XmlGeneradorService : IXmlGeneradorService
         resumen.Add(new XElement(ns + "TotalExonerado", FormatearDecimal(doc.TotalExonerado, 5)));
 
         // 11-13. Totales de Venta
-        // IMPORTANTE: TotalVenta = suma de SubTotales de lineas (DESPUES de descuentos de linea)
-        // TotalVenta = TotalGravado + TotalExento + TotalExonerado
-        // Los descuentos de linea ya estan restados en SubTotal, por lo que NO se restan aqui
-        var totalVentaCalculado = doc.TotalGravado + doc.TotalExento + doc.TotalExonerado;
-        resumen.Add(new XElement(ns + "TotalVenta", FormatearDecimal(totalVentaCalculado, 5)));
+        // v4.4: TotalVenta = TotalGravado + TotalExento + TotalExonerado (usando MontoTotal, ANTES de descuentos)
+        resumen.Add(new XElement(ns + "TotalVenta", FormatearDecimal(doc.TotalVenta, 5)));
 
-        // TotalDescuentos = suma de descuentos de lineas (informativo para Hacienda)
+        // TotalDescuentos = suma de TODOS los descuentos (línea + documento)
         resumen.Add(new XElement(ns + "TotalDescuentos", FormatearDecimal(doc.TotalDescuentos, 5)));
 
-        // TotalVentaNeta = TotalVenta - descuentos adicionales a nivel documento (no de linea)
-        // Si solo hay descuentos de linea, TotalVentaNeta = TotalVenta
-        var descuentosDocumento = doc.Descuentos?.Sum(d => d.MontoDescuento) ?? 0m;
-        resumen.Add(new XElement(ns + "TotalVentaNeta", FormatearDecimal(totalVentaCalculado - descuentosDocumento, 5)));
+        // TotalVentaNeta = TotalVenta - TotalDescuentos (resultado neto después de descuentos)
+        var totalVentaNeta = doc.TotalVenta - doc.TotalDescuentos;
+        resumen.Add(new XElement(ns + "TotalVentaNeta", FormatearDecimal(totalVentaNeta, 5)));
 
         // ========================================
         // 14. v4.4 - TotalDesgloseImpuesto (OBLIGATORIO cuando hay impuestos en detalles)
@@ -981,7 +1054,9 @@ public class XmlGeneradorService : IXmlGeneradorService
         }
 
         // 19. Total Comprobante (el monto final)
-        resumen.Add(new XElement(ns + "TotalComprobante", FormatearDecimal(doc.TotalVenta, 5)));
+        // TotalComprobante = TotalVentaNeta + TotalImpuesto + TotalOtrosCargos - TotalIVADevuelto
+        var totalComprobante = totalVentaNeta + doc.TotalImpuestos + doc.TotalOtrosCargos - (doc.IVADevuelto ?? 0m);
+        resumen.Add(new XElement(ns + "TotalComprobante", FormatearDecimal(totalComprobante, 5)));
 
         return resumen;
     }

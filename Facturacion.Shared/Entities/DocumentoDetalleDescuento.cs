@@ -35,6 +35,17 @@ public class DocumentoDetalleDescuento
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public string NaturalezaDescuento { get; set; } = null!;
 
+    /// <summary>
+    /// Código del tipo de descuento según catálogo Hacienda v4.4
+    /// 01-Regalía, 02-Regalía IVA cargo cliente, 03-Bonificación, 04-Volumen,
+    /// 05-Estacional, 06-Promocional, 07-Comercial, 08-Frecuencia, 09-Sostenido, 99-Otros
+    /// OBLIGATORIO en v4.4
+    /// </summary>
+    [Display(Name = "Código Descuento")]
+    [MaxLength(2, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    [Required(ErrorMessage = "El campo {0} es obligatorio.")]
+    public string CodigoDescuento { get; set; } = "07"; // 07 - Descuento Comercial (por defecto)
+
     // ========================================
     // MONTO DEL DESCUENTO
     // ========================================

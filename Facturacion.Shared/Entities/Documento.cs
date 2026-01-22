@@ -210,6 +210,14 @@ public class Documento
     [Display(Name = "Plazo de Crédito (días)")]
     public int? PlazoCreditoDias { get; set; }
 
+    /// <summary>
+    /// Número de orden de compra del receptor (opcional)
+    /// Usado para relacionar la factura con una orden de compra del cliente
+    /// </summary>
+    [Display(Name = "Número Orden de Compra")]
+    [MaxLength(50, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? NumeroOrdenCompra { get; set; }
+
     // ========================================
     // MEDIO DE PAGO
     // ========================================

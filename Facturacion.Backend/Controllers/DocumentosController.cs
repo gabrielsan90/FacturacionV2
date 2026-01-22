@@ -19,6 +19,7 @@ public class DocumentosController : ControllerBase
     private readonly IDocumentoHaciendaService _haciendaService;
     private readonly IDocumentoService _documentoService;
     private readonly IXsdValidacionService _xsdValidacion;
+    private readonly IPdfGeneradorService _pdfGeneradorService;
     private readonly ILogger<DocumentosController> _logger;
 
     public DocumentosController(
@@ -26,12 +27,14 @@ public class DocumentosController : ControllerBase
         IDocumentoHaciendaService haciendaService,
         IDocumentoService documentoService,
         IXsdValidacionService xsdValidacion,
+        IPdfGeneradorService pdfGeneradorService,
         ILogger<DocumentosController> logger)
     {
         _unitOfWork = unitOfWork;
         _haciendaService = haciendaService;
         _documentoService = documentoService;
         _xsdValidacion = xsdValidacion;
+        _pdfGeneradorService = pdfGeneradorService;
         _logger = logger;
     }
 
@@ -769,27 +772,27 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
-    /// Download PDF of a document (if generated)
+    /// Download PDF of a document (generates on-demand)
     /// </summary>
     [HttpGet("{id:guid}/descargar-pdf")]
     public async Task<IActionResult> DescargarPdfAsync(Guid id)
     {
         try
         {
+            _logger.LogInformation("Generating PDF for document {DocumentoId}", id);
+
+            var response = await _pdfGeneradorService.GenerarPdfAsync(id);
+
+            if (!response.WasSuccess)
+            {
+                return BadRequest(new { Mensaje = response.Message });
+            }
+
+            // Get document info for filename
             var documento = await _unitOfWork.DocumentoRepository.GetAsync(id);
+            var filename = $"Documento_{documento?.NumeroConsecutivo?.Replace("-", "") ?? id.ToString()}.pdf";
 
-            if (documento == null)
-            {
-                return NotFound($"Documento con ID {id} no encontrado.");
-            }
-
-            if (string.IsNullOrWhiteSpace(documento.PDF))
-            {
-                return BadRequest("El documento no tiene PDF generado.");
-            }
-
-            // TODO: Implement PDF download from file path or storage
-            return BadRequest("Funcionalidad de PDF aún no implementada");
+            return File(response.Result!, "application/pdf", filename);
         }
         catch (Exception ex)
         {
@@ -799,27 +802,12 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
-    /// Generate PDF for a document
+    /// Generate PDF for a document (same as download, provided for compatibility)
     /// </summary>
     [HttpPost("{id:guid}/generar-pdf")]
     public async Task<IActionResult> GenerarPdfAsync(Guid id)
     {
-        try
-        {
-            _logger.LogInformation("Generando PDF para documento {DocumentoId}", id);
-
-            // TODO: Implement PDF generation service
-            return BadRequest(new
-            {
-                Mensaje = "La generación de PDF aún no está implementada",
-                DocumentoId = id
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al generar PDF del documento {DocumentoId}", id);
-            return StatusCode(500, new { Mensaje = "Error al generar el PDF", Detalle = ex.Message });
-        }
+        return await DescargarPdfAsync(id);
     }
 
     /// <summary>
@@ -936,7 +924,8 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
-    /// Download ZIP file containing XML firmado, respuesta Hacienda, and PDF
+    /// Download ZIP file containing XML firmado, respuesta Hacienda XML, and PDF
+    /// The PDF is generated on-demand (not stored in database)
     /// </summary>
     [HttpGet("{id:guid}/download-zip")]
     public async Task<IActionResult> DownloadZipAsync(Guid id)
@@ -976,12 +965,30 @@ public class DocumentosController : ControllerBase
                     respuestaStream.Write(respuestaBytes, 0, respuestaBytes.Length);
                 }
 
-                // TODO: Add PDF when PDF generation is implemented
-                // if (!string.IsNullOrWhiteSpace(documento.PDF))
-                // {
-                //     var pdfEntry = archive.CreateEntry("factura.pdf");
-                //     // Add PDF bytes
-                // }
+                // Add PDF (generated on-demand)
+                try
+                {
+                    _logger.LogInformation("Generating PDF for ZIP download, document {DocumentoId}", id);
+                    var pdfResponse = await _pdfGeneradorService.GenerarPdfAsync(id);
+
+                    if (pdfResponse.WasSuccess && pdfResponse.Result != null)
+                    {
+                        var pdfEntry = archive.CreateEntry($"{documento.NumeroConsecutivo.Replace("-", "")}.pdf");
+                        using var pdfStream = pdfEntry.Open();
+                        pdfStream.Write(pdfResponse.Result, 0, pdfResponse.Result.Length);
+                        _logger.LogInformation("PDF added to ZIP successfully, size: {Size} bytes", pdfResponse.Result.Length);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Could not generate PDF for ZIP: {Message}", pdfResponse.Message);
+                        // Continue without PDF - don't fail the entire ZIP generation
+                    }
+                }
+                catch (Exception pdfEx)
+                {
+                    _logger.LogError(pdfEx, "Error generating PDF for ZIP, continuing without PDF");
+                    // Continue without PDF - don't fail the entire ZIP generation
+                }
             }
 
             memoryStream.Position = 0;

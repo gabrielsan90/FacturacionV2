@@ -18,7 +18,12 @@
       "Bash(dotnet tool restore:*)",
       "Bash(dotnet tool install:*)",
       "Bash(~/.dotnet/tools/dotnet-ef migrations add:*)",
-      "Bash(~/.dotnet/tools/dotnet-ef database update:*)"
+      "Bash(~/.dotnet/tools/dotnet-ef database update:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Skill(dotnet-frontend)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

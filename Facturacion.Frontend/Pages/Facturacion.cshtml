@@ -935,7 +935,12 @@
                                 <option value="02">02 - Tarifa reducida 1%</option>
                                 <option value="03">03 - Tarifa reducida 2%</option>
                                 <option value="04">04 - Tarifa reducida 4%</option>
+                                <option value="05">05 - 0% Transitorio</option>
+                                <option value="06">06 - 4% Transitorio</option>
+                                <option value="07">07 - 8% Transitorio</option>
+                                <option value="09">09 - 0.5% Reducida</option>
                                 <option value="10">10 - Exento</option>
+                                <option value="11">11 - 0% Sin crédito</option>
                             </select>
                         </div>
                     </div>
@@ -2044,9 +2049,16 @@
                 }
             });
 
-            // Moneda change - Control Tipo de Cambio
+            // Moneda change - Control Tipo de Cambio y Símbolo de Moneda
             $('#Moneda').on('change', function () {
                 const moneda = $(this).val();
+
+                // Actualizar símbolo de moneda global
+                currentCurrencySymbol = getCurrencySymbol(moneda);
+
+                // Actualizar todos los símbolos en la UI
+                updateCurrencySymbolsInUI();
+
                 if (moneda === 'CRC') {
                     // Si es Colones, tipo de cambio = 1 y campo readonly
                     $('#TipoCambio').val('1.00').prop('readonly', true);
@@ -3077,6 +3089,20 @@
                 } else {
                     $('#lblCabysDescripcion').hide();
                 }
+
+                // Copiar impuestos de la línea existente a currentLine
+                if (line.impuestos && line.impuestos.length > 0) {
+                    currentLine.impuestos = JSON.parse(JSON.stringify(line.impuestos)); // Deep copy
+                    // Renderizar impuestos en la tabla
+                    currentLine.impuestos.forEach((tax, idx) => renderTaxRow(idx));
+                }
+
+                // Copiar descuentos de la línea existente a currentLine
+                if (line.descuentos && line.descuentos.length > 0) {
+                    currentLine.descuentos = JSON.parse(JSON.stringify(line.descuentos)); // Deep copy
+                    // TODO: Renderizar descuentos en la tabla si existe UI para múltiples descuentos
+                }
+
                 calculateLineSubtotal();
             } else {
                 // Add mode
@@ -3260,7 +3286,10 @@
             let servGravados = 0, servExentos = 0, servExonerados = 0;
             let mercGravadas = 0, mercExentas = 0, mercExoneradas = 0;
             let totalDescuentos = 0, totalImpuestos = 0;
-            let ivaDevuelto = 0, otrosCargos = 0;
+            let ivaDevuelto = 0;
+
+            // Sumar Otros Cargos del array global otrosCargos
+            let totalOtrosCargos = otrosCargos.reduce((sum, cargo) => sum + (parseFloat(cargo.monto) || 0), 0);
 
             documentLines.forEach(function (line) {
                 const montoTotal = line.cantidad * line.precioUnitario;
@@ -3272,46 +3301,70 @@
                 totalImpuestos += impuesto;
 
                 // Determinar si es servicio o mercancia
-                // Servicios: unidades Sp, Spe, Os, Al (alquiler), etc.
+                // 1. Si tiene campo tipoProducto, usarlo directamente
+                // 2. Si NO tiene ProductoId, es servicio (línea manual sin producto del catálogo)
+                // 3. Si tiene unidades de servicio (Sp, Spe, Os, Al, h, d, Ser), es servicio
+                // 4. Si no, es mercancía por defecto
                 const unidadesServicio = ['Sp', 'Spe', 'Os', 'Al', 'Alc', 'h', 'd', 'Ser'];
-                const esServicio = line.unidadMedida && unidadesServicio.some(u =>
-                    line.unidadMedida.toLowerCase().includes(u.toLowerCase())
-                ) || (line.tipoProducto === 'servicio');
+                const esServicio = (line.tipoProducto === 'servicio') ||
+                    (!line.productoId) || // Si no hay ProductoId, es servicio manual
+                    (line.unidadMedida && unidadesServicio.some(u =>
+                        line.unidadMedida.toLowerCase().includes(u.toLowerCase())
+                    ));
 
-                // Determinar tipo de gravamen basado en tarifa de impuesto
-                // Gravado: tarifa > 0
-                // Exento: tarifa = 0 (o codigo tarifa 01, 10)
-                // Exonerado: tiene exoneracion aplicada
-                const esExonerado = line.exoneracionPorcentaje > 0 || line.tipoGravamen === 'exonerado';
-                const esGravado = !esExonerado && (line.impuestoPorcentaje > 0);
-                const esExento = !esExonerado && !esGravado;
+                // Determinar tipo de gravamen usando el sistema NUEVO de múltiples impuestos
+                let esGravado = false;
+                let esExonerado = false;
+                let esExento = false;
 
-                // Clasificar el subtotal de la linea
+                if (line.impuestos && line.impuestos.length > 0) {
+                    // Revisar cada impuesto de la línea
+                    line.impuestos.forEach(imp => {
+                        if (imp.tieneExoneracion) {
+                            esExonerado = true;
+                        } else if (imp.tarifa > 0) {
+                            esGravado = true;
+                        } else if (imp.codigoTarifa === '10' || imp.codigoTarifa === '01') {
+                            esExento = true;
+                        }
+                    });
+                } else {
+                    // Retrocompatibilidad con sistema VIEJO
+                    const tieneExoneracionViejo = line.exoneracionPorcentaje > 0 || line.tipoGravamen === 'exonerado';
+                    const esGravadoViejo = !tieneExoneracionViejo && (line.impuestoPorcentaje > 0);
+
+                    esExonerado = tieneExoneracionViejo;
+                    esGravado = esGravadoViejo;
+                    esExento = !tieneExoneracionViejo && !esGravadoViejo;
+                }
+
+                // Clasificar usando MontoTotal (ANTES de descuentos) según Hacienda v4.4
+                // TotalServGravados/TotalMercanciasGravadas usan MontoTotal
                 if (esServicio) {
-                    if (esGravado) servGravados += subtotalLinea;
-                    else if (esExento) servExentos += subtotalLinea;
-                    else if (esExonerado) servExonerados += subtotalLinea;
+                    if (esGravado) servGravados += montoTotal;
+                    else if (esExento) servExentos += montoTotal;
+                    else if (esExonerado) servExonerados += montoTotal;
                 } else {
                     // Mercancia
-                    if (esGravado) mercGravadas += subtotalLinea;
-                    else if (esExento) mercExentas += subtotalLinea;
-                    else if (esExonerado) mercExoneradas += subtotalLinea;
+                    if (esGravado) mercGravadas += montoTotal;
+                    else if (esExento) mercExentas += montoTotal;
+                    else if (esExonerado) mercExoneradas += montoTotal;
                 }
             });
 
-            // Calcular totales consolidados
+            // Calcular totales consolidados (usando MontoTotal, antes de descuentos)
             const totalGravado = servGravados + mercGravadas;
             const totalExento = servExentos + mercExentas;
             const totalExonerado = servExonerados + mercExoneradas;
 
-            // TotalVenta = suma de SubTotales (despues de descuentos de linea)
+            // TotalVenta = TotalGravado + TotalExento + TotalExonerado (antes de descuentos)
             const totalVenta = totalGravado + totalExento + totalExonerado;
 
-            // TotalVentaNeta = TotalVenta (descuentos ya aplicados en SubTotal)
-            const totalVentaNeta = totalVenta;
+            // TotalVentaNeta = TotalVenta - TotalDescuentos (neto después de descuentos)
+            const totalVentaNeta = totalVenta - totalDescuentos;
 
             // TotalComprobante = TotalVentaNeta + Impuestos + OtrosCargos - IVADevuelto
-            const totalComprobante = totalVentaNeta + totalImpuestos + otrosCargos - ivaDevuelto;
+            const totalComprobante = totalVentaNeta + totalImpuestos + totalOtrosCargos - ivaDevuelto;
 
             // Actualizar UI - Desglose por tipo
             $('#lblServGravados').text(formatCurrency(servGravados));
@@ -3330,7 +3383,7 @@
             $('#lblTotalVentaNeta').text(formatCurrency(totalVentaNeta));
             $('#lblTotalImpuestos').text(formatCurrency(totalImpuestos));
             $('#lblIVADevuelto').text(formatCurrency(ivaDevuelto));
-            $('#lblOtrosCargos').text(formatCurrency(otrosCargos));
+            $('#lblOtrosCargos').text(formatCurrency(totalOtrosCargos));
             $('#lblTotalComprobante').text(formatCurrency(totalComprobante));
 
             // Campos ocultos para compatibilidad
@@ -3346,8 +3399,15 @@
                 mercGravadas, mercExentas, mercExoneradas,
                 totalGravado, totalExento, totalExonerado,
                 totalVenta, totalDescuentos, totalVentaNeta,
-                totalImpuestos, ivaDevuelto, otrosCargos, totalComprobante
+                totalImpuestos, ivaDevuelto,
+                otrosCargos: totalOtrosCargos,
+                totalComprobante
             };
+        }
+
+        // Alias para compatibilidad con llamadas existentes
+        function calculateDocumentTotals() {
+            calculateTotals();
         }
 
         function saveDocument(estado) {
@@ -3756,12 +3816,12 @@
 
                             return impuestoDTO;
                         });
-                    } else if (line.impuestoPorcentaje && line.impuestoPorcentaje > 0) {
-                        // Retrocompatibilidad con líneas antiguas
+                    } else if (line.impuestoPorcentaje !== undefined && line.impuestoPorcentaje !== null) {
+                        // Retrocompatibilidad con líneas antiguas (incluye tarifa 0% y exento)
                         detalle.impuestos = [{
                             codigoTarifa: line.codigoTarifaIVA || '08', // Usar el código de tarifa seleccionado
                             tarifa: line.impuestoPorcentaje,
-                            monto: line.montoImpuesto
+                            monto: line.montoImpuesto || 0
                         }];
                     }
 
@@ -4241,8 +4301,48 @@
             });
         }
 
+        // Variable global para símbolo de moneda
+        let currentCurrencySymbol = '₡';
+
+        function getCurrencySymbol(moneda) {
+            switch (moneda) {
+                case 'CRC':
+                    return '₡';
+                case 'USD':
+                    return '$';
+                case 'EUR':
+                    return '€';
+                default:
+                    return '₡';
+            }
+        }
+
         function formatCurrency(value) {
-            return '₡' + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+            return currentCurrencySymbol + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
+        function updateCurrencySymbolsInUI() {
+            // Actualizar todos los labels de totales con el símbolo actual
+            $('#lblServGravados').text(formatCurrency($('#lblServGravados').text().replace(/[₡$€]/g, '')));
+            $('#lblServExentos').text(formatCurrency($('#lblServExentos').text().replace(/[₡$€]/g, '')));
+            $('#lblServExonerados').text(formatCurrency($('#lblServExonerados').text().replace(/[₡$€]/g, '')));
+            $('#lblMercGravadas').text(formatCurrency($('#lblMercGravadas').text().replace(/[₡$€]/g, '')));
+            $('#lblMercExentas').text(formatCurrency($('#lblMercExentas').text().replace(/[₡$€]/g, '')));
+            $('#lblMercExoneradas').text(formatCurrency($('#lblMercExoneradas').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalGravado').text(formatCurrency($('#lblTotalGravado').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalExento').text(formatCurrency($('#lblTotalExento').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalExonerado').text(formatCurrency($('#lblTotalExonerado').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalVenta').text(formatCurrency($('#lblTotalVenta').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalDescuentos').text('-' + formatCurrency($('#lblTotalDescuentos').text().replace(/[₡$€-]/g, '')));
+            $('#lblTotalVentaNeta').text(formatCurrency($('#lblTotalVentaNeta').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalImpuestos').text(formatCurrency($('#lblTotalImpuestos').text().replace(/[₡$€]/g, '')));
+            $('#lblIVADevuelto').text(formatCurrency($('#lblIVADevuelto').text().replace(/[₡$€]/g, '')));
+            $('#lblOtrosCargos').text(formatCurrency($('#lblOtrosCargos').text().replace(/[₡$€]/g, '')));
+            $('#lblTotalComprobante').text(formatCurrency($('#lblTotalComprobante').text().replace(/[₡$€]/g, '')));
+            $('#lblSubtotalLinea').text(formatCurrency($('#lblSubtotalLinea').text().replace(/[₡$€]/g, '')));
+
+            // Recalcular totales para actualizar todas las líneas de la tabla
+            recalcularTotales();
         }
 
         // ============================================

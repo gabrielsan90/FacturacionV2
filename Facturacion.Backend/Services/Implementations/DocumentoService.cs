@@ -180,22 +180,64 @@ public class DocumentoService : IDocumentoService
         foreach (var detalle in documento.Detalles)
         {
             var esMercancia = detalle.ProductoId.HasValue;
-            var tieneImpuestos = detalle.Impuestos?.Any() ?? false;
 
-            if (tieneImpuestos)
+            // Determinar si la línea es gravada, exenta o exonerada
+            bool esGravada = false;
+            bool esExonerada = false;
+            bool esExenta = false;
+
+            if (detalle.Impuestos != null && detalle.Impuestos.Any())
             {
-                if (esMercancia)
-                    totalMercanciasGravadas += detalle.Subtotal;
-                else
-                    totalServiciosGravados += detalle.Subtotal;
+                // Revisar cada impuesto de la línea
+                foreach (var impuesto in detalle.Impuestos)
+                {
+                    // Si tiene exoneración, es EXONERADO
+                    if (impuesto.TieneExoneracion && !string.IsNullOrEmpty(impuesto.NumeroDocumentoExoneracion))
+                    {
+                        esExonerada = true;
+                    }
+                    // Si la tarifa es > 0, es GRAVADO
+                    else if (impuesto.Tarifa > 0)
+                    {
+                        esGravada = true;
+                    }
+                    // Si la tarifa es 0 con código 10 (Exento) o 01 (0%), es EXENTO
+                    else if (impuesto.CodigoTarifa == "10" || impuesto.CodigoTarifa == "01")
+                    {
+                        esExenta = true;
+                    }
+                }
             }
             else
             {
-                // TODO: Distinguir entre exento y exonerado según la configuración del impuesto
+                // Si no tiene impuestos en absoluto, es EXENTO por defecto
+                esExenta = true;
+            }
+
+            // Clasificar según el tipo y gravamen
+            // IMPORTANTE v4.4: Usar MontoTotal (ANTES de descuentos)
+            // TotalServGravados/TotalMercanciasGravadas = monto bruto por categoría
+            // Los descuentos se restan en TotalVentaNeta = TotalVenta - TotalDescuentos
+            if (esExonerada)
+            {
                 if (esMercancia)
-                    totalMercanciasExentas += detalle.Subtotal;
+                    totalMercanciasExoneradas += detalle.MontoTotal;
                 else
-                    totalServiciosExentos += detalle.Subtotal;
+                    totalServiciosExonerados += detalle.MontoTotal;
+            }
+            else if (esGravada)
+            {
+                if (esMercancia)
+                    totalMercanciasGravadas += detalle.MontoTotal;
+                else
+                    totalServiciosGravados += detalle.MontoTotal;
+            }
+            else if (esExenta)
+            {
+                if (esMercancia)
+                    totalMercanciasExentas += detalle.MontoTotal;
+                else
+                    totalServiciosExentos += detalle.MontoTotal;
             }
         }
 
@@ -210,8 +252,9 @@ public class DocumentoService : IDocumentoService
         documento.TotalExento = Math.Round(totalServiciosExentos + totalMercanciasExentas, 5);
         documento.TotalExonerado = Math.Round(totalServiciosExonerados + totalMercanciasExoneradas, 5);
 
-        // Subtotal antes de descuentos e impuestos
-        documento.Subtotal = Math.Round(documento.Detalles.Sum(d => d.MontoTotal), 5);
+        // Subtotal del documento = suma de Subtotales de líneas (DESPUÉS de descuentos de línea, ANTES de impuestos)
+        // Este es el monto sobre el cual se calculan los impuestos según Hacienda v4.4
+        documento.Subtotal = Math.Round(documento.Detalles.Sum(d => d.Subtotal), 5);
 
         // Descuentos a nivel de línea
         var descuentosLineas = documento.Detalles.Sum(d => d.MontoDescuento);
@@ -224,13 +267,17 @@ public class DocumentoService : IDocumentoService
         // Total de impuestos
         documento.TotalImpuestos = Math.Round(documento.Detalles.Sum(d => d.MontoImpuesto), 5);
 
-        // Total de otros cargos (si los hay)
-        // documento.TotalOtrosCargos se mantiene como está
+        // Total de otros cargos (sumar de la colección OtrosCargos)
+        if (documento.OtrosCargos != null && documento.OtrosCargos.Any())
+        {
+            documento.TotalOtrosCargos = Math.Round(
+                documento.OtrosCargos.Where(c => !c.IsDeleted).Sum(c => c.Monto), 5);
+        }
 
-        // Total de venta = Subtotal - Descuentos + Impuestos + Otros Cargos
-        documento.TotalVenta = Math.Round(
-            documento.Subtotal - documento.TotalDescuentos + documento.TotalImpuestos + documento.TotalOtrosCargos,
-            5);
+        // TotalVenta según Hacienda v4.4 = TotalGravado + TotalExento + TotalExonerado
+        // Estos totales usan MontoTotal (ANTES de descuentos)
+        // TotalVentaNeta = TotalVenta - TotalDescuentos (en XmlGeneradorService)
+        documento.TotalVenta = Math.Round(documento.TotalGravado + documento.TotalExento + documento.TotalExonerado, 5);
     }
 
     /// <summary>
@@ -461,6 +508,7 @@ public class DocumentoService : IDocumentoService
             ReceptorTelefono = dto.ReceptorTelefono,
             CondicionVenta = dto.CondicionVenta,
             PlazoCreditoDias = dto.PlazoCreditoDias,
+            NumeroOrdenCompra = dto.NumeroOrdenCompra,
             MedioPago = dto.MedioPago,
             Moneda = dto.Moneda,
             TipoCambio = dto.TipoCambio,
@@ -518,6 +566,7 @@ public class DocumentoService : IDocumentoService
                         DocumentoDetalleId = detalle.Id,
                         NaturalezaDescuento = descDTO.Naturaleza,
                         MontoDescuento = descDTO.Monto,
+                        CodigoDescuento = descDTO.CodigoDescuento ?? "07", // v4.4: Default "07" - Descuento Comercial
                         FechaCreacion = DateTime.UtcNow,
                         UsuarioCreacionId = userId
                     });
@@ -529,13 +578,30 @@ public class DocumentoService : IDocumentoService
             {
                 foreach (var impDTO in detalleDTO.Impuestos)
                 {
-                    // TODO: ImpuestoId y CodigoImpuesto deben obtenerse del catálogo usando CodigoTarifa
+                    // Determinar código de impuesto: usar el proporcionado o inferirlo del código de tarifa
+                    string codigoImpuesto = !string.IsNullOrWhiteSpace(impDTO.CodigoImpuesto)
+                        ? impDTO.CodigoImpuesto
+                        : InferirCodigoImpuesto(impDTO.CodigoTarifa);
+
+                    // Buscar el impuesto en el catálogo de Hacienda
+                    int? impuestoId = await BuscarImpuestoEnCatalogo(codigoImpuesto, impDTO.Tarifa);
+
+                    // Si no se encuentra en el catálogo, usar ID por defecto con advertencia
+                    if (!impuestoId.HasValue)
+                    {
+                        _logger.LogWarning(
+                            "No se encontró el impuesto en el catálogo. Usando ID por defecto. " +
+                            "Código: {CodigoImpuesto}, Tarifa: {Tarifa}%",
+                            codigoImpuesto, impDTO.Tarifa);
+                        impuestoId = 1; // ID por defecto (asumiendo que existe un impuesto con ID 1)
+                    }
+
                     detalle.Impuestos.Add(new DocumentoDetalleImpuesto
                     {
                         Id = Guid.NewGuid(),
                         DocumentoDetalleId = detalle.Id,
-                        ImpuestoId = 1, // TODO: Obtener del catálogo usando CodigoTarifa
-                        CodigoImpuesto = "01", // TODO: Obtener del catálogo usando CodigoTarifa
+                        ImpuestoId = impuestoId.Value,
+                        CodigoImpuesto = codigoImpuesto,
                         CodigoTarifa = impDTO.CodigoTarifa,
                         Tarifa = impDTO.Tarifa,
                         MontoBase = 0, // Se calculará luego
@@ -708,6 +774,7 @@ public class DocumentoService : IDocumentoService
             documento.CondicionVenta = dto.CondicionVenta;
 
         documento.PlazoCreditoDias = dto.PlazoCreditoDias;
+        documento.NumeroOrdenCompra = dto.NumeroOrdenCompra;
 
         if (!string.IsNullOrWhiteSpace(dto.MedioPago))
             documento.MedioPago = dto.MedioPago;
@@ -778,5 +845,81 @@ public class DocumentoService : IDocumentoService
     public string ObtenerCodigoTipoDocumento(DocumentoTipo tipoDocumento)
     {
         return _consecutivoService.ObtenerCodigoTipoDocumento(tipoDocumento);
+    }
+
+    /// <summary>
+    /// Infiere el código de impuesto a partir del código de tarifa
+    /// Según Hacienda v4.4:
+    /// - CodigoTarifa 01-08, 10: IVA (código 01)
+    /// - Otros códigos requieren especificación explícita
+    /// </summary>
+    /// <param name="codigoTarifa">Código de tarifa (01-10 para IVA, etc.)</param>
+    /// <returns>Código de impuesto (01-IVA, 02-Selectivo, etc.)</returns>
+    private string InferirCodigoImpuesto(string codigoTarifa)
+    {
+        // Códigos de tarifa IVA según Hacienda v4.4
+        var codigosTarifaIVA = new[] { "01", "02", "03", "04", "05", "06", "07", "08", "10" };
+
+        if (codigosTarifaIVA.Contains(codigoTarifa))
+        {
+            return "01"; // IVA
+        }
+
+        // Para otros impuestos específicos, se requiere que venga explícito
+        // Por defecto, asumir IVA si no se puede determinar
+        _logger.LogWarning(
+            "No se pudo inferir el código de impuesto para el código de tarifa {CodigoTarifa}. Usando IVA (01) por defecto.",
+            codigoTarifa);
+
+        return "01";
+    }
+
+    /// <summary>
+    /// Busca el impuesto en el catálogo de Hacienda por código de impuesto y tarifa
+    /// </summary>
+    /// <param name="codigoImpuesto">Código del impuesto (01-IVA, 02-Selectivo, etc.)</param>
+    /// <param name="tarifa">Porcentaje de la tarifa</param>
+    /// <returns>ID del impuesto en el catálogo, o null si no se encuentra</returns>
+    private async Task<int?> BuscarImpuestoEnCatalogo(string codigoImpuesto, decimal tarifa)
+    {
+        try
+        {
+            // Buscar en el catálogo por código y tarifa (porcentaje)
+            var impuesto = await _context.Impuestos
+                .Where(i => i.Codigo == codigoImpuesto && i.Porcentaje == tarifa && i.Activo)
+                .FirstOrDefaultAsync();
+
+            if (impuesto != null)
+            {
+                return impuesto.Id;
+            }
+
+            // Si no se encuentra por tarifa exacta, buscar solo por código
+            impuesto = await _context.Impuestos
+                .Where(i => i.Codigo == codigoImpuesto && i.Activo)
+                .FirstOrDefaultAsync();
+
+            if (impuesto != null)
+            {
+                _logger.LogWarning(
+                    "Impuesto encontrado con código {CodigoImpuesto} pero tarifa diferente. " +
+                    "Esperada: {TarifaEsperada}%, Encontrada: {TarifaEncontrada}%",
+                    codigoImpuesto, tarifa, impuesto.Porcentaje);
+                return impuesto.Id;
+            }
+
+            _logger.LogWarning(
+                "No se encontró el impuesto en el catálogo con código {CodigoImpuesto} y tarifa {Tarifa}%",
+                codigoImpuesto, tarifa);
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error al buscar impuesto en catálogo. Código: {CodigoImpuesto}, Tarifa: {Tarifa}%",
+                codigoImpuesto, tarifa);
+            return null;
+        }
     }
 }

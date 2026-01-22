@@ -257,36 +257,107 @@ public class DocumentosModel : PageModel
         return new JsonResult(new { success = false, message = error });
     }
 
-    // Handler to download PDF
-    public async Task<IActionResult> OnGetPdfAsync(string id)
+    // Handler to view or download PDF
+    // download parameter: true = download (attachment), false/null = view inline
+    public async Task<IActionResult> OnGetPdfAsync(string id, bool download = false)
     {
-        var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-        var token = User.FindFirst("Token")?.Value;
-        if (!string.IsNullOrEmpty(token))
+        try
         {
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        }
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
 
-        var response = await client.GetAsync($"/api/Documentos/{id}/descargar-pdf");
-
-        if (response.IsSuccessStatusCode)
-        {
-            var fileBytes = await response.Content.ReadAsByteArrayAsync();
-            var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/pdf";
-            var fileName = $"documento_{id}.pdf";
-
-            // Try to get filename from Content-Disposition header
-            if (response.Content.Headers.ContentDisposition?.FileName != null)
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
             {
-                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            return File(fileBytes, contentType, fileName);
-        }
+            _logger.LogInformation("Requesting PDF for document {DocumentoId}, download mode: {DownloadMode}", id, download);
 
-        // If PDF generation is not yet implemented, return a message
-        return new JsonResult(new { success = false, message = "La generación de PDF se implementará en un próximo sprint." });
+            var response = await client.GetAsync($"/api/Documentos/{id}/descargar-pdf");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/pdf";
+                var fileName = $"documento_{id}.pdf";
+
+                // Try to get filename from Content-Disposition header
+                if (response.Content.Headers.ContentDisposition?.FileName != null)
+                {
+                    fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+                }
+
+                _logger.LogInformation("PDF generated successfully for document {DocumentoId}, size: {Size} bytes", id, fileBytes.Length);
+
+                // If download=false, return inline for viewing in browser
+                // If download=true, return as attachment to force download
+                if (download)
+                {
+                    return File(fileBytes, contentType, fileName);
+                }
+                else
+                {
+                    // Return without fileName to use Content-Disposition: inline
+                    return File(fileBytes, contentType);
+                }
+            }
+
+            // Handle error response from API
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to generate PDF for document {DocumentoId}. Status: {StatusCode}, Error: {Error}",
+                id, response.StatusCode, errorContent);
+
+            // Return HTML error page for better user experience
+            return Content($@"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Error al generar PDF</title>
+                    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+                </head>
+                <body class='bg-light'>
+                    <div class='container mt-5'>
+                        <div class='alert alert-danger'>
+                            <h4 class='alert-heading'><i class='fas fa-exclamation-triangle'></i> Error al generar PDF</h4>
+                            <p>No se pudo generar el PDF del documento.</p>
+                            <hr>
+                            <p class='mb-0'><strong>Detalle:</strong> {errorContent}</p>
+                            <p class='mt-3'>
+                                <a href='/Documentos' class='btn btn-primary'>Volver a Documentos</a>
+                            </p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ", "text/html");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception while generating PDF for document {DocumentoId}", id);
+
+            return Content($@"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Error al generar PDF</title>
+                    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+                </head>
+                <body class='bg-light'>
+                    <div class='container mt-5'>
+                        <div class='alert alert-danger'>
+                            <h4 class='alert-heading'><i class='fas fa-exclamation-triangle'></i> Error Inesperado</h4>
+                            <p>Ocurrió un error inesperado al generar el PDF.</p>
+                            <hr>
+                            <p class='mb-0'><strong>Detalle:</strong> {ex.Message}</p>
+                            <p class='mt-3'>
+                                <a href='/Documentos' class='btn btn-primary'>Volver a Documentos</a>
+                            </p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ", "text/html");
+        }
     }
 
     // Handler to download XML
