@@ -658,4 +658,77 @@ public class FacturacionModel : PageModel
             return new JsonResult(new { success = false, message = "Error al buscar CABYS" });
         }
     }
+
+    /// <summary>
+    /// Handler to get exchange rate from BCCR for a specific currency
+    /// GET: ?handler=TipoCambio&moneda=USD
+    /// </summary>
+    public async Task<IActionResult> OnGetTipoCambioAsync(string moneda)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(moneda))
+            {
+                return new JsonResult(new { success = false, message = "Debe especificar la moneda" });
+            }
+
+            // For CRC, exchange rate is always 1
+            if (moneda.Equals("CRC", StringComparison.OrdinalIgnoreCase))
+            {
+                return new JsonResult(new { success = true, valor = 1.00m, moneda = "CRC" });
+            }
+
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // Call the BCCR exchange rate API - use venta (selling rate)
+            var url = $"/api/TipoCambio/moneda/{Uri.EscapeDataString(moneda.ToUpperInvariant())}";
+            _logger.LogInformation("Fetching exchange rate: {Url}", url);
+
+            var response = await client.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+
+                var valor = data.GetProperty("valor").GetDecimal();
+                var monedaResp = data.GetProperty("moneda").GetString();
+
+                _logger.LogInformation("Exchange rate for {Moneda}: {Valor}", monedaResp, valor);
+
+                return new JsonResult(new
+                {
+                    success = true,
+                    valor = valor,
+                    moneda = monedaResp,
+                    fecha = data.GetProperty("fecha").GetString()
+                });
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to get exchange rate. Status: {StatusCode}, Content: {Content}",
+                response.StatusCode, errorContent);
+
+            return new JsonResult(new
+            {
+                success = false,
+                message = "No se pudo obtener el tipo de cambio del BCCR"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting exchange rate for currency: {Moneda}", moneda);
+            return new JsonResult(new
+            {
+                success = false,
+                message = "Error al consultar el tipo de cambio"
+            });
+        }
+    }
 }

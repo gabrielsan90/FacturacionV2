@@ -37,17 +37,24 @@ public class ReporteVentasModel : PageModel
         {
             if (!TryGetEmpresaId(out var empresaId))
             {
+                _logger.LogWarning("EmpresaId not found in user claims for ReporteVentas resumen");
                 return new JsonResult(new { totalVentas = 0m, totalDocumentos = 0, promedioVenta = 0m, clientesUnicos = 0 });
             }
 
             var (inicio, fin) = ResolveFechaRange(fechaInicio, fechaFin);
+            _logger.LogInformation("ReporteVentas Resumen: EmpresaId={EmpresaId}, Inicio={Inicio}, Fin={Fin}", empresaId, inicio, fin);
+
             var client = CreateClient();
 
             var reporte = await GetReporteVentasAsync(client, empresaId, inicio, fin);
             if (reporte == null)
             {
+                _logger.LogWarning("ReporteVentas returned null");
                 return new JsonResult(new { totalVentas = 0m, totalDocumentos = 0, promedioVenta = 0m, clientesUnicos = 0 });
             }
+
+            _logger.LogInformation("ReporteVentas data: TotalVentas={TotalVentas}, CantidadDocumentos={CantidadDocumentos}, Detalles={DetallesCount}",
+                reporte.TotalVentas, reporte.CantidadDocumentos, reporte.Detalles?.Count ?? 0);
 
             var promedio = reporte.CantidadDocumentos > 0
                 ? reporte.TotalVentas / reporte.CantidadDocumentos
@@ -199,14 +206,20 @@ public class ReporteVentasModel : PageModel
     private async Task<ReporteVentasDTO?> GetReporteVentasAsync(HttpClient client, Guid empresaId, DateTime inicio, DateTime fin)
     {
         var url = $"/api/Reportes/ventas?empresaId={empresaId}&fechaInicio={FormatDate(inicio)}&fechaFin={FormatDate(fin)}";
+        _logger.LogInformation("Calling API: {Url}", url);
+
         var response = await client.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Failed to load reporte ventas. Status code: {StatusCode}", response.StatusCode);
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to load reporte ventas. Status code: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
             return null;
         }
 
-        return await response.Content.ReadFromJsonAsync<ReporteVentasDTO>(_jsonOptions);
+        var content = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("API response length: {Length} chars", content.Length);
+
+        return JsonSerializer.Deserialize<ReporteVentasDTO>(content, _jsonOptions);
     }
 
     private async Task<ReporteProductosDTO?> GetReporteProductosAsync(HttpClient client, Guid empresaId, DateTime inicio, DateTime fin)
@@ -258,12 +271,16 @@ public class ReporteVentasModel : PageModel
             inicio = fin.AddDays(-30);
         }
 
+        // Add end of day time to fin to include all records from that day
+        fin = fin.Date.AddDays(1).AddSeconds(-1); // 23:59:59
+
         return (inicio, fin);
     }
 
     private static string FormatDate(DateTime fecha)
     {
-        return fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        // Include time component for proper date filtering
+        return fecha.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
     }
 
     private bool TryGetEmpresaId(out Guid empresaId)

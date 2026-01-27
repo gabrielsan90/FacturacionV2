@@ -7,28 +7,62 @@
 
 @Html.AntiForgeryToken()
 
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="fas fa-tags me-2"></i>Categorías de Productos
-        </h5>
-        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
-            <i class="fas fa-plus me-1"></i> Nueva Categoría
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-tags"></i> Categorías de Productos</h2>
+            <p class="mb-0">Organiza tus productos en categorías para mejor gestión</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nueva Categoría
         </button>
     </div>
+</div>
+
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Categorías</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotalCategorias">0</span>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
-        <table id="tableCategorias" class="table table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Estado</th>
-                    <th style="width: 120px;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- Loading State -->
+        <div id="tableCategoriasLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando categorías...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableCategoriasContainer" style="display: none;">
+            <table id="tableCategorias" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateCategorias" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-tags"></i>
+            </div>
+            <h3 class="empty-state-title">No hay categorías registradas</h3>
+            <p class="empty-state-description">Crea categorías para organizar tus productos</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Categoría
+            </button>
+        </div>
     </div>
 </div>
 
@@ -36,9 +70,11 @@
 <div class="modal fade" id="modalCategoria" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Nueva Categoría</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-tags me-2 text-primary"></i>Nueva Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="formCategoria">
                 <div class="modal-body">
@@ -93,8 +129,32 @@
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
-                dataSrc: '',
+                dataSrc: function(json) {
+                    // Hide loader
+                    $('#tableCategoriasLoader').hide();
+
+                    // Get data array
+                    const data = json.data || json || [];
+
+                    // Update badge count
+                    $('#badgeTotalCategorias').text(data.length);
+
+                    // Show appropriate state
+                    if (data.length > 0) {
+                        $('#tableCategoriasContainer').show();
+                        $('#emptyStateCategorias').hide();
+                    } else {
+                        $('#tableCategoriasContainer').hide();
+                        $('#emptyStateCategorias').show();
+                    }
+
+                    return data;
+                },
                 error: function(xhr, error, code) {
+                    $('#tableCategoriasLoader').hide();
+                    $('#tableCategoriasContainer').hide();
+                    $('#emptyStateCategorias').show();
+                    $('#badgeTotalCategorias').text('0');
                     console.error('Error loading categorias:', error);
                     handleAjaxError(xhr);
                 }

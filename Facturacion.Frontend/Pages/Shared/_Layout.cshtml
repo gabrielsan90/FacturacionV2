@@ -27,8 +27,8 @@
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
-    <!-- Laxom Custom Theme -->
-    <link href="~/css/laxom-theme.css" rel="stylesheet" asp-append-version="true" />
+    <!-- Modern Theme - Blue Professional -->
+    <link href="~/css/modern-theme.css" rel="stylesheet" asp-append-version="true" />
 
     <!-- Site CSS -->
     <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" />
@@ -409,6 +409,15 @@
 
                 <!-- Header Right Navigation -->
                 <ul class="header-nav ms-auto">
+                    <!-- Dark Mode Toggle -->
+                    <li class="nav-item me-2">
+                        <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema" title="Cambiar tema">
+                            <span class="theme-toggle-slider">
+                                <i class="fas fa-sun"></i>
+                            </span>
+                        </button>
+                    </li>
+
                     <!-- Language Selector (Optional) -->
                     <li class="nav-item dropdown d-none d-lg-block me-2">
                         <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -611,8 +620,20 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
 
+    <!-- Helper Functions -->
+    <script src="~/js/helpers.js" asp-append-version="true"></script>
+
+    <!-- Accessibility Enhancements -->
+    <script src="~/js/accessibility.js" asp-append-version="true"></script>
+
+    <!-- DataTable Optimizations -->
+    <script src="~/js/datatable-optimizations.js" asp-append-version="true"></script>
+
     <!-- Site JS -->
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <!-- Theme Toggle JS -->
+    <script src="~/js/theme-toggle.js" asp-append-version="true"></script>
 
     <script>
         // Toggle Sidebar Function

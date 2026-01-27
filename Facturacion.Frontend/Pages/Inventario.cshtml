@@ -2,48 +2,79 @@
 @model Facturacion.Frontend.Pages.InventarioModel
 @{
     ViewData["Title"] = "Gestión de Inventario";
+    ViewData["Breadcrumb"] = "Inventario";
 }
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2><i class="fas fa-warehouse"></i> Gestión de Inventario</h2>
-                <div>
-                    <button class="btn btn-warning me-2" id="btnLowStock" style="display:none;">
-                        <i class="fas fa-exclamation-triangle"></i> Bajo Stock <span id="badgeLowStock" class="badge bg-danger">0</span>
-                    </button>
-                    <button class="btn btn-primary" onclick="openCreateModal()">
-                        <i class="fas fa-plus"></i> Nuevo Inventario
-                    </button>
-                </div>
-            </div>
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-warehouse"></i> Gestión de Inventario</h2>
+            <p class="mb-0">Control de existencias por producto y sucursal</p>
+        </div>
+        <div>
+            <button class="btn btn-warning me-2" id="btnLowStock" style="display:none;">
+                <i class="fas fa-exclamation-triangle"></i> Bajo Stock <span id="badgeLowStock" class="badge bg-danger">0</span>
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo inventario">
+                <i class="fas fa-plus me-2"></i>Nuevo Inventario
+            </button>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="tableInventario" class="table table-striped table-hover table-bordered" style="width:100%">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Sucursal</th>
-                                    <th>Cantidad Actual</th>
-                                    <th>Cantidad Reservada</th>
-                                    <th>Cantidad Disponible</th>
-                                    <th>Última Actualización</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+<!-- Inventario Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Inventario</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalInventario">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableInventarioLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando inventario...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableInventarioContainer" style="display:none;">
+            <table id="tableInventario" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Sucursal</th>
+                        <th>Cantidad Actual</th>
+                        <th>Cantidad Reservada</th>
+                        <th>Cantidad Disponible</th>
+                        <th>Última Actualización</th>
+                        <th style="width: 160px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateInventario" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-warehouse"></i>
             </div>
+            <h3 class="empty-state-title">No hay inventario registrado</h3>
+            <p class="empty-state-description">Comienza agregando el inventario inicial de tus productos</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Inventario
+            </button>
         </div>
     </div>
 </div>
@@ -337,8 +368,32 @@
                     headers: {
                         "RequestVerificationToken": getAntiForgeryToken()
                     },
-                    dataSrc: 'data',
+                    dataSrc: function(json) {
+                        // Hide loader
+                        $('#tableInventarioLoader').hide();
+
+                        // Get data array
+                        const data = json.data || json || [];
+
+                        // Update badge count
+                        $('#badgeTotalInventario').text(data.length);
+
+                        // Show appropriate state
+                        if (data.length > 0) {
+                            $('#tableInventarioContainer').show();
+                            $('#emptyStateInventario').hide();
+                        } else {
+                            $('#tableInventarioContainer').hide();
+                            $('#emptyStateInventario').show();
+                        }
+
+                        return data;
+                    },
                     error: function (xhr, error, thrown) {
+                        $('#tableInventarioLoader').hide();
+                        $('#tableInventarioContainer').hide();
+                        $('#emptyStateInventario').show();
+                        $('#badgeTotalInventario').text('0');
                         console.error('Error loading data:', error);
                         Swal.fire('Error', 'No se pudo cargar el inventario.', 'error');
                     }
@@ -421,13 +476,22 @@
                     "RequestVerificationToken": getAntiForgeryToken()
                 },
                 success: function (response) {
-                    if (response.success && response.data) {
-                        // Filter only products with ControlarInventario = true
-                        productos = response.data.filter(p => p.controlarInventario === true && p.activo === true);
+                    // Handle different response formats
+                    const data = response.data || response.result || response || [];
+
+                    if (Array.isArray(data)) {
+                        // Filter only products with ControlarInventario = true and Activo = true
+                        productos = data.filter(p =>
+                            (p.controlarInventario === true || p.ControlarInventario === true) &&
+                            (p.activo === true || p.Activo === true)
+                        );
+
                         const select = $('#Inventario_ProductoId');
                         select.empty().append('<option value="">Seleccione...</option>');
                         productos.forEach(function (item) {
-                            select.append(`<option value="${item.id}">${item.codigo} - ${item.nombre}</option>`);
+                            const codigo = item.codigo || item.Codigo || '';
+                            const nombre = item.nombre || item.Nombre || '';
+                            select.append(`<option value="${item.id || item.Id}">${codigo} - ${nombre}</option>`);
                         });
                     }
                 },
@@ -445,12 +509,16 @@
                     "RequestVerificationToken": getAntiForgeryToken()
                 },
                 success: function (response) {
-                    if (response.success && response.data) {
-                        sucursales = response.data.filter(s => s.activo === true);
+                    // Handle different response formats
+                    const data = response.data || response.result || response || [];
+
+                    if (Array.isArray(data)) {
+                        sucursales = data.filter(s => s.activo === true || s.Activo === true);
                         const select = $('#Inventario_SucursalId');
                         select.empty().append('<option value="">Seleccione...</option>');
                         sucursales.forEach(function (item) {
-                            select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                            const nombre = item.nombre || item.Nombre || '';
+                            select.append(`<option value="${item.id || item.Id}">${nombre}</option>`);
                         });
                     }
                 },
@@ -843,6 +911,17 @@
                     });
                 }
             });
+        }
+
+        function refrescarTabla() {
+            $('#tableInventarioLoader').show();
+            $('#tableInventarioContainer').hide();
+            $('#emptyStateInventario').hide();
+            table.ajax.reload();
+        }
+
+        function exportarExcel() {
+            showWarning('Función de exportación en desarrollo');
         }
     </script>
 }

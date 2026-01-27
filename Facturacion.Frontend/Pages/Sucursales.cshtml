@@ -7,35 +7,69 @@
 
 @Html.AntiForgeryToken()
 
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="fas fa-building me-2"></i>Gestión de Sucursales
-        </h5>
-        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
-            <i class="fas fa-plus me-1"></i> Nueva Sucursal
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-building"></i> Sucursales</h2>
+            <p class="mb-0">Gestión de sucursales y puntos de venta de la empresa</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nueva Sucursal
         </button>
     </div>
+</div>
+
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Sucursales</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotalSucursales">0</span>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
-        <table id="tableSucursales" class="table table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    @if (User.IsInRole("SuperUser"))
-                    {
-                        <th>Empresa</th>
-                    }
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Teléfono</th>
-                    <th>Email</th>
-                    <th>Principal</th>
-                    <th>Estado</th>
-                    <th style="width: 120px;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- Loading State -->
+        <div id="tableSucursalesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando sucursales...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableSucursalesContainer" style="display: none;">
+            <table id="tableSucursales" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        @if (User.IsInRole("SuperUser"))
+                        {
+                            <th>Empresa</th>
+                        }
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Email</th>
+                        <th>Principal</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateSucursales" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <h3 class="empty-state-title">No hay sucursales registradas</h3>
+            <p class="empty-state-description">Crea al menos una sucursal para comenzar a facturar</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Sucursal
+            </button>
+        </div>
     </div>
 </div>
 
@@ -43,9 +77,11 @@
 <div class="modal fade" id="modalSucursal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Nueva Sucursal</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-building me-2 text-primary"></i>Nueva Sucursal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="formSucursal">
                 <div class="modal-body">
@@ -223,7 +259,34 @@
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
-                dataSrc: 'data'
+                dataSrc: function(json) {
+                    // Hide loader
+                    $('#tableSucursalesLoader').hide();
+
+                    // Get data array
+                    const data = json.data || json || [];
+
+                    // Update badge count
+                    $('#badgeTotalSucursales').text(data.length);
+
+                    // Show appropriate state
+                    if (data.length > 0) {
+                        $('#tableSucursalesContainer').show();
+                        $('#emptyStateSucursales').hide();
+                    } else {
+                        $('#tableSucursalesContainer').hide();
+                        $('#emptyStateSucursales').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableSucursalesLoader').hide();
+                    $('#tableSucursalesContainer').hide();
+                    $('#emptyStateSucursales').show();
+                    $('#badgeTotalSucursales').text('0');
+                    console.error('Error loading sucursales:', error);
+                }
             },
             columns: columns,
             order: [[orderColumn, 'asc']]

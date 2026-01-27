@@ -23,7 +23,7 @@ public class IndexModel : PageModel
     }
 
     /// <summary>
-    /// Handler for dashboard summary data (metrics and charts)
+    /// Handler for dashboard summary data (metrics)
     /// </summary>
     public async Task<IActionResult> OnGetResumenAsync()
     {
@@ -53,6 +53,72 @@ public class IndexModel : PageModel
         {
             _logger.LogError(ex, "Error loading dashboard resumen");
             return new JsonResult(null);
+        }
+    }
+
+    /// <summary>
+    /// Handler for ventas por dia chart data (last 7 days)
+    /// </summary>
+    public async Task<IActionResult> OnGetVentasPorDiaAsync(string fechaInicio, string fechaFin)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/dashboard/ventas-dia?fechaInicio={fechaInicio}&fechaFin={fechaFin}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<object>();
+                return new JsonResult(data);
+            }
+
+            _logger.LogWarning("Dashboard ventas-dia API returned status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading ventas por dia");
+            return new JsonResult(new List<object>());
+        }
+    }
+
+    /// <summary>
+    /// Handler for documentos por tipo chart data
+    /// </summary>
+    public async Task<IActionResult> OnGetDocumentosPorTipoAsync(string fechaInicio, string fechaFin)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/dashboard/ventas-tipo?fechaInicio={fechaInicio}&fechaFin={fechaFin}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<object>();
+                return new JsonResult(data);
+            }
+
+            _logger.LogWarning("Dashboard ventas-tipo API returned status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading documentos por tipo");
+            return new JsonResult(new List<object>());
         }
     }
 

@@ -5,27 +5,62 @@
     ViewData["Breadcrumb"] = "Formas de Pago";
 }
 
-<div class="card">
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-credit-card"></i> Formas de Pago</h2>
+            <p class="mb-0">Gestión de métodos de pago aceptados</p>
+        </div>
+        <span class="badge bg-info fs-6 px-3 py-2">
+            <i class="fas fa-lock me-2"></i>Solo Lectura
+        </span>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Catálogo Oficial:</strong> Este catálogo es proporcionado por el Ministerio de Hacienda de Costa Rica y es de solo lectura.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<!-- Main Card -->
+<div class="card shadow-custom">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-            <i class="fas fa-credit-card me-2"></i>Formas de Pago - Catálogo Ministerio de Hacienda
+            <i class="fas fa-list me-2"></i>Listado de Formas de Pago
         </h5>
-        <span class="badge bg-info">Solo Lectura</span>
+        <span class="badge bg-primary" id="badgeTotalFormasPago">0 registros</span>
     </div>
     <div class="card-body">
-        <div class="alert alert-info" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            Este catálogo es proporcionado por el Ministerio de Hacienda de Costa Rica y es de solo lectura.
+        <!-- Loading State -->
+        <div id="tableFormasPagoLoader" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-3 text-muted">Cargando formas de pago...</p>
         </div>
-        <table id="tableFormasPago" class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+
+        <!-- Table Container -->
+        <div id="tableFormasPagoContainer" style="display: none;">
+            <table id="tableFormasPago" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateFormasPago" class="text-center py-5" style="display: none;">
+            <i class="fas fa-credit-card fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay formas de pago disponibles</h5>
+            <p class="text-muted">El catálogo de formas de pago está vacío.</p>
+        </div>
     </div>
 </div>
 
@@ -45,7 +80,25 @@
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
-                dataSrc: 'data'
+                dataSrc: function(json) {
+                    // Update badge counter
+                    const total = json.data ? json.data.length : 0;
+                    $('#badgeTotalFormasPago').text(total + (total === 1 ? ' registro' : ' registros'));
+
+                    // Hide loader
+                    $('#tableFormasPagoLoader').hide();
+
+                    // Show table or empty state
+                    if (total === 0) {
+                        $('#tableFormasPagoContainer').hide();
+                        $('#emptyStateFormasPago').show();
+                    } else {
+                        $('#tableFormasPagoContainer').show();
+                        $('#emptyStateFormasPago').hide();
+                    }
+
+                    return json.data;
+                }
             },
             columns: [
                 { data: 'codigo' },

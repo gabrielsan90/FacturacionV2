@@ -7,6 +7,16 @@
 
 @Html.AntiForgeryToken()
 
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-desktop"></i> Terminales</h2>
+            <p class="mb-0">Gestión de terminales de punto de venta por sucursal</p>
+        </div>
+    </div>
+</div>
+
 <div class="card mb-3">
     <div class="card-body">
         <div class="row align-items-end">
@@ -18,36 +28,51 @@
             </div>
             <div class="col-md-6">
                 <button class="btn btn-primary" id="btnNuevoTerminal" onclick="openCreateModal()" disabled>
-                    <i class="fas fa-plus me-1"></i> Nuevo Terminal
+                    <i class="fas fa-plus me-1"></i> Nueva Terminal
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card">
+<div class="card shadow-custom">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
             <i class="fas fa-cash-register me-2"></i>Gestión de Terminales
         </h5>
+        <span class="badge bg-primary" id="badgeTotalTerminales">0 terminales</span>
     </div>
     <div class="card-body">
-        <table id="tableTerminales" class="table table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Tipo Doc</th>
-                    <th>Clave Numeración</th>
-                    <th>Consecutivo</th>
-                    <th>Disponibles</th>
-                    <th>Estado</th>
-                    <th style="width: 120px;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- Loading State -->
+        <div id="tableTerminalesLoader" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando terminales...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableTerminalesContainer" style="display: none;">
+            <table id="tableTerminales" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Consecutivos</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateTerminales" class="text-center py-5">
+            <i class="fas fa-desktop fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Seleccione una sucursal para ver sus terminales</p>
+        </div>
     </div>
 </div>
 
@@ -55,9 +80,11 @@
 <div class="modal fade" id="modalTerminal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Nuevo Terminal</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-desktop me-2 text-primary"></i>Nueva Terminal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="formTerminal">
                 <div class="modal-body">
@@ -227,6 +254,7 @@
                 selectedSucursalId = null;
                 selectedSucursalNombre = '';
                 $('#btnNuevoTerminal').prop('disabled', true);
+                showEmptyState();
                 if (table) {
                     table.clear().draw();
                 }
@@ -264,6 +292,8 @@
     }
 
     function loadDataTable(sucursalId) {
+        showLoading();
+
         if (table) {
             table.destroy();
         }
@@ -275,45 +305,31 @@
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
-                dataSrc: 'data'
+                dataSrc: function(json) {
+                    updateBadge(json.data.length);
+                    showTable();
+                    return json.data;
+                }
             },
             columns: [
                 { data: 'id', visible: false },
-                { data: 'codigo' },
-                { data: 'nombre' },
                 {
-                    data: 'tipoDocumento',
+                    data: 'codigo',
+                    defaultContent: '-'
+                },
+                {
+                    data: 'nombre',
+                    defaultContent: '-'
+                },
+                {
+                    data: 'consecutivos',
                     render: function(data) {
-                        return tiposDocumento[data] || data;
-                    }
-                },
-                {
-                    data: 'claveNumeracionConsecutiva',
-                    render: function(data) {
-                        const truncated = data.length > 20 ? data.substring(0, 20) + '...' : data;
-                        return `<span title="${data}">${truncated}</span>`;
-                    }
-                },
-                {
-                    data: null,
-                    render: function(data, type, row) {
-                        return `${row.numeroConsecutivoActual} / ${row.numeroInicio}-${row.numeroFin}`;
-                    }
-                },
-                {
-                    data: null,
-                    render: function(data, type, row) {
-                        const disponibles = row.numeroFin - row.numeroConsecutivoActual;
-                        let badgeClass = 'bg-success';
-
-                        if (disponibles <= 10) {
-                            badgeClass = 'bg-danger';
-                        } else if (disponibles <= 100) {
-                            badgeClass = 'bg-warning text-dark';
+                        if (!data || data.length === 0) {
+                            return '<span class="text-muted">Sin consecutivos</span>';
                         }
-
-                        return `<span class="badge ${badgeClass}">${disponibles}</span>`;
-                    }
+                        return `<span class="badge bg-info">${data.length} consecutivo(s)</span>`;
+                    },
+                    defaultContent: '<span class="text-muted">-</span>'
                 },
                 {
                     data: 'activo',
@@ -321,7 +337,8 @@
                         return data
                             ? '<span class="badge bg-success">Activo</span>'
                             : '<span class="badge bg-secondary">Inactivo</span>';
-                    }
+                    },
+                    defaultContent: '<span class="badge bg-secondary">-</span>'
                 },
                 {
                     data: 'id',
@@ -354,7 +371,7 @@
         $('#Terminal_SucursalId').val(selectedSucursalId);
         $('#Terminal_Activo').prop('checked', true);
         $('#warningRango').addClass('d-none');
-        $('#modalTitle').text(`Nuevo Terminal - ${selectedSucursalNombre}`);
+        $('#modalTitle').html(`<i class="fas fa-desktop me-2 text-primary"></i>Nueva Terminal - ${selectedSucursalNombre}`);
         $('#modalTerminal').modal('show');
     }
 
@@ -384,7 +401,7 @@
 
                     validateConsecutiveRange();
 
-                    $('#modalTitle').text(`Editar Terminal - ${sucursalNombre}`);
+                    $('#modalTitle').html(`<i class="fas fa-desktop me-2 text-primary"></i>Editar Terminal - ${sucursalNombre}`);
                     $('#formTerminal').removeClass('was-validated');
                     $('#modalTerminal').modal('show');
                 } else {
@@ -502,6 +519,30 @@
                 }
             });
         });
+    }
+
+    function showLoading() {
+        $('#tableTerminalesLoader').show();
+        $('#tableTerminalesContainer').hide();
+        $('#emptyStateTerminales').hide();
+    }
+
+    function showTable() {
+        $('#tableTerminalesLoader').hide();
+        $('#tableTerminalesContainer').show();
+        $('#emptyStateTerminales').hide();
+    }
+
+    function showEmptyState() {
+        $('#tableTerminalesLoader').hide();
+        $('#tableTerminalesContainer').hide();
+        $('#emptyStateTerminales').show();
+        updateBadge(0);
+    }
+
+    function updateBadge(count) {
+        const text = count === 1 ? '1 terminal' : `${count} terminales`;
+        $('#badgeTotalTerminales').text(text);
     }
 </script>
 }

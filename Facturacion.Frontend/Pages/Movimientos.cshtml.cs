@@ -61,11 +61,16 @@ public class MovimientosModel : PageModel
             }
 
             // Build query string with filters
+            // Add end of day time to fechaFin to include records from that day
             var queryParams = new List<string>();
             if (!string.IsNullOrEmpty(fechaInicio))
                 queryParams.Add($"fechaInicio={Uri.EscapeDataString(fechaInicio)}");
             if (!string.IsNullOrEmpty(fechaFin))
-                queryParams.Add($"fechaFin={Uri.EscapeDataString(fechaFin)}");
+            {
+                // Add end of day time to include all records from fechaFin
+                var fechaFinConHora = fechaFin + "T23:59:59";
+                queryParams.Add($"fechaFin={Uri.EscapeDataString(fechaFinConHora)}");
+            }
             if (tipoMovimiento.HasValue)
                 queryParams.Add($"tipoMovimiento={tipoMovimiento.Value}");
             if (productoId.HasValue)
@@ -76,15 +81,22 @@ public class MovimientosModel : PageModel
             var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
             var url = $"/api/MovimientosInventario/empresa/{empresaId}{queryString}";
 
+            _logger.LogInformation("Fetching movimientos from: {Url}", url);
+
             var response = await client.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
-                var movimientos = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                return new JsonResult(new { data = movimientos ?? new List<object>() });
+                // Read as JsonElement to preserve the JSON structure
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("API Response length: {Length} chars", jsonContent.Length);
+
+                var movimientos = JsonSerializer.Deserialize<JsonElement>(jsonContent, _jsonOptions);
+                return new JsonResult(new { data = movimientos });
             }
 
-            _logger.LogWarning("Failed to load movimientos. Status: {StatusCode}", response.StatusCode);
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to load movimientos. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
             return new JsonResult(new { data = new List<object>() });
         }
         catch (Exception ex)
@@ -112,7 +124,9 @@ public class MovimientosModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var movimiento = await response.Content.ReadFromJsonAsync<object>(_jsonOptions);
+                // Read as JsonElement to preserve the JSON structure
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var movimiento = JsonSerializer.Deserialize<JsonElement>(jsonContent, _jsonOptions);
                 return new JsonResult(new { success = true, data = movimiento });
             }
 

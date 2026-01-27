@@ -2,42 +2,73 @@
 @model Facturacion.Frontend.Pages.RolesModel
 @{
     ViewData["Title"] = "Gestión de Roles y Privilegios";
+    ViewData["Breadcrumb"] = "Roles";
 }
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2><i class="fas fa-user-shield"></i> Gestión de Roles y Privilegios</h2>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    <i class="fas fa-plus"></i> Nuevo Rol
-                </button>
-            </div>
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-user-shield"></i> Gestión de Roles y Privilegios</h2>
+            <p class="mb-0">Configuración de roles y permisos por módulo</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo rol">
+            <i class="fas fa-plus me-2"></i>Nuevo Rol
+        </button>
+    </div>
+</div>
+
+<!-- Roles Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Roles</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalRoles">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
         </div>
     </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableRolesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando roles...</p>
+        </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="tableRoles" class="table table-striped table-hover table-bordered" style="width:100%">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Descripción</th>
-                                    <th>Tipo</th>
-                                    <th>Privilegios</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Table -->
+        <div class="table-responsive" id="tableRolesContainer" style="display:none;">
+            <table id="tableRoles" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Tipo</th>
+                        <th>Privilegios</th>
+                        <th>Estado</th>
+                        <th style="width: 140px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateRoles" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-user-shield"></i>
             </div>
+            <h3 class="empty-state-title">No hay roles registrados</h3>
+            <p class="empty-state-description">Comienza agregando tu primer rol personalizado</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Rol
+            </button>
         </div>
     </div>
 </div>
@@ -175,7 +206,39 @@
                     headers: {
                         'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
                     },
-                    dataSrc: 'data'
+                    dataSrc: function(json) {
+                        $('#tableRolesLoader').hide();
+                        const rawData = json.data || json || [];
+
+                        // Normalize property names to camelCase (backend returns PascalCase)
+                        // Rol extends IdentityRole which has 'Name' property, so check for both
+                        const data = rawData.map(item => ({
+                            id: item.id || item.Id,
+                            nombre: item.nombre || item.Nombre || item.name || item.Name || 'Sin nombre',
+                            descripcion: item.descripcion || item.Descripcion || '',
+                            esSistema: item.esSistema ?? item.EsSistema ?? false,
+                            activo: item.activo ?? item.Activo ?? true,
+                            cantidadPrivilegios: item.cantidadPrivilegios || item.CantidadPrivilegios || 0,
+                            fechaCreacion: item.fechaCreacion || item.FechaCreacion
+                        }));
+
+                        $('#badgeTotalRoles').text(data.length);
+                        if (data.length > 0) {
+                            $('#tableRolesContainer').show();
+                            $('#emptyStateRoles').hide();
+                        } else {
+                            $('#tableRolesContainer').hide();
+                            $('#emptyStateRoles').show();
+                        }
+                        return data;
+                    },
+                    error: function(xhr, error, code) {
+                        $('#tableRolesLoader').hide();
+                        $('#tableRolesContainer').hide();
+                        $('#emptyStateRoles').show();
+                        $('#badgeTotalRoles').text('0');
+                        console.error('Error loading roles:', error);
+                    }
                 },
                 columns: [
                     { data: 'nombre' },
@@ -590,6 +653,17 @@
                     Swal.fire('Error', errorMessage, 'error');
                 }
             });
+        }
+
+        function refrescarTabla() {
+            $('#tableRolesLoader').show();
+            $('#tableRolesContainer').hide();
+            $('#emptyStateRoles').hide();
+            table.ajax.reload();
+        }
+
+        function exportarExcel() {
+            Swal.fire('Info', 'Función de exportación en desarrollo', 'info');
         }
 
     </script>

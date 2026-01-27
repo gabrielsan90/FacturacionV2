@@ -5,26 +5,32 @@
 }
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                    <h2 id="pageTitle" class="mb-0">
-                        <i class="fas fa-file-invoice"></i>
-                        @if (!string.IsNullOrEmpty(Model.DocumentoId))
-                        {
-                            <span>Editar Documento en Borrador</span>
-                        }
-                        else
-                        {
-                            <span>Nueva Facturación Electrónica</span>
-                        }
-                    </h2>
-                    <!-- Indicador de Ambiente -->
-                    <span id="ambienteIndicador" class="badge fs-6" style="display: none;"></span>
-                </div>
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2 id="pageTitle" class="mb-2">
+                    <i class="fas fa-file-invoice"></i>
+                    @if (!string.IsNullOrEmpty(Model.DocumentoId))
+                    {
+                        <span>Editar Documento en Borrador</span>
+                    }
+                    else
+                    {
+                        <span>Nueva Facturación Electrónica</span>
+                    }
+                </h2>
+                <p class="mb-0">
+                    Complete los datos del documento electrónico según normativa Hacienda v4.4
+                    <span id="ambienteIndicador" class="badge ms-2" style="display: none;"></span>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary" id="btnGuardarBorrador" title="Guardar como borrador">
+                    <i class="fas fa-save me-1"></i>Guardar Borrador
+                </button>
                 <a href="/Documentos" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Volver a Documentos
+                    <i class="fas fa-arrow-left me-1"></i>Volver
                 </a>
             </div>
         </div>
@@ -38,9 +44,12 @@
         <!-- Document Type Selection Card -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-file-alt"></i> Tipo de Documento</h5>
+                <div class="card shadow-custom">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2 text-primary"></i>Tipo de Documento
+                            <span class="badge bg-danger ms-2">Obligatorio</span>
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -83,9 +92,11 @@
         <!-- Main Document Information Card -->
         <div class="row mb-4" id="mainFormCard" style="display: none;">
             <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información General</h5>
+                <div class="card shadow-custom">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2 text-primary"></i>Información General del Documento
+                        </h5>
                     </div>
                     <div class="card-body">
                         <!-- Sucursal and Terminal -->
@@ -110,9 +121,9 @@
                         <div class="row mb-3">
                             <div class="col-md-12">
                                 <div class="card border-primary">
-                                    <div class="card-header bg-primary text-white">
+                                    <div class="card-header">
                                         <h6 class="mb-0">
-                                            <i class="fas fa-building"></i> Datos del Emisor (Empresa)
+                                            <i class="fas fa-building me-2 text-primary"></i>Datos del Emisor (Empresa)
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -468,8 +479,8 @@
 
                                             <!-- Otros Cargos Section -->
                                             <div class="card mb-3">
-                                                <div class="card-header bg-info text-white">
-                                                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i> Otros Cargos</h5>
+                                                <div class="card-header">
+                                                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Otros Cargos</h5>
                                                 </div>
                                                 <div class="card-body">
                                                     <table class="table table-sm table-bordered" id="tableOtrosCargos">
@@ -503,12 +514,12 @@
         <!-- Document Lines Card -->
         <div class="row mb-4" id="lineasCard" style="display: none;">
             <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-success text-white">
+                <div class="card shadow-custom">
+                    <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-list"></i> Líneas del Documento</h5>
-                            <button type="button" class="btn btn-light btn-sm" id="btnAgregarLinea">
-                                <i class="fas fa-plus"></i> Agregar Línea
+                            <h5 class="mb-0"><i class="fas fa-list me-2 text-success"></i>Líneas del Documento</h5>
+                            <button type="button" class="btn btn-success btn-sm" id="btnAgregarLinea">
+                                <i class="fas fa-plus me-1"></i>Agregar Línea
                             </button>
                         </div>
                     </div>
@@ -580,8 +591,8 @@
                             <div class="col-md-6">
                                 <!-- Resumen de Totales -->
                                 <div class="card">
-                                    <div class="card-header bg-primary text-white py-2">
-                                        <strong><i class="fas fa-calculator"></i> Resumen de Factura</strong>
+                                    <div class="card-header py-2">
+                                        <strong><i class="fas fa-calculator me-2 text-primary"></i>Resumen de Factura</strong>
                                     </div>
                                     <div class="card-body py-2">
                                         <table class="table table-sm table-borderless mb-0">
@@ -645,7 +656,7 @@
         <!-- Action Buttons -->
         <div class="row mb-4" id="actionButtons" style="display: none;">
             <div class="col-12">
-                <div class="card shadow">
+                <div class="card shadow-custom">
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <div>
@@ -686,11 +697,11 @@
 <div class="modal fade" id="modalClientes" tabindex="-1" aria-labelledby="modalClientesLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="modalClientesLabel">
-                    <i class="fas fa-users"></i> Seleccionar Cliente
+                    <i class="fas fa-users me-2 text-primary"></i>Seleccionar Cliente
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <!-- Filtros -->
@@ -757,9 +768,9 @@
 <div class="modal fade" id="modalDocumentos" tabindex="-1" aria-labelledby="modalDocumentosLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
+            <div class="modal-header">
                 <h5 class="modal-title" id="modalDocumentosLabel">
-                    <i class="fas fa-file-invoice"></i> Seleccionar Documento de Referencia
+                    <i class="fas fa-file-invoice me-2 text-warning"></i>Seleccionar Documento de Referencia
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -804,11 +815,11 @@
 <div class="modal fade" id="modalLinea" tabindex="-1" aria-labelledby="modalLineaLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="modalLineaLabel">
-                    <i class="fas fa-plus"></i> <span id="modalLineaTitle">Agregar Línea</span>
+                    <i class="fas fa-plus me-2 text-success"></i><span id="modalLineaTitle">Agregar Línea</span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="formLinea">
                 <div class="modal-body">
@@ -818,9 +829,14 @@
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <label for="Linea_ProductoId" class="form-label">Producto/Servicio</label>
-                            <select class="form-select select2" id="Linea_ProductoId">
-                                <option value="">Buscar producto o servicio...</option>
-                            </select>
+                            <div class="input-group">
+                                <select class="form-select select2" id="Linea_ProductoId" style="flex: 1;">
+                                    <option value="">Buscar producto o servicio...</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" onclick="openProductosModal()" title="Buscar en lista de productos">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                            </div>
                             <small class="text-muted">Seleccione un producto para auto-completar los campos</small>
                         </div>
                     </div>
@@ -1013,6 +1029,75 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Buscar Productos para Línea -->
+<div class="modal fade" id="modalProductosLinea" tabindex="-1" aria-labelledby="modalProductosLineaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalProductosLineaLabel">
+                    <i class="fas fa-box me-2 text-primary"></i>Seleccionar Producto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label for="filtroProductoNombre" class="form-label">Nombre / Código</label>
+                        <input type="text" class="form-control" id="filtroProductoNombre" placeholder="Buscar por nombre o código...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filtroProductoTipo" class="form-label">Tipo</label>
+                        <select class="form-select" id="filtroProductoTipo">
+                            <option value="">Todos</option>
+                            <option value="0">Producto</option>
+                            <option value="1">Servicio</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary w-100" onclick="filtrarProductosModal()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-secondary w-100" onclick="limpiarFiltroProductosModal()">
+                            <i class="fas fa-eraser"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de Productos -->
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-striped table-hover" id="tablaProductosModal">
+                        <thead class="table-primary sticky-top">
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Precio</th>
+                                <th>Impuesto</th>
+                                <th class="text-center" style="width: 100px;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyProductosModal">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Cargando productos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -2062,15 +2147,18 @@
                 if (moneda === 'CRC') {
                     // Si es Colones, tipo de cambio = 1 y campo readonly
                     $('#TipoCambio').val('1.00').prop('readonly', true);
-                    $('#tipoCambioHelp').text('Tipo de cambio fijo en 1 para Colones (CRC)').removeClass('text-danger').addClass('text-muted');
+                    $('#tipoCambioHelp').text('Tipo de cambio fijo en 1 para Colones (CRC)').removeClass('text-danger text-info').addClass('text-muted');
                 } else if (moneda) {
-                    // Si es otra moneda, habilitar campo y poner valor vacío
-                    $('#TipoCambio').val('').prop('readonly', false).focus();
-                    $('#tipoCambioHelp').text('Ingrese el tipo de cambio correspondiente a ' + moneda).removeClass('text-muted').addClass('text-info');
+                    // Si es otra moneda (USD, EUR), consultar tipo de cambio del BCCR
+                    $('#TipoCambio').val('').prop('readonly', true);
+                    $('#tipoCambioHelp').html('<i class="fas fa-spinner fa-spin"></i> Consultando tipo de cambio del BCCR...').removeClass('text-muted text-danger').addClass('text-info');
+
+                    // Fetch exchange rate from BCCR
+                    fetchTipoCambioBCCR(moneda);
                 } else {
                     // Si no hay moneda seleccionada, deshabilitar
                     $('#TipoCambio').val('').prop('readonly', true);
-                    $('#tipoCambioHelp').text('Seleccione primero una moneda').removeClass('text-info').addClass('text-muted');
+                    $('#tipoCambioHelp').text('Seleccione primero una moneda').removeClass('text-info text-danger').addClass('text-muted');
                 }
             });
 
@@ -2468,6 +2556,176 @@
             }
         }
 
+        // ==================== MODAL PRODUCTOS PARA LÍNEA ====================
+        let todosLosProductosModal = [];
+
+        function openProductosModal() {
+            // Limpiar filtros
+            $('#filtroProductoNombre').val('');
+            $('#filtroProductoTipo').val('');
+            // Cargar productos
+            loadProductosModal();
+            // Mostrar modal
+            $('#modalProductosLinea').modal('show');
+        }
+
+        function loadProductosModal() {
+            const tbody = $('#tbodyProductosModal');
+            tbody.html(`
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Cargando productos...
+                    </td>
+                </tr>
+            `);
+
+            $.ajax({
+                url: '?handler=Productos&empresaId=' + empresaId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    // Handle wrapped response
+                    const data = response?.data || response?.result || response || [];
+                    todosLosProductosModal = Array.isArray(data) ? data : [];
+                    renderProductosModal(todosLosProductosModal);
+                },
+                error: function (xhr) {
+                    console.error('Error loading productos:', xhr);
+                    tbody.html(`
+                        <tr>
+                            <td colspan="6" class="text-center text-danger py-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Error al cargar productos
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        }
+
+        function filtrarProductosModal() {
+            const filtro = $('#filtroProductoNombre').val().toLowerCase().trim();
+            const tipo = $('#filtroProductoTipo').val();
+
+            let filtrados = todosLosProductosModal.filter(function (producto) {
+                let cumple = true;
+
+                // Filtrar por nombre o código
+                if (filtro) {
+                    const codigo = (producto.codigo || producto.Codigo || '').toLowerCase();
+                    const nombre = (producto.nombre || producto.Nombre || '').toLowerCase();
+                    if (!codigo.includes(filtro) && !nombre.includes(filtro)) {
+                        cumple = false;
+                    }
+                }
+
+                // Filtrar por tipo
+                if (tipo !== '') {
+                    const productoTipo = producto.tipo ?? producto.Tipo;
+                    if (productoTipo != tipo) {
+                        cumple = false;
+                    }
+                }
+
+                return cumple;
+            });
+
+            renderProductosModal(filtrados);
+        }
+
+        function limpiarFiltroProductosModal() {
+            $('#filtroProductoNombre').val('');
+            $('#filtroProductoTipo').val('');
+            renderProductosModal(todosLosProductosModal);
+        }
+
+        function renderProductosModal(productos) {
+            const tbody = $('#tbodyProductosModal');
+
+            if (!productos || productos.length === 0) {
+                tbody.html(`
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i>No se encontraron productos
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+
+            let html = '';
+            productos.forEach(function (producto, index) {
+                // Handle both camelCase and PascalCase
+                const id = producto.id || producto.Id;
+                const codigo = producto.codigo || producto.Codigo || '-';
+                const nombre = producto.nombre || producto.Nombre || '-';
+                const tipo = producto.tipo ?? producto.Tipo;
+                const tipoNombre = tipo === 0 ? 'Producto' : 'Servicio';
+                const tipoBadge = tipo === 0 ? 'bg-primary' : 'bg-info';
+                const precioVenta = producto.precioVenta || producto.PrecioVenta || 0;
+
+                // Impuesto
+                let impuestoTexto = '-';
+                const impuesto = producto.impuesto || producto.Impuesto;
+                if (impuesto) {
+                    const porcentaje = impuesto.porcentaje ?? impuesto.Porcentaje ?? impuesto.tarifa ?? impuesto.Tarifa ?? 0;
+                    impuestoTexto = `${porcentaje}%`;
+                }
+
+                html += `
+                    <tr style="cursor: pointer;" ondblclick="seleccionarProductoDesdeModal(${index})">
+                        <td><code>${codigo}</code></td>
+                        <td>${nombre}</td>
+                        <td><span class="badge ${tipoBadge}">${tipoNombre}</span></td>
+                        <td class="text-end">${formatCurrency(precioVenta)}</td>
+                        <td class="text-center">${impuestoTexto}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-success" onclick="seleccionarProductoDesdeModal(${index})">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.html(html);
+        }
+
+        function seleccionarProductoDesdeModal(index) {
+            const producto = todosLosProductosModal[index];
+            if (!producto) return;
+
+            // Cerrar el modal de productos
+            $('#modalProductosLinea').modal('hide');
+
+            // Cargar los datos del producto en el formulario de línea
+            loadProductoData(producto);
+
+            // Actualizar el Select2 con el producto seleccionado
+            const id = producto.id || producto.Id;
+            const codigo = producto.codigo || producto.Codigo || '';
+            const nombre = producto.nombre || producto.Nombre || '';
+            const newOption = new Option(
+                `${codigo} - ${nombre}`,
+                id,
+                true,
+                true
+            );
+            newOption.data = producto;
+            $('#Linea_ProductoId').append(newOption).trigger('change');
+        }
+
+        // Búsqueda con Enter en filtro de productos
+        $('#filtroProductoNombre').on('keypress', function (e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                filtrarProductosModal();
+            }
+        });
+
+        // ==================== FIN MODAL PRODUCTOS ====================
+
         // Variable para almacenar todos los documentos
         let todosLosDocumentos = [];
         let tableDocumentos = null;
@@ -2730,36 +2988,69 @@
         }
 
         function loadProductoData(producto) {
-            $('#Linea_Codigo').val(producto.codigo);
-            $('#Linea_Descripcion').val(producto.nombre);
-            $('#Linea_PrecioUnitario').val(producto.precioVenta.toFixed(2));
+            // Handle both camelCase and PascalCase property names
+            const codigo = producto.codigo || producto.Codigo || '';
+            const nombre = producto.nombre || producto.Nombre || '';
+            const precioVenta = producto.precioVenta ?? producto.PrecioVenta ?? 0;
+            const tipo = producto.tipo ?? producto.Tipo ?? 0;
+
+            $('#Linea_Codigo').val(codigo);
+            $('#Linea_Descripcion').val(nombre);
+            $('#Linea_PrecioUnitario').val(precioVenta.toFixed(2));
+
+            // ====== UNIDAD DE MEDIDA ======
+            const unidadMedida = producto.unidadMedida || producto.UnidadMedida;
+            if (unidadMedida) {
+                const unidadCodigo = unidadMedida.codigo || unidadMedida.Codigo || 'Unid';
+                // Try to set the value in the select
+                const $selectUnidad = $('#Linea_UnidadMedida');
+                if ($selectUnidad.find(`option[value="${unidadCodigo}"]`).length > 0) {
+                    $selectUnidad.val(unidadCodigo).trigger('change');
+                } else {
+                    // Default based on product type
+                    $selectUnidad.val(tipo === 1 ? 'Sp' : 'Unid').trigger('change');
+                }
+            } else {
+                // Default based on product type (0=Producto, 1=Servicio)
+                $('#Linea_UnidadMedida').val(tipo === 1 ? 'Sp' : 'Unid').trigger('change');
+            }
+
+            // ====== TIPO DE PRODUCTO ======
+            $('#Linea_TipoProducto').val(tipo === 1 ? 'servicio' : 'mercancia');
+
+            // ====== TIPO DE TRANSACCIÓN v4.4 ======
+            $('#Linea_TipoTransaccion').val(tipo === 1 ? '02' : '01'); // 02 = Venta de servicios, 01 = Venta de bienes
 
             // Limpiar impuestos existentes y agregar el del producto
             currentLine.impuestos = [];
             $('#tbodyImpuestos').html('');
 
             // Si el producto tiene impuesto, agregarlo
-            if (producto.impuesto && producto.impuesto.tarifa) {
+            const impuesto = producto.impuesto || producto.Impuesto;
+            // Use porcentaje (entity property) or tarifa
+            const tarifa = impuesto?.porcentaje ?? impuesto?.Porcentaje ?? impuesto?.tarifa ?? impuesto?.Tarifa ?? null;
+
+            if (impuesto && tarifa !== null) {
                 // Determinar código de tarifa basado en el porcentaje
                 let codigoTarifa = '08'; // Default 13%
-                if (producto.impuesto.tarifa === 0) {
+                if (tarifa === 0) {
                     codigoTarifa = '01'; // 0%
-                } else if (producto.impuesto.tarifa === 1) {
+                } else if (tarifa === 1) {
                     codigoTarifa = '02';
-                } else if (producto.impuesto.tarifa === 2) {
+                } else if (tarifa === 2) {
                     codigoTarifa = '03';
-                } else if (producto.impuesto.tarifa === 4) {
+                } else if (tarifa === 4) {
                     codigoTarifa = '04';
-                } else if (producto.impuesto.tarifa === 8) {
+                } else if (tarifa === 8) {
                     codigoTarifa = '07';
-                } else if (producto.impuesto.tarifa === 13) {
+                } else if (tarifa === 13) {
                     codigoTarifa = '08';
                 }
 
                 currentLine.impuestos.push({
                     codigoImpuesto: '01', // IVA
                     codigoTarifa: codigoTarifa,
-                    tarifa: producto.impuesto.tarifa,
+                    tarifa: tarifa,
                     montoBase: 0,
                     montoImpuesto: 0,
                     tieneExoneracion: false,
@@ -2767,18 +3058,30 @@
                 });
 
                 renderTaxRow(0);
+
+                // ====== CÓDIGO TARIFA IVA (dropdown principal) ======
+                $('#Linea_CodigoTarifaIVA').val(codigoTarifa);
             } else {
-                // Si no tiene impuesto, agregar uno por defecto
+                // Si no tiene impuesto, agregar uno por defecto (13%)
                 addTaxToLine();
+                $('#Linea_CodigoTarifaIVA').val('08');
             }
 
-            // Load CABYS code and description if available
-            if (producto.cabys && producto.cabys.codigo) {
-                $('#Linea_CodigoCabys').val(producto.cabys.codigo);
-                $('#lblCabysDescripcion').text(producto.cabys.descripcion).show();
-            } else if (producto.cabysId) {
-                // If only cabysId is available, search for the CABYS description
-                buscarCabysPorCodigo($('#Linea_CodigoCabys').val());
+            // ====== CÓDIGO CABYS ======
+            const cabys = producto.cabys || producto.Cabys || producto.CAByS;
+            if (cabys) {
+                const cabysCode = cabys.codigo || cabys.Codigo || '';
+                const cabysDesc = cabys.descripcion || cabys.Descripcion || '';
+                $('#Linea_CodigoCabys').val(cabysCode);
+                if (cabysDesc) {
+                    $('#lblCabysDescripcion').text(cabysDesc).show();
+                } else {
+                    $('#lblCabysDescripcion').hide();
+                }
+            } else if (producto.cabysId || producto.CabysId) {
+                // If only cabysId is available, clear the field (user can search manually)
+                $('#Linea_CodigoCabys').val('');
+                $('#lblCabysDescripcion').hide();
             } else {
                 $('#Linea_CodigoCabys').val('');
                 $('#lblCabysDescripcion').hide();
@@ -4317,6 +4620,59 @@
             }
         }
 
+        /**
+         * Fetch exchange rate from BCCR (Banco Central de Costa Rica)
+         * @@param {string} moneda - Currency code (USD, EUR)
+         */
+        function fetchTipoCambioBCCR(moneda) {
+            $.ajax({
+                url: `?handler=TipoCambio&moneda=${encodeURIComponent(moneda)}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    console.log('Tipo de cambio BCCR response:', response);
+
+                    if (response.success && response.valor) {
+                        const tipoCambio = parseFloat(response.valor).toFixed(5);
+                        $('#TipoCambio').val(tipoCambio).prop('readonly', false);
+                        $('#tipoCambioHelp').html(
+                            `<i class="fas fa-check-circle text-success"></i> Tipo de cambio BCCR (${response.fecha || 'hoy'}): <strong>${tipoCambio}</strong> - Puede modificarlo si es necesario`
+                        ).removeClass('text-muted text-danger').addClass('text-success');
+
+                        // Show success toast
+                        if (typeof showSuccess === 'function') {
+                            showSuccess(`Tipo de cambio ${moneda}: ${tipoCambio} (BCCR)`);
+                        }
+                    } else {
+                        // If BCCR fails, allow manual input
+                        $('#TipoCambio').val('').prop('readonly', false).focus();
+                        $('#tipoCambioHelp').html(
+                            `<i class="fas fa-exclamation-triangle"></i> No se pudo obtener el tipo de cambio del BCCR. Ingrese el valor manualmente.`
+                        ).removeClass('text-muted text-success').addClass('text-warning');
+
+                        if (typeof showWarning === 'function') {
+                            showWarning(response.message || 'No se pudo obtener el tipo de cambio del BCCR');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching tipo de cambio:', error);
+
+                    // On error, allow manual input
+                    $('#TipoCambio').val('').prop('readonly', false).focus();
+                    $('#tipoCambioHelp').html(
+                        `<i class="fas fa-exclamation-triangle"></i> Error al consultar BCCR. Ingrese el tipo de cambio de ${moneda} manualmente.`
+                    ).removeClass('text-muted text-success').addClass('text-warning');
+
+                    if (typeof showError === 'function') {
+                        showError('Error al consultar el tipo de cambio del BCCR');
+                    }
+                }
+            });
+        }
+
         function formatCurrency(value) {
             return currentCurrencySymbol + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
         }
@@ -4342,7 +4698,9 @@
             $('#lblSubtotalLinea').text(formatCurrency($('#lblSubtotalLinea').text().replace(/[₡$€]/g, '')));
 
             // Recalcular totales para actualizar todas las líneas de la tabla
-            recalcularTotales();
+            if (typeof calculateTotals === 'function') {
+                calculateTotals();
+            }
         }
 
         // ============================================

@@ -7,113 +7,121 @@
 
 @Html.AntiForgeryToken()
 
-<!-- Metric Cards Row -->
-<div class="row g-3 mb-4">
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
+    <p>Resumen de operaciones del sistema de facturación electrónica</p>
+</div>
+
+<!-- Metric Cards Row - Modern Design -->
+<div class="row g-4 mb-4">
     <!-- Total Ventas Hoy -->
     <div class="col-sm-6 col-lg-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
+        <a href="/Documentos" class="text-decoration-none">
+            <div class="metric-card success card-hoverable">
+                <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
-                        <div class="text-white-50 small text-uppercase fw-semibold">Ventas Hoy</div>
-                        <div class="fs-4 fw-semibold" id="ventasHoy">₡0.00</div>
+                        <div class="metric-label">Ventas Hoy</div>
+                        <div class="metric-value" id="ventasHoy">₡0.00</div>
                     </div>
-                    <div>
-                        <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+                    <div class="metric-icon">
+                        <i class="fas fa-dollar-sign"></i>
                     </div>
                 </div>
             </div>
-            <div class="card-footer bg-transparent border-0">
-                <a href="/Documentos" class="text-white small">Ver documentos <i class="fas fa-arrow-right ms-1"></i></a>
-            </div>
-        </div>
+        </a>
     </div>
 
     <!-- Documentos Pendientes -->
     <div class="col-sm-6 col-lg-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
+        <a href="/Documentos?estado=pendiente" class="text-decoration-none">
+            <div class="metric-card warning card-hoverable">
+                <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
-                        <div class="text-white-50 small text-uppercase fw-semibold">Docs Pendientes</div>
-                        <div class="fs-4 fw-semibold" id="docsPendientes">0</div>
+                        <div class="metric-label">Docs Pendientes</div>
+                        <div class="metric-value" id="docsPendientes">0</div>
                     </div>
-                    <div>
-                        <i class="fas fa-file-invoice fa-3x opacity-50"></i>
+                    <div class="metric-icon">
+                        <i class="fas fa-file-invoice"></i>
                     </div>
                 </div>
             </div>
-            <div class="card-footer bg-transparent border-0">
-                <a href="/Documentos" class="text-white small">Ver pendientes <i class="fas fa-arrow-right ms-1"></i></a>
-            </div>
-        </div>
+        </a>
     </div>
 
     <!-- Productos Bajo Stock -->
     <div class="col-sm-6 col-lg-3">
-        <div class="card text-white bg-danger">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
+        <a href="/Inventario?filtro=bajo-stock" class="text-decoration-none">
+            <div class="metric-card danger card-hoverable">
+                <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
-                        <div class="text-white-50 small text-uppercase fw-semibold">Stock Bajo</div>
-                        <div class="fs-4 fw-semibold" id="stockBajo">0</div>
+                        <div class="metric-label">Stock Bajo</div>
+                        <div class="metric-value" id="stockBajo">0</div>
                     </div>
-                    <div>
-                        <i class="fas fa-box fa-3x opacity-50"></i>
+                    <div class="metric-icon">
+                        <i class="fas fa-box"></i>
                     </div>
                 </div>
             </div>
-            <div class="card-footer bg-transparent border-0">
-                <a href="/Inventario" class="text-white small">Ver inventario <i class="fas fa-arrow-right ms-1"></i></a>
-            </div>
-        </div>
+        </a>
     </div>
 
     <!-- Pagos Pendientes -->
     <div class="col-sm-6 col-lg-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
+        <a href="/Gasto?estado=pendiente" class="text-decoration-none">
+            <div class="metric-card info card-hoverable">
+                <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
-                        <div class="text-white-50 small text-uppercase fw-semibold">Pagos Pendientes</div>
-                        <div class="fs-4 fw-semibold" id="pagosPendientes">₡0.00</div>
+                        <div class="metric-label">Pagos Pendientes</div>
+                        <div class="metric-value" id="pagosPendientes">₡0.00</div>
                     </div>
-                    <div>
-                        <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
+                    <div class="metric-icon">
+                        <i class="fas fa-money-bill-wave"></i>
                     </div>
                 </div>
             </div>
-            <div class="card-footer bg-transparent border-0">
-                <a href="/Gastos" class="text-white small">Ver gastos <i class="fas fa-arrow-right ms-1"></i></a>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
 
 <!-- Charts Row -->
-<div class="row g-3 mb-4">
+<div class="row g-4 mb-4">
     <!-- Ventas últimos 7 días -->
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-line me-2"></i>
-                <strong>Ventas Últimos 7 Días</strong>
+        <div class="card shadow-custom">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-chart-line me-2 text-primary"></i>
+                    <strong>Ventas Últimos 7 Días</strong>
+                </div>
+                <span class="badge bg-primary">Tendencia</span>
             </div>
             <div class="card-body">
-                <canvas id="chartVentas" height="80"></canvas>
+                <div id="chartVentasLoader" class="text-center py-5">
+                    <div class="spinner-modern mx-auto"></div>
+                    <p class="text-muted mt-3">Cargando datos...</p>
+                </div>
+                <canvas id="chartVentas" height="80" style="display:none;"></canvas>
             </div>
         </div>
     </div>
 
     <!-- Documentos por Tipo -->
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-chart-pie me-2"></i>
-                <strong>Documentos por Tipo</strong>
+        <div class="card shadow-custom">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-chart-pie me-2 text-primary"></i>
+                    <strong>Documentos por Tipo</strong>
+                </div>
+                <span class="badge bg-primary">Distribución</span>
             </div>
             <div class="card-body">
-                <canvas id="chartDocumentos"></canvas>
+                <div id="chartDocumentosLoader" class="text-center py-5">
+                    <div class="spinner-modern mx-auto"></div>
+                    <p class="text-muted mt-3 small">Cargando...</p>
+                </div>
+                <canvas id="chartDocumentos" style="display:none;"></canvas>
             </div>
         </div>
     </div>
@@ -122,18 +130,26 @@
 <!-- Recent Documents Table -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
+        <div class="card shadow-custom">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <i class="fas fa-list me-2"></i>
+                    <i class="fas fa-file-alt me-2 text-primary"></i>
                     <strong>Documentos Recientes</strong>
+                    <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
                 </div>
-                <a href="/CrearDocumento" class="btn btn-primary btn-sm">
+                <a href="/Facturacion" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i> Nuevo Documento
                 </a>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                <!-- Loading State -->
+                <div id="tableLoader" class="text-center py-5">
+                    <div class="spinner-modern mx-auto"></div>
+                    <p class="text-muted mt-3">Cargando documentos recientes...</p>
+                </div>
+
+                <!-- Table -->
+                <div class="table-responsive" id="tableContainer" style="display:none;">
                     <table class="table table-hover" id="tableDocumentosRecientes">
                         <thead>
                             <tr>
@@ -151,6 +167,18 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state" style="display:none;">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <h3 class="empty-state-title">No hay documentos recientes</h3>
+                    <p class="empty-state-description">Comienza creando tu primer documento electrónico</p>
+                    <a href="/Facturacion" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Crear Documento
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -162,11 +190,13 @@
     let chartDocumentos;
 
     $(document).ready(function() {
-        loadDashboardData();
+        loadDashboardMetrics();
+        loadVentasChartData();
+        loadDocumentosPorTipoData();
         loadRecentDocuments();
     });
 
-    function loadDashboardData() {
+    function loadDashboardMetrics() {
         // Load dashboard metrics via PageModel handler
         $.ajax({
             url: '?handler=Resumen',
@@ -175,22 +205,67 @@
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
             success: function(response) {
-                if (response) {
-                    // Update metric cards
-                    $('#ventasHoy').text(formatCurrency(response.ventasHoy || 0));
-                    $('#docsPendientes').text(response.documentosPendientes || 0);
-                    $('#stockBajo').text(response.productosBajoStock || 0);
-                    $('#pagosPendientes').text(formatCurrency(response.pagosPendientes || 0));
+                // Handle wrapped response (response.data, response.result, or direct)
+                const data = response?.data || response?.result || response || {};
 
-                    // Load charts
-                    loadVentasChart(response.ventasUltimos7Dias || []);
-                    loadDocumentosChart(response.documentosPorTipo || []);
-                }
+                // Update metric cards - use correct property names from DashboardResumenDTO
+                $('#ventasHoy').text(formatCurrency(data.totalVentasHoy || data.TotalVentasHoy || 0));
+                $('#docsPendientes').text(data.documentosPendientesEnvio || data.DocumentosPendientesEnvio || 0);
+                $('#stockBajo').text(data.productosBajoStock || data.ProductosBajoStock || 0);
+                $('#pagosPendientes').text(formatCurrency(data.pagosPendientes || data.PagosPendientes || 0));
             },
             error: function(xhr) {
-                console.error('Error loading dashboard data:', xhr);
-                // Show default data
+                console.error('Error loading dashboard metrics:', xhr);
+                // Show default values
+                $('#ventasHoy').text('₡0.00');
+                $('#docsPendientes').text('0');
+                $('#stockBajo').text('0');
+                $('#pagosPendientes').text('₡0.00');
+            }
+        });
+    }
+
+    function loadVentasChartData() {
+        // Calculate last 7 days date range
+        const fechaFin = new Date();
+        const fechaInicio = new Date();
+        fechaInicio.setDate(fechaInicio.getDate() - 6);
+
+        $.ajax({
+            url: '?handler=VentasPorDia&fechaInicio=' + fechaInicio.toISOString().split('T')[0] + '&fechaFin=' + fechaFin.toISOString().split('T')[0],
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const data = response?.data || response?.result || response || [];
+                loadVentasChart(Array.isArray(data) ? data : []);
+            },
+            error: function(xhr) {
+                console.error('Error loading ventas chart:', xhr);
                 loadVentasChart([]);
+            }
+        });
+    }
+
+    function loadDocumentosPorTipoData() {
+        // Current month date range
+        const hoy = new Date();
+        const fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const fechaFin = hoy;
+
+        $.ajax({
+            url: '?handler=DocumentosPorTipo&fechaInicio=' + fechaInicio.toISOString().split('T')[0] + '&fechaFin=' + fechaFin.toISOString().split('T')[0],
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const data = response?.data || response?.result || response || [];
+                loadDocumentosChart(Array.isArray(data) ? data : []);
+            },
+            error: function(xhr) {
+                console.error('Error loading documentos chart:', xhr);
                 loadDocumentosChart([]);
             }
         });
@@ -198,14 +273,28 @@
 
     function loadVentasChart(data) {
         const ctx = document.getElementById('chartVentas');
+        const loader = document.getElementById('chartVentasLoader');
+
+        // Hide loader and show chart
+        loader.style.display = 'none';
+        ctx.style.display = 'block';
 
         // Destroy existing chart if it exists
         if (chartVentas) {
             chartVentas.destroy();
         }
 
-        const labels = data.map(d => formatDate(d.fecha));
-        const values = data.map(d => d.total);
+        // VentasPorMesDTO has: mes, ano, totalVentas, cantidadDocumentos, promedioVenta
+        // Also handle PascalCase variants
+        const labels = data.map(d => {
+            // Create date from mes (day number in ventas-dia context)
+            const mes = d.mes || d.Mes || 0;
+            const ano = d.ano || d.Ano || new Date().getFullYear();
+            // Format as short date
+            const fecha = new Date(ano, new Date().getMonth(), mes);
+            return fecha.toLocaleDateString('es-CR', { weekday: 'short', day: 'numeric' });
+        });
+        const values = data.map(d => d.totalVentas || d.TotalVentas || 0);
 
         chartVentas = new Chart(ctx, {
             type: 'line',
@@ -214,16 +303,16 @@
                 datasets: [{
                     label: 'Ventas (₡)',
                     data: values.length > 0 ? values : [0, 0, 0, 0, 0, 0, 0],
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    borderWidth: 2,
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 3,
                     tension: 0.4,
                     fill: true,
-                    pointBackgroundColor: '#667eea',
+                    pointBackgroundColor: '#0ea5e9',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 5,
+                    pointHoverRadius: 7
                 }]
             },
             options: {
@@ -266,15 +355,26 @@
 
     function loadDocumentosChart(data) {
         const ctx = document.getElementById('chartDocumentos');
+        const loader = document.getElementById('chartDocumentosLoader');
+
+        // Hide loader and show chart
+        loader.style.display = 'none';
+        ctx.style.display = 'block';
 
         // Destroy existing chart if it exists
         if (chartDocumentos) {
             chartDocumentos.destroy();
         }
 
-        const labels = data.map(d => d.tipo);
-        const values = data.map(d => d.cantidad);
-        const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a'];
+        // VentasPorTipoDocumentoDTO has: tipoDocumento, cantidad, total, porcentaje
+        // Also handle PascalCase variants
+        const labels = data.map(d => {
+            const tipo = d.tipoDocumento || d.TipoDocumento || 'N/A';
+            // Simplify the label (e.g., "FE - Factura Electrónica" -> "FE")
+            return tipo.split(' - ')[0] || tipo;
+        });
+        const values = data.map(d => d.cantidad || d.Cantidad || 0);
+        const colors = ['#0ea5e9', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
 
         chartDocumentos = new Chart(ctx, {
             type: 'doughnut',
@@ -318,6 +418,36 @@
     }
 
     function loadRecentDocuments() {
+        const tableLoader = document.getElementById('tableLoader');
+        const tableContainer = document.getElementById('tableContainer');
+        const emptyState = document.getElementById('emptyState');
+
+        // Helper to get document type abbreviation
+        function getTipoDocAbrev(tipoDocumento) {
+            // Handle both numeric enum values and string values
+            const tipoMap = {
+                0: 'FE', 1: 'ND', 2: 'NC', 3: 'TE', 4: 'FEE', 5: 'FEC',
+                'FacturaElectronica': 'FE',
+                'NotaDebitoElectronica': 'ND',
+                'NotaCreditoElectronica': 'NC',
+                'TiqueteElectronico': 'TE',
+                'FacturaElectronicaExportacion': 'FEE',
+                'FacturaElectronicaCompra': 'FEC',
+                'ReciboElectronicoPago': 'REP'
+            };
+            return tipoMap[tipoDocumento] || String(tipoDocumento);
+        }
+
+        // Helper to get estado display
+        function getEstadoDisplay(estado) {
+            const estadoMap = {
+                0: 'Borrador', 1: 'Pendiente', 2: 'Procesando', 3: 'Aceptado', 4: 'Rechazado', 5: 'Contingencia',
+                'Borrador': 'Borrador', 'Pendiente': 'Pendiente', 'Procesando': 'Procesando',
+                'Aceptado': 'Aceptado', 'Rechazado': 'Rechazado', 'Contingencia': 'Aceptado'
+            };
+            return estadoMap[estado] || String(estado);
+        }
+
         $('#tableDocumentosRecientes').DataTable({
             ajax: {
                 url: '?handler=DocumentosRecientes',
@@ -333,10 +463,40 @@
                     };
                 },
                 dataSrc: function(json) {
-                    return json.data || json;
+                    const rawData = json.data || json || [];
+
+                    // Normalize property names (handle both camelCase and PascalCase)
+                    const data = rawData.map(item => ({
+                        id: item.id || item.Id,
+                        fechaEmision: item.fechaEmision || item.FechaEmision,
+                        tipoDocumento: getTipoDocAbrev(item.tipoDocumento ?? item.TipoDocumento),
+                        consecutivo: item.numeroConsecutivo || item.NumeroConsecutivo || item.consecutivo || item.Consecutivo || 'N/A',
+                        receptor: item.receptor || item.Receptor || item.cliente || item.Cliente,
+                        total: item.totalVenta || item.TotalVenta || item.total || item.Total || 0,
+                        estadoHacienda: getEstadoDisplay(item.estado ?? item.Estado ?? item.estadoHacienda ?? item.EstadoHacienda)
+                    }));
+
+                    // Update badge count
+                    $('#badgeTotal').text(data.length);
+
+                    // Hide loader
+                    tableLoader.style.display = 'none';
+
+                    // Show table or empty state
+                    if (data.length > 0) {
+                        tableContainer.style.display = 'block';
+                        emptyState.style.display = 'none';
+                    } else {
+                        tableContainer.style.display = 'none';
+                        emptyState.style.display = 'block';
+                    }
+
+                    return data;
                 },
                 error: function(xhr, error, code) {
                     console.error('Error loading documents:', error);
+                    tableLoader.style.display = 'none';
+                    emptyState.style.display = 'block';
                     return [];
                 }
             },
@@ -351,32 +511,34 @@
                     data: 'tipoDocumento',
                     render: function(data) {
                         const badges = {
-                            'FE': '<span class="badge bg-primary">FE</span>',
-                            'TE': '<span class="badge bg-info">TE</span>',
-                            'NC': '<span class="badge bg-warning">NC</span>',
-                            'ND': '<span class="badge bg-danger">ND</span>',
-                            'FEE': '<span class="badge bg-success">FEE</span>',
-                            'REP': '<span class="badge bg-secondary">REP</span>'
+                            'FE': '<span class="badge" style="background: #0ea5e9; color: white;">FE</span>',
+                            'TE': '<span class="badge" style="background: #06b6d4; color: white;">TE</span>',
+                            'NC': '<span class="badge" style="background: #f59e0b; color: white;">NC</span>',
+                            'ND': '<span class="badge" style="background: #ef4444; color: white;">ND</span>',
+                            'FEE': '<span class="badge" style="background: #10b981; color: white;">FEE</span>',
+                            'FEC': '<span class="badge" style="background: #8b5cf6; color: white;">FEC</span>',
+                            'REP': '<span class="badge" style="background: #64748b; color: white;">REP</span>'
                         };
-                        return badges[data] || data;
+                        return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
                     }
                 },
                 {
                     data: 'consecutivo',
                     render: function(data) {
-                        return '<code class="text-primary">' + data + '</code>';
+                        return '<code class="text-primary">' + (data || 'N/A') + '</code>';
                     }
                 },
                 {
                     data: 'receptor',
                     render: function(data) {
-                        return data ? data.nombre : 'N/A';
+                        if (!data) return '<span class="text-muted">-</span>';
+                        return data.nombre || data.Nombre || data.nombreReceptor || data.NombreReceptor || '-';
                     }
                 },
                 {
                     data: 'total',
                     render: function(data) {
-                        return '<strong>' + formatCurrency(data) + '</strong>';
+                        return '<strong>' + formatCurrency(data || 0) + '</strong>';
                     },
                     className: 'text-end'
                 },
@@ -384,12 +546,14 @@
                     data: 'estadoHacienda',
                     render: function(data) {
                         const badges = {
-                            'Aceptado': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Aceptado</span>',
-                            'Rechazado': '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Rechazado</span>',
-                            'Pendiente': '<span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pendiente</span>',
-                            'Procesando': '<span class="badge bg-info"><i class="fas fa-spinner me-1"></i>Procesando</span>'
+                            'Aceptado': '<span class="badge" style="background: #10b981; color: white;"><i class="fas fa-check-circle me-1"></i>Aceptado</span>',
+                            'Rechazado': '<span class="badge" style="background: #ef4444; color: white;"><i class="fas fa-times-circle me-1"></i>Rechazado</span>',
+                            'Pendiente': '<span class="badge" style="background: #f59e0b; color: white;"><i class="fas fa-clock me-1"></i>Pendiente</span>',
+                            'Procesando': '<span class="badge" style="background: #0ea5e9; color: white;"><i class="fas fa-spinner fa-spin me-1"></i>Procesando</span>',
+                            'Borrador': '<span class="badge" style="background: #6b7280; color: white;"><i class="fas fa-edit me-1"></i>Borrador</span>',
+                            'Contingencia': '<span class="badge" style="background: #10b981; color: white;"><i class="fas fa-check-circle me-1"></i>Contingencia</span>'
                         };
-                        return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
+                        return badges[data] || '<span class="badge bg-secondary">' + (data || 'N/A') + '</span>';
                     }
                 },
                 {
@@ -398,10 +562,10 @@
                     render: function(data) {
                         return `
                             <div class="btn-group btn-group-sm" role="group">
-                                <button class="btn btn-outline-primary" onclick="verDocumento(${data})" title="Ver Detalle">
+                                <button class="btn btn-outline-primary" onclick="verDocumento('${data}')" title="Ver Detalle">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="btn btn-outline-success" onclick="descargarPDF(${data})" title="Descargar PDF">
+                                <button class="btn btn-outline-success" onclick="descargarPDF('${data}')" title="Descargar PDF">
                                     <i class="fas fa-file-pdf"></i>
                                 </button>
                             </div>
@@ -423,13 +587,22 @@
     }
 
     function verDocumento(id) {
+        if (!id) return;
         window.location.href = '/DocumentoDetalle?id=' + id;
     }
 
     function descargarPDF(id) {
+        if (!id) return;
+        // Show loading indicator
+        Swal.fire({
+            title: 'Generando PDF...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
         // Use direct link for file download via PageModel handler
-        // This avoids AJAX complexity with blob responses
         window.location.href = '?handler=DocumentoPdf&id=' + id;
+        // Close loading after a delay (download triggers navigation)
+        setTimeout(() => Swal.close(), 2000);
     }
 </script>
 }

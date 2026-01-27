@@ -46,6 +46,7 @@ public class MovimientoInventarioRepository : IMovimientoInventarioRepository
                 .ThenInclude(i => i.Producto)
             .Include(m => m.Inventario)
                 .ThenInclude(i => i.Sucursal)
+            .Include(m => m.UsuarioCreacion)
             .Where(m => m.Inventario.Sucursal.EmpresaId == empresaId &&
                        m.Fecha >= fechaInicio &&
                        m.Fecha <= fechaFin)

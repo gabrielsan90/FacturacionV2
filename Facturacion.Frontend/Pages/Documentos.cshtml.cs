@@ -32,7 +32,7 @@ public class DocumentosModel : PageModel
         EmpresaId = User.FindFirstValue("EmpresaId") ?? "";
     }
 
-    // Handler for DataTable - Load documents with filters
+    // Handler for DataTable - Load documents with filters and pagination
     public async Task<IActionResult> OnGetDataAsync(
         string? empresaId,
         string? fechaInicio,
@@ -41,7 +41,11 @@ public class DocumentosModel : PageModel
         int? estado,
         string? sucursalId,
         string? terminalId,
-        int? ambiente)
+        int? ambiente,
+        // DataTables pagination parameters
+        int draw = 1,
+        int start = 0,
+        int length = 25)
     {
         try
         {
@@ -52,14 +56,6 @@ public class DocumentosModel : PageModel
             {
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
-            //// Get JWT token from cookie (as per CLAUDE.md instructions)
-            //if (!Request.Cookies.TryGetValue("jwtAdmin", out var jwt))
-            //{
-            //    _logger.LogWarning("JWT token 'jwtAdmin' not found in cookies for OnGetDataAsync");
-            //    return StatusCode(401, new { error = "No se encontró el token de autenticación. Por favor, inicie sesión nuevamente." });
-            //}
-
-            //client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
 
             // Build query string with filters
             var queryParams = new List<string>();
@@ -90,8 +86,24 @@ public class DocumentosModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var documentos = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                _logger.LogInformation("Successfully retrieved {Count} documentos from API", documentos?.Count ?? 0);
-                return new JsonResult(new { data = documentos ?? new List<object>() });
+                var totalRecords = documentos?.Count ?? 0;
+
+                _logger.LogInformation("Successfully retrieved {Count} documentos from API", totalRecords);
+
+                // Apply client-side pagination (since backend returns all records)
+                var pagedData = documentos?
+                    .Skip(start)
+                    .Take(length)
+                    .ToList() ?? new List<object>();
+
+                // Return DataTables format with pagination info
+                return new JsonResult(new
+                {
+                    draw = draw,
+                    recordsTotal = totalRecords,
+                    recordsFiltered = totalRecords,
+                    data = pagedData
+                });
             }
 
             // Handle error responses

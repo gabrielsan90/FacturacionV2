@@ -39,15 +39,20 @@
 
             <!-- Search and Filter -->
             <div class="row mb-3">
-                <div class="col-md-6">
-                    <input type="text" class="form-control" id="searchProducto" placeholder="Buscar producto..." />
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchProducto" placeholder="Buscar producto..." />
+                        <button class="btn btn-outline-primary" type="button" onclick="openProductSearchModal()" title="Buscar en lista de productos">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-3">
                     <select class="form-select" id="filterCategoria">
                         <option value="">Todas las categorías</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <button class="btn btn-success w-100" onclick="asignarSeleccionados()">
                         <i class="fas fa-check me-1"></i> Asignar Seleccionados
                     </button>
@@ -95,10 +100,53 @@
     </div>
 </div>
 
+<!-- Product Search Modal -->
+<div class="modal fade" id="modalProductSearch" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2 text-primary"></i>Buscar Producto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="modalSearchInput" placeholder="Escriba para filtrar..." />
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm" id="tableModalProductos">
+                        <thead class="sticky-top bg-white">
+                            <tr>
+                                <th style="width: 50px;">Sel.</th>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalProductosBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto text-muted" id="modalSelectedCount">0 productos seleccionados</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="selectProductsFromModal()">
+                    <i class="fas fa-check me-1"></i>Seleccionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     let table;
     let sucursalSeleccionada = null;
+    let allProductsForModal = [];
 
     $(document).ready(function() {
         cargarSucursales();
@@ -332,6 +380,107 @@
                 }
             });
         });
+    }
+
+    // Product Search Modal Functions
+    function openProductSearchModal() {
+        if (!sucursalSeleccionada) {
+            showError('Primero debe seleccionar una sucursal y cargar los productos');
+            return;
+        }
+
+        // Load products for modal
+        $.ajax({
+            url: `?handler=ProductosDisponibles&sucursalId=${sucursalSeleccionada}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const data = response.data || response || [];
+                allProductsForModal = data;
+                renderModalProducts(data);
+                $('#modalSearchInput').val('');
+                $('#modalProductSearch').modal('show');
+            },
+            error: function() {
+                showError('Error al cargar productos');
+            }
+        });
+    }
+
+    function renderModalProducts(products) {
+        const tbody = $('#modalProductosBody');
+        tbody.empty();
+
+        if (products.length === 0) {
+            tbody.append('<tr><td colspan="4" class="text-center text-muted">No hay productos disponibles</td></tr>');
+            return;
+        }
+
+        products.forEach(p => {
+            const codigo = p.codigo || p.Codigo || '';
+            const nombre = p.nombre || p.Nombre || '';
+            const categoria = p.categoria ? (p.categoria.nombre || p.categoria.Nombre || '-') : '-';
+
+            tbody.append(`
+                <tr>
+                    <td>
+                        <input type="checkbox" class="modal-producto-check" value="${p.id}" data-codigo="${codigo}" />
+                    </td>
+                    <td>${codigo}</td>
+                    <td>${nombre}</td>
+                    <td>${categoria}</td>
+                </tr>
+            `);
+        });
+
+        // Update selected count
+        updateModalSelectedCount();
+
+        // Add change listener
+        $('.modal-producto-check').on('change', function() {
+            updateModalSelectedCount();
+        });
+    }
+
+    function updateModalSelectedCount() {
+        const count = $('.modal-producto-check:checked').length;
+        $('#modalSelectedCount').text(`${count} producto(s) seleccionado(s)`);
+    }
+
+    // Filter products in modal
+    $('#modalSearchInput').on('keyup', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        const filtered = allProductsForModal.filter(p => {
+            const codigo = (p.codigo || p.Codigo || '').toLowerCase();
+            const nombre = (p.nombre || p.Nombre || '').toLowerCase();
+            return codigo.includes(searchTerm) || nombre.includes(searchTerm);
+        });
+        renderModalProducts(filtered);
+    });
+
+    function selectProductsFromModal() {
+        const selectedIds = [];
+        $('.modal-producto-check:checked').each(function() {
+            selectedIds.push($(this).val());
+        });
+
+        if (selectedIds.length === 0) {
+            showWarning('Debe seleccionar al menos un producto');
+            return;
+        }
+
+        // Check the corresponding checkboxes in the main table
+        selectedIds.forEach(id => {
+            const checkbox = $(`.producto-checkbox[value="${id}"]`);
+            if (checkbox.length) {
+                checkbox.prop('checked', true);
+            }
+        });
+
+        $('#modalProductSearch').modal('hide');
+        showSuccess(`${selectedIds.length} producto(s) seleccionado(s)`);
     }
 </script>
 }

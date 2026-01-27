@@ -23,7 +23,8 @@
       "Bash(ls:*)",
       "Bash(node:*)",
       "Skill(dotnet-frontend)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(dotnet clean:*)"
     ],
     "deny": [],
     "ask": []

@@ -5,30 +5,72 @@
     ViewData["Breadcrumb"] = "Clientes";
 }
 
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="fas fa-user-tie me-2"></i>Clientes
-        </h5>
-        <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
-            <i class="fas fa-plus me-1"></i> Nuevo Cliente
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-user-tie"></i> Clientes</h2>
+            <p class="mb-0">Gestión de clientes y receptores de documentos electrónicos</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo cliente">
+            <i class="fas fa-plus me-2"></i>Nuevo Cliente
         </button>
     </div>
+</div>
+
+<!-- Clientes Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Clientes</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalClientes">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
     <div class="card-body">
-        <table id="tableClientes" class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Tipo ID</th>
-                    <th>Identificación</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Teléfono</th>
-                    <th>Estado</th>
-                    <th style="width: 120px;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- Loading State -->
+        <div id="tableClientesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando clientes...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableClientesContainer" style="display:none;">
+            <table id="tableClientes" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tipo ID</th>
+                        <th>Identificación</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateClientes" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <h3 class="empty-state-title">No hay clientes registrados</h3>
+            <p class="empty-state-description">Comienza agregando tu primer cliente</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Cliente
+            </button>
+        </div>
     </div>
 </div>
 
@@ -260,7 +302,34 @@
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
-                dataSrc: ''
+                dataSrc: function(json) {
+                    // Hide loader
+                    $('#tableClientesLoader').hide();
+
+                    // Get data array
+                    const data = json.data || json || [];
+
+                    // Update badge count
+                    $('#badgeTotalClientes').text(data.length);
+
+                    // Show appropriate state
+                    if (data.length > 0) {
+                        $('#tableClientesContainer').show();
+                        $('#emptyStateClientes').hide();
+                    } else {
+                        $('#tableClientesContainer').hide();
+                        $('#emptyStateClientes').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableClientesLoader').hide();
+                    $('#tableClientesContainer').hide();
+                    $('#emptyStateClientes').show();
+                    $('#badgeTotalClientes').text('0');
+                    console.error('Error loading clients:', error);
+                }
             },
             columns: [
                 {
@@ -679,6 +748,19 @@
                 }
             });
         });
+    }
+
+    function refrescarTabla() {
+        // Show loader
+        $('#tableClientesLoader').show();
+        $('#tableClientesContainer').hide();
+        $('#emptyStateClientes').hide();
+        // Reload table
+        table.ajax.reload();
+    }
+
+    function exportarExcel() {
+        showWarning('Función de exportación en desarrollo');
     }
 </script>
 }
