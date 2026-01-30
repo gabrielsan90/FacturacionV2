@@ -32,4 +32,17 @@
     <ProjectReference Include="..\Facturacion.Shared\Facturacion.Shared.csproj" />
   </ItemGroup>
 
+  <!-- Copy XSD schemas to output directory -->
+  <ItemGroup>
+    <None Include="Schemas\*.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Create Certificates folder in output (for digital certificates storage) -->
+  <ItemGroup>
+    <None Include="Certificates\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Certificates\.gitkeep" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

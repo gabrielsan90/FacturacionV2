@@ -24,9 +24,9 @@ public class XsdValidacionService : IXsdValidacionService
         _logger = logger;
         _environment = environment;
 
-        // La ruta base a los esquemas XSD es /4.4/ desde la raíz del proyecto
-        // En producción los archivos XSD deben estar en la misma ubicación
-        _rutaBaseXsd = Path.Combine(Directory.GetParent(_environment.ContentRootPath)!.FullName, "4.4");
+        // Los esquemas XSD están en la carpeta Schemas dentro del proyecto
+        // Se copian automáticamente al output en el build
+        _rutaBaseXsd = Path.Combine(_environment.ContentRootPath, "Schemas");
 
         _logger.LogInformation("XsdValidacionService inicializado. Ruta base XSD: {RutaBase}", _rutaBaseXsd);
     }

@@ -311,6 +311,14 @@ public class DashboardController : ControllerBase
     {
         try
         {
+            // Primero intentar obtener EmpresaId del claim (método preferido)
+            var empresaIdClaim = User.FindFirst("EmpresaId")?.Value;
+            if (!string.IsNullOrEmpty(empresaIdClaim) && Guid.TryParse(empresaIdClaim, out var empresaIdFromClaim))
+            {
+                return empresaIdFromClaim;
+            }
+
+            // Fallback: buscar en la base de datos
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
@@ -318,7 +326,6 @@ public class DashboardController : ControllerBase
             }
 
             // Obtener la primera empresa del usuario
-            // En un sistema multi-tenant real, esto podría venir de un header o claim específico
             var usuarioEmpresa = await _context.UsuariosEmpresas
                 .Where(ue => ue.UserId == userId)
                 .FirstOrDefaultAsync();

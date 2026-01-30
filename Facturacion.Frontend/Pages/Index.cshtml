@@ -284,14 +284,18 @@
             chartVentas.destroy();
         }
 
-        // VentasPorMesDTO has: mes, ano, totalVentas, cantidadDocumentos, promedioVenta
-        // Also handle PascalCase variants
+        // Response has: fecha, dia, mes, ano, totalVentas, cantidadDocumentos, promedioVenta
+        // Handle both camelCase and PascalCase variants
         const labels = data.map(d => {
-            // Create date from mes (day number in ventas-dia context)
-            const mes = d.mes || d.Mes || 0;
+            // Use fecha if available, otherwise build from dia/mes/ano
+            if (d.fecha || d.Fecha) {
+                const fecha = new Date(d.fecha || d.Fecha);
+                return fecha.toLocaleDateString('es-CR', { weekday: 'short', day: 'numeric' });
+            }
+            const dia = d.dia || d.Dia || 1;
+            const mes = d.mes || d.Mes || 1;
             const ano = d.ano || d.Ano || new Date().getFullYear();
-            // Format as short date
-            const fecha = new Date(ano, new Date().getMonth(), mes);
+            const fecha = new Date(ano, mes - 1, dia); // mes is 1-based, JS months are 0-based
             return fecha.toLocaleDateString('es-CR', { weekday: 'short', day: 'numeric' });
         });
         const values = data.map(d => d.totalVentas || d.TotalVentas || 0);

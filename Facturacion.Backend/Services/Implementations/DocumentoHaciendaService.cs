@@ -1,5 +1,6 @@
 using System.Text;
 using Facturacion.Backend.Data;
+using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
@@ -19,7 +20,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
     private readonly IFirmaDigitalService _firmaDigital;
     private readonly IHaciendaApiService _haciendaApi;
     private readonly IXsdValidacionService _xsdValidacion;
-    private readonly IValidacionCalculosService _validacionCalculos; // NUEVO v4.4 - M8
+    private readonly IValidacionCalculosService _validacionCalculos;
+    private readonly IInventarioRepository _inventarioRepository;
     private readonly ILogger<DocumentoHaciendaService> _logger;
 
     public DocumentoHaciendaService(
@@ -29,7 +31,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         IFirmaDigitalService firmaDigital,
         IHaciendaApiService haciendaApi,
         IXsdValidacionService xsdValidacion,
-        IValidacionCalculosService validacionCalculos, // NUEVO v4.4 - M8
+        IValidacionCalculosService validacionCalculos,
+        IInventarioRepository inventarioRepository,
         ILogger<DocumentoHaciendaService> logger)
     {
         _context = context;
@@ -38,7 +41,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         _firmaDigital = firmaDigital;
         _haciendaApi = haciendaApi;
         _xsdValidacion = xsdValidacion;
-        _validacionCalculos = validacionCalculos; // NUEVO v4.4 - M8
+        _validacionCalculos = validacionCalculos;
+        _inventarioRepository = inventarioRepository;
         _logger = logger;
     }
 
@@ -125,6 +129,27 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
             // 6. Generar XML
             _logger.LogInformation("Generando XML para documento {DocumentoId}", documentoId);
+
+            // DEBUG: Log document totals before XML generation
+            _logger.LogInformation("=== TOTALES ANTES DE XML === DocId: {DocId}", documentoId);
+            _logger.LogInformation("  TotalServiciosGravados: {Total}", documento.TotalServiciosGravados);
+            _logger.LogInformation("  TotalServiciosExentos: {Total}", documento.TotalServiciosExentos);
+            _logger.LogInformation("  TotalServiciosExonerados: {Total}", documento.TotalServiciosExonerados);
+            _logger.LogInformation("  TotalMercanciasGravadas: {Total}", documento.TotalMercanciasGravadas);
+            _logger.LogInformation("  TotalMercanciasExentas: {Total}", documento.TotalMercanciasExentas);
+            _logger.LogInformation("  TotalMercanciasExoneradas: {Total}", documento.TotalMercanciasExoneradas);
+            _logger.LogInformation("  TotalGravado: {Total}", documento.TotalGravado);
+            _logger.LogInformation("  TotalVenta: {Total}", documento.TotalVenta);
+            _logger.LogInformation("  Detalles count: {Count}", documento.Detalles?.Count ?? 0);
+            if (documento.Detalles != null)
+            {
+                foreach (var det in documento.Detalles)
+                {
+                    _logger.LogInformation("    Detalle {Num}: Desc={Desc}, ProductoId={PId}, MontoTotal={MT}",
+                        det.NumeroLinea, det.Descripcion, det.ProductoId, det.MontoTotal);
+                }
+            }
+
             documento.Estado = EstadoDocumento.Pendiente;
             await _context.SaveChangesAsync();
 
@@ -256,6 +281,9 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 resultado.Exitoso = true;
                 resultado.Mensaje = "Documento aceptado exitosamente por Hacienda";
                 resultado.Estado = "Aceptado";
+
+                // Procesar inventario según tipo de documento
+                await ProcesarInventarioDocumentoAsync(documento);
 
                 _logger.LogInformation("Documento {DocumentoId} aceptado por Hacienda", documentoId);
             }
@@ -476,6 +504,9 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                         respuestaHacienda.Mensajes,
                         new System.Text.Json.JsonSerializerOptions { WriteIndented = false });
                 }
+
+                // Procesar inventario según tipo de documento
+                await ProcesarInventarioDocumentoAsync(documento);
 
                 await _context.SaveChangesAsync();
             }
@@ -717,6 +748,75 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             .Include(d => d.OtraInformacion)
             .Include(d => d.Exportacion)
             .FirstOrDefaultAsync(d => d.Id == documentoId);
+    }
+
+    /// <summary>
+    /// Procesa el inventario según el tipo de documento aceptado
+    /// - Factura/Tiquete: Reduce inventario (venta)
+    /// - Nota de Crédito: Aumenta inventario (devolución)
+    /// </summary>
+    private async Task ProcesarInventarioDocumentoAsync(Documento documento)
+    {
+        try
+        {
+            _logger.LogInformation(
+                "=== INICIO ProcesarInventarioDocumentoAsync === DocId: {DocId}, Tipo: {Tipo}, Consecutivo: {Consecutivo}, EsRecibido: {EsRecibido}",
+                documento.Id, documento.TipoDocumento, documento.NumeroConsecutivo, documento.EsDocumentoRecibido);
+
+            // Solo procesar documentos emitidos (no recibidos)
+            if (documento.EsDocumentoRecibido)
+            {
+                _logger.LogInformation("Documento es recibido, no se procesa inventario");
+                return;
+            }
+
+            // Obtener el userId del creador del documento o usar "system"
+            var userId = documento.UsuarioCreacionId ?? "system";
+            _logger.LogInformation("UserId para movimiento: {UserId}, SucursalId: {SucursalId}", userId, documento.SucursalId);
+
+            switch (documento.TipoDocumento)
+            {
+                case DocumentoTipo.FacturaElectronica:
+                case DocumentoTipo.TiqueteElectronico:
+                case DocumentoTipo.FacturaElectronicaExportacion:
+                    // Ventas: Reducir inventario
+                    _logger.LogInformation("Procesando como VENTA - Tipo: {Tipo}", documento.TipoDocumento);
+                    var resultadoVenta = await _inventarioRepository.ProcesarVentaDocumentoAsync(
+                        documento.Id,
+                        documento.SucursalId,
+                        userId);
+                    _logger.LogInformation(
+                        "Inventario procesado para venta - Documento: {NumeroConsecutivo}, Resultado: {Resultado}",
+                        documento.NumeroConsecutivo, resultadoVenta);
+                    break;
+
+                case DocumentoTipo.NotaCreditoElectronica:
+                    // Devolución: Aumentar inventario
+                    _logger.LogInformation("Procesando como DEVOLUCIÓN - Tipo: {Tipo}", documento.TipoDocumento);
+                    var resultadoDevolucion = await _inventarioRepository.ProcesarDevolucionDocumentoAsync(
+                        documento.Id,
+                        documento.SucursalId,
+                        userId);
+                    _logger.LogInformation(
+                        "Inventario procesado para devolución - NC: {NumeroConsecutivo}, Resultado: {Resultado}",
+                        documento.NumeroConsecutivo, resultadoDevolucion);
+                    break;
+
+                // Otros tipos de documento no afectan inventario
+                default:
+                    _logger.LogInformation("Tipo de documento {Tipo} no afecta inventario", documento.TipoDocumento);
+                    break;
+            }
+
+            _logger.LogInformation("=== FIN ProcesarInventarioDocumentoAsync ===");
+        }
+        catch (Exception ex)
+        {
+            // Log el error pero no fallar el proceso de aceptación
+            _logger.LogError(ex,
+                "Error al procesar inventario para documento {DocumentoId}: {Error}",
+                documento.Id, ex.Message);
+        }
     }
 
     #endregion

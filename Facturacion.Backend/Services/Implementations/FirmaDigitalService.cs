@@ -94,14 +94,31 @@ public class FirmaDigitalService : IFirmaDigitalService
         var canonicalSignedInfo = CanonicalizarXmlString(signedInfoXml);
 
         // 10. Sign the canonical SignedInfo
-        var signatureValue = certificate.GetRSAPrivateKey()?.SignData(
-            Encoding.UTF8.GetBytes(canonicalSignedInfo),
-            HashAlgorithmName.SHA256,
-            RSASignaturePadding.Pkcs1);
+        _logger.LogInformation("Obteniendo clave privada RSA del certificado...");
+        var rsaPrivateKey = certificate.GetRSAPrivateKey();
 
-        if (signatureValue == null)
+        if (rsaPrivateKey == null)
         {
+            _logger.LogError("El certificado no tiene clave privada RSA. HasPrivateKey: {HasKey}", certificate.HasPrivateKey);
             throw new InvalidOperationException("Error al firmar: el certificado no tiene clave privada RSA");
+        }
+
+        _logger.LogInformation("Clave privada obtenida. KeySize: {KeySize}. Firmando datos...", rsaPrivateKey.KeySize);
+
+        byte[] signatureValue;
+        try
+        {
+            signatureValue = rsaPrivateKey.SignData(
+                Encoding.UTF8.GetBytes(canonicalSignedInfo),
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+            _logger.LogInformation("Datos firmados exitosamente. Signature length: {Length}", signatureValue.Length);
+        }
+        catch (Exception signEx)
+        {
+            _logger.LogError(signEx, "Error durante SignData. Tipo: {Type}, Mensaje: {Message}",
+                signEx.GetType().Name, signEx.Message);
+            throw;
         }
 
         var signatureValueBase64 = Convert.ToBase64String(signatureValue);
@@ -206,24 +223,159 @@ public class FirmaDigitalService : IFirmaDigitalService
             throw new InvalidOperationException("La empresa no tiene un certificado digital configurado");
         }
 
+        var password = empresa.PinCertificado ?? string.Empty;
+        var certBytes = empresa.CertificadoDigital;
+
+        _logger.LogInformation("Cargando certificado para empresa {EmpresaId}. Tamaño: {Size} bytes, PIN length: {PinLen}",
+            empresaId, certBytes.Length, password.Length);
+
+        // Intentar cargar desde archivo en carpeta Certificates (más compatible con IIS)
+        var certFromFile = await TryLoadCertificateFromFileAsync(empresaId, empresa.NumeroIdentificacion, certBytes, password);
+        if (certFromFile != null)
+        {
+            return certFromFile;
+        }
+
+        // Fallback: cargar desde bytes con diferentes flags
+        return LoadCertificateFromBytes(empresaId, certBytes, password);
+    }
+
+    /// <summary>
+    /// Intenta cargar el certificado desde un archivo en la carpeta Certificates.
+    /// Si el archivo no existe, lo crea a partir de los bytes de la BD.
+    /// </summary>
+    private async Task<X509Certificate2?> TryLoadCertificateFromFileAsync(Guid empresaId, string numeroIdentificacion, byte[] certBytes, string password)
+    {
         try
         {
-            var password = empresa.PinCertificado ?? string.Empty;
+            // Carpeta Certificates junto a Schemas
+            var basePath = AppDomain.CurrentDomain.BaseDirectory;
+            var certFolder = Path.Combine(basePath, "Certificates");
 
-            // Usar el nuevo X509CertificateLoader de .NET 9
-            var certificado = X509CertificateLoader.LoadPkcs12(
-                empresa.CertificadoDigital,
-                password,
-                X509KeyStorageFlags.Exportable);
+            // Crear carpeta si no existe
+            if (!Directory.Exists(certFolder))
+            {
+                Directory.CreateDirectory(certFolder);
+                _logger.LogInformation("Carpeta Certificates creada en: {Path}", certFolder);
+            }
 
-            return certificado;
+            // Nombre del archivo basado en el número de identificación
+            var certFileName = $"{numeroIdentificacion}.p12";
+            var certFilePath = Path.Combine(certFolder, certFileName);
+
+            // Si el archivo no existe, guardarlo desde la BD
+            if (!File.Exists(certFilePath))
+            {
+                await File.WriteAllBytesAsync(certFilePath, certBytes);
+                _logger.LogInformation("Certificado guardado en archivo: {Path}", certFilePath);
+            }
+
+            // Intentar cargar desde archivo con diferentes flags
+            var flagsToTry = new[]
+            {
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet,
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.UserKeySet,
+                X509KeyStorageFlags.Exportable,
+            };
+
+            foreach (var flags in flagsToTry)
+            {
+                try
+                {
+                    _logger.LogInformation("Cargando certificado desde archivo {Path} con flags: {Flags}", certFilePath, flags);
+
+#pragma warning disable SYSLIB0057
+                    var cert = new X509Certificate2(certFilePath, password, flags);
+#pragma warning restore SYSLIB0057
+
+                    if (cert.HasPrivateKey)
+                    {
+                        using var rsaKey = cert.GetRSAPrivateKey();
+                        if (rsaKey != null)
+                        {
+                            _logger.LogInformation("Certificado cargado exitosamente desde archivo con flags {Flags}. Subject: {Subject}, KeySize: {KeySize}",
+                                flags, cert.Subject, rsaKey.KeySize);
+                            return cert;
+                        }
+                    }
+                    cert.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug("Fallo al cargar desde archivo con flags {Flags}: {Message}", flags, ex.Message);
+                }
+            }
+
+            _logger.LogWarning("No se pudo cargar certificado desde archivo con ninguna combinación de flags");
+            return null;
         }
-        catch (CryptographicException ex)
+        catch (Exception ex)
         {
-            _logger.LogError(ex, "Error criptográfico al cargar el certificado de la empresa {EmpresaId}", empresaId);
-            throw new InvalidOperationException(
-                "Error al cargar el certificado digital. Verifique que el PIN sea correcto.", ex);
+            _logger.LogWarning(ex, "No se pudo cargar certificado desde archivo para empresa {EmpresaId}: {Message}",
+                empresaId, ex.Message);
+            return null;
         }
+    }
+
+    /// <summary>
+    /// Carga el certificado desde bytes intentando múltiples combinaciones de flags.
+    /// </summary>
+    private X509Certificate2 LoadCertificateFromBytes(Guid empresaId, byte[] certBytes, string password)
+    {
+        var flagsToTry = new[]
+        {
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet,
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.UserKeySet,
+            X509KeyStorageFlags.Exportable,
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet,
+        };
+
+        Exception? lastException = null;
+
+        foreach (var flags in flagsToTry)
+        {
+            try
+            {
+                _logger.LogDebug("Intentando cargar certificado desde bytes con flags: {Flags}", flags);
+
+#pragma warning disable SYSLIB0057
+                var certificado = new X509Certificate2(certBytes, password, flags);
+#pragma warning restore SYSLIB0057
+
+                if (certificado.HasPrivateKey)
+                {
+                    try
+                    {
+                        using var rsaKey = certificado.GetRSAPrivateKey();
+                        if (rsaKey != null)
+                        {
+                            _logger.LogInformation("Certificado cargado desde bytes con flags {Flags}. Subject: {Subject}, KeySize: {KeySize}",
+                                flags, certificado.Subject, rsaKey.KeySize);
+                            return certificado;
+                        }
+                    }
+                    catch (CryptographicException keyEx)
+                    {
+                        _logger.LogWarning("Certificado cargado pero sin acceso a clave privada con flags {Flags}: {Message}",
+                            flags, keyEx.Message);
+                        certificado.Dispose();
+                        lastException = keyEx;
+                        continue;
+                    }
+                }
+
+                certificado.Dispose();
+            }
+            catch (CryptographicException ex)
+            {
+                _logger.LogDebug("Fallo con flags {Flags}: {Message}", flags, ex.Message);
+                lastException = ex;
+            }
+        }
+
+        _logger.LogError(lastException, "No se pudo cargar el certificado para empresa {EmpresaId}", empresaId);
+        throw new InvalidOperationException(
+            $"Error al cargar el certificado digital: {lastException?.Message ?? "Sin acceso a clave privada"}", lastException);
     }
 
     public bool ValidarCertificado(X509Certificate2 certificado)

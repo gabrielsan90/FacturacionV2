@@ -127,9 +127,16 @@ public class ApiService : IApiService
             var messageContent = new StringContent(messageJSON, Encoding.UTF8, "application/json");
             var responseHttp = await httpClient.PostAsync($"{_apiBaseUrl}{url}", messageContent);
 
+            var rawContent = await responseHttp.Content.ReadAsStringAsync();
+
+            // Log for debugging
+            var logMsg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] API POST {url} - Status: {(int)responseHttp.StatusCode} {responseHttp.StatusCode}, Content: {rawContent}";
+            Console.WriteLine(logMsg);
+            try { File.AppendAllText("login_debug.log", logMsg + Environment.NewLine); } catch { }
+
             if (responseHttp.IsSuccessStatusCode)
             {
-                var response = await responseHttp.Content.ReadFromJsonAsync<TResponse>(_jsonDefaultOptions);
+                var response = JsonSerializer.Deserialize<TResponse>(rawContent, _jsonDefaultOptions);
                 return new ActionResponse<TResponse>
                 {
                     WasSuccess = true,
@@ -137,10 +144,25 @@ public class ApiService : IApiService
                 };
             }
 
+            // Try to parse as ActionResponse to get the error message
+            try
+            {
+                var errorResponse = JsonSerializer.Deserialize<ActionResponse<TResponse>>(rawContent, _jsonDefaultOptions);
+                if (errorResponse != null)
+                {
+                    return new ActionResponse<TResponse>
+                    {
+                        WasSuccess = false,
+                        Message = errorResponse.Message ?? rawContent
+                    };
+                }
+            }
+            catch { }
+
             return new ActionResponse<TResponse>
             {
                 WasSuccess = false,
-                Message = await responseHttp.Content.ReadAsStringAsync()
+                Message = rawContent
             };
         }
         catch (Exception exception)

@@ -82,8 +82,8 @@ public interface IDashboardService
     /// <param name="empresaId">ID de la empresa</param>
     /// <param name="fechaInicio">Fecha inicial</param>
     /// <param name="fechaFin">Fecha final</param>
-    /// <returns>Lista de ventas diarias</returns>
-    Task<IEnumerable<VentasPorMesDTO>> GetVentasPorDiaAsync(Guid empresaId, DateTime fechaInicio, DateTime fechaFin);
+    /// <returns>Lista de ventas diarias con fecha completa</returns>
+    Task<IEnumerable<object>> GetVentasPorDiaAsync(Guid empresaId, DateTime fechaInicio, DateTime fechaFin);
 
     /// <summary>
     /// Obtiene comparativo de ventas: mes actual vs mes anterior

@@ -660,7 +660,7 @@ public class FacturacionModel : PageModel
     }
 
     /// <summary>
-    /// Handler to get exchange rate from BCCR for a specific currency
+    /// Handler to get exchange rate from BCCR via Hacienda API
     /// GET: ?handler=TipoCambio&moneda=USD
     /// </summary>
     public async Task<IActionResult> OnGetTipoCambioAsync(string moneda)
@@ -675,50 +675,109 @@ public class FacturacionModel : PageModel
             // For CRC, exchange rate is always 1
             if (moneda.Equals("CRC", StringComparison.OrdinalIgnoreCase))
             {
-                return new JsonResult(new { success = true, valor = 1.00m, moneda = "CRC" });
+                return new JsonResult(new { success = true, valor = 1.00m, moneda = "CRC", fecha = DateTime.Now.ToString("yyyy-MM-dd") });
             }
 
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
+            // Only USD is supported via Hacienda API
+            if (!moneda.Equals("USD", StringComparison.OrdinalIgnoreCase))
             {
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                return new JsonResult(new { success = false, message = $"La moneda {moneda} no está soportada. Ingrese el tipo de cambio manualmente." });
             }
 
-            // Call the BCCR exchange rate API - use venta (selling rate)
-            var url = $"/api/TipoCambio/moneda/{Uri.EscapeDataString(moneda.ToUpperInvariant())}";
-            _logger.LogInformation("Fetching exchange rate: {Url}", url);
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(15);
 
-            var response = await client.GetAsync(url);
+            decimal tasaVenta = 0;
+            string? fecha = null;
+            string? errorDetalle = null;
 
-            if (response.IsSuccessStatusCode)
+            // Intento 1: API oficial de Hacienda Costa Rica (obtiene datos del BCCR)
+            try
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+                _logger.LogInformation("Fetching exchange rate from Hacienda API");
+                var response = await client.GetAsync("https://api.hacienda.go.cr/indicadores/tc/dolar");
 
-                var valor = data.GetProperty("valor").GetDecimal();
-                var monedaResp = data.GetProperty("moneda").GetString();
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Hacienda API response: {Response}", json);
 
-                _logger.LogInformation("Exchange rate for {Moneda}: {Valor}", monedaResp, valor);
+                    // La API retorna: {"venta":{"fecha":"2025-11-30","valor":496.39},"compra":{"fecha":"2025-11-30","valor":488.55}}
+                    using var doc = JsonDocument.Parse(json);
 
+                    if (doc.RootElement.TryGetProperty("venta", out var ventaObj))
+                    {
+                        if (ventaObj.TryGetProperty("valor", out var ventaVal))
+                        {
+                            tasaVenta = ventaVal.GetDecimal();
+                        }
+                        if (ventaObj.TryGetProperty("fecha", out var fechaVal))
+                        {
+                            fecha = fechaVal.GetString();
+                        }
+                    }
+                }
+                else
+                {
+                    errorDetalle = $"API Hacienda: HTTP {(int)response.StatusCode}";
+                }
+            }
+            catch (Exception ex1)
+            {
+                _logger.LogWarning(ex1, "Error calling Hacienda API");
+                errorDetalle = $"API Hacienda: {ex1.Message}";
+            }
+
+            // Intento 2: API alternativa si Hacienda falla
+            if (tasaVenta == 0)
+            {
+                try
+                {
+                    _logger.LogInformation("Trying alternative API for exchange rate");
+                    var responseVenta = await client.GetAsync("https://tipodecambio.paginasweb.cr/api/venta");
+
+                    if (responseVenta.IsSuccessStatusCode)
+                    {
+                        var ventaStr = await responseVenta.Content.ReadAsStringAsync();
+                        _logger.LogInformation("Alternative API response: {Response}", ventaStr);
+
+                        if (decimal.TryParse(ventaStr.Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var venta))
+                        {
+                            tasaVenta = venta;
+                            fecha = DateTime.Now.ToString("yyyy-MM-dd");
+                        }
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogWarning(ex2, "Error calling alternative API");
+                    errorDetalle = (errorDetalle ?? "") + $" | API alternativa: {ex2.Message}";
+                }
+            }
+
+            // Si se obtuvo el valor, retornar éxito
+            if (tasaVenta > 0)
+            {
+                _logger.LogInformation("Exchange rate for USD: {Valor}", tasaVenta);
                 return new JsonResult(new
                 {
                     success = true,
-                    valor = valor,
-                    moneda = monedaResp,
-                    fecha = data.GetProperty("fecha").GetString()
+                    valor = tasaVenta,
+                    moneda = "USD",
+                    fecha = fecha ?? DateTime.Now.ToString("yyyy-MM-dd")
                 });
             }
 
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to get exchange rate. Status: {StatusCode}, Content: {Content}",
-                response.StatusCode, errorContent);
+            // Si no se pudo obtener, retornar error
+            var mensaje = "No se pudo obtener el tipo de cambio del BCCR.";
+            if (!string.IsNullOrEmpty(errorDetalle))
+                mensaje += $" Detalle: {errorDetalle}";
 
+            _logger.LogWarning("Failed to get exchange rate: {Message}", mensaje);
             return new JsonResult(new
             {
                 success = false,
-                message = "No se pudo obtener el tipo de cambio del BCCR"
+                message = mensaje
             });
         }
         catch (Exception ex)
@@ -727,7 +786,7 @@ public class FacturacionModel : PageModel
             return new JsonResult(new
             {
                 success = false,
-                message = "Error al consultar el tipo de cambio"
+                message = "Error al consultar el tipo de cambio: " + ex.Message
             });
         }
     }

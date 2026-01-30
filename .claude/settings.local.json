@@ -24,7 +24,8 @@
       "Bash(node:*)",
       "Skill(dotnet-frontend)",
       "Bash(grep:*)",
-      "Bash(dotnet clean:*)"
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet publish:*)"
     ],
     "deny": [],
     "ask": []

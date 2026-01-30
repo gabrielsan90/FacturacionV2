@@ -1,10 +1,11 @@
 using Facturacion.Shared.DTOs;
+using Facturacion.Shared.Responses;
 
 namespace Facturacion.Frontend.Services;
 
 public interface IAuthService
 {
-    Task<bool> LoginAsync(LoginDto model);
+    Task<ActionResponse<bool>> LoginAsync(LoginDto model);
     Task LogoutAsync();
     Task<UserDto?> GetCurrentUserAsync();
     bool IsAuthenticated();

@@ -1,8 +1,26 @@
 using Facturacion.Frontend.Helpers;
 using Facturacion.Frontend.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Data Protection to persist keys (fixes antiforgery token issues on restart)
+try
+{
+    var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "keys");
+    Directory.CreateDirectory(keysFolder);
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keysFolder))
+        .SetApplicationName("FacturacionFrontend");
+}
+catch (Exception ex)
+{
+    // Si no puede crear la carpeta, usar Data Protection en memoria
+    Console.WriteLine($"Warning: Could not configure persistent Data Protection: {ex.Message}");
+    builder.Services.AddDataProtection()
+        .SetApplicationName("FacturacionFrontend");
+}
 
 // Add services to the container
 builder.Services.AddRazorPages();

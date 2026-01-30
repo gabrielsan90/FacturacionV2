@@ -597,7 +597,7 @@
                                 });
                             } else if (empresas.length === 1) {
                                 // Only one empresa - login directly
-                                $('#Input_EmpresaId').val(empresas[0].id);
+                                $('#empresaSelect').val(empresas[0].id);
                                 submitLogin();
                             } else {
                                 // Multiple empresas - show selection
@@ -670,7 +670,7 @@
 
                 $('#empresaSelect').removeClass('is-invalid');
                 $('#empresaError').text('');
-                $('#Input_EmpresaId').val(empresaId);
+                // El select ya tiene el valor correcto, no necesita copiarse
 
                 submitLogin();
             });

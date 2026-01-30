@@ -118,7 +118,7 @@ public class LoginModel : PageModel
 
             var result = await _authService.LoginAsync(loginDto);
 
-            if (result)
+            if (result.WasSuccess)
             {
                 _logger.LogInformation("Usuario {Email} inició sesión exitosamente", Input.Email);
 
@@ -127,10 +127,10 @@ public class LoginModel : PageModel
             }
             else
             {
-                _logger.LogWarning("Intento de inicio de sesión fallido para {Email}", Input.Email);
+                _logger.LogWarning("Intento de inicio de sesión fallido para {Email}: {Message}", Input.Email, result.Message);
 
-                // Generic error message for security (don't reveal if email exists or password is wrong)
-                TempData["ErrorMessage"] = "Correo electrónico o contraseña incorrectos. Por favor, verifique sus credenciales e intente nuevamente.";
+                // Show actual error message from backend
+                TempData["ErrorMessage"] = result.Message ?? "Correo electrónico o contraseña incorrectos. " + result.Message;
 
                 return Page();
             }

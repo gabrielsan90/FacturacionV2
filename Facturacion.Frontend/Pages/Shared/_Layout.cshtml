@@ -60,241 +60,261 @@
                 </a>
             </li>
 
-            <!-- FACTURACIÓN Section -->
-            <li class="nav-title">FACTURACIÓN</li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Facturacion">
-                    <i class="fas fa-file-invoice nav-icon"></i>
-                    Facturación
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Documentos">
-                    <i class="fas fa-file-alt nav-icon"></i>
-                    Documentos
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/RecibosPago">
-                    <i class="fas fa-money-check-alt nav-icon"></i>
-                    Recibo Electrónico de Pago
-                    <span class="badge bg-success text-white ms-auto">v4.4</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Recepciones">
-                    <i class="fas fa-inbox nav-icon"></i>
-                    Recepciones
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Gasto">
-                    <i class="fas fa-receipt nav-icon"></i>
-                    Gasto
-                </a>
-            </li>
-
-            <!-- CATÁLOGO Section -->
-            <li class="nav-title">CATÁLOGO</li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Clientes">
-                    <i class="fas fa-user-tie nav-icon"></i>
-                    Clientes
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Productos">
-                    <i class="fas fa-box nav-icon"></i>
-                    Productos
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Proveedores">
-                    <i class="fas fa-truck nav-icon"></i>
-                    Proveedor
-                </a>
-            </li>
-
-            <!-- Catálogos Hacienda Group -->
+            <!-- ========== FACTURACIÓN ========== -->
             <li class="nav-group">
-                <a class="nav-link nav-group-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#catalogosHaciendaGroup" aria-expanded="false">
-                    <i class="fas fa-book nav-icon"></i>
-                    Catálogos Hacienda
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#facturacionGroup" aria-expanded="false">
+                    <i class="fas fa-file-invoice-dollar nav-icon"></i>
+                    FACTURACIÓN
+                    <i class="fas fa-chevron-down nav-arrow"></i>
                 </a>
-                <ul class="nav-group-items collapse" id="catalogosHaciendaGroup">
+                <ul class="nav-group-items collapse" id="facturacionGroup">
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Monedas">
-                            <i class="fas fa-coins"></i>
-                            Monedas
+                        <a class="nav-link" asp-page="/Facturacion">
+                            <i class="fas fa-file-invoice"></i>
+                            Nueva Factura
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/FormasPago">
-                            <i class="fas fa-credit-card"></i>
-                            Formas de Pago
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/TiposDocumentos">
+                        <a class="nav-link" asp-page="/Documentos">
                             <i class="fas fa-file-alt"></i>
-                            Tipos de Documentos
+                            Documentos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/TiposReferencias">
-                            <i class="fas fa-link"></i>
-                            Tipos de Referencias
+                        <a class="nav-link" asp-page="/RecibosPago">
+                            <i class="fas fa-money-check-alt"></i>
+                            Recibo Electrónico de Pago
+                            <span class="badge bg-success text-white ms-auto" style="font-size: 0.65rem;">v4.4</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/TiposOtrosCargos">
-                            <i class="fas fa-plus-circle"></i>
-                            Tipos de Otros Cargos
+                        <a class="nav-link" asp-page="/Recepciones">
+                            <i class="fas fa-inbox"></i>
+                            Recepciones
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/TiposCodigosProducto">
-                            <i class="fas fa-barcode"></i>
-                            Tipos de Códigos Producto
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/CondicionesVenta">
-                            <i class="fas fa-handshake"></i>
-                            Condiciones de Venta
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/UnidadesMedidaPage">
-                            <i class="fas fa-ruler"></i>
-                            Unidades de Medida
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/TiposIdentificacion">
-                            <i class="fas fa-id-card"></i>
-                            Tipos de Identificación
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/ImpuestosPage">
-                            <i class="fas fa-percent"></i>
-                            Impuestos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/CodigosTarifasIVA">
-                            <i class="fas fa-percentage"></i>
-                            Códigos de Tarifas IVA
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/TiposExoneracion">
-                            <i class="fas fa-file-contract"></i>
-                            Tipos de Exoneración
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/ActividadesEconomicas">
-                            <i class="fas fa-briefcase"></i>
-                            Actividades Económicas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/Cabys">
-                            <i class="fas fa-barcode"></i>
-                            Códigos CABYS
+                        <a class="nav-link" asp-page="/Gasto">
+                            <i class="fas fa-receipt"></i>
+                            Gastos
                         </a>
                     </li>
                 </ul>
             </li>
 
-            <!-- INVENTARIO Section -->
-            <li class="nav-title">INVENTARIO</li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Inventario">
-                    <i class="fas fa-warehouse nav-icon"></i>
-                    Inventario
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/AsignarProductosSucursal">
-                    <i class="fas fa-cubes nav-icon"></i>
-                    Asignar Productos a Sucursal
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Movimientos">
-                    <i class="fas fa-exchange-alt nav-icon"></i>
-                    Traslado de inventario
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/MantenimientoCabys">
-                    <i class="fas fa-tools nav-icon"></i>
-                    Mantenimiento Cabys
-                </a>
-            </li>
-
-            <!-- REPORTES Section -->
-            <li class="nav-title">REPORTES</li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/ReporteDocumentosEmitidos">
-                    <i class="fas fa-file-export nav-icon"></i>
-                    Documentos Emitidos
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/ReporteDocumentosRecibidos">
-                    <i class="fas fa-file-import nav-icon"></i>
-                    Documentos Recibidos
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/ReporteProductos">
-                    <i class="fas fa-boxes nav-icon"></i>
-                    Productos
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/ReporteVentas">
-                    <i class="fas fa-chart-line nav-icon"></i>
-                    Ventas
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/ReporteGastos">
-                    <i class="fas fa-receipt nav-icon"></i>
-                    Gastos
-                </a>
-            </li>
-
-            <!-- SISTEMA Section -->
-            <li class="nav-title">SISTEMA</li>
-
+            <!-- ========== CATÁLOGO ========== -->
             <li class="nav-group">
-                <a class="nav-link nav-group-toggle" href="#" data-bs-toggle="collapse" data-bs-target="#configuracionGroup" aria-expanded="false">
-                    <i class="fas fa-cog nav-icon"></i>
-                    Configuración
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#catalogoGroup" aria-expanded="false">
+                    <i class="fas fa-folder-open nav-icon"></i>
+                    CATÁLOGO
+                    <i class="fas fa-chevron-down nav-arrow"></i>
                 </a>
-                <ul class="nav-group-items collapse" id="configuracionGroup">
+                <ul class="nav-group-items collapse" id="catalogoGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Clientes">
+                            <i class="fas fa-user-tie"></i>
+                            Clientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Productos">
+                            <i class="fas fa-box"></i>
+                            Productos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Proveedores">
+                            <i class="fas fa-truck"></i>
+                            Proveedores
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Categorias">
+                            <i class="fas fa-tags"></i>
+                            Categorías
+                        </a>
+                    </li>
+                    <!-- Catálogos Hacienda Sub-group -->
+                    <li class="nav-group nav-subgroup">
+                        <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#catalogosHaciendaGroup" aria-expanded="false">
+                            <i class="fas fa-book"></i>
+                            Catálogos Hacienda
+                            <i class="fas fa-chevron-down nav-arrow"></i>
+                        </a>
+                        <ul class="nav-group-items collapse" id="catalogosHaciendaGroup">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Monedas">
+                                    <i class="fas fa-coins"></i>
+                                    Monedas
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/FormasPago">
+                                    <i class="fas fa-credit-card"></i>
+                                    Formas de Pago
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TiposDocumentos">
+                                    <i class="fas fa-file-alt"></i>
+                                    Tipos de Documentos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TiposReferencias">
+                                    <i class="fas fa-link"></i>
+                                    Tipos de Referencias
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TiposOtrosCargos">
+                                    <i class="fas fa-plus-circle"></i>
+                                    Tipos de Otros Cargos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TiposCodigosProducto">
+                                    <i class="fas fa-barcode"></i>
+                                    Tipos de Códigos Producto
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/CondicionesVenta">
+                                    <i class="fas fa-handshake"></i>
+                                    Condiciones de Venta
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/UnidadesMedidaPage">
+                                    <i class="fas fa-ruler"></i>
+                                    Unidades de Medida
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TiposIdentificacion">
+                                    <i class="fas fa-id-card"></i>
+                                    Tipos de Identificación
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/ImpuestosPage">
+                                    <i class="fas fa-percent"></i>
+                                    Impuestos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/CodigosTarifasIVA">
+                                    <i class="fas fa-percentage"></i>
+                                    Códigos de Tarifas IVA
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/TiposExoneracion">
+                                    <i class="fas fa-file-contract"></i>
+                                    Tipos de Exoneración
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/ActividadesEconomicas">
+                                    <i class="fas fa-briefcase"></i>
+                                    Actividades Económicas
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Cabys">
+                                    <i class="fas fa-barcode"></i>
+                                    Códigos CABYS
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ========== INVENTARIO ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#inventarioGroup" aria-expanded="false">
+                    <i class="fas fa-warehouse nav-icon"></i>
+                    INVENTARIO
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="inventarioGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Inventario">
+                            <i class="fas fa-boxes"></i>
+                            Stock Actual
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/AsignarProductosSucursal">
+                            <i class="fas fa-cubes"></i>
+                            Asignar Productos a Sucursal
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Movimientos">
+                            <i class="fas fa-exchange-alt"></i>
+                            Movimientos de Inventario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/MantenimientoCabys">
+                            <i class="fas fa-tools"></i>
+                            Mantenimiento CABYS
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ========== REPORTES ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#reportesGroup" aria-expanded="false">
+                    <i class="fas fa-chart-bar nav-icon"></i>
+                    REPORTES
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="reportesGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ReporteVentas">
+                            <i class="fas fa-chart-line"></i>
+                            Reporte de Ventas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ReporteDocumentosEmitidos">
+                            <i class="fas fa-file-export"></i>
+                            Documentos Emitidos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ReporteDocumentosRecibidos">
+                            <i class="fas fa-file-import"></i>
+                            Documentos Recibidos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ReporteProductos">
+                            <i class="fas fa-box-open"></i>
+                            Reporte de Productos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ReporteGastos">
+                            <i class="fas fa-receipt"></i>
+                            Reporte de Gastos
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- ========== SISTEMA ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#sistemaGroup" aria-expanded="false">
+                    <i class="fas fa-cogs nav-icon"></i>
+                    SISTEMA
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="sistemaGroup">
                     <li class="nav-item">
                         <a class="nav-link" asp-page="/Empresas">
                             <i class="fas fa-building"></i>
@@ -314,40 +334,30 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Categorias">
-                            <i class="fas fa-tags"></i>
-                            Categorías
+                        <a class="nav-link" asp-page="/Usuarios">
+                            <i class="fas fa-users"></i>
+                            Usuarios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Roles">
+                            <i class="fas fa-user-shield"></i>
+                            Roles
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Seguridad">
+                            <i class="fas fa-shield-alt"></i>
+                            Seguridad
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ConfiguracionCorreo">
+                            <i class="fas fa-envelope-open-text"></i>
+                            Configuración de Correo
                         </a>
                     </li>
                 </ul>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Usuarios">
-                    <i class="fas fa-users nav-icon"></i>
-                    Usuarios
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Roles">
-                    <i class="fas fa-user-shield nav-icon"></i>
-                    Roles
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/Seguridad">
-                    <i class="fas fa-shield-alt nav-icon"></i>
-                    Seguridad
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" asp-page="/ConfiguracionCorreo">
-                    <i class="fas fa-envelope-open-text nav-icon"></i>
-                    Configuración de correo
-                </a>
             </li>
         </ul>
 
@@ -695,7 +705,7 @@
 
         // Active menu highlighting and group expansion
         $(document).ready(function() {
-            var currentPath = window.location.pathname;
+            var currentPath = window.location.pathname.toLowerCase();
 
             // Remove any existing active classes
             $('.sidebar-nav .nav-link').removeClass('active');
@@ -704,32 +714,32 @@
             $('.sidebar-nav .nav-link').each(function() {
                 var linkPath = $(this).attr('href');
 
-                // Check if this is an external link or page link
-                if (linkPath && (linkPath === currentPath || currentPath.includes(linkPath))) {
-                    $(this).addClass('active');
+                // Skip group toggles
+                if ($(this).hasClass('nav-group-toggle')) return;
 
-                    // If this link is inside a nav-group, expand the group
-                    var parentGroup = $(this).closest('.nav-group-items');
-                    if (parentGroup.length) {
-                        parentGroup.addClass('show');
-                        parentGroup.prev('.nav-group-toggle').attr('aria-expanded', 'true');
+                // Check if this is an external link or page link
+                if (linkPath) {
+                    var normalizedLinkPath = linkPath.toLowerCase();
+                    if (normalizedLinkPath === currentPath ||
+                        (normalizedLinkPath !== '/' && currentPath.startsWith(normalizedLinkPath))) {
+                        $(this).addClass('active');
+
+                        // Expand all parent groups (handles nested subgroups too)
+                        var parentGroups = $(this).parents('.nav-group-items');
+                        parentGroups.each(function() {
+                            $(this).addClass('show');
+                            $(this).prev('.nav-group-toggle').attr('aria-expanded', 'true');
+                        });
                     }
                 }
             });
 
-            // Handle group toggle clicks
-            $('.nav-group-toggle').on('click', function(e) {
-                e.preventDefault();
-                var targetId = $(this).data('bs-target');
-                var target = $(targetId);
-
-                if (target.hasClass('show')) {
-                    target.removeClass('show');
-                    $(this).attr('aria-expanded', 'false');
-                } else {
-                    target.addClass('show');
-                    $(this).attr('aria-expanded', 'true');
-                }
+            // Bootstrap handles the collapse toggle automatically via data-bs-toggle="collapse"
+            // We just need to update aria-expanded when Bootstrap events fire
+            $('.nav-group-items').on('show.bs.collapse', function() {
+                $(this).prev('.nav-group-toggle').attr('aria-expanded', 'true');
+            }).on('hide.bs.collapse', function() {
+                $(this).prev('.nav-group-toggle').attr('aria-expanded', 'false');
             });
 
             // Close sidebar when clicking outside on mobile

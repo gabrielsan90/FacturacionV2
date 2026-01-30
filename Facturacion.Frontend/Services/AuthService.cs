@@ -1,5 +1,6 @@
 using Facturacion.Frontend.Helpers;
 using Facturacion.Shared.DTOs;
+using Facturacion.Shared.Responses;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
@@ -22,7 +23,7 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<bool> LoginAsync(LoginDto model)
+    public async Task<ActionResponse<bool>> LoginAsync(LoginDto model)
     {
         try
         {
@@ -30,16 +31,28 @@ public class AuthService : IAuthService
             if (httpContext == null)
             {
                 _logger.LogError("HttpContext is null in LoginAsync");
-                return false;
+                return new ActionResponse<bool> { WasSuccess = false, Message = "HttpContext is null" };
             }
+
+            // Log the login attempt details
+            var logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] LOGIN ATTEMPT - Email: {model.Email}, EmpresaId: {model.EmpresaId}, PasswordLength: {model.Password?.Length ?? 0}";
+            Console.WriteLine(logMessage);
+            try { File.AppendAllText("login_debug.log", logMessage + Environment.NewLine); } catch { }
 
             // Call backend API to login
             var response = await _apiService.PostAsync<LoginDto, LoginResponseDto>("/api/accounts/login", model);
 
+            var responseLog = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] LOGIN RESPONSE - WasSuccess: {response.WasSuccess}, Message: {response.Message}, Result: {(response.Result != null ? "OK" : "NULL")}";
+            Console.WriteLine(responseLog);
+            try { File.AppendAllText("login_debug.log", responseLog + Environment.NewLine); } catch { }
+
             if (!response.WasSuccess || response.Result == null)
             {
                 _logger.LogWarning("Login failed for user {Email}: {Message}", model.Email, response.Message);
-                return false;
+                var failLog = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] LOGIN FAILED - {response.Message}";
+                Console.WriteLine(failLog);
+                try { File.AppendAllText("login_debug.log", failLog + Environment.NewLine); } catch { }
+                return new ActionResponse<bool> { WasSuccess = false, Message = response.Message ?? "Login failed" };
             }
 
             var loginResponse = response.Result;
@@ -97,12 +110,15 @@ public class AuthService : IAuthService
 
             _logger.LogInformation("User {Email} logged in successfully", model.Email);
 
-            return true;
+            return new ActionResponse<bool> { WasSuccess = true, Result = true };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login for user {Email}", model.Email);
-            return false;
+            var exLog = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] LOGIN EXCEPTION - Type: {ex.GetType().Name}, Message: {ex.Message}, Inner: {ex.InnerException?.Message ?? "none"}";
+            Console.WriteLine(exLog);
+            try { File.AppendAllText("login_debug.log", exLog + Environment.NewLine); } catch { }
+            return new ActionResponse<bool> { WasSuccess = false, Message = $"Exception: {ex.Message}" };
         }
     }
 

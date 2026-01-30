@@ -448,8 +448,9 @@ public abstract class BasePdfDocument : IDocument
                     ComposeTotalRow(content, "Total Exonerado:", Documento.TotalExonerado);
                 }
 
-                // Subtotal
-                ComposeTotalRow(content, "Subtotal:", Documento.Subtotal);
+                // Subtotal (TotalVentaNeta = after discounts, before taxes)
+                var subtotalAfterDiscounts = Documento.TotalGravado + Documento.TotalExento + Documento.TotalExonerado - Documento.TotalDescuentos;
+                ComposeTotalRow(content, "Subtotal:", subtotalAfterDiscounts);
 
                 // Discounts
                 if (Documento.TotalDescuentos > 0)
@@ -480,8 +481,11 @@ public abstract class BasePdfDocument : IDocument
                 content.Item().BorderBottom(2).BorderColor(PrimaryColor);
                 content.Item().Height(5);
 
-                // Grand total (TotalComprobante = TotalVenta + TotalOtrosCargos - IVADevuelto)
-                var totalComprobante = Documento.TotalVenta + Documento.TotalOtrosCargos - (Documento.IVADevuelto ?? 0);
+                // Grand total per Hacienda v4.4 spec:
+                // TotalVentaNeta = TotalGravado + TotalExento + TotalExonerado - TotalDescuentos
+                // TotalComprobante = TotalVentaNeta + TotalImpuestos + TotalOtrosCargos - IVADevuelto
+                var totalVentaNeta = Documento.TotalGravado + Documento.TotalExento + Documento.TotalExonerado - Documento.TotalDescuentos;
+                var totalComprobante = totalVentaNeta + Documento.TotalImpuestos + Documento.TotalOtrosCargos - (Documento.IVADevuelto ?? 0);
 
                 content.Item().Row(row =>
                 {

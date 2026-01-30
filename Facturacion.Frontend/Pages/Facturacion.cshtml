@@ -2989,10 +2989,14 @@
 
         function loadProductoData(producto) {
             // Handle both camelCase and PascalCase property names
+            const productoId = producto.id || producto.Id || null;
             const codigo = producto.codigo || producto.Codigo || '';
             const nombre = producto.nombre || producto.Nombre || '';
             const precioVenta = producto.precioVenta ?? producto.PrecioVenta ?? 0;
             const tipo = producto.tipo ?? producto.Tipo ?? 0;
+
+            // Guardar el ID del producto para identificar que es mercancía (no servicio manual)
+            currentLine.productoId = productoId;
 
             $('#Linea_Codigo').val(codigo);
             $('#Linea_Descripcion').val(nombre);
@@ -4070,6 +4074,7 @@
                 detalles: documentLines.map((line, index) => {
                     const detalle = {
                         numeroLinea: index + 1,
+                        productoId: line.productoId || null, // IMPORTANTE: Identifica si es mercancía o servicio
                         codigo: line.codigo,
                         codigoCabys: line.codigoCabys || null,
                         descripcion: line.descripcion,
@@ -4632,14 +4637,20 @@
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
                 success: function(response) {
-                    console.log('Tipo de cambio BCCR response:', response);
+                    console.log('Tipo de cambio BCCR response:', JSON.stringify(response));
 
-                    if (response.success && response.valor) {
-                        const tipoCambio = parseFloat(response.valor).toFixed(5);
+                    // Handle response - check for valor property with various cases
+                    const valor = response.valor ?? response.Valor ?? null;
+                    const success = response.success ?? response.Success ?? false;
+                    const fecha = response.fecha ?? response.Fecha ?? 'hoy';
+                    const message = response.message ?? response.Message ?? '';
+
+                    if (success && valor !== null && valor > 0) {
+                        const tipoCambio = parseFloat(valor).toFixed(5);
                         $('#TipoCambio').val(tipoCambio).prop('readonly', false);
                         $('#tipoCambioHelp').html(
-                            `<i class="fas fa-check-circle text-success"></i> Tipo de cambio BCCR (${response.fecha || 'hoy'}): <strong>${tipoCambio}</strong> - Puede modificarlo si es necesario`
-                        ).removeClass('text-muted text-danger').addClass('text-success');
+                            `<i class="fas fa-check-circle text-success"></i> Tipo de cambio BCCR (${fecha}): <strong>${tipoCambio}</strong> - Puede modificarlo si es necesario`
+                        ).removeClass('text-muted text-danger text-warning').addClass('text-success');
 
                         // Show success toast
                         if (typeof showSuccess === 'function') {
@@ -4649,16 +4660,16 @@
                         // If BCCR fails, allow manual input
                         $('#TipoCambio').val('').prop('readonly', false).focus();
                         $('#tipoCambioHelp').html(
-                            `<i class="fas fa-exclamation-triangle"></i> No se pudo obtener el tipo de cambio del BCCR. Ingrese el valor manualmente.`
+                            `<i class="fas fa-exclamation-triangle"></i> ${message || 'No se pudo obtener el tipo de cambio del BCCR'}. Ingrese el valor manualmente.`
                         ).removeClass('text-muted text-success').addClass('text-warning');
 
                         if (typeof showWarning === 'function') {
-                            showWarning(response.message || 'No se pudo obtener el tipo de cambio del BCCR');
+                            showWarning(message || 'No se pudo obtener el tipo de cambio del BCCR');
                         }
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Error fetching tipo de cambio:', error);
+                    console.error('Error fetching tipo de cambio:', error, xhr.responseText);
 
                     // On error, allow manual input
                     $('#TipoCambio').val('').prop('readonly', false).focus();

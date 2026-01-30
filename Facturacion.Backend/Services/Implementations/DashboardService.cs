@@ -217,13 +217,16 @@ public class DashboardService : IDashboardService
     public async Task<IEnumerable<VentasPorTipoDocumentoDTO>> GetVentasPorTipoDocumentoAsync(
         Guid empresaId, DateTime fechaInicio, DateTime fechaFin)
     {
+        // Asegurar que fechaFin incluya todo el día (23:59:59)
+        var fechaFinAjustada = fechaFin.Date.AddDays(1).AddSeconds(-1);
+
         var ventasPorTipo = await _context.Documentos
             .Where(d => d.EmpresaId == empresaId
                 && !d.IsDeleted
                 && !d.EsDocumentoRecibido
                 && (d.Estado == EstadoDocumento.Aceptado || d.Estado == EstadoDocumento.Contingencia)
-                && d.FechaEmision >= fechaInicio
-                && d.FechaEmision <= fechaFin)
+                && d.FechaEmision >= fechaInicio.Date
+                && d.FechaEmision <= fechaFinAjustada)
             .GroupBy(d => d.TipoDocumento)
             .Select(g => new
             {
@@ -411,14 +414,17 @@ public class DashboardService : IDashboardService
     public async Task<IEnumerable<FlujoCajaDTO>> GetFlujoCajaAsync(
         Guid empresaId, DateTime fechaInicio, DateTime fechaFin)
     {
+        // Asegurar que fechaFin incluya todo el día (23:59:59)
+        var fechaFinAjustada = fechaFin.Date.AddDays(1).AddSeconds(-1);
+
         // Ingresos por ventas (documentos aceptados)
         var ingresosPorDia = await _context.Documentos
             .Where(d => d.EmpresaId == empresaId
                 && !d.IsDeleted
                 && !d.EsDocumentoRecibido
                 && (d.Estado == EstadoDocumento.Aceptado || d.Estado == EstadoDocumento.Contingencia)
-                && d.FechaEmision >= fechaInicio
-                && d.FechaEmision <= fechaFin)
+                && d.FechaEmision >= fechaInicio.Date
+                && d.FechaEmision <= fechaFinAjustada)
             .GroupBy(d => d.FechaEmision.Date)
             .Select(g => new
             {
@@ -434,8 +440,8 @@ public class DashboardService : IDashboardService
                 && !g.IsDeleted
                 && g.Aprobado
                 && g.FechaPago.HasValue
-                && g.FechaPago.Value >= fechaInicio
-                && g.FechaPago.Value <= fechaFin)
+                && g.FechaPago.Value >= fechaInicio.Date
+                && g.FechaPago.Value <= fechaFinAjustada)
             .GroupBy(g => g.FechaPago!.Value.Date)
             .Select(g => new
             {
@@ -477,27 +483,33 @@ public class DashboardService : IDashboardService
 
     /// <summary>
     /// Obtiene las ventas agrupadas por día en un rango de fechas
+    /// Retorna objetos con fecha completa para el gráfico
     /// </summary>
-    public async Task<IEnumerable<VentasPorMesDTO>> GetVentasPorDiaAsync(
+    public async Task<IEnumerable<object>> GetVentasPorDiaAsync(
         Guid empresaId, DateTime fechaInicio, DateTime fechaFin)
     {
+        // Asegurar que fechaFin incluya todo el día (23:59:59)
+        var fechaFinAjustada = fechaFin.Date.AddDays(1).AddSeconds(-1);
+
         var ventasPorDia = await _context.Documentos
             .Where(d => d.EmpresaId == empresaId
                 && !d.IsDeleted
                 && !d.EsDocumentoRecibido
                 && (d.Estado == EstadoDocumento.Aceptado || d.Estado == EstadoDocumento.Contingencia)
-                && d.FechaEmision >= fechaInicio
-                && d.FechaEmision <= fechaFin)
+                && d.FechaEmision >= fechaInicio.Date
+                && d.FechaEmision <= fechaFinAjustada)
             .GroupBy(d => d.FechaEmision.Date)
-            .Select(g => new VentasPorMesDTO
+            .Select(g => new
             {
-                Mes = g.Key.Day,
+                Fecha = g.Key,
+                Dia = g.Key.Day,
+                Mes = g.Key.Month,
                 Ano = g.Key.Year,
                 TotalVentas = g.Sum(d => d.TotalVenta),
                 CantidadDocumentos = g.Count(),
                 PromedioVenta = g.Average(d => d.TotalVenta)
             })
-            .OrderBy(v => v.Ano).ThenBy(v => v.Mes)
+            .OrderBy(v => v.Fecha)
             .AsNoTracking()
             .ToListAsync();
 

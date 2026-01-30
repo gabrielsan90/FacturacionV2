@@ -15,4 +15,14 @@ public interface IInventarioRepository
     Task DeleteAsync(Guid id, string userId);
     Task<bool> AjustarInventarioAsync(Guid id, decimal cantidad, string? referencia, string? observaciones, string userId);
     Task<bool> TrasladarInventarioAsync(Guid inventarioOrigenId, Guid sucursalDestinoId, decimal cantidad, string? referencia, string? observaciones, string userId);
+
+    /// <summary>
+    /// Procesa la venta de un documento, reduciendo el inventario de cada producto
+    /// </summary>
+    Task<bool> ProcesarVentaDocumentoAsync(Guid documentoId, Guid sucursalId, string userId);
+
+    /// <summary>
+    /// Procesa la devolución de un documento (Nota de Crédito), aumentando el inventario
+    /// </summary>
+    Task<bool> ProcesarDevolucionDocumentoAsync(Guid documentoId, Guid sucursalId, string userId);
 }
