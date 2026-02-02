@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
@@ -72,7 +73,7 @@ public class HaciendaApiService : IHaciendaApiService
             var payload = new
             {
                 clave = clave,
-                fecha = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                fecha = FechaCostaRicaHelper.Ahora.ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 emisor = new
                 {
                     tipoIdentificacion = tipoIdEmisor,
@@ -126,7 +127,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -146,7 +147,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -196,7 +197,7 @@ public class HaciendaApiService : IHaciendaApiService
             var payload = new
             {
                 clave = clave,
-                fecha = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+                fecha = FechaCostaRicaHelper.Ahora.ToString("yyyy-MM-ddTHH:mm:sszzz"),
                 emisor = new
                 {
                     tipoIdentificacion = tipoIdEmisor,
@@ -245,7 +246,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -265,7 +266,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -351,7 +352,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -371,7 +372,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -399,7 +400,7 @@ public class HaciendaApiService : IHaciendaApiService
         var payload = new Dictionary<string, object>
         {
             { "clave", clave },
-            { "fecha", DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz") },
+            { "fecha", FechaCostaRicaHelper.Ahora.ToString("yyyy-MM-ddTHH:mm:sszzz") },
             { "emisor", new {
                 tipoIdentificacion = tipoIdEmisor,
                 numeroIdentificacion = empresa.NumeroIdentificacion
@@ -488,7 +489,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -552,7 +553,7 @@ public class HaciendaApiService : IHaciendaApiService
             return new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 Mensajes = new List<HaciendaMensaje>
                 {
@@ -659,7 +660,7 @@ public class HaciendaApiService : IHaciendaApiService
                         return Task.FromResult(new HaciendaRespuesta
                         {
                             Clave = clave,
-                            Fecha = DateTime.Now,
+                            Fecha = FechaCostaRicaHelper.Ahora,
                             IndEstado = indEstado,
                             RespuestaXml = consultaRespuesta.RespuestaXml, // XML en Base64
                             Mensajes = new List<HaciendaMensaje>
@@ -680,7 +681,7 @@ public class HaciendaApiService : IHaciendaApiService
                 return Task.FromResult(new HaciendaRespuesta
                 {
                     Clave = clave,
-                    Fecha = DateTime.Now,
+                    Fecha = FechaCostaRicaHelper.Ahora,
                     IndEstado = consultaRespuesta.IndEstado,
                     RespuestaXml = consultaRespuesta.RespuestaXml,
                     Mensajes = new List<HaciendaMensaje>
@@ -709,7 +710,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "enviado",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -755,7 +756,7 @@ public class HaciendaApiService : IHaciendaApiService
                             return Task.FromResult(new HaciendaRespuesta
                             {
                                 Clave = clave,
-                                Fecha = DateTime.Now,
+                                Fecha = FechaCostaRicaHelper.Ahora,
                                 IndEstado = indEstado,
                                 RespuestaXml = consultaRespuesta.RespuestaXml,
                                 Mensajes = new List<HaciendaMensaje>
@@ -782,7 +783,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "procesando",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -808,7 +809,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "rechazado",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -835,7 +836,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -862,7 +863,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -891,7 +892,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "no_encontrado",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -917,7 +918,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -944,7 +945,7 @@ public class HaciendaApiService : IHaciendaApiService
             return Task.FromResult(new HaciendaRespuesta
             {
                 Clave = clave,
-                Fecha = DateTime.Now,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 IndEstado = "error",
                 RespuestaXml = responseContent,
                 Mensajes = new List<HaciendaMensaje>
@@ -968,7 +969,7 @@ public class HaciendaApiService : IHaciendaApiService
         return Task.FromResult(new HaciendaRespuesta
         {
             Clave = clave,
-            Fecha = DateTime.Now,
+            Fecha = FechaCostaRicaHelper.Ahora,
             IndEstado = "error",
             RespuestaXml = responseContent,
             Mensajes = new List<HaciendaMensaje>
@@ -1079,7 +1080,7 @@ public class HaciendaApiService : IHaciendaApiService
         return new HaciendaRespuesta
         {
             Clave = clave,
-            Fecha = DateTime.Now,
+            Fecha = FechaCostaRicaHelper.Ahora,
             IndEstado = "error",
             Mensajes = new List<HaciendaMensaje>
             {

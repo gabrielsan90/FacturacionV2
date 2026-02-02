@@ -409,6 +409,93 @@
                 resetSelect('#Cliente_Distrito');
             }
         });
+
+        // Consultar Hacienda cuando se ingresa el numero de identificacion
+        $('#Cliente_NumeroIdentificacion').on('blur', function() {
+            const identificacion = $(this).val().trim();
+            const tipoId = $('#Cliente_TipoIdentificacion').val();
+
+            // Solo consultar si hay identificacion y es tipo Fisica (1) o Juridica (2)
+            if (identificacion && identificacion.length >= 9 && (tipoId === '1' || tipoId === '2')) {
+                consultarHacienda(identificacion);
+            }
+        });
+
+        // Agregar boton de consulta manual
+        $('#Cliente_NumeroIdentificacion').after(
+            '<button type="button" class="btn btn-sm btn-outline-info mt-1" id="btnConsultarHacienda" title="Consultar en Hacienda">' +
+            '<i class="fas fa-search"></i> Consultar Hacienda</button>'
+        );
+
+        $('#btnConsultarHacienda').on('click', function() {
+            const identificacion = $('#Cliente_NumeroIdentificacion').val().trim();
+            if (identificacion) {
+                consultarHacienda(identificacion);
+            } else {
+                showWarning('Ingrese un numero de identificacion primero');
+            }
+        });
+    }
+
+    function consultarHacienda(identificacion) {
+        // No consultar si estamos editando (ya tiene datos)
+        const clienteId = $('#Cliente_Id').val();
+        const nombre = $('#Cliente_Nombre').val();
+        if (clienteId && clienteId !== '0' && nombre) {
+            return; // Ya tiene datos, no sobrescribir
+        }
+
+        // Mostrar indicador de carga
+        $('#btnConsultarHacienda').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: '?handler=ConsultarHacienda&identificacion=' + encodeURIComponent(identificacion),
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                $('#btnConsultarHacienda').prop('disabled', false).html('<i class="fas fa-search"></i> Consultar Hacienda');
+
+                if (response.success) {
+                    // Llenar los campos con los datos de Hacienda
+                    if (response.nombre) {
+                        $('#Cliente_Nombre').val(response.nombre);
+                        $('#Cliente_NombreComercial').val(response.nombre);
+                    }
+                    if (response.actividadEconomica) {
+                        $('#Cliente_ActividadEconomicaCIIU4').val(response.actividadEconomica);
+                    }
+                    if (response.actividadEconomicaCIIU3) {
+                        $('#Cliente_ActividadEconomicaCIIU3').val(response.actividadEconomicaCIIU3);
+                    }
+                    if (response.tipoIdentificacion) {
+                        $('#Cliente_TipoIdentificacion').val(response.tipoIdentificacion);
+                    }
+
+                    // Mostrar informacion adicional
+                    let mensaje = `<strong>${response.nombre}</strong><br>`;
+                    if (response.estado) mensaje += `Estado: ${response.estado}<br>`;
+                    if (response.regimen) mensaje += `Regimen: ${response.regimen}<br>`;
+                    if (response.moroso === 'SI') mensaje += `<span class="text-danger">Moroso: SI</span><br>`;
+                    if (response.omiso === 'SI') mensaje += `<span class="text-warning">Omiso: SI</span><br>`;
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Datos encontrados',
+                        html: mensaje,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                } else {
+                    showWarning(response.message || 'No se encontraron datos');
+                }
+            },
+            error: function(xhr) {
+                $('#btnConsultarHacienda').prop('disabled', false).html('<i class="fas fa-search"></i> Consultar Hacienda');
+                showError('Error al consultar Hacienda');
+            }
+        });
     }
 
     function loadProvincias() {

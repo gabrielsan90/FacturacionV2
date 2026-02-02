@@ -106,7 +106,7 @@ public class DataContext : IdentityDbContext<User>
             .IsUnique();
 
         modelBuilder.Entity<Empresa>()
-            .HasIndex(e => e.NumeroIdentificacion)
+            .HasIndex(e => new { e.NumeroIdentificacion, e.Ambiente })
             .IsUnique();
 
         modelBuilder.Entity<ActividadEconomica>()

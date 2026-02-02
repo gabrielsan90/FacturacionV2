@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
@@ -243,7 +244,7 @@ public class UsuariosController : ControllerBase
                     {
                         UserId = user.Id,
                         EmpresaId = empresaId,
-                        FechaAsignacion = DateTime.UtcNow,
+                        FechaAsignacion = FechaCostaRicaHelper.Ahora,
                         AsignadoPorId = currentUserId
                     };
                     _context.UsuariosEmpresas.Add(usuarioEmpresa);
@@ -409,7 +410,7 @@ public class UsuariosController : ControllerBase
                 {
                     UserId = user.Id,
                     EmpresaId = empresaId,
-                    FechaAsignacion = DateTime.UtcNow,
+                    FechaAsignacion = FechaCostaRicaHelper.Ahora,
                     AsignadoPorId = currentUserId
                 };
                 _context.UsuariosEmpresas.Add(usuarioEmpresa);
@@ -526,7 +527,7 @@ public class UsuariosController : ControllerBase
             {
                 UserId = userId,
                 EmpresaId = empresaId,
-                FechaAsignacion = DateTime.UtcNow,
+                FechaAsignacion = FechaCostaRicaHelper.Ahora,
                 AsignadoPorId = currentUserId
             };
 

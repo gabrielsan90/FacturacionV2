@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Entities;
@@ -87,7 +88,7 @@ public class ConsecutivoService : IConsecutivoService
             // 4. Incrementar el consecutivo de forma atómica
             consecutivoEntity.NumeroActual++;
             var numeroAsignado = consecutivoEntity.NumeroActual;
-            consecutivoEntity.FechaModificacion = DateTime.UtcNow;
+            consecutivoEntity.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();

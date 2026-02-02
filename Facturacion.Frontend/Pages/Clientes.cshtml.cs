@@ -228,4 +228,106 @@ public class ClientesModel : PageModel
 
         return new JsonResult(new List<object>());
     }
+
+    // Handler to consult Hacienda API for taxpayer information
+    public async Task<IActionResult> OnGetConsultarHaciendaAsync(string identificacion)
+    {
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            return new JsonResult(new { success = false, message = "Identificación requerida" });
+        }
+
+        try
+        {
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+            var response = await httpClient.GetAsync($"https://api.hacienda.go.cr/fe/ae?identificacion={identificacion}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+
+                // Extract relevant fields
+                var result = new
+                {
+                    success = true,
+                    nombre = data.TryGetProperty("nombre", out var nombreProp) ? nombreProp.GetString() : null,
+                    tipoIdentificacion = data.TryGetProperty("tipoIdentificacion", out var tipoProp) ? tipoProp.GetString() : null,
+                    actividadEconomica = GetPrimaryActivity(data),
+                    actividadEconomicaCIIU3 = GetPrimaryActivityCIIU3(data),
+                    regimen = data.TryGetProperty("regimen", out var regimenProp) && regimenProp.TryGetProperty("descripcion", out var regDescProp) ? regDescProp.GetString() : null,
+                    estado = data.TryGetProperty("situacion", out var sitProp) && sitProp.TryGetProperty("estado", out var estadoProp) ? estadoProp.GetString() : null,
+                    moroso = data.TryGetProperty("situacion", out var sit2Prop) && sit2Prop.TryGetProperty("moroso", out var morosoProp) ? morosoProp.GetString() : null,
+                    omiso = data.TryGetProperty("situacion", out var sit3Prop) && sit3Prop.TryGetProperty("omiso", out var omisoProp) ? omisoProp.GetString() : null
+                };
+
+                return new JsonResult(result);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new JsonResult(new { success = false, message = "Contribuyente no encontrado en Hacienda" });
+            }
+
+            return new JsonResult(new { success = false, message = $"Error al consultar Hacienda: {response.StatusCode}" });
+        }
+        catch (TaskCanceledException)
+        {
+            return new JsonResult(new { success = false, message = "Tiempo de espera agotado al consultar Hacienda" });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, message = $"Error: {ex.Message}" });
+        }
+    }
+
+    private static string? GetPrimaryActivity(JsonElement data)
+    {
+        if (data.TryGetProperty("actividades", out var actividades) && actividades.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var actividad in actividades.EnumerateArray())
+            {
+                if (actividad.TryGetProperty("estado", out var estado) && estado.GetString() == "A")
+                {
+                    if (actividad.TryGetProperty("codigo", out var codigo))
+                    {
+                        return codigo.GetString();
+                    }
+                }
+            }
+            // If no active activity, return first one
+            if (actividades.GetArrayLength() > 0)
+            {
+                var primera = actividades[0];
+                if (primera.TryGetProperty("codigo", out var codigo))
+                {
+                    return codigo.GetString();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static string? GetPrimaryActivityCIIU3(JsonElement data)
+    {
+        if (data.TryGetProperty("actividades", out var actividades) && actividades.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var actividad in actividades.EnumerateArray())
+            {
+                if (actividad.TryGetProperty("estado", out var estado) && estado.GetString() == "A")
+                {
+                    if (actividad.TryGetProperty("ciiu3", out var ciiu3) && ciiu3.ValueKind == JsonValueKind.Array && ciiu3.GetArrayLength() > 0)
+                    {
+                        var primerCIIU3 = ciiu3[0];
+                        if (primerCIIU3.TryGetProperty("codigo", out var codigo))
+                        {
+                            return codigo.GetString();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }

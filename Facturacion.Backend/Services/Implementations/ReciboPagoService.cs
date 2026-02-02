@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories;
 using Facturacion.Backend.Services.Interfaces;
@@ -195,7 +196,7 @@ public class ReciboPagoService : IReciboPagoService
                 Observaciones = dto.Observaciones,
 
                 // Audit
-                FechaCreacion = DateTime.Now,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId,
                 IsDeleted = false
             };
@@ -223,7 +224,7 @@ public class ReciboPagoService : IReciboPagoService
                 Moneda = dto.Moneda,
                 TipoCambio = dto.TipoCambio,
                 Observaciones = dto.Observaciones,
-                FechaCreacion = DateTime.Now,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId
             };
 
@@ -241,7 +242,7 @@ public class ReciboPagoService : IReciboPagoService
                 ClaveDocumentoReferenciado = documentoOriginal.Clave,
                 CodigoReferencia = TipoReferenciaDocumento.ReferenciaOtroDocumento, // 04
                 RazonReferencia = $"Pago parcial por {dto.MontoPagado:N2} - Saldo restante: {nuevoSaldo:N2}",
-                FechaCreacion = DateTime.Now,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId
             };
 
@@ -259,7 +260,7 @@ public class ReciboPagoService : IReciboPagoService
                     Monto = medioPago.Monto,
                     NumeroReferencia = medioPago.NumeroReferencia,
                     Descripcion = medioPago.Descripcion,
-                    FechaCreacion = DateTime.Now,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 };
 
@@ -287,7 +288,7 @@ public class ReciboPagoService : IReciboPagoService
                 var certificado = await _firmaDigital.ObtenerCertificadoAsync(empresa.Id);
                 var xmlFirmado = await _firmaDigital.FirmarXmlAsync(xml, certificado, empresa.PinCertificado);
                 documentoREP.XmlFirmado = xmlFirmado;
-                documentoREP.FechaFirma = DateTime.Now;
+                documentoREP.FechaFirma = FechaCostaRicaHelper.Ahora;
                 documentoREP.Estado = EstadoDocumento.Pendiente;
 
                 await _context.SaveChangesAsync();
@@ -314,8 +315,8 @@ public class ReciboPagoService : IReciboPagoService
                     ambiente
                 );
 
-                documentoREP.FechaEnvioHacienda = DateTime.Now;
-                documentoREP.FechaRespuestaHacienda = DateTime.Now;
+                documentoREP.FechaEnvioHacienda = FechaCostaRicaHelper.Ahora;
+                documentoREP.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
                 documentoREP.XmlRespuestaHacienda = respuestaHacienda.RespuestaXml;
 
                 if (respuestaHacienda.IndEstado.ToLower() == "aceptado")
@@ -556,7 +557,7 @@ public class ReciboPagoService : IReciboPagoService
         // Marcar como anulado
         documentoREP.Estado = EstadoDocumento.Anulado;
         documentoREP.Observaciones = $"ANULADO: {razon}";
-        documentoREP.FechaModificacion = DateTime.Now;
+        documentoREP.FechaModificacion = FechaCostaRicaHelper.Ahora;
         documentoREP.UsuarioModificacionId = userId;
 
         await _context.SaveChangesAsync();
@@ -625,7 +626,7 @@ public class ReciboPagoService : IReciboPagoService
 
         // Incrementar contador del consecutivo para tipo REP (10)
         consecutivoEntity.NumeroActual++;
-        consecutivoEntity.FechaModificacion = DateTime.UtcNow;
+        consecutivoEntity.FechaModificacion = FechaCostaRicaHelper.Ahora;
         await _context.SaveChangesAsync();
 
         // Formato: XXX-YYYYY-ZZ-AAAAAAAAAA

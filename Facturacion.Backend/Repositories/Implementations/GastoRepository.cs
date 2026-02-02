@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -73,7 +74,7 @@ public class GastoRepository : IGastoRepository
             EstadoPago = g.EstadoPago,
             ProveedorNombre = g.Proveedor?.Nombre ?? "Sin proveedor",
             CategoriaGastoNombre = g.CategoriaGasto!.Nombre,
-            DiasVencido = (DateTime.UtcNow.Date - g.FechaGasto.Date).Days
+            DiasVencido = (FechaCostaRicaHelper.Ahora.Date - g.FechaGasto.Date).Days
         }).ToList();
     }
 
@@ -196,7 +197,7 @@ public class GastoRepository : IGastoRepository
 
     public async Task<Gasto> AddAsync(Gasto gasto)
     {
-        gasto.FechaCreacion = DateTime.UtcNow;
+        gasto.FechaCreacion = FechaCostaRicaHelper.Ahora;
         gasto.SaldoPendiente = gasto.MontoTotal - gasto.MontoPagado;
 
         // Actualizar estado de pago automáticamente
@@ -221,7 +222,7 @@ public class GastoRepository : IGastoRepository
 
     public async Task UpdateAsync(Gasto gasto)
     {
-        gasto.FechaModificacion = DateTime.UtcNow;
+        gasto.FechaModificacion = FechaCostaRicaHelper.Ahora;
         gasto.SaldoPendiente = gasto.MontoTotal - gasto.MontoPagado;
 
         // Actualizar estado de pago automáticamente
@@ -249,7 +250,7 @@ public class GastoRepository : IGastoRepository
         if (gasto != null)
         {
             gasto.IsDeleted = true;
-            gasto.FechaEliminacion = DateTime.UtcNow;
+            gasto.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             gasto.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

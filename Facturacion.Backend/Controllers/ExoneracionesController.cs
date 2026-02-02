@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -153,7 +154,7 @@ public class ExoneracionesController : ControllerBase
             {
                 numeroDocumento,
                 nombreInstitucion,
-                fecha = (fecha ?? DateTime.Now).ToString("yyyy-MM-dd"),
+                fecha = (fecha ?? FechaCostaRicaHelper.Ahora).ToString("yyyy-MM-dd"),
                 vigente = esVigente
             });
         }

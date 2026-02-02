@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -49,7 +50,7 @@ public class SucursalRepository : ISucursalRepository
 
     public async Task<Sucursal> AddAsync(Sucursal sucursal)
     {
-        sucursal.FechaCreacion = DateTime.UtcNow;
+        sucursal.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Sucursales.Add(sucursal);
         await _context.SaveChangesAsync();
         return sucursal;
@@ -57,7 +58,7 @@ public class SucursalRepository : ISucursalRepository
 
     public async Task UpdateAsync(Sucursal sucursal)
     {
-        sucursal.FechaModificacion = DateTime.UtcNow;
+        sucursal.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.Sucursales.Update(sucursal);
         await _context.SaveChangesAsync();
     }
@@ -68,7 +69,7 @@ public class SucursalRepository : ISucursalRepository
         if (sucursal != null)
         {
             sucursal.IsDeleted = true;
-            sucursal.FechaEliminacion = DateTime.UtcNow;
+            sucursal.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             sucursal.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

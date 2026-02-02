@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -69,8 +70,8 @@ public class MovimientoInventarioRepository : IMovimientoInventarioRepository
 
     public async Task<MovimientoInventario> AddAsync(MovimientoInventario movimiento)
     {
-        movimiento.FechaCreacion = DateTime.UtcNow;
-        movimiento.Fecha = DateTime.UtcNow;
+        movimiento.FechaCreacion = FechaCostaRicaHelper.Ahora;
+        movimiento.Fecha = FechaCostaRicaHelper.Ahora;
         _context.MovimientosInventario.Add(movimiento);
         await _context.SaveChangesAsync();
         return movimiento;

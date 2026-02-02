@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -42,7 +43,7 @@ public class ProveedorRepository : IProveedorRepository
 
     public async Task<Proveedor> AddAsync(Proveedor proveedor)
     {
-        proveedor.FechaCreacion = DateTime.UtcNow;
+        proveedor.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Proveedores.Add(proveedor);
         await _context.SaveChangesAsync();
         return proveedor;
@@ -50,7 +51,7 @@ public class ProveedorRepository : IProveedorRepository
 
     public async Task UpdateAsync(Proveedor proveedor)
     {
-        proveedor.FechaModificacion = DateTime.UtcNow;
+        proveedor.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.Proveedores.Update(proveedor);
         await _context.SaveChangesAsync();
     }
@@ -61,7 +62,7 @@ public class ProveedorRepository : IProveedorRepository
         if (proveedor != null)
         {
             proveedor.IsDeleted = true;
-            proveedor.FechaEliminacion = DateTime.UtcNow;
+            proveedor.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             proveedor.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

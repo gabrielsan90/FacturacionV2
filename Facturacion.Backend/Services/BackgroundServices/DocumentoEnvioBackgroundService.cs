@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Entities;
@@ -62,7 +63,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
         var notificacionService = scope.ServiceProvider.GetRequiredService<INotificacionService>();
 
         // Tiempo mínimo para reintentar documentos con error (esperar 2 minutos antes de reintentar)
-        var tiempoMinimoReintento = DateTime.Now.AddMinutes(-2);
+        var tiempoMinimoReintento = FechaCostaRicaHelper.Ahora.AddMinutes(-2);
 
         // Obtener documentos pendientes (estado Pendiente) o con error técnico (estado Error)
         var documentosPendientes = await context.Documentos
@@ -106,7 +107,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                 if (resultado.Exitoso)
                 {
                     documento.Estado = EstadoDocumento.Procesando;
-                    documento.FechaEnvioHacienda = DateTime.Now;
+                    documento.FechaEnvioHacienda = FechaCostaRicaHelper.Ahora;
                     documento.MensajeHacienda = "Documento enviado exitosamente";
 
                     _logger.LogInformation("Documento {0} enviado a Hacienda", documento.Clave);
@@ -133,7 +134,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                         EntidadRelacionadaId = documento.Id,
                         TipoEntidad = "Documento",
                         Importante = true,
-                        FechaCreacion = DateTime.Now
+                        FechaCreacion = FechaCostaRicaHelper.Ahora
                     });
                 }
 
@@ -164,7 +165,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
         var notificacionService = scope.ServiceProvider.GetRequiredService<INotificacionService>();
 
         // Tiempo límite para considerar un documento "atascado" en Procesando
-        var tiempoLimite = DateTime.Now.AddMinutes(-5);
+        var tiempoLimite = FechaCostaRicaHelper.Ahora.AddMinutes(-5);
 
         // Obtener documentos en proceso:
         // - Sin respuesta final (FechaRespuestaHacienda == null)
@@ -209,7 +210,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                             if (documento.Estado != EstadoDocumento.Aceptado)
                             {
                                 documento.Estado = EstadoDocumento.Aceptado;
-                                documento.FechaRespuestaHacienda = DateTime.Now;
+                                documento.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
 
                                 // Guardar mensaje detallado
                                 if (respHacienda?.Mensajes != null && respHacienda.Mensajes.Any())
@@ -248,7 +249,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                             if (documento.Estado != EstadoDocumento.Rechazado)
                             {
                                 documento.Estado = EstadoDocumento.Rechazado;
-                                documento.FechaRespuestaHacienda = DateTime.Now;
+                                documento.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
 
                                 // Guardar mensaje detallado con errores
                                 if (respHacienda?.Mensajes != null && respHacienda.Mensajes.Any())
@@ -318,7 +319,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
     private async Task VerificarCertificadosProximosAVencerAsync(CancellationToken stoppingToken)
     {
         // Solo verificar una vez al día
-        var ahora = DateTime.Now;
+        var ahora = FechaCostaRicaHelper.Ahora;
         if (ahora.Hour != 9 || ahora.Minute > 5)
             return;
 
@@ -345,7 +346,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                 if (!fechaVencimiento.HasValue)
                     continue;
 
-                var diasParaVencer = (fechaVencimiento.Value - DateTime.Now).Days;
+                var diasParaVencer = (fechaVencimiento.Value - FechaCostaRicaHelper.Ahora).Days;
 
                 // Alertar si vence en menos de 30 días
                 if (diasParaVencer <= 30 && diasParaVencer > 0)
@@ -377,7 +378,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                                 Icono = "fa-certificate",
                                 Color = diasParaVencer <= 7 ? "danger" : "warning",
                                 Importante = diasParaVencer <= 7,
-                                FechaCreacion = DateTime.Now
+                                FechaCreacion = FechaCostaRicaHelper.Ahora
                             });
                         }
 
@@ -405,7 +406,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                             Icono = "fa-certificate",
                             Color = "danger",
                             Importante = true,
-                            FechaCreacion = DateTime.Now
+                            FechaCreacion = FechaCostaRicaHelper.Ahora
                         });
                     }
                 }
@@ -452,7 +453,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
             EntidadRelacionadaId = documento.Id,
             TipoEntidad = "Documento",
             Importante = tipo == TipoNotificacion.DocumentoRechazado,
-            FechaCreacion = DateTime.Now
+            FechaCreacion = FechaCostaRicaHelper.Ahora
         });
     }
 

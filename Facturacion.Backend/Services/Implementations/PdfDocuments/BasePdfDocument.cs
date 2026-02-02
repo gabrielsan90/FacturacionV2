@@ -584,7 +584,7 @@ public abstract class BasePdfDocument : IDocument
                 row.RelativeItem().AlignLeft().Text(text =>
                 {
                     text.Span("Generado: ").FontSize(TinyFontSize).FontColor(LightTextColor);
-                    text.Span(PdfFormatHelper.FormatFechaHora(DateTime.Now)).FontSize(TinyFontSize).FontColor(LightTextColor);
+                    text.Span(PdfFormatHelper.FormatFechaHora(FechaCostaRicaHelper.Ahora)).FontSize(TinyFontSize).FontColor(LightTextColor);
                 });
 
                 row.RelativeItem().AlignCenter().Text(text =>

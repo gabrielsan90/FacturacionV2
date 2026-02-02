@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -511,7 +512,7 @@ public class EmailService : IEmailService
             {
                 Exitoso = true,
                 Mensaje = "Configuración SMTP válida. Conexión exitosa.",
-                FechaEnvio = DateTime.Now,
+                FechaEnvio = FechaCostaRicaHelper.Ahora,
                 EmailsEnviados = new List<string>(),
                 Errores = new List<string>()
             };
@@ -700,7 +701,7 @@ public class EmailService : IEmailService
 
             // Registrar éxito
             resultado.Exitoso = true;
-            resultado.FechaEnvio = DateTime.Now;
+            resultado.FechaEnvio = FechaCostaRicaHelper.Ahora;
             resultado.Mensaje = "Correo enviado exitosamente";
             resultado.EmailsEnviados = emailDTO.Para.ToList();
 

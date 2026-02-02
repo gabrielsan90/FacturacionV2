@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Backend.Services.Interfaces;
@@ -102,13 +103,13 @@ public class MensajeReceptorService : IMensajeReceptorService
                 ClaveMensaje = claveMR,
                 NumeroConsecutivo = consecutivoMR,
                 TipoMensaje = (int)tipoMensaje,
-                FechaEmision = DateTime.Now,
+                FechaEmision = FechaCostaRicaHelper.Ahora,
                 CodigoMensaje = FormatearCodigoMensaje(codigoMensaje),
                 DetalleMensaje = detalle,
                 MontoTotalAceptado = montoAceptado,
                 MontoTotalImpuestoAceptado = montoImpuestoAceptado,
                 Estado = "Pendiente",
-                FechaCreacion = DateTime.UtcNow
+                FechaCreacion = FechaCostaRicaHelper.Ahora
             };
 
             // 7. Generar XML del MR
@@ -123,7 +124,7 @@ public class MensajeReceptorService : IMensajeReceptorService
             var certificado = await _firmaDigitalService.ObtenerCertificadoAsync(documentoOriginal.EmpresaId);
             var xmlFirmado = await _firmaDigitalService.FirmarXmlAsync(xmlGenerado, certificado, empresa.PinCertificado);
             mensaje.XmlFirmado = xmlFirmado;
-            mensaje.FechaFirma = DateTime.UtcNow;
+            mensaje.FechaFirma = FechaCostaRicaHelper.Ahora;
 
             
 
@@ -140,7 +141,7 @@ public class MensajeReceptorService : IMensajeReceptorService
                 ambiente);
 
             // 10. Actualizar mensaje con respuesta de Hacienda
-            mensaje.FechaEnvioHacienda = DateTime.UtcNow;
+            mensaje.FechaEnvioHacienda = FechaCostaRicaHelper.Ahora;
             var mensajesHacienda = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Detalle ?? m.Mensaje ?? ""));
             mensaje.MensajeHacienda = mensajesHacienda;
 
@@ -149,7 +150,7 @@ public class MensajeReceptorService : IMensajeReceptorService
 
             if (exitoso)
             {
-                mensaje.FechaRespuestaHacienda = DateTime.UtcNow;
+                mensaje.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
             }
 
             // 11. Guardar en base de datos
@@ -211,7 +212,7 @@ public class MensajeReceptorService : IMensajeReceptorService
         }
 
         // 4. Verificar plazo de 8 días calendario
-        var diasTranscurridos = (DateTime.Now - documento.FechaEmision).Days;
+        var diasTranscurridos = (FechaCostaRicaHelper.Ahora - documento.FechaEmision).Days;
         if (diasTranscurridos > 8)
         {
             return (false, $"El plazo de 8 días calendario para enviar el MR ha vencido ({diasTranscurridos} días transcurridos)");
@@ -244,7 +245,7 @@ public class MensajeReceptorService : IMensajeReceptorService
         foreach (var doc in documentos)
         {
             var fechaLimite = doc.FechaEmision.AddDays(8);
-            var diasParaVencer = (fechaLimite - DateTime.Now).Days;
+            var diasParaVencer = (fechaLimite - FechaCostaRicaHelper.Ahora).Days;
 
             resultado.Add(new DocumentosPendientesMR
             {
@@ -320,7 +321,7 @@ public class MensajeReceptorService : IMensajeReceptorService
                 ambiente);
 
             // Actualizar estado
-            mensaje.FechaEnvioHacienda = DateTime.UtcNow;
+            mensaje.FechaEnvioHacienda = FechaCostaRicaHelper.Ahora;
             var mensajesHacienda = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Detalle ?? m.Mensaje ?? ""));
             mensaje.MensajeHacienda = mensajesHacienda;
 
@@ -329,7 +330,7 @@ public class MensajeReceptorService : IMensajeReceptorService
 
             if (exitoso)
             {
-                mensaje.FechaRespuestaHacienda = DateTime.UtcNow;
+                mensaje.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
             }
 
             await _mensajeRepository.UpdateAsync(mensaje);
@@ -453,7 +454,7 @@ public class MensajeReceptorService : IMensajeReceptorService
         // SSSSSSSS = Código de seguridad (8 dígitos)
         // C = Dígito verificador
 
-        var fecha = DateTime.Now;
+        var fecha = FechaCostaRicaHelper.Ahora;
         var dia = fecha.Day.ToString("D2");
         var mes = fecha.Month.ToString("D2");
         var anio = fecha.Year.ToString().Substring(2, 2);

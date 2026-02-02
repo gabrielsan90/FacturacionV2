@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -39,7 +40,7 @@ public class CategoriaRepository : ICategoriaRepository
 
     public async Task<Categoria> AddAsync(Categoria categoria)
     {
-        categoria.FechaCreacion = DateTime.UtcNow;
+        categoria.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Categorias.Add(categoria);
         await _context.SaveChangesAsync();
         return categoria;
@@ -47,7 +48,7 @@ public class CategoriaRepository : ICategoriaRepository
 
     public async Task UpdateAsync(Categoria categoria)
     {
-        categoria.FechaModificacion = DateTime.UtcNow;
+        categoria.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.Categorias.Update(categoria);
         await _context.SaveChangesAsync();
     }
@@ -58,7 +59,7 @@ public class CategoriaRepository : ICategoriaRepository
         if (categoria != null)
         {
             categoria.IsDeleted = true;
-            categoria.FechaEliminacion = DateTime.UtcNow;
+            categoria.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             categoria.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

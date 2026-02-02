@@ -32,7 +32,7 @@ public class DocumentosModel : PageModel
         EmpresaId = User.FindFirstValue("EmpresaId") ?? "";
     }
 
-    // Handler for DataTable - Load documents with filters and pagination
+    // Handler for DataTable - Load documents with server-side pagination
     public async Task<IActionResult> OnGetDataAsync(
         string? empresaId,
         string? fechaInicio,
@@ -57,7 +57,7 @@ public class DocumentosModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            // Build query string with filters
+            // Build query string with filters AND pagination
             var queryParams = new List<string>();
             if (!string.IsNullOrEmpty(empresaId))
                 queryParams.Add($"empresaId={empresaId}");
@@ -76,6 +76,10 @@ public class DocumentosModel : PageModel
             if (ambiente.HasValue)
                 queryParams.Add($"ambiente={ambiente}");
 
+            // Server-side pagination parameters
+            queryParams.Add($"skip={start}");
+            queryParams.Add($"take={length}");
+
             var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
             var apiUrl = $"/api/Documentos{queryString}";
 
@@ -85,24 +89,23 @@ public class DocumentosModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var documentos = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                var totalRecords = documentos?.Count ?? 0;
+                // API now returns { data, recordsTotal, recordsFiltered }
+                var apiResponse = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
 
-                _logger.LogInformation("Successfully retrieved {Count} documentos from API", totalRecords);
+                var data = apiResponse.GetProperty("data");
+                var recordsTotal = apiResponse.GetProperty("recordsTotal").GetInt32();
+                var recordsFiltered = apiResponse.GetProperty("recordsFiltered").GetInt32();
 
-                // Apply client-side pagination (since backend returns all records)
-                var pagedData = documentos?
-                    .Skip(start)
-                    .Take(length)
-                    .ToList() ?? new List<object>();
+                _logger.LogInformation("Retrieved page of documentos. Total: {Total}, Page start: {Start}, Length: {Length}",
+                    recordsTotal, start, length);
 
-                // Return DataTables format with pagination info
+                // Return DataTables format directly from API response
                 return new JsonResult(new
                 {
-                    draw = draw,
-                    recordsTotal = totalRecords,
-                    recordsFiltered = totalRecords,
-                    data = pagedData
+                    draw,
+                    recordsTotal,
+                    recordsFiltered,
+                    data
                 });
             }
 

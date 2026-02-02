@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -88,8 +89,8 @@ public class InventarioRepository : IInventarioRepository
 
     public async Task<Inventario> AddAsync(Inventario inventario)
     {
-        inventario.FechaCreacion = DateTime.UtcNow;
-        inventario.UltimaActualizacion = DateTime.UtcNow;
+        inventario.FechaCreacion = FechaCostaRicaHelper.Ahora;
+        inventario.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
         _context.Inventarios.Add(inventario);
         await _context.SaveChangesAsync();
         return inventario;
@@ -97,8 +98,8 @@ public class InventarioRepository : IInventarioRepository
 
     public async Task UpdateAsync(Inventario inventario)
     {
-        inventario.FechaModificacion = DateTime.UtcNow;
-        inventario.UltimaActualizacion = DateTime.UtcNow;
+        inventario.FechaModificacion = FechaCostaRicaHelper.Ahora;
+        inventario.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
         _context.Inventarios.Update(inventario);
         await _context.SaveChangesAsync();
     }
@@ -109,7 +110,7 @@ public class InventarioRepository : IInventarioRepository
         if (inventario != null)
         {
             inventario.IsDeleted = true;
-            inventario.FechaEliminacion = DateTime.UtcNow;
+            inventario.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             inventario.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }
@@ -143,8 +144,8 @@ public class InventarioRepository : IInventarioRepository
 
             // Actualizar inventario
             inventario.CantidadActual = cantidadNueva;
-            inventario.UltimaActualizacion = DateTime.UtcNow;
-            inventario.FechaModificacion = DateTime.UtcNow;
+            inventario.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
+            inventario.FechaModificacion = FechaCostaRicaHelper.Ahora;
             inventario.UsuarioModificacionId = userId;
 
             // Crear movimiento de inventario
@@ -160,9 +161,9 @@ public class InventarioRepository : IInventarioRepository
                 CantidadNueva = cantidadNueva,
                 Referencia = referencia,
                 Observaciones = observaciones,
-                Fecha = DateTime.UtcNow,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 SucursalOrigenId = inventario.SucursalId,
-                FechaCreacion = DateTime.UtcNow,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId
             };
 
@@ -231,8 +232,8 @@ public class InventarioRepository : IInventarioRepository
             var cantidadNuevaOrigen = cantidadAnteriorOrigen - cantidad;
 
             inventarioOrigen.CantidadActual = cantidadNuevaOrigen;
-            inventarioOrigen.UltimaActualizacion = DateTime.UtcNow;
-            inventarioOrigen.FechaModificacion = DateTime.UtcNow;
+            inventarioOrigen.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
+            inventarioOrigen.FechaModificacion = FechaCostaRicaHelper.Ahora;
             inventarioOrigen.UsuarioModificacionId = userId;
 
             // Crear movimiento de salida en origen
@@ -246,10 +247,10 @@ public class InventarioRepository : IInventarioRepository
                 CantidadNueva = cantidadNuevaOrigen,
                 Referencia = referencia,
                 Observaciones = $"Traslado a {sucursalDestino.Nombre}. {observaciones}",
-                Fecha = DateTime.UtcNow,
+                Fecha = FechaCostaRicaHelper.Ahora,
                 SucursalOrigenId = inventarioOrigen.SucursalId,
                 SucursalDestinoId = sucursalDestinoId,
-                FechaCreacion = DateTime.UtcNow,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId
             };
 
@@ -272,8 +273,8 @@ public class InventarioRepository : IInventarioRepository
                     SucursalId = sucursalDestinoId,
                     CantidadActual = cantidad,
                     CantidadReservada = 0,
-                    UltimaActualizacion = DateTime.UtcNow,
-                    FechaCreacion = DateTime.UtcNow,
+                    UltimaActualizacion = FechaCostaRicaHelper.Ahora,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId,
                     IsDeleted = false
                 };
@@ -292,10 +293,10 @@ public class InventarioRepository : IInventarioRepository
                     CantidadNueva = cantidad,
                     Referencia = referencia,
                     Observaciones = $"Traslado desde {inventarioOrigen.Sucursal.Nombre}. {observaciones}",
-                    Fecha = DateTime.UtcNow,
+                    Fecha = FechaCostaRicaHelper.Ahora,
                     SucursalOrigenId = inventarioOrigen.SucursalId,
                     SucursalDestinoId = sucursalDestinoId,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 };
 
@@ -308,8 +309,8 @@ public class InventarioRepository : IInventarioRepository
                 var cantidadNuevaDestino = cantidadAnteriorDestino + cantidad;
 
                 inventarioDestino.CantidadActual = cantidadNuevaDestino;
-                inventarioDestino.UltimaActualizacion = DateTime.UtcNow;
-                inventarioDestino.FechaModificacion = DateTime.UtcNow;
+                inventarioDestino.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
+                inventarioDestino.FechaModificacion = FechaCostaRicaHelper.Ahora;
                 inventarioDestino.UsuarioModificacionId = userId;
 
                 // Crear movimiento de entrada en destino
@@ -323,10 +324,10 @@ public class InventarioRepository : IInventarioRepository
                     CantidadNueva = cantidadNuevaDestino,
                     Referencia = referencia,
                     Observaciones = $"Traslado desde {inventarioOrigen.Sucursal.Nombre}. {observaciones}",
-                    Fecha = DateTime.UtcNow,
+                    Fecha = FechaCostaRicaHelper.Ahora,
                     SucursalOrigenId = inventarioOrigen.SucursalId,
                     SucursalDestinoId = sucursalDestinoId,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 };
 
@@ -424,8 +425,8 @@ public class InventarioRepository : IInventarioRepository
                         SucursalId = sucursalId,
                         CantidadActual = 0,
                         CantidadReservada = 0,
-                        UltimaActualizacion = DateTime.UtcNow,
-                        FechaCreacion = DateTime.UtcNow,
+                        UltimaActualizacion = FechaCostaRicaHelper.Ahora,
+                        FechaCreacion = FechaCostaRicaHelper.Ahora,
                         UsuarioCreacionId = userId,
                         IsDeleted = false
                     };
@@ -447,8 +448,8 @@ public class InventarioRepository : IInventarioRepository
 
                 // Actualizar inventario (permitir negativos para control posterior)
                 inventario.CantidadActual = cantidadNueva;
-                inventario.UltimaActualizacion = DateTime.UtcNow;
-                inventario.FechaModificacion = DateTime.UtcNow;
+                inventario.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
+                inventario.FechaModificacion = FechaCostaRicaHelper.Ahora;
                 inventario.UsuarioModificacionId = userId;
 
                 // Crear movimiento de inventario por venta
@@ -462,10 +463,10 @@ public class InventarioRepository : IInventarioRepository
                     CantidadNueva = cantidadNueva,
                     Referencia = referencia,
                     Observaciones = $"Venta - Doc: {referencia}, Producto: {detalle.Descripcion}",
-                    Fecha = DateTime.UtcNow,
+                    Fecha = FechaCostaRicaHelper.Ahora,
                     SucursalOrigenId = sucursalId,
                     DocumentoId = documentoId,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 };
 
@@ -536,8 +537,8 @@ public class InventarioRepository : IInventarioRepository
                         SucursalId = sucursalId,
                         CantidadActual = 0,
                         CantidadReservada = 0,
-                        UltimaActualizacion = DateTime.UtcNow,
-                        FechaCreacion = DateTime.UtcNow,
+                        UltimaActualizacion = FechaCostaRicaHelper.Ahora,
+                        FechaCreacion = FechaCostaRicaHelper.Ahora,
                         UsuarioCreacionId = userId,
                         IsDeleted = false
                     };
@@ -549,8 +550,8 @@ public class InventarioRepository : IInventarioRepository
                 var cantidadNueva = cantidadAnterior + detalle.Cantidad; // Suma porque es devolución
 
                 inventario.CantidadActual = cantidadNueva;
-                inventario.UltimaActualizacion = DateTime.UtcNow;
-                inventario.FechaModificacion = DateTime.UtcNow;
+                inventario.UltimaActualizacion = FechaCostaRicaHelper.Ahora;
+                inventario.FechaModificacion = FechaCostaRicaHelper.Ahora;
                 inventario.UsuarioModificacionId = userId;
 
                 var movimiento = new MovimientoInventario
@@ -563,10 +564,10 @@ public class InventarioRepository : IInventarioRepository
                     CantidadNueva = cantidadNueva,
                     Referencia = referencia,
                     Observaciones = $"Devolución - NC: {referencia}, Producto: {detalle.Descripcion}",
-                    Fecha = DateTime.UtcNow,
+                    Fecha = FechaCostaRicaHelper.Ahora,
                     SucursalOrigenId = sucursalId,
                     DocumentoId = documentoId,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 };
 

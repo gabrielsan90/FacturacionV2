@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -39,8 +40,8 @@ public class MovimientosInventarioController : ControllerBase
         [FromQuery] Guid? sucursalId)
     {
         // Default to last 30 days if no date range specified
-        var inicio = fechaInicio ?? DateTime.UtcNow.AddDays(-30);
-        var fin = fechaFin ?? DateTime.UtcNow;
+        var inicio = fechaInicio ?? FechaCostaRicaHelper.Ahora.AddDays(-30);
+        var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
         // Get all movements for the date range
         var movimientos = await _unitOfWork.MovimientoInventarioRepository.GetByFechaAsync(empresaId, inicio, fin);

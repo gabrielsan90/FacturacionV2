@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Shared.Entities;
@@ -142,7 +143,7 @@ public class EmpresasController : ControllerBase
 
             // Asignar usuario de creación
             empresa.UsuarioCreacionId = userId;
-            empresa.FechaCreacion = DateTime.UtcNow;
+            empresa.FechaCreacion = FechaCostaRicaHelper.Ahora;
             empresa.Activa = true;
             empresa.IsDeleted = false;
 
@@ -216,7 +217,7 @@ public class EmpresasController : ControllerBase
 
             // Asignar usuario de modificación
             empresa.UsuarioModificacionId = userId;
-            empresa.FechaModificacion = DateTime.UtcNow;
+            empresa.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
             var response = await _unitOfWork.EmpresaRepository.UpdateAsync(empresa);
             if (!response.WasSuccess)
@@ -260,7 +261,7 @@ public class EmpresasController : ControllerBase
 
             var empresa = existingResponse.Result!;
             empresa.UsuarioEliminacionId = userId;
-            empresa.FechaEliminacion = DateTime.UtcNow;
+            empresa.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             empresa.IsDeleted = true;
 
             var response = await _unitOfWork.EmpresaRepository.DeleteAsync(id);

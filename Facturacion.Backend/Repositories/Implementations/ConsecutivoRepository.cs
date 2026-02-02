@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -63,7 +64,7 @@ public class ConsecutivoRepository : IConsecutivoRepository
 
     public async Task<Consecutivo> AddAsync(Consecutivo consecutivo)
     {
-        consecutivo.FechaCreacion = DateTime.UtcNow;
+        consecutivo.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Consecutivos.Add(consecutivo);
         await _context.SaveChangesAsync();
         return consecutivo;
@@ -71,7 +72,7 @@ public class ConsecutivoRepository : IConsecutivoRepository
 
     public async Task UpdateAsync(Consecutivo consecutivo)
     {
-        consecutivo.FechaModificacion = DateTime.UtcNow;
+        consecutivo.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
         // Detach any existing tracked entity with the same key to avoid tracking conflicts
         var existingEntry = _context.ChangeTracker.Entries<Consecutivo>()
@@ -92,7 +93,7 @@ public class ConsecutivoRepository : IConsecutivoRepository
         if (consecutivo != null)
         {
             consecutivo.IsDeleted = true;
-            consecutivo.FechaEliminacion = DateTime.UtcNow;
+            consecutivo.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             consecutivo.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

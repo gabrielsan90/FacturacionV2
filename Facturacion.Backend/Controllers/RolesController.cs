@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
@@ -128,7 +129,7 @@ public class RolesController : ControllerBase
                 Descripcion = model.Descripcion,
                 EsSistema = false, // Los roles creados manualmente nunca son del sistema
                 Activo = model.Activo,
-                FechaCreacion = DateTime.UtcNow,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = currentUserId,
                 ConcurrencyStamp = Guid.NewGuid().ToString()
             };

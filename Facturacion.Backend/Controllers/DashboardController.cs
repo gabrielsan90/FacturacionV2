@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -66,7 +67,7 @@ public class DashboardController : ControllerBase
             }
 
             // Si no se especifica año, usar el año actual
-            var anoConsulta = ano ?? DateTime.Now.Year;
+            var anoConsulta = ano ?? FechaCostaRicaHelper.Ahora.Year;
 
             var ventasPorMes = await _dashboardService.GetVentasPorMesAsync(empresaId, anoConsulta);
             return Ok(ventasPorMes);
@@ -95,8 +96,8 @@ public class DashboardController : ControllerBase
             }
 
             // Si no se especifican fechas, usar el mes actual
-            var inicio = fechaInicio ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var fin = fechaFin ?? DateTime.Now;
+            var inicio = fechaInicio ?? new DateTime(FechaCostaRicaHelper.Ahora.Year, FechaCostaRicaHelper.Ahora.Month, 1);
+            var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
             var ventasPorTipo = await _dashboardService.GetVentasPorTipoDocumentoAsync(empresaId, inicio, fin);
             return Ok(ventasPorTipo);
@@ -240,8 +241,8 @@ public class DashboardController : ControllerBase
             }
 
             // Si no se especifican fechas, usar el mes actual
-            var inicio = fechaInicio ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var fin = fechaFin ?? DateTime.Now;
+            var inicio = fechaInicio ?? new DateTime(FechaCostaRicaHelper.Ahora.Year, FechaCostaRicaHelper.Ahora.Month, 1);
+            var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
             var flujoCaja = await _dashboardService.GetFlujoCajaAsync(empresaId, inicio, fin);
             return Ok(flujoCaja);
@@ -270,8 +271,8 @@ public class DashboardController : ControllerBase
             }
 
             // Si no se especifican fechas, usar el mes actual
-            var inicio = fechaInicio ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            var fin = fechaFin ?? DateTime.Now;
+            var inicio = fechaInicio ?? new DateTime(FechaCostaRicaHelper.Ahora.Year, FechaCostaRicaHelper.Ahora.Month, 1);
+            var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
             var ventasPorDia = await _dashboardService.GetVentasPorDiaAsync(empresaId, inicio, fin);
             return Ok(ventasPorDia);

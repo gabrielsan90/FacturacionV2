@@ -130,11 +130,6 @@
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="smtp-tab" data-bs-toggle="tab" data-bs-target="#smtp" type="button" role="tab">
-                                        <i class="fas fa-envelope"></i> Configuración SMTP
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="actividades-tab" data-bs-toggle="tab" data-bs-target="#actividades" type="button" role="tab">
                                         <i class="fas fa-briefcase"></i> Actividades Económicas
                                     </button>
@@ -356,54 +351,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Sub-tab 3: Configuración SMTP -->
-                                <div class="tab-pane fade" id="smtp" role="tabpanel">
-                                    <div class="row">
-                                        <div class="col-md-8">
-                                            <div class="mb-3">
-                                                <label asp-for="Empresa.ServidorSMTP" class="form-label">Servidor SMTP</label>
-                                                <input asp-for="Empresa.ServidorSMTP" class="form-control" id="Empresa_ServidorSMTP" placeholder="smtp.gmail.com" maxlength="100" />
-                                                <span asp-validation-for="Empresa.ServidorSMTP" class="text-danger"></span>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label asp-for="Empresa.PuertoSMTP" class="form-label">Puerto SMTP</label>
-                                                <input asp-for="Empresa.PuertoSMTP" type="number" class="form-control" id="Empresa_PuertoSMTP" placeholder="587" min="1" max="65535" />
-                                                <span asp-validation-for="Empresa.PuertoSMTP" class="text-danger"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label asp-for="Empresa.UsuarioSMTP" class="form-label">Usuario SMTP</label>
-                                                <input asp-for="Empresa.UsuarioSMTP" class="form-control" id="Empresa_UsuarioSMTP" placeholder="usuario@ejemplo.com" maxlength="100" />
-                                                <span asp-validation-for="Empresa.UsuarioSMTP" class="text-danger"></span>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label asp-for="Empresa.ClaveSMTP" class="form-label">Clave SMTP</label>
-                                                <input asp-for="Empresa.ClaveSMTP" type="password" class="form-control" id="Empresa_ClaveSMTP" maxlength="100" />
-                                                <span asp-validation-for="Empresa.ClaveSMTP" class="text-danger"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        <strong>Configuración común:</strong>
-                                        <ul class="mb-0 mt-2">
-                                            <li><strong>Gmail:</strong> smtp.gmail.com - Puerto: 587 (TLS) o 465 (SSL)</li>
-                                            <li><strong>Outlook:</strong> smtp-mail.outlook.com - Puerto: 587</li>
-                                            <li><strong>Office365:</strong> smtp.office365.com - Puerto: 587</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <!-- Sub-tab 4: Actividades Económicas -->
+                                <!-- Sub-tab 3: Actividades Económicas -->
                                 <div class="tab-pane fade" id="actividades" role="tabpanel">
                                     <div class="alert alert-warning">
                                         <i class="fas fa-exclamation-triangle"></i>
@@ -1103,10 +1051,6 @@
                         $('#Empresa_PinCertificado').val(data.pinCertificado);
                         $('#Empresa_UsuarioHacienda').val(data.usuarioHacienda);
                         $('#Empresa_ClaveHacienda').val(data.claveHacienda);
-                        $('#Empresa_ServidorSMTP').val(data.servidorSMTP);
-                        $('#Empresa_PuertoSMTP').val(data.puertoSMTP);
-                        $('#Empresa_UsuarioSMTP').val(data.usuarioSMTP);
-                        $('#Empresa_ClaveSMTP').val(data.claveSMTP);
                         $('#Empresa_Activa').prop('checked', data.activa);
 
                         // NUEVO v4.4: Cargar datos de Proveedor de Sistemas

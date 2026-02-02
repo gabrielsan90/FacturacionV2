@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Entities;
@@ -404,7 +405,7 @@ public class ValidacionDocumentoService : IValidacionDocumentoService
         }
 
         // 5. Validar fecha de emisión
-        if (documento.FechaEmision > DateTime.Now.AddMinutes(5))
+        if (documento.FechaEmision > FechaCostaRicaHelper.Ahora.AddMinutes(5))
             resultado.AgregarError("La fecha de emisión no puede ser futura");
 
         // 6. Validar que tenga al menos una línea de detalle (excepto REP)

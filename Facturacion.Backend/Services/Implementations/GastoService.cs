@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -62,7 +63,7 @@ public class GastoService : IGastoService
             Comprobante = dto.Comprobante,
             Aprobado = false, // Por defecto no aprobado
             UsuarioCreacionId = userId,
-            FechaCreacion = DateTime.UtcNow
+            FechaCreacion = FechaCostaRicaHelper.Ahora
         };
 
         return await _gastoRepository.AddAsync(gasto);
@@ -156,7 +157,7 @@ public class GastoService : IGastoService
 
         gasto.Aprobado = dto.Aprobado;
         gasto.UsuarioAprobacionId = userId;
-        gasto.FechaAprobacion = DateTime.UtcNow;
+        gasto.FechaAprobacion = FechaCostaRicaHelper.Ahora;
         gasto.NotasAprobacion = dto.Notas;
         gasto.UsuarioModificacionId = userId;
 

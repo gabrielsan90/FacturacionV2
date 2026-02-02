@@ -1201,6 +1201,9 @@
             precioUnitario: 0,
             tipoTransaccion: '01',
             cabys: '',
+            unidadMedida: 'Unid',
+            tipoProducto: 'mercancia',
+            codigoTarifaIVA: '08',
             descuentos: [],
             impuestos: [],
             // Totales calculados
@@ -2198,6 +2201,7 @@
             // Producto selection in modal
             $('#Linea_ProductoId').on('select2:select', function (e) {
                 const producto = e.params.data.data;
+                console.log(producto);
                 loadProductoData(producto);
             });
 
@@ -2620,10 +2624,12 @@
                     }
                 }
 
-                // Filtrar por tipo
+                // Filtrar por tipo (el enum puede venir como número 0/1 o string "Producto"/"Servicio")
                 if (tipo !== '') {
                     const productoTipo = producto.tipo ?? producto.Tipo;
-                    if (productoTipo != tipo) {
+                    const esServicioProducto = productoTipo === 1 || productoTipo === 'Servicio';
+                    const esServicioFiltro = tipo === '1';
+                    if (esServicioProducto !== esServicioFiltro) {
                         cumple = false;
                     }
                 }
@@ -2661,8 +2667,9 @@
                 const codigo = producto.codigo || producto.Codigo || '-';
                 const nombre = producto.nombre || producto.Nombre || '-';
                 const tipo = producto.tipo ?? producto.Tipo;
-                const tipoNombre = tipo === 0 ? 'Producto' : 'Servicio';
-                const tipoBadge = tipo === 0 ? 'bg-primary' : 'bg-info';
+                const esServicio = tipo === 1 || tipo === 'Servicio';
+                const tipoNombre = esServicio ? 'Servicio' : 'Producto';
+                const tipoBadge = esServicio ? 'bg-info' : 'bg-primary';
                 const precioVenta = producto.precioVenta || producto.PrecioVenta || 0;
 
                 // Impuesto
@@ -2752,8 +2759,8 @@
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
                 success: function (data) {
-                    // Filtrar solo documentos aceptados (estado = 4)
-                    todosLosDocumentos = data.filter(d => d.estado === 4);
+                    // Filtrar solo documentos aceptados (estado puede ser número 4 o string "Aceptado")
+                    todosLosDocumentos = (data || []).filter(d => d.estado === 4 || d.estado === 'Aceptado');
                     initializeDocumentosDataTable();
                 },
                 error: function (xhr) {
@@ -2775,12 +2782,14 @@
                 tableDocumentos.destroy();
             }
 
-            const tiposDocumento = {
-                1: 'FE',
-                2: 'ND',
-                3: 'NC',
-                4: 'TE',
-                9: 'FEE'
+            // Mapeo de tipos de documento (soporta números y strings)
+            const tiposDocumentoNum = { 1: 'FE', 2: 'ND', 3: 'NC', 4: 'TE', 9: 'FEE' };
+            const tiposDocumentoStr = {
+                'FacturaElectronica': 'FE',
+                'NotaDebitoElectronica': 'ND',
+                'NotaCreditoElectronica': 'NC',
+                'TiqueteElectronico': 'TE',
+                'FacturaElectronicaExportacion': 'FEE'
             };
 
             tableDocumentos = $('#tablaDocumentosModal').DataTable({
@@ -2795,7 +2804,7 @@
                     {
                         data: 'tipoDocumento',
                         render: function(data) {
-                            const tipo = tiposDocumento[data] || 'Desconocido';
+                            const tipo = tiposDocumentoNum[data] || tiposDocumentoStr[data] || data || 'Desconocido';
                             return `<span class="badge bg-primary">${tipo}</span>`;
                         }
                     },
@@ -2806,7 +2815,7 @@
                         }
                     },
                     {
-                        data: 'fecha',
+                        data: 'fechaEmision',
                         render: function(data) {
                             if (!data) return '-';
                             const date = new Date(data);
@@ -2814,7 +2823,7 @@
                         }
                     },
                     {
-                        data: 'totalComprobante',
+                        data: 'totalVenta',
                         className: 'text-end',
                         render: function(data) {
                             return formatCurrency(data || 0);
@@ -2847,16 +2856,265 @@
             // Cerrar el modal
             $('#modalDocumentos').modal('hide');
 
-            // Buscar el documento seleccionado
-            const documento = todosLosDocumentos.find(d => d.id === documentoId);
-            if (documento) {
-                // Actualizar los campos
-                $('#DocumentoReferenciaId').val(documento.id);
-                $('#DocumentoReferenciaNumero').val(documento.numeroConsecutivo);
+            // Mostrar loading
+            Swal.fire({
+                title: 'Cargando documento...',
+                text: 'Obteniendo datos completos del documento',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
 
-                // Actualizar mensaje de referencia
-                updateMensajeReferencia(documento);
+            // Obtener el documento completo con detalles desde el backend
+            $.ajax({
+                url: '?handler=DocumentoCompleto&id=' + documentoId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(documento) {
+                    Swal.close();
+
+                    if (!documento || documento.error) {
+                        Swal.fire('Error', documento?.error || 'No se pudo cargar el documento', 'error');
+                        return;
+                    }
+
+                    // Actualizar los campos de referencia
+                    $('#DocumentoReferenciaId').val(documento.id);
+                    $('#DocumentoReferenciaNumero').val(documento.numeroConsecutivo);
+
+                    // Actualizar mensaje de referencia
+                    updateMensajeReferencia(documento);
+                    console.log(documento);
+                    // Cargar datos del receptor en el formulario
+                    cargarDatosReceptorDesdeDocumento(documento);
+
+                    // Cargar las líneas del documento
+                    cargarLineasDesdeDocumento(documento);
+
+                    console.log('Documento completo cargado:', documento);
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    console.error('Error al cargar documento completo:', xhr);
+
+                    // Fallback: usar datos básicos del listado
+                    const docBasico = todosLosDocumentos.find(d => d.id === documentoId);
+                    if (docBasico) {
+                        $('#DocumentoReferenciaId').val(docBasico.id);
+                        $('#DocumentoReferenciaNumero').val(docBasico.numeroConsecutivo);
+                        updateMensajeReferencia(docBasico);
+                        cargarDatosReceptorDesdeDocumento(docBasico);
+                    }
+
+                    Swal.fire('Advertencia', 'Se cargaron datos básicos. Las líneas no pudieron cargarse.', 'warning');
+                }
+            });
+        }
+
+        function cargarDatosReceptorDesdeDocumento(documento) {
+            // Mapeo de tipo de identificación (string a número)
+            const tipoIdMap = {
+                'Fisica': 1, 'Cedula': 1, 'CedulaFisica': 1,
+                'Juridica': 2, 'CedulaJuridica': 2,
+                'DIMEX': 3, 'Dimex': 3,
+                'NITE': 4, 'Nite': 4,
+                'Pasaporte': 5,
+                'Extranjera': 6, 'IdentificacionExtranjera': 6
+            };
+
+            // Nombre
+            $('#ClienteNombre').val(documento.receptorNombre || '');
+
+            // Tipo de identificación
+            const tipoId = tipoIdMap[documento.receptorTipoIdentificacion] || documento.receptorTipoIdentificacion || 1;
+            $('#ClienteTipoIdentificacion').val(tipoId);
+
+            // Número de identificación
+            $('#ClienteIdentificacion').val(documento.receptorNumeroIdentificacion || '');
+
+            // Email
+            $('#ClienteEmail').val(documento.receptorEmails || documento.receptorEmail || '');
+
+            // Teléfono
+            $('#ClienteTelefono').val(documento.receptorTelefono || '');
+
+            // Actividad económica
+            $('#ClienteActividadEconomica').val(documento.receptorActividadEconomica || '');
+
+            // Otras señas
+            $('#ClienteOtrasSenas').val(documento.receptorOtrasSenas || '');
+
+            // Cargar ubicación geográfica (provincia, cantón, distrito)
+            if (documento.receptorProvincia) {
+                $('#ClienteProvincia').val(documento.receptorProvincia.toString());
+                loadCantones(documento.receptorProvincia);
+
+                // Esperar a que se carguen los cantones antes de seleccionar
+                setTimeout(function() {
+                    if (documento.receptorCanton) {
+                        $('#ClienteCanton').val(documento.receptorCanton.toString());
+                        loadDistritos(documento.receptorProvincia, documento.receptorCanton);
+
+                        // Esperar a que se carguen los distritos antes de seleccionar
+                        setTimeout(function() {
+                            if (documento.receptorDistrito) {
+                                $('#ClienteDistrito').val(documento.receptorDistrito.toString());
+                            }
+                        }, 500);
+                    }
+                }, 500);
             }
+
+            // Si tiene clienteId, cargarlo en Select2
+            if (documento.clienteId) {
+                // Verificar si ya existe la opción
+                if ($('#ClienteId option[value="' + documento.clienteId + '"]').length === 0) {
+                    // Crear opción para Select2 con los datos del receptor
+                    const clienteOption = new Option(
+                        documento.receptorNombre || 'Cliente',
+                        documento.clienteId,
+                        true,  // defaultSelected
+                        true   // selected
+                    );
+                    // Agregar datos adicionales para evitar que se recargue
+                    clienteOption.dataset.fromDocument = 'true';
+                    $('#ClienteId').append(clienteOption);
+                }
+                // Seleccionar usando la API de Select2 (sin disparar select2:select)
+                $('#ClienteId').val(documento.clienteId).trigger('change.select2');
+            }
+
+            // Mostrar la sección de información del cliente siempre que hay datos de receptor
+            $('#clienteInfoSection').show();
+            $('#btnEditarCliente').prop('disabled', false);
+
+            // Forzar visibilidad con timeout por si hay algún conflicto
+            setTimeout(function() {
+                $('#clienteInfoSection').show();
+            }, 100);
+
+            console.log('Datos del receptor cargados desde documento:', documento.numeroConsecutivo);
+        }
+
+        function cargarLineasDesdeDocumento(documento) {
+            // Limpiar líneas existentes (usar la variable correcta: documentLines)
+            documentLines = [];
+            renderLines();
+
+            // Cargar condición de venta
+            if (documento.condicionVenta) {
+                $('#CondicionVenta').val(documento.condicionVenta);
+            }
+
+            // Cargar medio de pago
+            if (documento.medioPago) {
+                $('#MedioPago').val(documento.medioPago);
+            }
+
+            // Cargar plazo de crédito si aplica
+            if (documento.plazoCredito) {
+                $('#PlazoCredito').val(documento.plazoCredito);
+            }
+
+            // Verificar que el documento tenga detalles
+            if (!documento.detalles || documento.detalles.length === 0) {
+                console.log('El documento no tiene detalles/líneas');
+                return;
+            }
+
+            // Cargar cada línea del documento
+            documento.detalles.forEach(function(detalle, index) {
+                // Calcular subtotal y monto de descuento
+                const cantidad = detalle.cantidad || 1;
+                const precioUnitario = detalle.precioUnitario || 0;
+                const subtotal = detalle.subTotal || (cantidad * precioUnitario);
+
+                // Calcular monto total de descuentos
+                let montoDescuento = 0;
+                const descuentos = (detalle.descuentos || []).map(d => {
+                    const desc = {
+                        naturaleza: d.naturalezaDescuento || 'Descuento',
+                        tipo: d.tipoDescuento || 'porcentaje',
+                        valor: d.porcentajeDescuento || d.montoDescuento || 0,
+                        monto: d.montoDescuento || 0
+                    };
+                    montoDescuento += desc.monto;
+                    return desc;
+                });
+
+                // Mapear impuestos
+                const impuestos = (detalle.impuestos || []).map(imp => ({
+                    codigoImpuesto: imp.codigoImpuesto || '01',
+                    codigoTarifa: imp.codigoTarifa || '08',
+                    tarifa: imp.tarifa || 0,
+                    montoBase: imp.montoBase || subtotal,
+                    montoImpuesto: imp.monto || imp.montoImpuesto || 0,
+                    exoneracion: imp.exoneracion ? {
+                        tipoDocumento: imp.exoneracion.tipoDocumento,
+                        numeroDocumento: imp.exoneracion.numeroDocumento,
+                        nombreInstitucion: imp.exoneracion.nombreInstitucion,
+                        fechaEmision: imp.exoneracion.fechaEmision,
+                        porcentaje: imp.exoneracion.porcentajeExoneracion,
+                        montoExoneracion: imp.exoneracion.montoExoneracion
+                    } : null
+                }));
+
+                // Si no hay impuestos, crear uno por defecto
+                if (impuestos.length === 0) {
+                    impuestos.push({
+                        codigoImpuesto: '01',
+                        codigoTarifa: detalle.codigoTarifaIva || '08',
+                        tarifa: detalle.tarifaIva || 0,
+                        montoBase: subtotal,
+                        montoImpuesto: detalle.montoImpuesto || 0,
+                        exoneracion: null
+                    });
+                }
+
+                // Obtener código de unidad de medida (puede venir como objeto o string)
+                let unidadMedidaCodigo = 'Unid';
+                if (detalle.unidadMedida && detalle.unidadMedida.codigo) {
+                    unidadMedidaCodigo = detalle.unidadMedida.codigo;
+                } else if (detalle.unidadMedidaComercial) {
+                    unidadMedidaCodigo = detalle.unidadMedidaComercial;
+                } else if (typeof detalle.unidadMedida === 'string') {
+                    unidadMedidaCodigo = detalle.unidadMedida;
+                }
+
+                // Obtener código CABYS
+                const codigoCabys = detalle.codigoCabys || detalle.cabys || '';
+
+                const linea = {
+                    index: index,
+                    productoId: detalle.productoId || null,
+                    codigo: detalle.codigoComercial || detalle.codigo || '',
+                    descripcion: detalle.detalle || detalle.descripcion || '',
+                    cantidad: cantidad,
+                    precioUnitario: precioUnitario,
+                    unidadMedida: unidadMedidaCodigo,
+                    unidadMedidaDescripcion: detalle.unidadMedida?.descripcion || 'Unidad',
+                    tipoProducto: detalle.esServicio ? '02' : '01',
+                    tipoTransaccion: detalle.tipoTransaccion || '01',
+                    codigoCabys: codigoCabys,
+                    subtotal: subtotal,
+                    montoDescuento: montoDescuento,
+                    montoTotalLinea: detalle.montoTotalLinea || detalle.totalLinea || 0,
+                    descuentos: descuentos,
+                    impuestos: impuestos
+                };
+
+                documentLines.push(linea);
+            });
+
+            // Asegurar que las secciones del formulario estén visibles
+            $('#mainFormCard, #lineasCard, #actionButtons').show();
+
+            // Renderizar todas las líneas y calcular totales
+            renderLines();
+            calculateTotals();
+
+            console.log('Líneas cargadas desde documento:', documentLines.length, documentLines);
         }
 
         function loadFormasFarmaceuticas() {
@@ -2993,8 +3251,10 @@
             const codigo = producto.codigo || producto.Codigo || '';
             const nombre = producto.nombre || producto.Nombre || '';
             const precioVenta = producto.precioVenta ?? producto.PrecioVenta ?? 0;
-            const tipo = producto.tipo ?? producto.Tipo ?? 0;
-
+            const tipoRaw = producto.tipo ?? producto.Tipo ?? 0;
+            // El enum TipoProducto puede venir como string ("Producto"/"Servicio") o número (0/1)
+            const esServicio = tipoRaw === 1 || tipoRaw === 'Servicio';
+            console.log("tipo:", tipoRaw, "esServicio:", esServicio);
             // Guardar el ID del producto para identificar que es mercancía (no servicio manual)
             currentLine.productoId = productoId;
 
@@ -3011,19 +3271,17 @@
                 if ($selectUnidad.find(`option[value="${unidadCodigo}"]`).length > 0) {
                     $selectUnidad.val(unidadCodigo).trigger('change');
                 } else {
-                    // Default based on product type
-                    $selectUnidad.val(tipo === 1 ? 'Sp' : 'Unid').trigger('change');
+                    $selectUnidad.val(esServicio ? 'Sp' : 'Unid').trigger('change');
                 }
             } else {
-                // Default based on product type (0=Producto, 1=Servicio)
-                $('#Linea_UnidadMedida').val(tipo === 1 ? 'Sp' : 'Unid').trigger('change');
+                $('#Linea_UnidadMedida').val(esServicio ? 'Sp' : 'Unid').trigger('change');
             }
 
             // ====== TIPO DE PRODUCTO ======
-            $('#Linea_TipoProducto').val(tipo === 1 ? 'servicio' : 'mercancia');
+            $('#Linea_TipoProducto').val(esServicio ? 'servicio' : 'mercancia');
 
             // ====== TIPO DE TRANSACCIÓN v4.4 ======
-            $('#Linea_TipoTransaccion').val(tipo === 1 ? '02' : '01'); // 02 = Venta de servicios, 01 = Venta de bienes
+            $('#Linea_TipoTransaccion').val(esServicio ? '02' : '01'); // 02 = Venta de servicios, 01 = Venta de bienes
 
             // Limpiar impuestos existentes y agregar el del producto
             currentLine.impuestos = [];
@@ -3254,6 +3512,9 @@
                 precioUnitario: 0,
                 tipoTransaccion: '01',
                 cabys: '',
+                unidadMedida: 'Unid',
+                tipoProducto: 'mercancia',
+                codigoTarifaIVA: '08',
                 descuentos: [],
                 impuestos: [],
                 montoTotal: 0,
@@ -3397,6 +3658,22 @@
                     $('#lblCabysDescripcion').hide();
                 }
 
+                // Copiar campos de clasificación a currentLine
+                currentLine.productoId = line.productoId || null;
+                currentLine.unidadMedida = line.unidadMedida || 'Unid';
+                currentLine.tipoProducto = line.tipoProducto || 'mercancia';
+                currentLine.codigoTarifaIVA = line.codigoTarifaIVA || '08';
+                currentLine.codigo = line.codigo;
+                currentLine.descripcion = line.descripcion;
+                currentLine.cantidad = line.cantidad;
+                currentLine.precioUnitario = line.precioUnitario;
+                currentLine.tipoTransaccion = line.tipoTransaccion || '01';
+                currentLine.cabys = line.codigoCabys || '';
+                currentLine.codigoCabys = line.codigoCabys || '';
+                currentLine.formaFarmaceutica = line.formaFarmaceutica || null;
+                currentLine.detalleSurtido = line.detalleSurtido || null;
+                currentLine.numeroLinea = line.numeroLinea;
+
                 // Copiar impuestos de la línea existente a currentLine
                 if (line.impuestos && line.impuestos.length > 0) {
                     currentLine.impuestos = JSON.parse(JSON.stringify(line.impuestos)); // Deep copy
@@ -3460,6 +3737,10 @@
             currentLine.codigoCabys = $('#Linea_CodigoCabys').val(); // Mantener compatibilidad
             currentLine.formaFarmaceutica = $('#Linea_FormaFarmaceutica').val() || null;
             currentLine.detalleSurtido = $('#Linea_DetalleSurtido').val() || null;
+            // Campos de clasificación servicio/mercancía (necesarios para calculateTotals)
+            currentLine.unidadMedida = $('#Linea_UnidadMedida').val() || 'Unid';
+            currentLine.tipoProducto = $('#Linea_TipoProducto').val() || 'mercancia';
+            currentLine.codigoTarifaIVA = $('#Linea_CodigoTarifaIVA').val() || '08';
 
             // Ya calculados por calculateLineTotal()
             // currentLine.montoTotal, subtotal, montoImpuesto, descuentos, impuestos, etc.
@@ -3499,7 +3780,7 @@
                 // Exoneracion (si aplica)
                 exoneracionPorcentaje: 0
             };
-
+            console.log(line);
             if (index >= 0) {
                 // Actualizar existente
                 documentLines[index] = JSON.parse(JSON.stringify(currentLine)); // Deep copy
@@ -3606,18 +3887,10 @@
 
                 totalDescuentos += descuento;
                 totalImpuestos += impuesto;
-
+                console.log(line);
                 // Determinar si es servicio o mercancia
-                // 1. Si tiene campo tipoProducto, usarlo directamente
-                // 2. Si NO tiene ProductoId, es servicio (línea manual sin producto del catálogo)
-                // 3. Si tiene unidades de servicio (Sp, Spe, Os, Al, h, d, Ser), es servicio
-                // 4. Si no, es mercancía por defecto
-                const unidadesServicio = ['Sp', 'Spe', 'Os', 'Al', 'Alc', 'h', 'd', 'Ser'];
-                const esServicio = (line.tipoProducto === 'servicio') ||
-                    (!line.productoId) || // Si no hay ProductoId, es servicio manual
-                    (line.unidadMedida && unidadesServicio.some(u =>
-                        line.unidadMedida.toLowerCase().includes(u.toLowerCase())
-                    ));
+                // Usar tipoProducto como fuente principal (ya se guarda correctamente en currentLine)
+                const esServicio = line.tipoProducto === 'servicio';
 
                 // Determinar tipo de gravamen usando el sistema NUEVO de múltiples impuestos
                 let esGravado = false;
@@ -3647,6 +3920,7 @@
 
                 // Clasificar usando MontoTotal (ANTES de descuentos) según Hacienda v4.4
                 // TotalServGravados/TotalMercanciasGravadas usan MontoTotal
+                console.log("esservicio: " + esServicio);
                 if (esServicio) {
                     if (esGravado) servGravados += montoTotal;
                     else if (esExento) servExentos += montoTotal;

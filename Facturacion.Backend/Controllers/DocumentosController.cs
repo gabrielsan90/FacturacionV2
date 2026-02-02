@@ -1,11 +1,15 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Enums;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MimeKit;
 using System.Security.Claims;
 
 namespace Facturacion.Backend.Controllers;
@@ -16,6 +20,7 @@ namespace Facturacion.Backend.Controllers;
 public class DocumentosController : ControllerBase
 {
     private readonly IDocumentoUnitOfWork _unitOfWork;
+    private readonly IEmpresaUnitOfWork _empresaUnitOfWork;
     private readonly IDocumentoHaciendaService _haciendaService;
     private readonly IDocumentoService _documentoService;
     private readonly IXsdValidacionService _xsdValidacion;
@@ -24,6 +29,7 @@ public class DocumentosController : ControllerBase
 
     public DocumentosController(
         IDocumentoUnitOfWork unitOfWork,
+        IEmpresaUnitOfWork empresaUnitOfWork,
         IDocumentoHaciendaService haciendaService,
         IDocumentoService documentoService,
         IXsdValidacionService xsdValidacion,
@@ -31,6 +37,7 @@ public class DocumentosController : ControllerBase
         ILogger<DocumentosController> logger)
     {
         _unitOfWork = unitOfWork;
+        _empresaUnitOfWork = empresaUnitOfWork;
         _haciendaService = haciendaService;
         _documentoService = documentoService;
         _xsdValidacion = xsdValidacion;
@@ -39,7 +46,7 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
-    /// Get all documents with optional filters (paginated)
+    /// Get documents with optional filters and server-side pagination
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAsync(
@@ -50,7 +57,9 @@ public class DocumentosController : ControllerBase
         [FromQuery] DocumentoTipo? tipoDocumento,
         [FromQuery] DateTime? fechaInicio,
         [FromQuery] DateTime? fechaFin,
-        [FromQuery] Ambiente? ambiente)
+        [FromQuery] Ambiente? ambiente,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 25)
     {
         try
         {
@@ -59,51 +68,27 @@ public class DocumentosController : ControllerBase
                 return BadRequest("Debe proporcionar el parámetro empresaId.");
             }
 
-            // Obtener todos los documentos de la empresa
-            var documentos = await _unitOfWork.DocumentoRepository.GetByEmpresaAsync(empresaId.Value);
+            // Limitar take máximo para evitar abusos
+            if (take > 500) take = 500;
 
-            // Aplicar filtros adicionales
-            if (sucursalId.HasValue)
+            var (documentos, totalCount) = await _unitOfWork.DocumentoRepository.GetByEmpresaPagedAsync(
+                empresaId.Value,
+                skip,
+                take,
+                sucursalId,
+                terminalId,
+                estado,
+                tipoDocumento,
+                fechaInicio,
+                fechaFin,
+                ambiente);
+
+            return Ok(new
             {
-                documentos = documentos.Where(d => d.SucursalId == sucursalId.Value);
-            }
-
-            if (terminalId.HasValue)
-            {
-                documentos = documentos.Where(d => d.TerminalId == terminalId.Value);
-            }
-
-            if (estado.HasValue)
-            {
-                documentos = documentos.Where(d => d.Estado == estado.Value);
-            }
-
-            if (tipoDocumento.HasValue)
-            {
-                documentos = documentos.Where(d => d.TipoDocumento == tipoDocumento.Value);
-            }
-
-            if (fechaInicio.HasValue)
-            {
-                documentos = documentos.Where(d => d.FechaEmision >= fechaInicio.Value);
-            }
-
-            if (fechaFin.HasValue)
-            {
-                // Agregar un día para incluir todo el día final
-                var fechaFinInclusive = fechaFin.Value.AddDays(1);
-                documentos = documentos.Where(d => d.FechaEmision < fechaFinInclusive);
-            }
-
-            if (ambiente.HasValue)
-            {
-                documentos = documentos.Where(d => d.Ambiente == ambiente.Value);
-            }
-
-            // Ordenar por fecha de creación descendente (más recientes primero)
-            documentos = documentos.OrderByDescending(d => d.FechaCreacion);
-
-            return Ok(documentos);
+                data = documentos,
+                recordsTotal = totalCount,
+                recordsFiltered = totalCount
+            });
         }
         catch (Exception ex)
         {
@@ -412,7 +397,7 @@ public class DocumentosController : ControllerBase
 
             // Set audit fields
             documento.UsuarioModificacionId = userId;
-            documento.FechaModificacion = DateTime.UtcNow;
+            documento.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
             await _unitOfWork.DocumentoRepository.UpdateAsync(documento);
 
@@ -572,7 +557,7 @@ public class DocumentosController : ControllerBase
             documento.Estado = EstadoDocumento.Pendiente;
             documento.FechaEnvioHacienda = null; // Clear so it's picked up immediately
             documento.MensajeHacienda = null;
-            documento.FechaModificacion = DateTime.UtcNow;
+            documento.FechaModificacion = FechaCostaRicaHelper.Ahora;
             documento.UsuarioModificacionId = userId;
 
             await _unitOfWork.DocumentoRepository.UpdateAsync(documento);
@@ -839,7 +824,7 @@ public class DocumentosController : ControllerBase
             }
 
             documento.Estado = EstadoDocumento.Anulado;
-            documento.FechaModificacion = DateTime.UtcNow;
+            documento.FechaModificacion = FechaCostaRicaHelper.Ahora;
             documento.UsuarioModificacionId = userId;
 
             if (dto != null && !string.IsNullOrWhiteSpace(dto.Motivo))
@@ -1004,7 +989,7 @@ public class DocumentosController : ControllerBase
     }
 
     /// <summary>
-    /// Send document by email
+    /// Send document by email using empresa's SMTP configuration
     /// </summary>
     [HttpPost("enviar-correo")]
     public async Task<IActionResult> EnviarCorreoAsync([FromBody] EnviarCorreoDTO dto)
@@ -1016,20 +1001,169 @@ public class DocumentosController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            // TODO: Implement email service integration
-            // For now, return success to indicate the endpoint is working
-            _logger.LogInformation("Solicitud de envío de correo para documento {DocumentoId}", dto.DocumentoId);
+            // Obtener el documento con detalles
+            var documento = await _unitOfWork.DocumentoRepository.GetWithDetallesAsync(dto.DocumentoId);
+            if (documento == null)
+            {
+                return NotFound(new { Exitoso = false, Mensaje = "Documento no encontrado" });
+            }
+
+            // Obtener la empresa para los datos SMTP
+            var empresaResult = await _empresaUnitOfWork.EmpresaRepository.GetAsync(documento.EmpresaId);
+            if (empresaResult == null || !empresaResult.WasSuccess || empresaResult.Result == null)
+            {
+                return BadRequest(new { Exitoso = false, Mensaje = "No se encontró la empresa del documento" });
+            }
+
+            var empresa = empresaResult.Result;
+
+            // Validar configuración SMTP
+            if (string.IsNullOrEmpty(empresa.ServidorSMTP) || string.IsNullOrEmpty(empresa.UsuarioSMTP))
+            {
+                return BadRequest(new { Exitoso = false, Mensaje = "La empresa no tiene configuración SMTP. Configure el correo en Configuración de Correo." });
+            }
+
+            // Crear el mensaje
+            var message = new MimeMessage();
+
+            // Remitente
+            var fromName = !string.IsNullOrEmpty(empresa.SmtpDisplayName)
+                ? empresa.SmtpDisplayName
+                : empresa.NombreComercial;
+            message.From.Add(new MailboxAddress(fromName, empresa.UsuarioSMTP));
+
+            // Destinatarios
+            foreach (var email in dto.Para.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                message.To.Add(new MailboxAddress(email.Trim(), email.Trim()));
+            }
+
+            // CC
+            if (!string.IsNullOrEmpty(dto.CC))
+            {
+                foreach (var email in dto.CC.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    message.Cc.Add(new MailboxAddress(email.Trim(), email.Trim()));
+                }
+            }
+
+            // CCO
+            if (!string.IsNullOrEmpty(dto.CCO))
+            {
+                foreach (var email in dto.CCO.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    message.Bcc.Add(new MailboxAddress(email.Trim(), email.Trim()));
+                }
+            }
+
+            // Copia automática si está configurada
+            if (!string.IsNullOrEmpty(empresa.SmtpCopiaEmail))
+            {
+                message.Bcc.Add(new MailboxAddress(empresa.SmtpCopiaEmail, empresa.SmtpCopiaEmail));
+            }
+
+            message.Subject = dto.Asunto;
+
+            // Crear el cuerpo del mensaje con adjuntos
+            var builder = new BodyBuilder();
+            builder.HtmlBody = $@"
+                <div style='font-family: Arial, sans-serif;'>
+                    {dto.Mensaje.Replace("\n", "<br/>")}
+                    <hr style='margin-top: 20px; border: none; border-top: 1px solid #ccc;'/>
+                    <p style='font-size: 12px; color: #666;'>
+                        Documento: {documento.TipoDocumento} - {documento.NumeroConsecutivo}<br/>
+                        Clave: {documento.Clave}<br/>
+                        Enviado desde el Sistema de Facturación Electrónica
+                    </p>
+                </div>";
+
+            // Adjuntar PDF si está habilitado y existe
+            if (empresa.SmtpEnviarPDF)
+            {
+                try
+                {
+                    var pdfResult = await _pdfGeneradorService.GenerarPdfAsync(documento);
+                    if (pdfResult.WasSuccess && pdfResult.Result != null)
+                    {
+                        var nombrePdf = $"{documento.TipoDocumento}_{documento.NumeroConsecutivo}.pdf";
+                        builder.Attachments.Add(nombrePdf, pdfResult.Result, ContentType.Parse("application/pdf"));
+                        _logger.LogInformation("PDF adjuntado al correo: {NombrePdf}", nombrePdf);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "No se pudo generar el PDF para adjuntar");
+                }
+            }
+
+            // Adjuntar XML del documento si está habilitado y existe
+            if (empresa.SmtpEnviarXML && !string.IsNullOrEmpty(documento.XmlFirmado))
+            {
+                try
+                {
+                    var xmlBytes = System.Text.Encoding.UTF8.GetBytes(documento.XmlFirmado);
+                    var nombreXml = $"{documento.TipoDocumento}_{documento.NumeroConsecutivo}.xml";
+                    builder.Attachments.Add(nombreXml, xmlBytes, ContentType.Parse("application/xml"));
+                    _logger.LogInformation("XML del documento adjuntado al correo: {NombreXml}", nombreXml);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "No se pudo adjuntar el XML del documento");
+                }
+            }
+
+            // Adjuntar XML de respuesta de Hacienda si está habilitado y existe
+            if (empresa.SmtpEnviarXML && !string.IsNullOrEmpty(documento.XmlRespuestaHacienda))
+            {
+                try
+                {
+                    var xmlRespuestaBytes = System.Text.Encoding.UTF8.GetBytes(documento.XmlRespuestaHacienda);
+                    var nombreXmlRespuesta = $"{documento.TipoDocumento}_{documento.NumeroConsecutivo}_RespuestaHacienda.xml";
+                    builder.Attachments.Add(nombreXmlRespuesta, xmlRespuestaBytes, ContentType.Parse("application/xml"));
+                    _logger.LogInformation("XML de respuesta Hacienda adjuntado al correo: {NombreXml}", nombreXmlRespuesta);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "No se pudo adjuntar el XML de respuesta de Hacienda");
+                }
+            }
+
+            message.Body = builder.ToMessageBody();
+
+            // Enviar el correo
+            using var client = new SmtpClient();
+
+            var secureSocketOptions = empresa.SmtpEnableSsl
+                ? SecureSocketOptions.StartTls
+                : SecureSocketOptions.None;
+
+            await client.ConnectAsync(
+                empresa.ServidorSMTP,
+                empresa.PuertoSMTP ?? 587,
+                secureSocketOptions);
+
+            if (!string.IsNullOrEmpty(empresa.UsuarioSMTP) && !string.IsNullOrEmpty(empresa.ClaveSMTP))
+            {
+                await client.AuthenticateAsync(empresa.UsuarioSMTP, empresa.ClaveSMTP);
+            }
+
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation(
+                "Correo enviado exitosamente para documento {DocumentoId} a {Destinatarios}",
+                dto.DocumentoId, dto.Para);
 
             return Ok(new
             {
                 Exitoso = true,
-                Mensaje = "La funcionalidad de envío de correo se implementará en un próximo sprint."
+                Mensaje = "Correo enviado exitosamente"
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al enviar correo del documento");
-            return StatusCode(500, new { Mensaje = "Error al enviar el correo", Detalle = ex.Message });
+            _logger.LogError(ex, "Error al enviar correo del documento {DocumentoId}", dto.DocumentoId);
+            return Ok(new { Exitoso = false, Mensaje = $"Error al enviar el correo: {ex.Message}" });
         }
     }
 

@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -75,7 +76,7 @@ public class DocumentoReceptorMensajeRepository : IDocumentoReceptorMensajeRepos
 
     public async Task<DocumentoReceptorMensaje> AddAsync(DocumentoReceptorMensaje mensaje)
     {
-        mensaje.FechaCreacion = DateTime.UtcNow;
+        mensaje.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Set<DocumentoReceptorMensaje>().Add(mensaje);
         await _context.SaveChangesAsync();
         return mensaje;
@@ -83,7 +84,7 @@ public class DocumentoReceptorMensajeRepository : IDocumentoReceptorMensajeRepos
 
     public async Task UpdateAsync(DocumentoReceptorMensaje mensaje)
     {
-        mensaje.FechaModificacion = DateTime.UtcNow;
+        mensaje.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.Set<DocumentoReceptorMensaje>().Update(mensaje);
         await _context.SaveChangesAsync();
     }
@@ -94,7 +95,7 @@ public class DocumentoReceptorMensajeRepository : IDocumentoReceptorMensajeRepos
         if (mensaje != null)
         {
             mensaje.IsDeleted = true;
-            mensaje.FechaEliminacion = DateTime.UtcNow;
+            mensaje.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             mensaje.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

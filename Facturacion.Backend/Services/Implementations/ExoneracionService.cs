@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Microsoft.Extensions.Caching.Memory;
@@ -52,7 +53,7 @@ public class ExoneracionService : IExoneracionService
             };
         }
 
-        fechaValidacion ??= DateTime.Now;
+        fechaValidacion ??= FechaCostaRicaHelper.Ahora;
 
         try
         {
@@ -155,7 +156,7 @@ public class ExoneracionService : IExoneracionService
             if (exoneracion != null)
             {
                 // Actualizar estado de vigencia
-                exoneracion.Vigente = ValidarVigencia(exoneracion, DateTime.Now);
+                exoneracion.Vigente = ValidarVigencia(exoneracion, FechaCostaRicaHelper.Ahora);
 
                 // Guardar en caché
                 _cache.Set(cacheKey, exoneracion, CACHE_DURATION);
@@ -229,7 +230,7 @@ public class ExoneracionService : IExoneracionService
             // Actualizar estado de vigencia de cada exoneración
             foreach (var exoneracion in exoneraciones)
             {
-                exoneracion.Vigente = ValidarVigencia(exoneracion, DateTime.Now);
+                exoneracion.Vigente = ValidarVigencia(exoneracion, FechaCostaRicaHelper.Ahora);
             }
 
             // Filtrar solo las vigentes

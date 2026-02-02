@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -245,7 +246,7 @@ public class ReportesService : IReportesService
 
             var reporte = new ReporteInventarioDTO
             {
-                FechaReporte = DateTime.UtcNow,
+                FechaReporte = FechaCostaRicaHelper.Ahora,
                 TotalProductos = detalles.Count(),
                 ValorTotalInventario = valorTotal,
                 Detalles = detalles

@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -160,7 +161,7 @@ public class HaciendaTokenRepository : IHaciendaTokenRepository
             }
 
             token.Activo = false;
-            token.FechaActualizacion = DateTime.Now;
+            token.FechaActualizacion = FechaCostaRicaHelper.Ahora;
             await _context.SaveChangesAsync();
 
             return new ActionResponse<bool>
@@ -193,7 +194,7 @@ public class HaciendaTokenRepository : IHaciendaTokenRepository
             foreach (var token in tokens)
             {
                 token.Activo = false;
-                token.FechaActualizacion = DateTime.Now;
+                token.FechaActualizacion = FechaCostaRicaHelper.Ahora;
             }
 
             await _context.SaveChangesAsync();
@@ -222,7 +223,7 @@ public class HaciendaTokenRepository : IHaciendaTokenRepository
     {
         try
         {
-            var fechaLimite = DateTime.Now.AddDays(-diasAntiguedad);
+            var fechaLimite = FechaCostaRicaHelper.Ahora.AddDays(-diasAntiguedad);
 
             var tokensExpirados = await _context.Set<HaciendaToken>()
                 .Where(t => !t.Activo && t.FechaExpiracionRefreshToken < fechaLimite)

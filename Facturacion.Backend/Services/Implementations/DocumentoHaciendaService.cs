@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using System.Text;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
@@ -207,7 +208,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 var certificado = await _firmaDigital.ObtenerCertificadoAsync(empresa.Id);
                 var xmlFirmado = await _firmaDigital.FirmarXmlAsync(xmlGenerado, certificado, empresa.PinCertificado);
                 documento.XmlFirmado = xmlFirmado;
-                documento.FechaFirma = DateTime.Now;
+                documento.FechaFirma = FechaCostaRicaHelper.Ahora;
                 resultado.XmlFirmado = xmlFirmado;
 
                 await _context.SaveChangesAsync();
@@ -223,7 +224,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             // 8. Enviar a Hacienda usando OAuth2 Bearer token (método correcto)
             _logger.LogInformation("Enviando documento {DocumentoId} a Hacienda con OAuth2", documentoId);
             documento.Estado = EstadoDocumento.Procesando;
-            documento.FechaEnvioHacienda = DateTime.Now;
+            documento.FechaEnvioHacienda = FechaCostaRicaHelper.Ahora;
             await _context.SaveChangesAsync();
 
             string ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
@@ -276,7 +277,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             {
                 // Respuesta posterior indica que fue aceptado
                 documento.Estado = EstadoDocumento.Aceptado;
-                documento.FechaRespuestaHacienda = DateTime.Now;
+                documento.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
                 documento.MensajeHacienda = "Documento aceptado por Hacienda";
                 resultado.Exitoso = true;
                 resultado.Mensaje = "Documento aceptado exitosamente por Hacienda";
@@ -291,7 +292,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             {
                 // 400 Bad Request: Error de validación
                 documento.Estado = EstadoDocumento.Rechazado;
-                documento.FechaRespuestaHacienda = DateTime.Now;
+                documento.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
 
                 var mensajes = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Mensaje));
                 var detalles = string.Join("; ", respuestaHacienda.Mensajes
@@ -435,7 +436,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         {
             Exitoso = false,
             Mensaje = "Consultando estado...",
-            FechaConsulta = DateTime.Now
+            FechaConsulta = FechaCostaRicaHelper.Ahora
         };
 
         try
@@ -482,7 +483,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             {
                 documento.Estado = EstadoDocumento.Aceptado;
                 documento.MensajeHacienda = "Documento aceptado por Hacienda";
-                documento.FechaRespuestaHacienda = DateTime.Now;
+                documento.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
 
                 // Guardar XML de respuesta si existe
                 if (!string.IsNullOrWhiteSpace(respuestaHacienda.RespuestaXml))
@@ -518,7 +519,7 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                     : "Sin detalle de rechazo";
                 documento.Estado = EstadoDocumento.Rechazado;
                 documento.MensajeHacienda = $"Rechazado: {mensajes}";
-                documento.FechaRespuestaHacienda = DateTime.Now;
+                documento.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
 
                 // Guardar XML de respuesta si existe
                 if (!string.IsNullOrWhiteSpace(respuestaHacienda.RespuestaXml))

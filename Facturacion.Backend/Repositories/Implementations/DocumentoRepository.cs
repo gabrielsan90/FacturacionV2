@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -63,6 +64,58 @@ public class DocumentoRepository : IDocumentoRepository
             .OrderByDescending(d => d.FechaEmision)
             .AsNoTracking()
             .ToListAsync();
+    }
+
+    public async Task<(IEnumerable<Documento> Data, int TotalCount)> GetByEmpresaPagedAsync(
+        Guid empresaId,
+        int skip,
+        int take,
+        Guid? sucursalId = null,
+        Guid? terminalId = null,
+        EstadoDocumento? estado = null,
+        DocumentoTipo? tipoDocumento = null,
+        DateTime? fechaInicio = null,
+        DateTime? fechaFin = null,
+        Ambiente? ambiente = null)
+    {
+        var query = _context.Documentos
+            .Include(d => d.Sucursal)
+            .Include(d => d.Terminal)
+            .Include(d => d.Cliente)
+            .Include(d => d.Proveedor)
+            .Where(d => d.EmpresaId == empresaId && !d.IsDeleted);
+
+        if (sucursalId.HasValue)
+            query = query.Where(d => d.SucursalId == sucursalId.Value);
+
+        if (terminalId.HasValue)
+            query = query.Where(d => d.TerminalId == terminalId.Value);
+
+        if (estado.HasValue)
+            query = query.Where(d => d.Estado == estado.Value);
+
+        if (tipoDocumento.HasValue)
+            query = query.Where(d => d.TipoDocumento == tipoDocumento.Value);
+
+        if (fechaInicio.HasValue)
+            query = query.Where(d => d.FechaEmision >= fechaInicio.Value);
+
+        if (fechaFin.HasValue)
+            query = query.Where(d => d.FechaEmision < fechaFin.Value.AddDays(1));
+
+        if (ambiente.HasValue)
+            query = query.Where(d => d.Ambiente == ambiente.Value);
+
+        var totalCount = await query.CountAsync();
+
+        var data = await query
+            .OrderByDescending(d => d.FechaCreacion)
+            .Skip(skip)
+            .Take(take)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return (data, totalCount);
     }
 
     public async Task<IEnumerable<Documento>> GetBySucursalAsync(Guid sucursalId)
@@ -177,7 +230,7 @@ public class DocumentoRepository : IDocumentoRepository
 
     public async Task<Documento> AddAsync(Documento documento)
     {
-        documento.FechaCreacion = DateTime.UtcNow;
+        documento.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Documentos.Add(documento);
         await _context.SaveChangesAsync();
         return documento;
@@ -185,7 +238,7 @@ public class DocumentoRepository : IDocumentoRepository
 
     public async Task UpdateAsync(Documento documento)
     {
-        documento.FechaModificacion = DateTime.UtcNow;
+        documento.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.Documentos.Update(documento);
         await _context.SaveChangesAsync();
     }
@@ -196,7 +249,7 @@ public class DocumentoRepository : IDocumentoRepository
         if (documento != null)
         {
             documento.IsDeleted = true;
-            documento.FechaEliminacion = DateTime.UtcNow;
+            documento.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             documento.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }
@@ -223,7 +276,7 @@ public class DocumentoRepository : IDocumentoRepository
     {
         // Obtener documentos recibidos que NO tienen mensaje receptor asociado
         // y que están dentro del plazo de 8 días calendario desde la emisión
-        var fechaLimite = DateTime.Now.AddDays(-8);
+        var fechaLimite = FechaCostaRicaHelper.Ahora.AddDays(-8);
 
         return await _context.Documentos
             .Include(d => d.Proveedor)

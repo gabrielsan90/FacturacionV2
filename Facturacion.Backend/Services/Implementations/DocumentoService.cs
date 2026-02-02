@@ -148,12 +148,15 @@ public class DocumentoService : IDocumentoService
             documento.TotalServiciosGravados = 0;
             documento.TotalServiciosExentos = 0;
             documento.TotalServiciosExonerados = 0;
+            documento.TotalServiciosNoSujetos = 0;
             documento.TotalMercanciasGravadas = 0;
             documento.TotalMercanciasExentas = 0;
             documento.TotalMercanciasExoneradas = 0;
+            documento.TotalMercanciasNoSujetas = 0;
             documento.TotalGravado = 0;
             documento.TotalExento = 0;
             documento.TotalExonerado = 0;
+            documento.TotalNoSujeto = 0;
             documento.Subtotal = 0;
             documento.TotalDescuentos = 0;
             documento.TotalImpuestos = 0;
@@ -172,19 +175,28 @@ public class DocumentoService : IDocumentoService
         decimal totalServiciosGravados = 0;
         decimal totalServiciosExentos = 0;
         decimal totalServiciosExonerados = 0;
+        decimal totalServiciosNoSujetos = 0;
         decimal totalMercanciasGravadas = 0;
         decimal totalMercanciasExentas = 0;
         decimal totalMercanciasExoneradas = 0;
+        decimal totalMercanciasNoSujetas = 0;
 
-        // Sumar por categoría (asumiendo que si tiene ProductoId, es mercancía; si no, es servicio)
         foreach (var detalle in documento.Detalles)
         {
-            var esMercancia = detalle.ProductoId.HasValue;
+            // Determinar servicio vs mercancía usando TipoTransaccion
+            // TipoTransaccion: 2=VentaServicios, 4=ImportacionServicios, 6=ExportacionServicios, 8=ComprasLocalesServicios, 12=Arrendamiento
+            var esServicio = detalle.TipoTransaccion.HasValue &&
+                (detalle.TipoTransaccion == TipoTransaccion.VentaServicios ||
+                 detalle.TipoTransaccion == TipoTransaccion.ImportacionServicios ||
+                 detalle.TipoTransaccion == TipoTransaccion.ExportacionServicios ||
+                 detalle.TipoTransaccion == TipoTransaccion.ComprasLocalesServicios ||
+                 detalle.TipoTransaccion == TipoTransaccion.Arrendamiento);
 
-            // Determinar si la línea es gravada, exenta o exonerada
+            // Determinar si la línea es gravada, exenta, exonerada o no sujeta
             bool esGravada = false;
             bool esExonerada = false;
             bool esExenta = false;
+            bool esNoSujeta = false;
 
             if (detalle.Impuestos != null && detalle.Impuestos.Any())
             {
@@ -201,8 +213,13 @@ public class DocumentoService : IDocumentoService
                     {
                         esGravada = true;
                     }
-                    // Si la tarifa es 0 con código 10 (Exento) o 01 (0%), es EXENTO
-                    else if (impuesto.CodigoTarifa == "10" || impuesto.CodigoTarifa == "01")
+                    // CodigoTarifaIVA "01" = Tarifa 0% NO SUJETO
+                    else if (impuesto.CodigoTarifa == "01")
+                    {
+                        esNoSujeta = true;
+                    }
+                    // CodigoTarifaIVA "08" u otros con tarifa 0 = EXENTO
+                    else
                     {
                         esExenta = true;
                     }
@@ -216,44 +233,51 @@ public class DocumentoService : IDocumentoService
 
             // Clasificar según el tipo y gravamen
             // IMPORTANTE v4.4: Usar MontoTotal (ANTES de descuentos)
-            // TotalServGravados/TotalMercanciasGravadas = monto bruto por categoría
-            // Los descuentos se restan en TotalVentaNeta = TotalVenta - TotalDescuentos
             if (esExonerada)
             {
-                if (esMercancia)
-                    totalMercanciasExoneradas += detalle.MontoTotal;
-                else
+                if (esServicio)
                     totalServiciosExonerados += detalle.MontoTotal;
+                else
+                    totalMercanciasExoneradas += detalle.MontoTotal;
             }
             else if (esGravada)
             {
-                if (esMercancia)
-                    totalMercanciasGravadas += detalle.MontoTotal;
-                else
+                if (esServicio)
                     totalServiciosGravados += detalle.MontoTotal;
+                else
+                    totalMercanciasGravadas += detalle.MontoTotal;
+            }
+            else if (esNoSujeta)
+            {
+                if (esServicio)
+                    totalServiciosNoSujetos += detalle.MontoTotal;
+                else
+                    totalMercanciasNoSujetas += detalle.MontoTotal;
             }
             else if (esExenta)
             {
-                if (esMercancia)
-                    totalMercanciasExentas += detalle.MontoTotal;
-                else
+                if (esServicio)
                     totalServiciosExentos += detalle.MontoTotal;
+                else
+                    totalMercanciasExentas += detalle.MontoTotal;
             }
         }
 
         documento.TotalServiciosGravados = Math.Round(totalServiciosGravados, 5);
         documento.TotalServiciosExentos = Math.Round(totalServiciosExentos, 5);
         documento.TotalServiciosExonerados = Math.Round(totalServiciosExonerados, 5);
+        documento.TotalServiciosNoSujetos = Math.Round(totalServiciosNoSujetos, 5);
         documento.TotalMercanciasGravadas = Math.Round(totalMercanciasGravadas, 5);
         documento.TotalMercanciasExentas = Math.Round(totalMercanciasExentas, 5);
         documento.TotalMercanciasExoneradas = Math.Round(totalMercanciasExoneradas, 5);
+        documento.TotalMercanciasNoSujetas = Math.Round(totalMercanciasNoSujetas, 5);
 
         documento.TotalGravado = Math.Round(totalServiciosGravados + totalMercanciasGravadas, 5);
         documento.TotalExento = Math.Round(totalServiciosExentos + totalMercanciasExentas, 5);
         documento.TotalExonerado = Math.Round(totalServiciosExonerados + totalMercanciasExoneradas, 5);
+        documento.TotalNoSujeto = Math.Round(totalServiciosNoSujetos + totalMercanciasNoSujetas, 5);
 
         // Subtotal del documento = suma de Subtotales de líneas (DESPUÉS de descuentos de línea, ANTES de impuestos)
-        // Este es el monto sobre el cual se calculan los impuestos según Hacienda v4.4
         documento.Subtotal = Math.Round(documento.Detalles.Sum(d => d.Subtotal), 5);
 
         // Descuentos a nivel de línea
@@ -274,10 +298,8 @@ public class DocumentoService : IDocumentoService
                 documento.OtrosCargos.Where(c => !c.IsDeleted).Sum(c => c.Monto), 5);
         }
 
-        // TotalVenta según Hacienda v4.4 = TotalGravado + TotalExento + TotalExonerado
-        // Estos totales usan MontoTotal (ANTES de descuentos)
-        // TotalVentaNeta = TotalVenta - TotalDescuentos (en XmlGeneradorService)
-        documento.TotalVenta = Math.Round(documento.TotalGravado + documento.TotalExento + documento.TotalExonerado, 5);
+        // TotalVenta según Hacienda v4.4 = TotalGravado + TotalExento + TotalExonerado + TotalNoSujeto
+        documento.TotalVenta = Math.Round(documento.TotalGravado + documento.TotalExento + documento.TotalExonerado + documento.TotalNoSujeto, 5);
     }
 
     /// <summary>
@@ -514,7 +536,7 @@ public class DocumentoService : IDocumentoService
             TipoCambio = dto.TipoCambio,
             Observaciones = dto.Observaciones,
             EsContingencia = dto.EsContingencia,
-            FechaCreacion = DateTime.UtcNow,
+            FechaCreacion = FechaCostaRicaHelper.Ahora,
             UsuarioCreacionId = userId
         };
 
@@ -533,6 +555,15 @@ public class DocumentoService : IDocumentoService
         int numeroLinea = 1;
         foreach (var detalleDTO in dto.Detalles)
         {
+            // Parsear TipoTransaccion de string (ej: "02") a enum
+            Facturacion.Shared.Enums.TipoTransaccion? tipoTransaccion = null;
+            if (!string.IsNullOrWhiteSpace(detalleDTO.TipoTransaccion) &&
+                int.TryParse(detalleDTO.TipoTransaccion, out var tipoTransaccionInt) &&
+                Enum.IsDefined(typeof(Facturacion.Shared.Enums.TipoTransaccion), tipoTransaccionInt))
+            {
+                tipoTransaccion = (Facturacion.Shared.Enums.TipoTransaccion)tipoTransaccionInt;
+            }
+
             var detalle = new DocumentoDetalle
             {
                 Id = Guid.NewGuid(),
@@ -547,11 +578,13 @@ public class DocumentoService : IDocumentoService
                 UnidadMedidaId = detalleDTO.UnidadMedidaId,
                 UnidadMedidaComercial = detalleDTO.UnidadMedidaComercial,
                 PrecioUnitario = detalleDTO.PrecioUnitario,
+                TipoTransaccion = tipoTransaccion,
+                DetalleSurtido = detalleDTO.DetalleSurtido,
                 NumeroPartidaArancelaria = detalleDTO.NumeroPartidaArancelaria,
                 NumeroRegistroMedicamento = detalleDTO.NumeroRegistroMedicamento,
                 FormaFarmaceutica = detalleDTO.FormaFarmaceutica,
                 NumeroVIN = detalleDTO.NumeroVIN,
-                FechaCreacion = DateTime.UtcNow,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId
             };
 
@@ -567,7 +600,7 @@ public class DocumentoService : IDocumentoService
                         NaturalezaDescuento = descDTO.Naturaleza,
                         MontoDescuento = descDTO.Monto,
                         CodigoDescuento = descDTO.CodigoDescuento ?? "07", // v4.4: Default "07" - Descuento Comercial
-                        FechaCreacion = DateTime.UtcNow,
+                        FechaCreacion = FechaCostaRicaHelper.Ahora,
                         UsuarioCreacionId = userId
                     });
                 }
@@ -615,7 +648,7 @@ public class DocumentoService : IDocumentoService
                         FechaEmisionExoneracion = impDTO.FechaEmisionExoneracion,
                         MontoExoneracion = impDTO.MontoExoneracion ?? 0,
                         PorcentajeExoneracion = impDTO.PorcentajeExoneracion,
-                        FechaCreacion = DateTime.UtcNow,
+                        FechaCreacion = FechaCostaRicaHelper.Ahora,
                         UsuarioCreacionId = userId
                     });
                 }
@@ -635,7 +668,7 @@ public class DocumentoService : IDocumentoService
                     DocumentoId = documento.Id,
                     NaturalezaDescuento = descDTO.Naturaleza,
                     MontoDescuento = descDTO.Monto,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 });
             }
@@ -652,12 +685,12 @@ public class DocumentoService : IDocumentoService
                     DocumentoId = documento.Id,
                     TipoDocumentoReferenciado = ((int)refDTO.TipoReferencia).ToString("D2"),
                     NumeroDocumentoReferenciado = refDTO.NumeroDocumento,
-                    FechaEmisionDocumentoReferenciado = refDTO.FechaDocumento ?? DateTime.UtcNow,
+                    FechaEmisionDocumentoReferenciado = refDTO.FechaDocumento ?? FechaCostaRicaHelper.Ahora,
                     CodigoReferencia = string.IsNullOrWhiteSpace(refDTO.CodigoReferencia)
                         ? TipoReferenciaDocumento.AnulaDocumentoReferencia
                         : (TipoReferenciaDocumento)int.Parse(refDTO.CodigoReferencia),
                     RazonReferencia = refDTO.Razon,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 });
             }
@@ -674,7 +707,7 @@ public class DocumentoService : IDocumentoService
                     DocumentoId = documento.Id,
                     CodigoMedioPago = mpDTO.CodigoMedioPago,
                     Monto = mpDTO.Monto,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 });
             }
@@ -691,7 +724,7 @@ public class DocumentoService : IDocumentoService
                     DocumentoId = documento.Id,
                     Clave = oiDTO.Clave,
                     Valor = oiDTO.Valor,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 });
             }
@@ -709,7 +742,7 @@ public class DocumentoService : IDocumentoService
                     TipoDocumento = ocDTO.TipoDocumento,
                     Detalle = ocDTO.Detalle,
                     Monto = ocDTO.Monto,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId
                 });
             }
@@ -726,7 +759,7 @@ public class DocumentoService : IDocumentoService
                 Direccion = dto.Exportacion.DireccionComprador,
                 Pais = dto.Exportacion.CodigoPaisDestino,
                 Incoterm = dto.Exportacion.IncotermVenta,
-                FechaCreacion = DateTime.UtcNow,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = userId
             };
         }
@@ -785,7 +818,7 @@ public class DocumentoService : IDocumentoService
         documento.TipoCambio = dto.TipoCambio;
         documento.Observaciones = dto.Observaciones;
 
-        documento.FechaModificacion = DateTime.UtcNow;
+        documento.FechaModificacion = FechaCostaRicaHelper.Ahora;
         documento.UsuarioModificacionId = userId;
 
         // TODO: Actualizar detalles, descuentos, referencias, etc.
@@ -813,7 +846,7 @@ public class DocumentoService : IDocumentoService
             return false;
 
         consecutivoEntity.NumeroActual++;
-        consecutivoEntity.FechaModificacion = DateTime.UtcNow;
+        consecutivoEntity.FechaModificacion = FechaCostaRicaHelper.Ahora;
         await _context.SaveChangesAsync();
 
         return true;

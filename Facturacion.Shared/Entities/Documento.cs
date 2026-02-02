@@ -295,6 +295,20 @@ public class Documento
     public decimal TotalMercanciasExoneradas { get; set; }
 
     /// <summary>
+    /// Total de servicios no sujetos de IVA (CodigoTarifaIVA = 01)
+    /// </summary>
+    [Display(Name = "Total Servicios No Sujetos")]
+    [Column(TypeName = "decimal(18, 5)")]
+    public decimal TotalServiciosNoSujetos { get; set; }
+
+    /// <summary>
+    /// Total de mercancías no sujetas de IVA (CodigoTarifaIVA = 01)
+    /// </summary>
+    [Display(Name = "Total Mercancías No Sujetas")]
+    [Column(TypeName = "decimal(18, 5)")]
+    public decimal TotalMercanciasNoSujetas { get; set; }
+
+    /// <summary>
     /// Total gravado (suma de servicios y mercancías gravadas)
     /// </summary>
     [Display(Name = "Total Gravado")]
@@ -314,6 +328,13 @@ public class Documento
     [Display(Name = "Total Exonerado")]
     [Column(TypeName = "decimal(18, 5)")]
     public decimal TotalExonerado { get; set; }
+
+    /// <summary>
+    /// Total no sujeto (suma de servicios y mercancías no sujetas de IVA)
+    /// </summary>
+    [Display(Name = "Total No Sujeto")]
+    [Column(TypeName = "decimal(18, 5)")]
+    public decimal TotalNoSujeto { get; set; }
 
     /// <summary>
     /// Subtotal (antes de impuestos y descuentos)

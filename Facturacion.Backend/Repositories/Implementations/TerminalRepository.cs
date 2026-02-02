@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -41,7 +42,7 @@ public class TerminalRepository : ITerminalRepository
 
     public async Task<Terminal> AddAsync(Terminal terminal)
     {
-        terminal.FechaCreacion = DateTime.UtcNow;
+        terminal.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Terminales.Add(terminal);
         await _context.SaveChangesAsync();
         return terminal;
@@ -49,7 +50,7 @@ public class TerminalRepository : ITerminalRepository
 
     public async Task UpdateAsync(Terminal terminal)
     {
-        terminal.FechaModificacion = DateTime.UtcNow;
+        terminal.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.Terminales.Update(terminal);
         await _context.SaveChangesAsync();
     }
@@ -60,7 +61,7 @@ public class TerminalRepository : ITerminalRepository
         if (terminal != null)
         {
             terminal.IsDeleted = true;
-            terminal.FechaEliminacion = DateTime.UtcNow;
+            terminal.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             terminal.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

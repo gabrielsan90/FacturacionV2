@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Entities;
@@ -27,7 +28,7 @@ public class NotificacionService : INotificacionService
             notificacion.Id = Guid.NewGuid();
 
         if (notificacion.FechaCreacion == default)
-            notificacion.FechaCreacion = DateTime.Now;
+            notificacion.FechaCreacion = FechaCostaRicaHelper.Ahora;
 
         _context.Set<Notificacion>().Add(notificacion);
         await _context.SaveChangesAsync();
@@ -51,7 +52,7 @@ public class NotificacionService : INotificacionService
             query = query.Where(n => !n.Leida);
 
         // Excluir notificaciones expiradas
-        query = query.Where(n => n.FechaExpiracion == null || n.FechaExpiracion > DateTime.Now);
+        query = query.Where(n => n.FechaExpiracion == null || n.FechaExpiracion > FechaCostaRicaHelper.Ahora);
 
         return await query
             .OrderByDescending(n => n.Importante)
@@ -69,7 +70,7 @@ public class NotificacionService : INotificacionService
         if (notificacion != null)
         {
             notificacion.Leida = true;
-            notificacion.FechaLeida = DateTime.Now;
+            notificacion.FechaLeida = FechaCostaRicaHelper.Ahora;
             await _context.SaveChangesAsync();
         }
     }
@@ -79,7 +80,7 @@ public class NotificacionService : INotificacionService
     /// </summary>
     public async Task MarcarTodasComoLeidasAsync(string usuarioId, Guid empresaId)
     {
-        var ahora = DateTime.Now;
+        var ahora = FechaCostaRicaHelper.Ahora;
         await _context.Set<Notificacion>()
             .Where(n => n.UsuarioId == usuarioId &&
                        n.EmpresaId == empresaId &&
@@ -98,7 +99,7 @@ public class NotificacionService : INotificacionService
             .CountAsync(n => n.UsuarioId == usuarioId &&
                             n.EmpresaId == empresaId &&
                             !n.Leida &&
-                            (n.FechaExpiracion == null || n.FechaExpiracion > DateTime.Now));
+                            (n.FechaExpiracion == null || n.FechaExpiracion > FechaCostaRicaHelper.Ahora));
     }
 
     /// <summary>
@@ -106,11 +107,11 @@ public class NotificacionService : INotificacionService
     /// </summary>
     public async Task EliminarExpiradasAsync()
     {
-        var fechaLimite = DateTime.Now.AddDays(-90); // Eliminar notificaciones de más de 90 días
+        var fechaLimite = FechaCostaRicaHelper.Ahora.AddDays(-90); // Eliminar notificaciones de más de 90 días
 
         await _context.Set<Notificacion>()
             .Where(n => n.Leida &&
-                       (n.FechaExpiracion != null && n.FechaExpiracion < DateTime.Now) ||
+                       (n.FechaExpiracion != null && n.FechaExpiracion < FechaCostaRicaHelper.Ahora) ||
                        n.FechaCreacion < fechaLimite)
             .ExecuteDeleteAsync();
     }
@@ -133,8 +134,8 @@ public class NotificacionService : INotificacionService
             TipoEntidad = "Documento",
             UrlAccion = $"/Documentos?id={documento.Id}",
             Importante = false,
-            FechaCreacion = DateTime.Now,
-            FechaExpiracion = DateTime.Now.AddDays(7)
+            FechaCreacion = FechaCostaRicaHelper.Ahora,
+            FechaExpiracion = FechaCostaRicaHelper.Ahora.AddDays(7)
         });
     }
 
@@ -156,7 +157,7 @@ public class NotificacionService : INotificacionService
             TipoEntidad = "Documento",
             UrlAccion = $"/Documentos?id={documento.Id}",
             Importante = true,
-            FechaCreacion = DateTime.Now
+            FechaCreacion = FechaCostaRicaHelper.Ahora
         });
     }
 
@@ -189,7 +190,7 @@ public class NotificacionService : INotificacionService
                 Color = diasParaVencer <= 7 ? "danger" : "warning",
                 UrlAccion = $"/Empresas?id={empresa.Id}&tab=certificado",
                 Importante = diasParaVencer <= 7,
-                FechaCreacion = DateTime.Now
+                FechaCreacion = FechaCostaRicaHelper.Ahora
             });
         }
     }
@@ -219,8 +220,8 @@ public class NotificacionService : INotificacionService
                 TipoEntidad = "Producto",
                 UrlAccion = $"/Inventario?productoId={producto.Id}",
                 Importante = stockActual <= 0,
-                FechaCreacion = DateTime.Now,
-                FechaExpiracion = DateTime.Now.AddDays(3)
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
+                FechaExpiracion = FechaCostaRicaHelper.Ahora.AddDays(3)
             });
         }
     }

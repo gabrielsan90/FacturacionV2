@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -187,9 +188,9 @@ public class InventariosController : ControllerBase
                     CantidadNueva = inventario.CantidadActual,
                     Referencia = "Inventario inicial",
                     Observaciones = "Registro inicial de inventario",
-                    Fecha = DateTime.UtcNow,
+                    Fecha = FechaCostaRicaHelper.Ahora,
                     SucursalOrigenId = inventario.SucursalId,
-                    FechaCreacion = DateTime.UtcNow,
+                    FechaCreacion = FechaCostaRicaHelper.Ahora,
                     UsuarioCreacionId = userId!
                 };
 

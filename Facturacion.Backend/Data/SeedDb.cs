@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Entities.Catalogos;
 using Facturacion.Shared.Enums;
@@ -115,7 +116,7 @@ public class SeedDb
                     Descripcion = descripcion,
                     EsSistema = esSistema,
                     Activo = true,
-                    FechaCreacion = DateTime.Now
+                    FechaCreacion = FechaCostaRicaHelper.Ahora
                 };
 
                 _context.Roles.Add(rol);
@@ -1965,7 +1966,7 @@ public class SeedDb
                 Nombre = nombre,
                 Descripcion = $"Categoría de {nombre.ToLower()}",
                 Activo = true,
-                FechaCreacion = DateTime.UtcNow
+                FechaCreacion = FechaCostaRicaHelper.Ahora
             }).ToList();
 
             _context.Categorias.AddRange(categorias);

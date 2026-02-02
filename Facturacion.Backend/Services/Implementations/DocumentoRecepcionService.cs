@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Backend.Services.Interfaces;
@@ -181,7 +182,7 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
                 XmlGenerado = xmlContent,
 
                 // Audit
-                FechaCreacion = DateTime.UtcNow,
+                FechaCreacion = FechaCostaRicaHelper.Ahora,
                 IsDeleted = false
             };
 
@@ -204,7 +205,7 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
                     Subtotal = detalleRecibido.Subtotal,
                     MontoImpuesto = detalleRecibido.MontoImpuesto,
                     MontoTotalLinea = detalleRecibido.MontoTotalLinea,
-                    FechaCreacion = DateTime.UtcNow
+                    FechaCreacion = FechaCostaRicaHelper.Ahora
                 };
 
                 documento.Detalles.Add(detalle);
@@ -329,7 +330,7 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
             Nombre = docRecibido.EmisorNombre,
             NombreComercial = docRecibido.EmisorNombreComercial,
             Activo = true,
-            FechaCreacion = DateTime.UtcNow,
+            FechaCreacion = FechaCostaRicaHelper.Ahora,
             IsDeleted = false
         };
 

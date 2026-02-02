@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -27,7 +28,7 @@ public class NotificacionRepository : INotificacionRepository
 
     public async Task<IEnumerable<Notificacion>> GetByUsuarioAsync(string usuarioId, Guid empresaId)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
 
         return await _context.Notificaciones
             .Include(n => n.Empresa)
@@ -42,7 +43,7 @@ public class NotificacionRepository : INotificacionRepository
 
     public async Task<IEnumerable<Notificacion>> GetNoLeidasByUsuarioAsync(string usuarioId, Guid empresaId)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
 
         return await _context.Notificaciones
             .Include(n => n.Empresa)
@@ -59,7 +60,7 @@ public class NotificacionRepository : INotificacionRepository
 
     public async Task<IEnumerable<Notificacion>> GetByTipoAsync(string usuarioId, Guid empresaId, TipoNotificacion tipo)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
 
         return await _context.Notificaciones
             .Include(n => n.Empresa)
@@ -75,7 +76,7 @@ public class NotificacionRepository : INotificacionRepository
 
     public async Task<int> GetCountNoLeidasAsync(string usuarioId, Guid empresaId)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
 
         return await _context.Notificaciones
             .Where(n => n.UsuarioId == usuarioId &&
@@ -87,7 +88,7 @@ public class NotificacionRepository : INotificacionRepository
 
     public async Task<ResumenNotificacionesDTO> GetResumenAsync(string usuarioId, Guid empresaId)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
         var hoy = DateTime.Today;
         var inicioSemana = hoy.AddDays(-(int)hoy.DayOfWeek);
 
@@ -125,7 +126,7 @@ public class NotificacionRepository : INotificacionRepository
     public async Task<Notificacion> AddAsync(Notificacion notificacion)
     {
         notificacion.Id = Guid.NewGuid();
-        notificacion.FechaCreacion = DateTime.UtcNow;
+        notificacion.FechaCreacion = FechaCostaRicaHelper.Ahora;
         notificacion.Leida = false;
 
         // Asignar icono y color por defecto según el tipo si no se especifica
@@ -147,7 +148,7 @@ public class NotificacionRepository : INotificacionRepository
         if (notificacion != null && !notificacion.Leida)
         {
             notificacion.Leida = true;
-            notificacion.FechaLeida = DateTime.UtcNow;
+            notificacion.FechaLeida = FechaCostaRicaHelper.Ahora;
             await _context.SaveChangesAsync();
         }
     }
@@ -160,7 +161,7 @@ public class NotificacionRepository : INotificacionRepository
                        !n.Leida)
             .ToListAsync();
 
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
         foreach (var notificacion in notificaciones)
         {
             notificacion.Leida = true;
@@ -182,7 +183,7 @@ public class NotificacionRepository : INotificacionRepository
 
     public async Task DeleteExpiradasAsync(Guid empresaId)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
         var expiradas = await _context.Notificaciones
             .Where(n => n.EmpresaId == empresaId &&
                        n.FechaExpiracion.HasValue &&
@@ -218,7 +219,7 @@ public class NotificacionRepository : INotificacionRepository
 
     private static NotificacionDTO ConvertirADTO(Notificacion notificacion)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
         var expirada = notificacion.FechaExpiracion.HasValue && notificacion.FechaExpiracion.Value <= ahora;
 
         return new NotificacionDTO
@@ -246,7 +247,7 @@ public class NotificacionRepository : INotificacionRepository
 
     private static string CalcularTiempoTranscurrido(DateTime fechaCreacion)
     {
-        var diferencia = DateTime.UtcNow - fechaCreacion;
+        var diferencia = FechaCostaRicaHelper.Ahora - fechaCreacion;
 
         if (diferencia.TotalMinutes < 1)
             return "Hace un momento";

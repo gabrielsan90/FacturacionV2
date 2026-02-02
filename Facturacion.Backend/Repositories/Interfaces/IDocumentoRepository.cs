@@ -8,6 +8,17 @@ public interface IDocumentoRepository
     Task<Documento?> GetAsync(Guid id);
     Task<Documento?> GetWithDetallesAsync(Guid id);
     Task<IEnumerable<Documento>> GetByEmpresaAsync(Guid empresaId);
+    Task<(IEnumerable<Documento> Data, int TotalCount)> GetByEmpresaPagedAsync(
+        Guid empresaId,
+        int skip,
+        int take,
+        Guid? sucursalId = null,
+        Guid? terminalId = null,
+        EstadoDocumento? estado = null,
+        DocumentoTipo? tipoDocumento = null,
+        DateTime? fechaInicio = null,
+        DateTime? fechaFin = null,
+        Ambiente? ambiente = null);
     Task<IEnumerable<Documento>> GetBySucursalAsync(Guid sucursalId);
     Task<IEnumerable<Documento>> GetByTerminalAsync(Guid terminalId);
     Task<IEnumerable<Documento>> GetByClienteAsync(Guid clienteId);

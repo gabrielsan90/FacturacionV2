@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -36,7 +37,7 @@ public class TipoCambioController : ControllerBase
     {
         try
         {
-            fecha ??= DateTime.Now;
+            fecha ??= FechaCostaRicaHelper.Ahora;
 
             var tipoCambio = await _tipoCambioService.ObtenerTipoCambioCompraAsync(fecha.Value);
 
@@ -71,7 +72,7 @@ public class TipoCambioController : ControllerBase
     {
         try
         {
-            fecha ??= DateTime.Now;
+            fecha ??= FechaCostaRicaHelper.Ahora;
 
             var tipoCambio = await _tipoCambioService.ObtenerTipoCambioVentaAsync(fecha.Value);
 
@@ -106,7 +107,7 @@ public class TipoCambioController : ControllerBase
     {
         try
         {
-            fecha ??= DateTime.Now;
+            fecha ??= FechaCostaRicaHelper.Ahora;
 
             var (compra, venta) = await _tipoCambioService.ObtenerTiposCambioAsync(fecha.Value);
 
@@ -147,7 +148,7 @@ public class TipoCambioController : ControllerBase
                 return BadRequest("El código de moneda es obligatorio");
             }
 
-            fecha ??= DateTime.Now;
+            fecha ??= FechaCostaRicaHelper.Ahora;
 
             var tipoCambio = await _tipoCambioService.ObtenerTipoCambioMonedaAsync(codigoMoneda, fecha.Value);
 

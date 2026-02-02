@@ -124,6 +124,10 @@ public class Empresa
     [MaxLength(200, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? ProveedorSistemasNombre { get; set; }
 
+    // ========================================
+    // CONFIGURACIÓN SMTP / CORREO
+    // ========================================
+
     [Display(Name = "Servidor SMTP")]
     [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? ServidorSMTP { get; set; }
@@ -138,6 +142,23 @@ public class Empresa
     [Display(Name = "Clave SMTP")]
     [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? ClaveSMTP { get; set; }
+
+    [Display(Name = "Habilitar SSL")]
+    public bool SmtpEnableSsl { get; set; } = true;
+
+    [Display(Name = "Nombre Remitente")]
+    [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? SmtpDisplayName { get; set; }
+
+    [Display(Name = "Copia Facturas Email")]
+    [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? SmtpCopiaEmail { get; set; }
+
+    [Display(Name = "Enviar PDF Adjunto")]
+    public bool SmtpEnviarPDF { get; set; } = true;
+
+    [Display(Name = "Enviar XML Adjunto")]
+    public bool SmtpEnviarXML { get; set; } = true;
 
     [Display(Name = "Activa")]
     public bool Activa { get; set; }

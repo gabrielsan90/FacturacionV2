@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Enums;
@@ -72,7 +73,7 @@ public class ReciboPagoRepository : IReciboPagoRepository
 
     public async Task<ReciboPago> AddAsync(ReciboPago recibo)
     {
-        recibo.FechaCreacion = DateTime.Now;
+        recibo.FechaCreacion = FechaCostaRicaHelper.Ahora;
         await _context.RecibosPago.AddAsync(recibo);
         await _context.SaveChangesAsync();
         return recibo;
@@ -80,7 +81,7 @@ public class ReciboPagoRepository : IReciboPagoRepository
 
     public async Task<ReciboPago> UpdateAsync(ReciboPago recibo)
     {
-        recibo.FechaModificacion = DateTime.Now;
+        recibo.FechaModificacion = FechaCostaRicaHelper.Ahora;
         _context.RecibosPago.Update(recibo);
         await _context.SaveChangesAsync();
         return recibo;
@@ -93,7 +94,7 @@ public class ReciboPagoRepository : IReciboPagoRepository
             return false;
 
         recibo.IsDeleted = true;
-        recibo.FechaEliminacion = DateTime.Now;
+        recibo.FechaEliminacion = FechaCostaRicaHelper.Ahora;
         recibo.UsuarioEliminacionId = userId;
 
         await UpdateAsync(recibo);

@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -152,7 +153,7 @@ public class EmpresaRepository : GenericRepository<Empresa>, IEmpresaRepository
     {
         try
         {
-            empresa.FechaCreacion = DateTime.UtcNow;
+            empresa.FechaCreacion = FechaCostaRicaHelper.Ahora;
             empresa.Activa = true;
             empresa.IsDeleted = false;
 
@@ -170,7 +171,7 @@ public class EmpresaRepository : GenericRepository<Empresa>, IEmpresaRepository
             return new ActionResponse<Empresa>
             {
                 WasSuccess = false,
-                Message = "Ya existe una empresa con ese número de identificación."
+                Message = "Ya existe una empresa con ese número de identificación para el mismo ambiente."
             };
         }
         catch (Exception exception)
@@ -196,7 +197,7 @@ public class EmpresaRepository : GenericRepository<Empresa>, IEmpresaRepository
                 _context.Entry(local).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
             }
 
-            empresa.FechaModificacion = DateTime.UtcNow;
+            empresa.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
             _context.Update(empresa);
             await _context.SaveChangesAsync();
@@ -212,7 +213,7 @@ public class EmpresaRepository : GenericRepository<Empresa>, IEmpresaRepository
             return new ActionResponse<Empresa>
             {
                 WasSuccess = false,
-                Message = "Ya existe una empresa con ese número de identificación."
+                Message = "Ya existe una empresa con ese número de identificación para el mismo ambiente."
             };
         }
         catch (Exception exception)
@@ -241,7 +242,7 @@ public class EmpresaRepository : GenericRepository<Empresa>, IEmpresaRepository
 
             // Soft delete
             empresa.IsDeleted = true;
-            empresa.FechaEliminacion = DateTime.UtcNow;
+            empresa.FechaEliminacion = FechaCostaRicaHelper.Ahora;
 
             _context.Update(empresa);
             await _context.SaveChangesAsync();

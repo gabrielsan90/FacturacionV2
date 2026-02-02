@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -56,7 +57,7 @@ public class HaciendaTokenService : IHaciendaTokenService
                 .OrderByDescending(t => t.FechaCreacion)
                 .FirstOrDefaultAsync();
 
-            var ahora = DateTime.Now;
+            var ahora = FechaCostaRicaHelper.Ahora;
             var margenSeguridad = TimeSpan.FromSeconds(MargenSeguridadSegundos);
 
             // CASO 1: No hay token -> Obtener nuevo token
@@ -178,7 +179,7 @@ public class HaciendaTokenService : IHaciendaTokenService
                 throw new InvalidOperationException("No existe un token para refrescar. Obtenga un nuevo token.");
             }
 
-            if (DateTime.Now >= tokenExistente.FechaExpiracionRefreshToken)
+            if (FechaCostaRicaHelper.Ahora >= tokenExistente.FechaExpiracionRefreshToken)
             {
                 throw new InvalidOperationException("El refresh token ha expirado. Obtenga un nuevo token.");
             }
@@ -303,7 +304,7 @@ public class HaciendaTokenService : IHaciendaTokenService
     {
         try
         {
-            var ahora = DateTime.Now;
+            var ahora = FechaCostaRicaHelper.Ahora;
 
             var haciendaToken = new HaciendaToken
             {

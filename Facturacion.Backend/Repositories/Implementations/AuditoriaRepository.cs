@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -111,7 +112,7 @@ public class AuditoriaRepository : IAuditoriaRepository
             auditoria.Id = Guid.NewGuid();
 
         if (auditoria.Fecha == default)
-            auditoria.Fecha = DateTime.Now;
+            auditoria.Fecha = FechaCostaRicaHelper.Ahora;
 
         _context.Auditorias.Add(auditoria);
         await _context.SaveChangesAsync();
@@ -124,7 +125,7 @@ public class AuditoriaRepository : IAuditoriaRepository
     /// </summary>
     public async Task EliminarAntiguosAsync(int diasRetener = 365)
     {
-        var fechaLimite = DateTime.Now.AddDays(-diasRetener);
+        var fechaLimite = FechaCostaRicaHelper.Ahora.AddDays(-diasRetener);
 
         await _context.Auditorias
             .Where(a => a.Fecha < fechaLimite)

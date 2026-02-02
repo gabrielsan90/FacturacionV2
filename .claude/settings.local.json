@@ -25,7 +25,13 @@
       "Skill(dotnet-frontend)",
       "Bash(grep:*)",
       "Bash(dotnet clean:*)",
-      "Bash(dotnet publish:*)"
+      "Bash(dotnet publish:*)",
+      "Bash(DOTNET_ROLL_FORWARD=Major dotnet ef database update:*)",
+      "Bash(DOTNET_ROLL_FORWARD=Major dotnet ef migrations:*)",
+      "Bash(pip3 install:*)",
+      "Bash(powershell.exe -Command \"Invoke-Sqlcmd -ServerInstance ''www.smarttechcr.com'' -Database ''ATFE'' -Username ''sanchez'' -Password ''Granados1990*'' -Query ''SELECT TOP 5 MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId DESC''\")",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"Invoke-Sqlcmd -ServerInstance ''www.smarttechcr.com'' -Database ''ATFE'' -Username ''sanchez'' -Password ''Granados1990*'' -Query ''SELECT TOP 5 MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId DESC'' -TrustServerCertificate\")",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"Invoke-Sqlcmd -ServerInstance ''www.smarttechcr.com'' -Database ''ATFE'' -Username ''sanchez'' -Password ''Granados1990*'' -Query ''SELECT TOP 5 MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId DESC''\")"
     ],
     "deny": [],
     "ask": []

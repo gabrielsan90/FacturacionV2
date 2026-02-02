@@ -578,7 +578,9 @@
                     },
                     success: function(data) {
                         $('#Producto_Id').val(data.id);
-                        $('#Producto_Tipo').val(data.tipo);
+                        // El enum TipoProducto puede venir como número (0/1) o string ("Producto"/"Servicio")
+                        const tipoVal = (data.tipo === 'Servicio' || data.tipo === 1) ? '1' : '0';
+                        $('#Producto_Tipo').val(tipoVal);
                         $('#Producto_Codigo').val(data.codigo);
                         $('#Producto_Nombre').val(data.nombre);
                         $('#Producto_Descripcion').val(data.descripcion || '');

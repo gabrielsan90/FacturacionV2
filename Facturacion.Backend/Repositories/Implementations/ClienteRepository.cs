@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -43,7 +44,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<Cliente> AddAsync(Cliente cliente)
     {
-        cliente.FechaCreacion = DateTime.UtcNow;
+        cliente.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Clientes.Add(cliente);
         await _context.SaveChangesAsync();
         return cliente;
@@ -51,7 +52,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task UpdateAsync(Cliente cliente)
     {
-        cliente.FechaModificacion = DateTime.UtcNow;
+        cliente.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
         // Obtener el cliente existente con sus emails
         var clienteExistente = await _context.Clientes
@@ -113,7 +114,7 @@ public class ClienteRepository : IClienteRepository
         if (cliente != null)
         {
             cliente.IsDeleted = true;
-            cliente.FechaEliminacion = DateTime.UtcNow;
+            cliente.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             cliente.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }

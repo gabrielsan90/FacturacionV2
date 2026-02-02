@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Implementations;
 using Facturacion.Backend.Repositories.Interfaces;
@@ -282,7 +283,7 @@ public class NotificacionUnitOfWork : INotificacionUnitOfWork
     // Método auxiliar
     private static NotificacionDTO ConvertirADTO(Notificacion notificacion)
     {
-        var ahora = DateTime.UtcNow;
+        var ahora = FechaCostaRicaHelper.Ahora;
         var expirada = notificacion.FechaExpiracion.HasValue && notificacion.FechaExpiracion.Value <= ahora;
 
         return new NotificacionDTO
@@ -310,7 +311,7 @@ public class NotificacionUnitOfWork : INotificacionUnitOfWork
 
     private static string CalcularTiempoTranscurrido(DateTime fechaCreacion)
     {
-        var diferencia = DateTime.UtcNow - fechaCreacion;
+        var diferencia = FechaCostaRicaHelper.Ahora - fechaCreacion;
 
         if (diferencia.TotalMinutes < 1)
             return "Hace un momento";

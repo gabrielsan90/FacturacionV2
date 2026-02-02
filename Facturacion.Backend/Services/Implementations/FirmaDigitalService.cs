@@ -1,3 +1,7 @@
+// Extern alias for BouncyCastle.Cryptography (to avoid conflict with FirmaXadesNet's BouncyCastle)
+extern alias BCCrypto;
+
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Entities;
@@ -8,6 +12,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Xml;
+// BouncyCastle.Cryptography types via extern alias
+using BC = BCCrypto::Org.BouncyCastle;
 
 namespace Facturacion.Backend.Services.Implementations;
 
@@ -21,6 +27,9 @@ public class FirmaDigitalService : IFirmaDigitalService
     private readonly DataContext _context;
     private readonly ILogger<FirmaDigitalService> _logger;
     private readonly IConfiguration _configuration;
+
+    // Cache para la clave privada de BouncyCastle cuando no se puede acceder al key store de Windows
+    private BC.Crypto.AsymmetricKeyParameter? _bouncyCastlePrivateKey;
 
     // PolicyId y PolicyDigest para Hacienda Costa Rica v4.4
     private const string PolicyId = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/Resoluci%C3%B3n_General_sobre_disposiciones_t%C3%A9cnicas_comprobantes_electr%C3%B3nicos_para_efectos_tributarios.pdf";
@@ -94,31 +103,41 @@ public class FirmaDigitalService : IFirmaDigitalService
         var canonicalSignedInfo = CanonicalizarXmlString(signedInfoXml);
 
         // 10. Sign the canonical SignedInfo
-        _logger.LogInformation("Obteniendo clave privada RSA del certificado...");
-        var rsaPrivateKey = certificate.GetRSAPrivateKey();
-
-        if (rsaPrivateKey == null)
-        {
-            _logger.LogError("El certificado no tiene clave privada RSA. HasPrivateKey: {HasKey}", certificate.HasPrivateKey);
-            throw new InvalidOperationException("Error al firmar: el certificado no tiene clave privada RSA");
-        }
-
-        _logger.LogInformation("Clave privada obtenida. KeySize: {KeySize}. Firmando datos...", rsaPrivateKey.KeySize);
-
         byte[] signatureValue;
+
+        // Intentar primero con .NET estándar
         try
         {
-            signatureValue = rsaPrivateKey.SignData(
-                Encoding.UTF8.GetBytes(canonicalSignedInfo),
-                HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1);
-            _logger.LogInformation("Datos firmados exitosamente. Signature length: {Length}", signatureValue.Length);
+            _logger.LogInformation("Intentando firma con .NET estándar...");
+            var rsaPrivateKey = certificate.GetRSAPrivateKey();
+
+            if (rsaPrivateKey != null)
+            {
+                _logger.LogInformation("Clave privada .NET obtenida. KeySize: {KeySize}. Firmando datos...", rsaPrivateKey.KeySize);
+                signatureValue = rsaPrivateKey.SignData(
+                    Encoding.UTF8.GetBytes(canonicalSignedInfo),
+                    HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1);
+                _logger.LogInformation("Datos firmados exitosamente con .NET. Signature length: {Length}", signatureValue.Length);
+            }
+            else
+            {
+                throw new CryptographicException("GetRSAPrivateKey retornó null");
+            }
         }
-        catch (Exception signEx)
+        catch (Exception netEx)
         {
-            _logger.LogError(signEx, "Error durante SignData. Tipo: {Type}, Mensaje: {Message}",
-                signEx.GetType().Name, signEx.Message);
-            throw;
+            _logger.LogWarning(netEx, "Firma .NET falló: {Message}. Intentando con BouncyCastle...", netEx.Message);
+
+            // Fallback a BouncyCastle
+            if (_bouncyCastlePrivateKey == null)
+            {
+                _logger.LogError("No hay clave privada de BouncyCastle disponible");
+                throw new InvalidOperationException($"Error al firmar: no se pudo acceder a la clave privada. Error .NET: {netEx.Message}", netEx);
+            }
+
+            signatureValue = FirmarConBouncyCastle(Encoding.UTF8.GetBytes(canonicalSignedInfo));
+            _logger.LogInformation("Datos firmados exitosamente con BouncyCastle. Signature length: {Length}", signatureValue.Length);
         }
 
         var signatureValueBase64 = Convert.ToBase64String(signatureValue);
@@ -229,6 +248,17 @@ public class FirmaDigitalService : IFirmaDigitalService
         _logger.LogInformation("Cargando certificado para empresa {EmpresaId}. Tamaño: {Size} bytes, PIN length: {PinLen}",
             empresaId, certBytes.Length, password.Length);
 
+        // SIEMPRE cargar la clave privada con BouncyCastle como respaldo
+        // Esto funciona en hosting compartido donde el key store de Windows no está disponible
+        try
+        {
+            CargarClavePrivadaConBouncyCastle(certBytes, password);
+        }
+        catch (Exception bcEx)
+        {
+            _logger.LogError(bcEx, "No se pudo cargar clave privada con BouncyCastle");
+        }
+
         // Intentar cargar desde archivo en carpeta Certificates (más compatible con IIS)
         var certFromFile = await TryLoadCertificateFromFileAsync(empresaId, empresa.NumeroIdentificacion, certBytes, password);
         if (certFromFile != null)
@@ -278,6 +308,8 @@ public class FirmaDigitalService : IFirmaDigitalService
                 X509KeyStorageFlags.Exportable,
             };
 
+            X509Certificate2? certSinAccesoAClave = null;
+
             foreach (var flags in flagsToTry)
             {
                 try
@@ -290,12 +322,28 @@ public class FirmaDigitalService : IFirmaDigitalService
 
                     if (cert.HasPrivateKey)
                     {
-                        using var rsaKey = cert.GetRSAPrivateKey();
-                        if (rsaKey != null)
+                        try
                         {
-                            _logger.LogInformation("Certificado cargado exitosamente desde archivo con flags {Flags}. Subject: {Subject}, KeySize: {KeySize}",
-                                flags, cert.Subject, rsaKey.KeySize);
-                            return cert;
+                            using var rsaKey = cert.GetRSAPrivateKey();
+                            if (rsaKey != null)
+                            {
+                                _logger.LogInformation("Certificado cargado exitosamente desde archivo con flags {Flags}. Subject: {Subject}, KeySize: {KeySize}",
+                                    flags, cert.Subject, rsaKey.KeySize);
+                                return cert;
+                            }
+                        }
+                        catch (CryptographicException)
+                        {
+                            // Guardar certificado - si BouncyCastle está disponible, aún podemos usarlo
+                            if (certSinAccesoAClave == null)
+                            {
+                                certSinAccesoAClave = cert;
+                            }
+                            else
+                            {
+                                cert.Dispose();
+                            }
+                            continue;
                         }
                     }
                     cert.Dispose();
@@ -306,6 +354,15 @@ public class FirmaDigitalService : IFirmaDigitalService
                 }
             }
 
+            // Si tenemos certificado sin acceso .NET a clave pero BouncyCastle está listo, usarlo
+            if (certSinAccesoAClave != null && _bouncyCastlePrivateKey != null)
+            {
+                _logger.LogWarning("Usando certificado desde archivo sin acceso .NET a clave. Firma se hará con BouncyCastle. Subject: {Subject}",
+                    certSinAccesoAClave.Subject);
+                return certSinAccesoAClave;
+            }
+
+            certSinAccesoAClave?.Dispose();
             _logger.LogWarning("No se pudo cargar certificado desde archivo con ninguna combinación de flags");
             return null;
         }
@@ -319,6 +376,8 @@ public class FirmaDigitalService : IFirmaDigitalService
 
     /// <summary>
     /// Carga el certificado desde bytes intentando múltiples combinaciones de flags.
+    /// Si no puede acceder a la clave privada vía .NET pero BouncyCastle está disponible,
+    /// retorna el certificado de todas formas (la firma se hará con BouncyCastle).
     /// </summary>
     private X509Certificate2 LoadCertificateFromBytes(Guid empresaId, byte[] certBytes, string password)
     {
@@ -331,6 +390,7 @@ public class FirmaDigitalService : IFirmaDigitalService
         };
 
         Exception? lastException = null;
+        X509Certificate2? certificadoSinAccesoAClave = null;
 
         foreach (var flags in flagsToTry)
         {
@@ -356,9 +416,19 @@ public class FirmaDigitalService : IFirmaDigitalService
                     }
                     catch (CryptographicException keyEx)
                     {
-                        _logger.LogWarning("Certificado cargado pero sin acceso a clave privada con flags {Flags}: {Message}",
+                        _logger.LogWarning("Certificado cargado pero sin acceso .NET a clave privada con flags {Flags}: {Message}",
                             flags, keyEx.Message);
-                        certificado.Dispose();
+
+                        // Guardar este certificado - si BouncyCastle está cargado, lo podemos usar
+                        if (certificadoSinAccesoAClave == null)
+                        {
+                            certificadoSinAccesoAClave = certificado;
+                        }
+                        else
+                        {
+                            certificado.Dispose();
+                        }
+
                         lastException = keyEx;
                         continue;
                     }
@@ -372,6 +442,18 @@ public class FirmaDigitalService : IFirmaDigitalService
                 lastException = ex;
             }
         }
+
+        // Si tenemos un certificado cargado (aunque sin acceso .NET a la clave) y BouncyCastle está listo,
+        // retornar el certificado - la firma se hará con BouncyCastle
+        if (certificadoSinAccesoAClave != null && _bouncyCastlePrivateKey != null)
+        {
+            _logger.LogWarning("Usando certificado sin acceso .NET a clave privada. La firma se hará con BouncyCastle. Subject: {Subject}",
+                certificadoSinAccesoAClave.Subject);
+            return certificadoSinAccesoAClave;
+        }
+
+        // Limpiar si no vamos a usar
+        certificadoSinAccesoAClave?.Dispose();
 
         _logger.LogError(lastException, "No se pudo cargar el certificado para empresa {EmpresaId}", empresaId);
         throw new InvalidOperationException(
@@ -392,7 +474,7 @@ public class FirmaDigitalService : IFirmaDigitalService
             return false;
         }
 
-        var ahora = DateTime.Now;
+        var ahora = FechaCostaRicaHelper.Ahora;
 
         if (ahora < certificado.NotBefore)
         {
@@ -449,5 +531,76 @@ public class FirmaDigitalService : IFirmaDigitalService
             _logger.LogError(ex, "Error al verificar la firma del XML");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Carga la clave privada RSA usando BouncyCastle (no depende del key store de Windows).
+    /// Esta es una alternativa pura en software para hosting compartido.
+    /// </summary>
+    private void CargarClavePrivadaConBouncyCastle(byte[] certBytes, string password)
+    {
+        try
+        {
+            _logger.LogInformation("Cargando clave privada con BouncyCastle...");
+
+            using var stream = new MemoryStream(certBytes);
+            var store = new BC.Pkcs.Pkcs12StoreBuilder().Build();
+            store.Load(stream, password.ToCharArray());
+
+            // Buscar el alias que contiene la clave privada
+            string? keyAlias = null;
+            foreach (string alias in store.Aliases)
+            {
+                if (store.IsKeyEntry(alias))
+                {
+                    keyAlias = alias;
+                    _logger.LogInformation("Encontrado alias con clave privada: {Alias}", alias);
+                    break;
+                }
+            }
+
+            if (keyAlias == null)
+            {
+                _logger.LogError("No se encontró clave privada en el certificado PKCS12");
+                throw new InvalidOperationException("El certificado PKCS12 no contiene clave privada");
+            }
+
+            var keyEntry = store.GetKey(keyAlias);
+            if (keyEntry?.Key is BC.Crypto.Parameters.RsaPrivateCrtKeyParameters rsaKey)
+            {
+                _bouncyCastlePrivateKey = rsaKey;
+                _logger.LogInformation("Clave privada RSA cargada con BouncyCastle. Modulus bits: {Bits}",
+                    rsaKey.Modulus.BitLength);
+            }
+            else
+            {
+                _logger.LogError("La clave privada no es RSA o no se pudo obtener");
+                throw new InvalidOperationException("La clave privada no es de tipo RSA");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al cargar clave privada con BouncyCastle: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Firma datos usando BouncyCastle RSA con SHA256 y PKCS1.
+    /// </summary>
+    private byte[] FirmarConBouncyCastle(byte[] datosAFirmar)
+    {
+        if (_bouncyCastlePrivateKey == null)
+        {
+            throw new InvalidOperationException("No hay clave privada de BouncyCastle cargada");
+        }
+
+        _logger.LogInformation("Firmando con BouncyCastle RSA-SHA256...");
+
+        var signer = BC.Security.SignerUtilities.GetSigner("SHA256withRSA");
+        signer.Init(true, _bouncyCastlePrivateKey);
+        signer.BlockUpdate(datosAFirmar, 0, datosAFirmar.Length);
+
+        return signer.GenerateSignature();
     }
 }

@@ -179,12 +179,21 @@ public class FacturacionModel : PageModel
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync($"/api/Documentos?empresaId={empresaId}");
+            // Obtener todos los documentos sin paginación para el modal de referencia
+            var response = await client.GetAsync($"/api/Documentos?empresaId={empresaId}&take=500");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                return new JsonResult(data ?? new List<object>());
+                // El backend devuelve { data: [...], recordsTotal, recordsFiltered }
+                var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+
+                if (jsonResponse.TryGetProperty("data", out var dataElement))
+                {
+                    return new JsonResult(dataElement);
+                }
+
+                // Fallback si no tiene propiedad data
+                return new JsonResult(jsonResponse);
             }
 
             _logger.LogWarning("Failed to load documentos. Status code: {StatusCode}", response.StatusCode);
@@ -194,6 +203,38 @@ public class FacturacionModel : PageModel
         {
             _logger.LogError(ex, "Error loading documentos");
             return new JsonResult(new List<object>());
+        }
+    }
+
+    // Handler to get documento completo con detalles (para NC/ND)
+    public async Task<IActionResult> OnGetDocumentoCompletoAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // Obtener documento con todos los detalles
+            var response = await client.GetAsync($"/api/Documentos/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+                return new JsonResult(jsonResponse);
+            }
+
+            _logger.LogWarning("Failed to load documento completo. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new { error = "No se pudo cargar el documento" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading documento completo");
+            return new JsonResult(new { error = ex.Message });
         }
     }
 

@@ -895,7 +895,7 @@ public class XmlGeneradorService : IXmlGeneradorService
                             new XElement(ns + "TipoDocumento", imp.TipoDocumentoExoneracion),
                             new XElement(ns + "NumeroDocumento", imp.NumeroDocumentoExoneracion ?? ""),
                             new XElement(ns + "NombreInstitucion", imp.InstitucionExoneracion ?? ""),
-                            new XElement(ns + "FechaEmision", imp.FechaEmisionExoneracion?.ToString("yyyy-MM-ddTHH:mm:ss") ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")),
+                            new XElement(ns + "FechaEmision", imp.FechaEmisionExoneracion?.ToString("yyyy-MM-ddTHH:mm:ss") ?? FechaCostaRicaHelper.Ahora.ToString("yyyy-MM-ddTHH:mm:ss")),
                             new XElement(ns + "PorcentajeExoneracion", FormatearDecimal(imp.PorcentajeExoneracion ?? 0, 2)),
                             new XElement(ns + "MontoExoneracion", FormatearDecimal(imp.MontoExoneracion ?? 0, 5))
                         );
@@ -987,16 +987,22 @@ public class XmlGeneradorService : IXmlGeneradorService
         resumen.Add(new XElement(ns + "TotalServGravados", FormatearDecimal(doc.TotalServiciosGravados, 5)));
         resumen.Add(new XElement(ns + "TotalServExentos", FormatearDecimal(doc.TotalServiciosExentos, 5)));
         resumen.Add(new XElement(ns + "TotalServExonerado", FormatearDecimal(doc.TotalServiciosExonerados, 5)));
+        if (doc.TotalServiciosNoSujetos > 0)
+            resumen.Add(new XElement(ns + "TotalServNoSujeto", FormatearDecimal(doc.TotalServiciosNoSujetos, 5)));
 
-        // 5-7. Totales de Mercancias
+        // 5-8. Totales de Mercancias
         resumen.Add(new XElement(ns + "TotalMercanciasGravadas", FormatearDecimal(doc.TotalMercanciasGravadas, 5)));
         resumen.Add(new XElement(ns + "TotalMercanciasExentas", FormatearDecimal(doc.TotalMercanciasExentas, 5)));
         resumen.Add(new XElement(ns + "TotalMercExonerada", FormatearDecimal(doc.TotalMercanciasExoneradas, 5)));
+        if (doc.TotalMercanciasNoSujetas > 0)
+            resumen.Add(new XElement(ns + "TotalMercNoSujeta", FormatearDecimal(doc.TotalMercanciasNoSujetas, 5)));
 
-        // 8-10. Totales Consolidados
+        // 9-12. Totales Consolidados
         resumen.Add(new XElement(ns + "TotalGravado", FormatearDecimal(doc.TotalGravado, 5)));
         resumen.Add(new XElement(ns + "TotalExento", FormatearDecimal(doc.TotalExento, 5)));
         resumen.Add(new XElement(ns + "TotalExonerado", FormatearDecimal(doc.TotalExonerado, 5)));
+        if (doc.TotalNoSujeto > 0)
+            resumen.Add(new XElement(ns + "TotalNoSujeto", FormatearDecimal(doc.TotalNoSujeto, 5)));
 
         // 11-13. Totales de Venta
         // v4.4: TotalVenta = TotalGravado + TotalExento + TotalExonerado (usando MontoTotal, ANTES de descuentos)

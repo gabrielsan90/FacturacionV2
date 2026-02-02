@@ -1,3 +1,4 @@
+using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Shared.Entities;
@@ -57,7 +58,7 @@ public class ProductoRepository : IProductoRepository
 
     public async Task<Producto> AddAsync(Producto producto)
     {
-        producto.FechaCreacion = DateTime.UtcNow;
+        producto.FechaCreacion = FechaCostaRicaHelper.Ahora;
         _context.Productos.Add(producto);
         await _context.SaveChangesAsync();
         return producto;
@@ -65,7 +66,7 @@ public class ProductoRepository : IProductoRepository
 
     public async Task UpdateAsync(Producto producto)
     {
-        producto.FechaModificacion = DateTime.UtcNow;
+        producto.FechaModificacion = FechaCostaRicaHelper.Ahora;
 
         // Detach any existing tracked entity with the same key to avoid conflicts
         var existingEntry = _context.ChangeTracker.Entries<Producto>()
@@ -85,7 +86,7 @@ public class ProductoRepository : IProductoRepository
         if (producto != null)
         {
             producto.IsDeleted = true;
-            producto.FechaEliminacion = DateTime.UtcNow;
+            producto.FechaEliminacion = FechaCostaRicaHelper.Ahora;
             producto.UsuarioEliminacionId = userId;
             await _context.SaveChangesAsync();
         }
