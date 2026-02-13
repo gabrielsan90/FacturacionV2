@@ -1,5 +1,6 @@
 using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
+using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
@@ -18,11 +19,19 @@ public class InventariosController : ControllerBase
 {
     private readonly IInventarioUnitOfWork _unitOfWork;
     private readonly DataContext _context;
+    private readonly ILogger<InventariosController> _logger;
+    private readonly IExcelImportService _excelImportService;
 
-    public InventariosController(IInventarioUnitOfWork unitOfWork, DataContext context)
+    public InventariosController(
+        IInventarioUnitOfWork unitOfWork,
+        DataContext context,
+        ILogger<InventariosController> logger,
+        IExcelImportService excelImportService)
     {
         _unitOfWork = unitOfWork;
         _context = context;
+        _logger = logger;
+        _excelImportService = excelImportService;
     }
 
     /// <summary>
@@ -33,17 +42,24 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("GetByEmpresaAsync called for EmpresaId: {EmpresaId}", empresaId);
+
             // Verificar que el usuario tiene acceso a esta empresa
             if (!await TieneAccesoEmpresaAsync(empresaId))
             {
+                _logger.LogWarning("Access denied to EmpresaId: {EmpresaId} for user: {UserId}",
+                    empresaId, User.FindFirstValue(ClaimTypes.NameIdentifier));
                 return Forbid();
             }
 
             var inventarios = await _unitOfWork.InventarioRepository.GetByEmpresaAsync(empresaId);
+            _logger.LogInformation("Retrieved {Count} inventory records for EmpresaId: {EmpresaId}",
+                inventarios?.Count() ?? 0, empresaId);
             return Ok(inventarios);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error retrieving inventories for EmpresaId: {EmpresaId}", empresaId);
             return StatusCode(500, $"Error al obtener inventarios: {ex.Message}");
         }
     }
@@ -56,10 +72,13 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("GetAsync called for InventarioId: {InventarioId}", id);
+
             var inventario = await _unitOfWork.InventarioRepository.GetAsync(id);
 
             if (inventario == null)
             {
+                _logger.LogWarning("Inventory not found: {InventarioId}", id);
                 return NotFound("Registro de inventario no encontrado.");
             }
 
@@ -68,14 +87,19 @@ public class InventariosController : ControllerBase
             {
                 if (!await TieneAccesoEmpresaAsync(inventario.Sucursal.EmpresaId))
                 {
+                    _logger.LogWarning("Access denied to Inventario: {InventarioId} for user: {UserId}",
+                        id, User.FindFirstValue(ClaimTypes.NameIdentifier));
                     return Forbid();
                 }
             }
 
+            _logger.LogInformation("Retrieved inventory: {InventarioId} for Producto: {ProductoId}",
+                id, inventario.ProductoId);
             return Ok(inventario);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error retrieving inventory: {InventarioId}", id);
             return StatusCode(500, $"Error al obtener inventario: {ex.Message}");
         }
     }
@@ -88,17 +112,24 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("GetBajoStockAsync called for EmpresaId: {EmpresaId}", empresaId);
+
             // Verificar que el usuario tiene acceso a esta empresa
             if (!await TieneAccesoEmpresaAsync(empresaId))
             {
+                _logger.LogWarning("Access denied to EmpresaId: {EmpresaId} for user: {UserId}",
+                    empresaId, User.FindFirstValue(ClaimTypes.NameIdentifier));
                 return Forbid();
             }
 
             var inventarios = await _unitOfWork.InventarioRepository.GetBajoStockAsync(empresaId);
+            _logger.LogInformation("Retrieved {Count} low stock items for EmpresaId: {EmpresaId}",
+                inventarios?.Count() ?? 0, empresaId);
             return Ok(inventarios);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error retrieving low stock inventories for EmpresaId: {EmpresaId}", empresaId);
             return StatusCode(500, $"Error al obtener inventarios bajo stock: {ex.Message}");
         }
     }
@@ -111,8 +142,12 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("PostAsync called to create inventory for Producto: {ProductoId}, Sucursal: {SucursalId}",
+                inventario.ProductoId, inventario.SucursalId);
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state for inventory creation");
                 return BadRequest(ModelState);
             }
 
@@ -123,18 +158,22 @@ public class InventariosController : ControllerBase
 
             if (producto == null)
             {
+                _logger.LogWarning("Product not found: {ProductoId}", inventario.ProductoId);
                 return BadRequest("El producto especificado no existe.");
             }
 
             // Verificar que el producto tiene control de inventario activado
             if (!producto.ControlarInventario)
             {
+                _logger.LogWarning("Product {ProductoId} does not have inventory control enabled", inventario.ProductoId);
                 return BadRequest("El producto no tiene control de inventario activado.");
             }
 
             // Verificar que el usuario tiene acceso a la empresa del producto
             if (!await TieneAccesoEmpresaAsync(producto.EmpresaId))
             {
+                _logger.LogWarning("Access denied to create inventory for Producto: {ProductoId}, user: {UserId}",
+                    inventario.ProductoId, User.FindFirstValue(ClaimTypes.NameIdentifier));
                 return Forbid();
             }
 
@@ -174,6 +213,8 @@ public class InventariosController : ControllerBase
             inventario.CantidadReservada = inventario.CantidadReservada ?? 0;
 
             var nuevoInventario = await _unitOfWork.InventarioRepository.AddAsync(inventario);
+            _logger.LogInformation("Created inventory: {InventarioId} for Producto: {ProductoId}, initial quantity: {Cantidad}",
+                nuevoInventario.Id, inventario.ProductoId, inventario.CantidadActual);
 
             // Si hay cantidad inicial, crear un movimiento de inventario
             if (inventario.CantidadActual > 0)
@@ -195,12 +236,16 @@ public class InventariosController : ControllerBase
                 };
 
                 await _unitOfWork.MovimientoInventarioRepository.AddAsync(movimiento);
+                _logger.LogInformation("Created initial movement for Inventario: {InventarioId}, cantidad: {Cantidad}",
+                    nuevoInventario.Id, inventario.CantidadActual);
             }
 
             return Ok(nuevoInventario);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating inventory for Producto: {ProductoId}, Sucursal: {SucursalId}",
+                inventario.ProductoId, inventario.SucursalId);
             return StatusCode(500, $"Error al crear inventario: {ex.Message}");
         }
     }
@@ -213,14 +258,19 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("PostAjusteAsync called for InventarioId: {InventarioId}, adjustment: {Cantidad}",
+                id, ajuste.Cantidad);
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state for inventory adjustment");
                 return BadRequest(ModelState);
             }
 
             // Validar que la cantidad no sea cero
             if (ajuste.Cantidad == 0)
             {
+                _logger.LogWarning("Invalid adjustment quantity (zero) for Inventario: {InventarioId}", id);
                 return BadRequest("La cantidad del ajuste no puede ser cero.");
             }
 
@@ -228,6 +278,7 @@ public class InventariosController : ControllerBase
             var inventario = await _unitOfWork.InventarioRepository.GetAsync(id);
             if (inventario == null)
             {
+                _logger.LogWarning("Inventory not found for adjustment: {InventarioId}", id);
                 return NotFound("Registro de inventario no encontrado.");
             }
 
@@ -236,6 +287,8 @@ public class InventariosController : ControllerBase
             {
                 if (!await TieneAccesoEmpresaAsync(inventario.Sucursal.EmpresaId))
                 {
+                    _logger.LogWarning("Access denied to adjust Inventario: {InventarioId} for user: {UserId}",
+                        id, User.FindFirstValue(ClaimTypes.NameIdentifier));
                     return Forbid();
                 }
             }
@@ -258,8 +311,12 @@ public class InventariosController : ControllerBase
 
             if (!resultado)
             {
+                _logger.LogError("Failed to adjust inventory: {InventarioId}", id);
                 return BadRequest("No se pudo realizar el ajuste de inventario.");
             }
+
+            _logger.LogInformation("Successfully adjusted inventory: {InventarioId}, new quantity: {Cantidad}",
+                id, cantidadResultante);
 
             // Obtener el inventario actualizado
             var inventarioActualizado = await _unitOfWork.InventarioRepository.GetAsync(id);
@@ -267,6 +324,8 @@ public class InventariosController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error adjusting inventory: {InventarioId}, adjustment: {Cantidad}",
+                id, ajuste.Cantidad);
             return StatusCode(500, $"Error al ajustar inventario: {ex.Message}");
         }
     }
@@ -279,8 +338,12 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("PostTrasladoAsync called for InventarioId: {InventarioId}, to Sucursal: {SucursalDestinoId}, quantity: {Cantidad}",
+                id, traslado.SucursalDestinoId, traslado.Cantidad);
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state for inventory transfer");
                 return BadRequest(ModelState);
             }
 
@@ -346,8 +409,13 @@ public class InventariosController : ControllerBase
 
             if (!resultado)
             {
+                _logger.LogError("Failed to transfer inventory: {InventarioId} to Sucursal: {SucursalDestinoId}",
+                    id, traslado.SucursalDestinoId);
                 return BadRequest("No se pudo realizar el traslado de inventario.");
             }
+
+            _logger.LogInformation("Successfully transferred inventory: {InventarioId}, quantity: {Cantidad} to Sucursal: {SucursalDestinoId}",
+                id, traslado.Cantidad, traslado.SucursalDestinoId);
 
             // Obtener el inventario actualizado de origen
             var inventarioActualizado = await _unitOfWork.InventarioRepository.GetAsync(id);
@@ -360,6 +428,8 @@ public class InventariosController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error transferring inventory: {InventarioId} to Sucursal: {SucursalDestinoId}, quantity: {Cantidad}",
+                id, traslado.SucursalDestinoId, traslado.Cantidad);
             return StatusCode(500, $"Error al trasladar inventario: {ex.Message}");
         }
     }
@@ -372,10 +442,13 @@ public class InventariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("DeleteAsync called for InventarioId: {InventarioId}", id);
+
             var inventario = await _unitOfWork.InventarioRepository.GetAsync(id);
 
             if (inventario == null)
             {
+                _logger.LogWarning("Inventory not found for deletion: {InventarioId}", id);
                 return NotFound("Registro de inventario no encontrado.");
             }
 
@@ -384,6 +457,8 @@ public class InventariosController : ControllerBase
             {
                 if (!await TieneAccesoEmpresaAsync(inventario.Sucursal.EmpresaId))
                 {
+                    _logger.LogWarning("Access denied to delete Inventario: {InventarioId} for user: {UserId}",
+                        id, User.FindFirstValue(ClaimTypes.NameIdentifier));
                     return Forbid();
                 }
             }
@@ -391,24 +466,58 @@ public class InventariosController : ControllerBase
             // Validar que el inventario no tenga cantidad actual
             if (inventario.CantidadActual > 0)
             {
+                _logger.LogWarning("Cannot delete inventory with stock: {InventarioId}, current quantity: {Cantidad}",
+                    id, inventario.CantidadActual);
                 return BadRequest("No se puede eliminar un registro de inventario con existencias. Primero debe ajustar el inventario a cero.");
             }
 
             // Validar que no haya cantidad reservada
             if ((inventario.CantidadReservada ?? 0) > 0)
             {
+                _logger.LogWarning("Cannot delete inventory with reserved quantity: {InventarioId}, reserved: {Cantidad}",
+                    id, inventario.CantidadReservada);
                 return BadRequest("No se puede eliminar un registro de inventario con cantidad reservada.");
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _unitOfWork.InventarioRepository.DeleteAsync(id, userId!);
+            _logger.LogInformation("Successfully deleted inventory: {InventarioId}", id);
 
             return NoContent();
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error deleting inventory: {InventarioId}", id);
             return StatusCode(500, $"Error al eliminar inventario: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Importa inventario desde un archivo Excel
+    /// </summary>
+    [HttpPost("empresa/{empresaId:guid}/importar")]
+    public async Task<IActionResult> ImportarAsync(Guid empresaId, [FromQuery] Guid sucursalId, IFormFile archivo)
+    {
+        if (archivo == null || archivo.Length == 0)
+            return BadRequest("Debe proporcionar un archivo Excel.");
+
+        if (!await TieneAccesoEmpresaAsync(empresaId))
+            return Forbid();
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        using var stream = archivo.OpenReadStream();
+        var result = await _excelImportService.ImportarInventarioAsync(stream, empresaId, sucursalId, userId!);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Descarga una plantilla de Excel para importar inventario
+    /// </summary>
+    [HttpGet("plantilla")]
+    public IActionResult DescargarPlantilla()
+    {
+        var fileBytes = _excelImportService.GenerarPlantillaInventario();
+        return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Plantilla_Inventario.xlsx");
     }
 
     /// <summary>

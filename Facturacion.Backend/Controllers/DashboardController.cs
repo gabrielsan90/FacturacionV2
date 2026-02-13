@@ -20,11 +20,16 @@ public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
     private readonly DataContext _context;
+    private readonly ILogger<DashboardController> _logger;
 
-    public DashboardController(IDashboardService dashboardService, DataContext context)
+    public DashboardController(
+        IDashboardService dashboardService,
+        DataContext context,
+        ILogger<DashboardController> logger)
     {
         _dashboardService = dashboardService;
         _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -36,18 +41,26 @@ public class DashboardController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Getting dashboard summary for user {UserId}",
+                User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for user {UserId}",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier));
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
             var resumen = await _dashboardService.GetResumenAsync(empresaId);
+            _logger.LogInformation("Successfully retrieved dashboard summary for company {EmpresaId}", empresaId);
             return Ok(resumen);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener el resumen del dashboard: {ex.Message}");
+            _logger.LogError(ex, "Error getting dashboard summary for user {UserId}",
+                User.FindFirstValue(ClaimTypes.NameIdentifier));
+            return StatusCode(500, "Error al obtener el resumen del dashboard");
         }
     }
 
@@ -63,18 +76,23 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for sales by month query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
             // Si no se especifica año, usar el año actual
             var anoConsulta = ano ?? FechaCostaRicaHelper.Ahora.Year;
+            _logger.LogInformation("Getting sales by month for company {EmpresaId}, year {Year}",
+                empresaId, anoConsulta);
 
             var ventasPorMes = await _dashboardService.GetVentasPorMesAsync(empresaId, anoConsulta);
+            _logger.LogInformation("Successfully retrieved sales by month for company {EmpresaId}", empresaId);
             return Ok(ventasPorMes);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener ventas por mes: {ex.Message}");
+            _logger.LogError(ex, "Error getting sales by month for year {Year}", ano);
+            return StatusCode(500, "Error al obtener ventas por mes");
         }
     }
 
@@ -92,6 +110,7 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for sales by document type query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
@@ -99,12 +118,17 @@ public class DashboardController : ControllerBase
             var inicio = fechaInicio ?? new DateTime(FechaCostaRicaHelper.Ahora.Year, FechaCostaRicaHelper.Ahora.Month, 1);
             var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
+            _logger.LogInformation("Getting sales by document type for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, inicio, fin);
+
             var ventasPorTipo = await _dashboardService.GetVentasPorTipoDocumentoAsync(empresaId, inicio, fin);
             return Ok(ventasPorTipo);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener ventas por tipo de documento: {ex.Message}");
+            _logger.LogError(ex, "Error getting sales by document type for date range {Start} to {End}",
+                fechaInicio, fechaFin);
+            return StatusCode(500, "Error al obtener ventas por tipo de documento");
         }
     }
 
@@ -123,12 +147,16 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for top customers query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
+            var topValue = top ?? 10;
+            _logger.LogInformation("Getting top {Top} customers for company {EmpresaId}", topValue, empresaId);
+
             var topClientes = await _dashboardService.GetTopClientesAsync(
                 empresaId,
-                top ?? 10,
+                topValue,
                 fechaInicio,
                 fechaFin);
 
@@ -136,7 +164,8 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener top clientes: {ex.Message}");
+            _logger.LogError(ex, "Error getting top customers");
+            return StatusCode(500, "Error al obtener top clientes");
         }
     }
 
@@ -155,12 +184,16 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for top products query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
+            var topValue = top ?? 10;
+            _logger.LogInformation("Getting top {Top} products for company {EmpresaId}", topValue, empresaId);
+
             var topProductos = await _dashboardService.GetTopProductosAsync(
                 empresaId,
-                top ?? 10,
+                topValue,
                 fechaInicio,
                 fechaFin);
 
@@ -168,7 +201,8 @@ public class DashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener top productos: {ex.Message}");
+            _logger.LogError(ex, "Error getting top products");
+            return StatusCode(500, "Error al obtener top productos");
         }
     }
 
@@ -184,18 +218,21 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for inventory status query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
-            var estadoInventario = await _dashboardService.GetEstadoInventarioAsync(
-                empresaId,
-                soloBajoStock ?? false);
+            var bajoStock = soloBajoStock ?? false;
+            _logger.LogInformation("Getting inventory status for company {EmpresaId}, low stock only: {LowStockOnly}",
+                empresaId, bajoStock);
 
+            var estadoInventario = await _dashboardService.GetEstadoInventarioAsync(empresaId, bajoStock);
             return Ok(estadoInventario);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener estado de inventario: {ex.Message}");
+            _logger.LogError(ex, "Error getting inventory status");
+            return StatusCode(500, "Error al obtener estado de inventario");
         }
     }
 
@@ -211,15 +248,18 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for pending documents query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
+            _logger.LogInformation("Getting pending documents for company {EmpresaId}", empresaId);
             var documentosPendientes = await _dashboardService.GetDocumentosPendientesAsync(empresaId);
             return Ok(documentosPendientes);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener documentos pendientes: {ex.Message}");
+            _logger.LogError(ex, "Error getting pending documents");
+            return StatusCode(500, "Error al obtener documentos pendientes");
         }
     }
 
@@ -237,6 +277,7 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for cash flow query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
@@ -244,12 +285,17 @@ public class DashboardController : ControllerBase
             var inicio = fechaInicio ?? new DateTime(FechaCostaRicaHelper.Ahora.Year, FechaCostaRicaHelper.Ahora.Month, 1);
             var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
+            _logger.LogInformation("Getting cash flow for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, inicio, fin);
+
             var flujoCaja = await _dashboardService.GetFlujoCajaAsync(empresaId, inicio, fin);
             return Ok(flujoCaja);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener flujo de caja: {ex.Message}");
+            _logger.LogError(ex, "Error getting cash flow for date range {Start} to {End}",
+                fechaInicio, fechaFin);
+            return StatusCode(500, "Error al obtener flujo de caja");
         }
     }
 
@@ -267,6 +313,7 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for sales by day query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
@@ -274,12 +321,17 @@ public class DashboardController : ControllerBase
             var inicio = fechaInicio ?? new DateTime(FechaCostaRicaHelper.Ahora.Year, FechaCostaRicaHelper.Ahora.Month, 1);
             var fin = fechaFin ?? FechaCostaRicaHelper.Ahora;
 
+            _logger.LogInformation("Getting sales by day for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, inicio, fin);
+
             var ventasPorDia = await _dashboardService.GetVentasPorDiaAsync(empresaId, inicio, fin);
             return Ok(ventasPorDia);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener ventas por día: {ex.Message}");
+            _logger.LogError(ex, "Error getting sales by day for date range {Start} to {End}",
+                fechaInicio, fechaFin);
+            return StatusCode(500, "Error al obtener ventas por día");
         }
     }
 
@@ -295,19 +347,24 @@ public class DashboardController : ControllerBase
             var empresaId = await ObtenerEmpresaIdAsync();
             if (empresaId == Guid.Empty)
             {
+                _logger.LogWarning("Could not obtain company ID for monthly comparison query");
                 return BadRequest("No se pudo obtener la empresa del usuario.");
             }
 
+            _logger.LogInformation("Getting monthly sales comparison for company {EmpresaId}", empresaId);
             var comparativo = await _dashboardService.GetComparativoMensualAsync(empresaId);
             return Ok(comparativo);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al obtener comparativo mensual: {ex.Message}");
+            _logger.LogError(ex, "Error getting monthly sales comparison");
+            return StatusCode(500, "Error al obtener comparativo mensual");
         }
     }
 
-    // Método auxiliar para obtener el empresaId del usuario autenticado
+    /// <summary>
+    /// Obtiene el empresaId del usuario autenticado (intenta claim primero, luego DB)
+    /// </summary>
     private async Task<Guid> ObtenerEmpresaIdAsync()
     {
         try
@@ -316,6 +373,7 @@ public class DashboardController : ControllerBase
             var empresaIdClaim = User.FindFirst("EmpresaId")?.Value;
             if (!string.IsNullOrEmpty(empresaIdClaim) && Guid.TryParse(empresaIdClaim, out var empresaIdFromClaim))
             {
+                _logger.LogDebug("Company ID {EmpresaId} obtained from JWT claim", empresaIdFromClaim);
                 return empresaIdFromClaim;
             }
 
@@ -323,6 +381,7 @@ public class DashboardController : ControllerBase
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
+                _logger.LogWarning("User ID not found in claims");
                 return Guid.Empty;
             }
 
@@ -331,10 +390,20 @@ public class DashboardController : ControllerBase
                 .Where(ue => ue.UserId == userId)
                 .FirstOrDefaultAsync();
 
-            return usuarioEmpresa?.EmpresaId ?? Guid.Empty;
+            if (usuarioEmpresa != null)
+            {
+                _logger.LogDebug("Company ID {EmpresaId} obtained from database for user {UserId}",
+                    usuarioEmpresa.EmpresaId, userId);
+                return usuarioEmpresa.EmpresaId;
+            }
+
+            _logger.LogWarning("No company association found for user {UserId}", userId);
+            return Guid.Empty;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error obtaining company ID for user {UserId}",
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             return Guid.Empty;
         }
     }

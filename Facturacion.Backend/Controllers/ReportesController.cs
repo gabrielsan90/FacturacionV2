@@ -20,11 +20,16 @@ public class ReportesController : ControllerBase
 {
     private readonly IReportesService _reportesService;
     private readonly DataContext _context;
+    private readonly ILogger<ReportesController> _logger;
 
-    public ReportesController(IReportesService reportesService, DataContext context)
+    public ReportesController(
+        IReportesService reportesService,
+        DataContext context,
+        ILogger<ReportesController> logger)
     {
         _reportesService = reportesService;
         _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -39,19 +44,42 @@ public class ReportesController : ControllerBase
         [FromQuery] Guid? clienteId = null,
         [FromQuery] DocumentoTipo? tipoDocumento = null)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating sales report for company {EmpresaId}, date range {Start} to {End}, customer {ClienteId}, docType {DocType}",
+                empresaId, fechaInicio, fechaFin, clienteId, tipoDocumento);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate sales report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteVentasAsync(
+                empresaId,
+                fechaInicio,
+                fechaFin,
+                clienteId,
+                tipoDocumento);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated sales report for company {EmpresaId}", empresaId);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to generate sales report for company {EmpresaId}: {Message}",
+                    empresaId, action.Message);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteVentasAsync(
-            empresaId,
-            fechaInicio,
-            fechaFin,
-            clienteId,
-            tipoDocumento);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating sales report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de ventas");
+        }
     }
 
     /// <summary>
@@ -66,19 +94,37 @@ public class ReportesController : ControllerBase
         [FromQuery] Guid? proveedorId = null,
         [FromQuery] int? categoriaId = null)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating expenses report for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, fechaInicio, fechaFin);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate expenses report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteGastosAsync(
+                empresaId,
+                fechaInicio,
+                fechaFin,
+                proveedorId,
+                categoriaId);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated expenses report for company {EmpresaId}", empresaId);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteGastosAsync(
-            empresaId,
-            fechaInicio,
-            fechaFin,
-            proveedorId,
-            categoriaId);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating expenses report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de gastos");
+        }
     }
 
     /// <summary>
@@ -91,17 +137,35 @@ public class ReportesController : ControllerBase
         [FromQuery] Guid? sucursalId = null,
         [FromQuery] bool soloBajoStock = false)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating inventory report for company {EmpresaId}, branch {SucursalId}, low stock only: {LowStockOnly}",
+                empresaId, sucursalId, soloBajoStock);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate inventory report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteInventarioAsync(
+                empresaId,
+                sucursalId,
+                soloBajoStock);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated inventory report for company {EmpresaId}", empresaId);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteInventarioAsync(
-            empresaId,
-            sucursalId,
-            soloBajoStock);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating inventory report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de inventario");
+        }
     }
 
     /// <summary>
@@ -115,17 +179,35 @@ public class ReportesController : ControllerBase
         [FromQuery] DateTime fechaInicio,
         [FromQuery] DateTime fechaFin)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating tax report for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, fechaInicio, fechaFin);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate tax report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteImpuestosAsync(
+                empresaId,
+                fechaInicio,
+                fechaFin);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated tax report for company {EmpresaId}", empresaId);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteImpuestosAsync(
-            empresaId,
-            fechaInicio,
-            fechaFin);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating tax report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de impuestos");
+        }
     }
 
     /// <summary>
@@ -139,18 +221,36 @@ public class ReportesController : ControllerBase
         [FromQuery] DateTime fechaFin,
         [FromQuery] bool soloActivos = false)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating customer activity report for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, fechaInicio, fechaFin);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate customer report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteClientesAsync(
+                empresaId,
+                fechaInicio,
+                fechaFin,
+                soloActivos);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated customer activity report for company {EmpresaId}", empresaId);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteClientesAsync(
-            empresaId,
-            fechaInicio,
-            fechaFin,
-            soloActivos);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating customer activity report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de clientes");
+        }
     }
 
     /// <summary>
@@ -164,18 +264,36 @@ public class ReportesController : ControllerBase
         [FromQuery] DateTime fechaFin,
         [FromQuery] Guid? categoriaId = null)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating product sales report for company {EmpresaId}, date range {Start} to {End}, category {CategoriaId}",
+                empresaId, fechaInicio, fechaFin, categoriaId);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate product report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteProductosAsync(
+                empresaId,
+                fechaInicio,
+                fechaFin,
+                categoriaId);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated product sales report for company {EmpresaId}", empresaId);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteProductosAsync(
-            empresaId,
-            fechaInicio,
-            fechaFin,
-            categoriaId);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating product sales report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de productos");
+        }
     }
 
     /// <summary>
@@ -190,19 +308,37 @@ public class ReportesController : ControllerBase
         [FromQuery] Guid? productoId = null,
         [FromQuery] TipoMovimientoInventario? tipoMovimiento = null)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating inventory movements report for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, fechaInicio, fechaFin);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate inventory movements report for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteMovimientosInventarioAsync(
+                empresaId,
+                fechaInicio,
+                fechaFin,
+                productoId,
+                tipoMovimiento);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated inventory movements report for company {EmpresaId}", empresaId);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteMovimientosInventarioAsync(
-            empresaId,
-            fechaInicio,
-            fechaFin,
-            productoId,
-            tipoMovimiento);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating inventory movements report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de movimientos de inventario");
+        }
     }
 
     /// <summary>
@@ -216,17 +352,37 @@ public class ReportesController : ControllerBase
         [FromQuery] int mes,
         [FromQuery] int ano)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
+            _logger.LogInformation("Generating sales book (Libro de Ventas) for company {EmpresaId}, period {Month}/{Year}",
+                empresaId, mes, ano);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("User {UserId} attempted to generate sales book for company {EmpresaId} without permission",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteLibroVentasAsync(
+                empresaId,
+                mes,
+                ano);
+
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Successfully generated sales book for company {EmpresaId}, period {Month}/{Year}",
+                    empresaId, mes, ano);
+            }
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
         }
-
-        var action = await _reportesService.GetReporteLibroVentasAsync(
-            empresaId,
-            mes,
-            ano);
-
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating sales book for company {EmpresaId}, period {Month}/{Year}",
+                empresaId, mes, ano);
+            return StatusCode(500, "Error al generar el libro de ventas");
+        }
     }
 
     #region Helper Methods
@@ -236,23 +392,33 @@ public class ReportesController : ControllerBase
     /// </summary>
     private async Task<bool> TieneAccesoEmpresaAsync(Guid empresaId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+        try
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning("User ID not found in claims for multi-tenant validation");
+                return false;
+            }
+
+            // Admin tiene acceso a todas las empresas
+            if (User.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            // Verificar si el usuario tiene acceso a esta empresa
+            var tieneAcceso = await _context.UsuariosEmpresas
+                .AnyAsync(ue => ue.UserId == userId && ue.EmpresaId == empresaId);
+
+            return tieneAcceso;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating company access for user {UserId}, company {EmpresaId}",
+                User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
             return false;
         }
-
-        // Admin tiene acceso a todas las empresas
-        if (User.IsInRole("Admin"))
-        {
-            return true;
-        }
-
-        // Verificar si el usuario tiene acceso a esta empresa
-        var tieneAcceso = await _context.UsuariosEmpresas
-            .AnyAsync(ue => ue.UserId == userId && ue.EmpresaId == empresaId);
-
-        return tieneAcceso;
     }
 
     #endregion

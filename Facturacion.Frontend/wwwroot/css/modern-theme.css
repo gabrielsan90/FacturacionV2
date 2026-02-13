@@ -760,6 +760,37 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.4;
 }
 
+/* Notification unread indicator */
+.notification-item.unread {
+    background-color: rgba(102, 126, 234, 0.05);
+    position: relative;
+}
+
+.notification-item.unread .unread-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+.notification-item.read {
+    opacity: 0.7;
+}
+
+.notification-item.read:hover {
+    opacity: 1;
+}
+
+/* Notification icon secondary color */
+.notification-icon.secondary {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+}
+
 /* === MAIN CONTENT AREA === */
 .body {
     flex: 1;

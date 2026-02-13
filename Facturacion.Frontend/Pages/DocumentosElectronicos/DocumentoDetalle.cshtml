@@ -1,0 +1,527 @@
+@page
+@model Facturacion.Frontend.Pages.DocumentosElectronicos.DocumentoDetalleModel
+@{
+    ViewData["Title"] = "Detalle de Documento Electrónico";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container-fluid" id="documentoContainer">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-file-invoice"></i> Detalle de Documento Electrónico</h2>
+                <div class="btn-group">
+                    <a href="/DocumentosElectronicos/Documentos" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a Lista
+                    </a>
+                    <button class="btn btn-warning" id="btnEditar" style="display:none;" onclick="editarDocumento()">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-danger" id="btnEliminar" style="display:none;" onclick="eliminarDocumento()">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                    <button class="btn btn-success" id="btnEnviar" style="display:none;" onclick="enviarAHacienda()">
+                        <i class="fas fa-paper-plane"></i> Enviar a Hacienda
+                    </button>
+                    <button class="btn btn-info" onclick="descargarPDF()">
+                        <i class="fas fa-file-pdf"></i> Descargar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Tipo Documento:</strong> <span id="tipoDocumento"></span></p>
+                            <p><strong>Número Consecutivo:</strong> <span id="numeroConsecutivo"></span></p>
+                            <p><strong>Clave:</strong> <span id="clave" style="font-family: monospace; font-size: 0.9em;"></span></p>
+                            <p><strong>Estado:</strong> <span id="estado"></span></p>
+                            <p><strong>Fecha Emisión:</strong> <span id="fechaEmision"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Condición Venta:</strong> <span id="condicionVenta"></span></p>
+                            <p><strong>Medio Pago:</strong> <span id="medioPago"></span></p>
+                            <p><strong>Moneda:</strong> <span id="moneda"></span></p>
+                            <p><strong>Tipo Cambio:</strong> <span id="tipoCambio"></span></p>
+                            <p><strong>Actividad Económica:</strong> <span id="actividadEconomica"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empresa / Emisor -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-building"></i> Emisor</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Empresa:</strong> <span id="empresaNombre"></span></p>
+                    <p><strong>Identificación:</strong> <span id="empresaIdentificacion"></span></p>
+                    <p><strong>Sucursal:</strong> <span id="sucursalNombre"></span></p>
+                    <p><strong>Dirección Sucursal:</strong> <span id="sucursalDireccion"></span></p>
+                    <p><strong>Terminal:</strong> <span id="terminalCodigo"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cliente / Receptor -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Receptor</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Nombre:</strong> <span id="receptorNombre"></span></p>
+                    <p><strong>Identificación:</strong> <span id="receptorIdentificacion"></span></p>
+                    <p><strong>Dirección:</strong> <span id="receptorDireccion"></span></p>
+                    <p><strong>Email:</strong> <span id="receptorEmail"></span></p>
+                    <p><strong>Teléfono:</strong> <span id="receptorTelefono"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Líneas de Detalle</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-bordered" id="tableDetalles">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Descripción</th>
+                                    <th>Código CAByS</th>
+                                    <th>Cantidad</th>
+                                    <th>UM</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Descuento</th>
+                                    <th>Subtotal</th>
+                                    <th>Impuesto</th>
+                                    <th>Total Línea</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detallesBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totals and Additional Info -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <!-- Referencias -->
+            <div class="card shadow mb-3" id="cardReferencias" style="display:none;">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-link"></i> Referencias</h5>
+                </div>
+                <div class="card-body">
+                    <div id="referenciasContent"></div>
+                </div>
+            </div>
+
+            <!-- Medios de Pago -->
+            <div class="card shadow mb-3" id="cardMediosPago" style="display:none;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-credit-card"></i> Medios de Pago</h5>
+                </div>
+                <div class="card-body">
+                    <div id="mediosPagoContent"></div>
+                </div>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="card shadow" id="cardObservaciones" style="display:none;">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-comment"></i> Observaciones</h5>
+                </div>
+                <div class="card-body">
+                    <p id="observaciones"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Totals -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-calculator"></i> Totales</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Total Mercancías Gravadas:</strong></td>
+                            <td class="text-end" id="totalMercanciasGravadas">₡0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Servicios Gravados:</strong></td>
+                            <td class="text-end" id="totalServiciosGravados">₡0.00</td>
+                        </tr>
+                        <tr class="table-light">
+                            <td><strong>Total Gravado:</strong></td>
+                            <td class="text-end" id="totalGravado">₡0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Exento:</strong></td>
+                            <td class="text-end" id="totalExento">₡0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Exonerado:</strong></td>
+                            <td class="text-end" id="totalExonerado">₡0.00</td>
+                        </tr>
+                        <tr class="table-light">
+                            <td><strong>Subtotal:</strong></td>
+                            <td class="text-end" id="subtotal">₡0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Descuentos:</strong></td>
+                            <td class="text-end text-danger" id="totalDescuentos">₡0.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Impuestos:</strong></td>
+                            <td class="text-end" id="totalImpuestos">₡0.00</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong style="font-size: 1.2em;">Total Venta:</strong></td>
+                            <td class="text-end" id="totalVenta" style="font-size: 1.3em; font-weight: bold;">₡0.00</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hacienda Response (if applicable) -->
+    <div class="row mb-3" id="cardHacienda" style="display:none;">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-server"></i> Respuesta de Hacienda</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Fecha Envío:</strong> <span id="fechaEnvioHacienda"></span></p>
+                    <p><strong>Fecha Respuesta:</strong> <span id="fechaRespuestaHacienda"></span></p>
+                    <p><strong>Mensaje:</strong> <span id="mensajeHacienda"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script>
+        const documentoId = '@Model.DocumentoId';
+        let documento = null;
+
+        $(document).ready(function () {
+            if (!documentoId || documentoId === '') {
+                Swal.fire('Error', 'ID de documento no especificado.', 'error').then(() => {
+                    window.location.href = '/DocumentosElectronicos/Documentos';
+                });
+                return;
+            }
+
+            loadDocumento();
+        });
+
+        function loadDocumento() {
+            $.ajax({
+                url: '?handler=Details&id=' + documentoId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        documento = response.data;
+                        renderDocumento(response.data);
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudo cargar el documento.', 'error').then(() => {
+                            window.location.href = '/DocumentosElectronicos/Documentos';
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'No se pudo cargar el documento.';
+                    Swal.fire('Error', message, 'error').then(() => {
+                        window.location.href = '/DocumentosElectronicos/Documentos';
+                    });
+                }
+            });
+        }
+
+        function renderDocumento(doc) {
+            // Header info
+            $('#tipoDocumento').html(getTipoDocumentoBadge(doc.tipoDocumento));
+            $('#numeroConsecutivo').text(doc.numeroConsecutivo);
+            $('#clave').text(doc.clave);
+            $('#estado').html(getEstadoBadge(doc.estado));
+            $('#fechaEmision').text(formatDateTime(doc.fechaEmision));
+            $('#condicionVenta').text(getCondicionVenta(doc.condicionVenta));
+            $('#medioPago').text(getMedioPago(doc.medioPago));
+            $('#moneda').text(getMoneda(doc.moneda));
+            $('#tipoCambio').text(doc.tipoCambio ? formatNumber(doc.tipoCambio, 5) : 'N/A');
+            $('#actividadEconomica').text(doc.actividadEconomica);
+
+            // Emisor
+            $('#empresaNombre').text(doc.empresa?.nombre || 'N/A');
+            $('#empresaIdentificacion').text(doc.empresa?.numeroIdentificacion || 'N/A');
+            $('#sucursalNombre').text(doc.sucursal?.nombre || 'N/A');
+            $('#sucursalDireccion').text(doc.sucursal?.direccion || 'N/A');
+            $('#terminalCodigo').text(doc.terminal?.codigo || 'N/A');
+
+            // Receptor
+            $('#receptorNombre').text(doc.receptorNombre || 'N/A');
+            $('#receptorIdentificacion').text(doc.receptorNumeroIdentificacion || 'N/A');
+            $('#receptorDireccion').text(doc.receptorOtrasSenas || 'N/A');
+            $('#receptorEmail').text(doc.receptorEmails || 'N/A');
+            $('#receptorTelefono').text(doc.receptorTelefono || 'N/A');
+
+            // Line items
+            if (doc.detalles && doc.detalles.length > 0) {
+                let html = '';
+                doc.detalles.forEach(detalle => {
+                    html += `
+                        <tr>
+                            <td>${detalle.numeroLinea}</td>
+                            <td>${detalle.descripcion}</td>
+                            <td>${detalle.codigoCabys || 'N/A'}</td>
+                            <td class="text-end">${formatNumber(detalle.cantidad, 3)}</td>
+                            <td>${detalle.unidadMedida}</td>
+                            <td class="text-end">₡${formatNumber(detalle.precioUnitario, 5)}</td>
+                            <td class="text-end text-danger">₡${formatNumber(detalle.montoDescuento || 0, 2)}</td>
+                            <td class="text-end">₡${formatNumber(detalle.subtotal, 2)}</td>
+                            <td class="text-end">₡${formatNumber(detalle.montoTotalImpuestos || 0, 2)}</td>
+                            <td class="text-end"><strong>₡${formatNumber(detalle.totalLinea, 2)}</strong></td>
+                        </tr>
+                    `;
+                });
+                $('#detallesBody').html(html);
+            } else {
+                $('#detallesBody').html('<tr><td colspan="10" class="text-center">No hay líneas de detalle</td></tr>');
+            }
+
+            // Totals
+            $('#totalMercanciasGravadas').text('₡' + formatNumber(doc.totalMercanciasGravadas, 2));
+            $('#totalServiciosGravados').text('₡' + formatNumber(doc.totalServiciosGravados, 2));
+            $('#totalGravado').text('₡' + formatNumber(doc.totalGravado, 2));
+            $('#totalExento').text('₡' + formatNumber(doc.totalExento, 2));
+            $('#totalExonerado').text('₡' + formatNumber(doc.totalExonerado, 2));
+            $('#subtotal').text('₡' + formatNumber(doc.subtotal, 2));
+            $('#totalDescuentos').text('₡' + formatNumber(doc.totalDescuentos, 2));
+            $('#totalImpuestos').text('₡' + formatNumber(doc.totalImpuestos, 2));
+            $('#totalVenta').text('₡' + formatNumber(doc.totalVenta, 2));
+
+            // Referencias
+            if (doc.referencias && doc.referencias.length > 0) {
+                let html = '<ul>';
+                doc.referencias.forEach(ref => {
+                    html += `<li><strong>${ref.tipoDocumento}:</strong> ${ref.numero} (${ref.razon})</li>`;
+                });
+                html += '</ul>';
+                $('#referenciasContent').html(html);
+                $('#cardReferencias').show();
+            }
+
+            // Medios de Pago
+            if (doc.mediosPago && doc.mediosPago.length > 0) {
+                let html = '<ul>';
+                doc.mediosPago.forEach(mp => {
+                    html += `<li><strong>${getMedioPago(mp.medioPago)}:</strong> ₡${formatNumber(mp.monto, 2)}</li>`;
+                });
+                html += '</ul>';
+                $('#mediosPagoContent').html(html);
+                $('#cardMediosPago').show();
+            }
+
+            // Observaciones
+            if (doc.observaciones) {
+                $('#observaciones').text(doc.observaciones);
+                $('#cardObservaciones').show();
+            }
+
+            // Hacienda response
+            if (doc.fechaEnvioHacienda) {
+                $('#fechaEnvioHacienda').text(formatDateTime(doc.fechaEnvioHacienda));
+                $('#fechaRespuestaHacienda').text(doc.fechaRespuestaHacienda ? formatDateTime(doc.fechaRespuestaHacienda) : 'N/A');
+                $('#mensajeHacienda').text(doc.mensajeHacienda || 'N/A');
+                $('#cardHacienda').show();
+            }
+
+            // Show/hide action buttons based on state
+            if (doc.estado === 1) { // Borrador
+                $('#btnEditar').show();
+                $('#btnEliminar').show();
+                $('#btnEnviar').show();
+            } else if (doc.estado === 2) { // Pendiente
+                $('#btnEnviar').show();
+            }
+        }
+
+        function editarDocumento() {
+            window.location.href = `/DocumentosElectronicos/EditarDocumento?id=${documentoId}`;
+        }
+
+        function eliminarDocumento() {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: `¿Desea eliminar el documento "${documento.numeroConsecutivo}"? Esta acción no se puede revertir.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Delete&id=' + documentoId,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire('Eliminado', response.message || 'Documento eliminado correctamente.', 'success').then(() => {
+                                    window.location.href = '/DocumentosElectronicos/Documentos';
+                                });
+                            } else {
+                                Swal.fire('Error', response.message || 'Ocurrió un error al eliminar el documento.', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al eliminar el documento.';
+                            Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function enviarAHacienda() {
+            Swal.fire({
+                title: 'Próximamente',
+                text: 'La integración con Hacienda se implementará en un próximo sprint.',
+                icon: 'info'
+            });
+        }
+
+        function descargarPDF() {
+            Swal.fire({
+                title: 'Próximamente',
+                text: 'La generación de PDF se implementará en un próximo sprint.',
+                icon: 'info'
+            });
+        }
+
+        function getTipoDocumentoBadge(tipo) {
+            const badges = {
+                1: '<span class="badge bg-primary">FE - Factura Electrónica</span>',
+                2: '<span class="badge bg-warning">ND - Nota Débito</span>',
+                3: '<span class="badge bg-success">NC - Nota Crédito</span>',
+                4: '<span class="badge bg-info">TE - Tiquete Electrónico</span>',
+                5: '<span class="badge bg-secondary">FCC - Factura Compra</span>',
+                6: '<span class="badge bg-dark">FCA - Factura Compra Aceptación</span>',
+                7: '<span class="badge bg-light text-dark">CCE - Comprobante Compra</span>',
+                8: '<span class="badge bg-primary">FEC - Factura Contingencia</span>',
+                9: '<span class="badge bg-danger">FEE - Factura Exportación</span>'
+            };
+            return badges[tipo] || tipo;
+        }
+
+        function getEstadoBadge(estado) {
+            const badges = {
+                1: '<span class="badge bg-secondary">Borrador</span>',
+                2: '<span class="badge bg-warning">Pendiente</span>',
+                3: '<span class="badge bg-info">Procesando</span>',
+                4: '<span class="badge bg-success">Aceptado</span>',
+                5: '<span class="badge bg-danger">Rechazado</span>',
+                6: '<span class="badge" style="background-color: orange;">Contingencia</span>',
+                7: '<span class="badge bg-dark">Anulado</span>'
+            };
+            return badges[estado] || estado;
+        }
+
+        function getCondicionVenta(codigo) {
+            const condiciones = {
+                '01': '01 - Contado',
+                '02': '02 - Crédito',
+                '03': '03 - Consignación',
+                '04': '04 - Apartado',
+                '05': '05 - Arrendamiento con opción de compra',
+                '06': '06 - Arrendamiento en función financiera',
+                '07': '07 - Cobro a favor de un tercero',
+                '08': '08 - Servicios prestados al Estado a crédito',
+                '09': '09 - Pago del servicios prestado al Estado',
+                '10': '10 - Mercancía no nacionalizada',
+                '99': '99 - Otros'
+            };
+            return condiciones[codigo] || codigo;
+        }
+
+        function getMedioPago(codigo) {
+            const medios = {
+                '01': '01 - Efectivo',
+                '02': '02 - Tarjeta',
+                '03': '03 - Cheque',
+                '04': '04 - Transferencia',
+                '05': '05 - Recaudado por terceros',
+                '06': '06 - SINPE Móvil',
+                '99': '99 - Otros'
+            };
+            return medios[codigo] || codigo;
+        }
+
+        function getMoneda(tipo) {
+            const monedas = {
+                0: 'CRC - Colón',
+                1: 'USD - Dólar',
+                2: 'EUR - Euro'
+            };
+            return monedas[tipo] || tipo;
+        }
+
+        function formatNumber(value, decimals) {
+            if (value == null) return '0.' + '0'.repeat(decimals);
+            return parseFloat(value).toFixed(decimals).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return 'N/A';
+            return new Date(value).toLocaleString('es-CR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+}

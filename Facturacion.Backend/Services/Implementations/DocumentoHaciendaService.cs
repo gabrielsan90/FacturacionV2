@@ -7,6 +7,7 @@ using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Facturacion.Backend.Services.Implementations;
 
@@ -23,6 +24,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
     private readonly IXsdValidacionService _xsdValidacion;
     private readonly IValidacionCalculosService _validacionCalculos;
     private readonly IInventarioRepository _inventarioRepository;
+    private readonly IContabilidadIntegracionService _contabilidadIntegracion;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DocumentoHaciendaService> _logger;
 
     public DocumentoHaciendaService(
@@ -34,6 +37,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         IXsdValidacionService xsdValidacion,
         IValidacionCalculosService validacionCalculos,
         IInventarioRepository inventarioRepository,
+        IContabilidadIntegracionService contabilidadIntegracion,
+        IServiceScopeFactory scopeFactory,
         ILogger<DocumentoHaciendaService> logger)
     {
         _context = context;
@@ -44,6 +49,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
         _xsdValidacion = xsdValidacion;
         _validacionCalculos = validacionCalculos;
         _inventarioRepository = inventarioRepository;
+        _contabilidadIntegracion = contabilidadIntegracion;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -272,6 +279,23 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 resultado.Estado = "Enviado";
 
                 _logger.LogInformation("Documento {DocumentoId} enviado exitosamente a Hacienda (HTTP 201/202) - será consultado automáticamente", documentoId);
+
+                // MEJORA: Iniciar consultas inmediatas en background con reintentos progresivos
+                // Esto mejora la experiencia del usuario al obtener la respuesta más rápido
+                // Usa un scope independiente para evitar problemas con el scope del request HTTP
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var scopedService = scope.ServiceProvider.GetRequiredService<IDocumentoHaciendaService>();
+                        await ((DocumentoHaciendaService)scopedService).ConsultarEstadoConReintentosAsync(documentoId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error en reintentos automáticos para documento {DocumentoId} - el BackgroundService lo procesará", documentoId);
+                    }
+                });
             }
             else if (estadoRespuesta == "aceptado")
             {
@@ -285,6 +309,16 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
                 // Procesar inventario según tipo de documento
                 await ProcesarInventarioDocumentoAsync(documento);
+
+                // Generar asiento contable automático (si está habilitado)
+                try
+                {
+                    await _contabilidadIntegracion.GenerarAsientoVentaAsync(documento, documento.UsuarioCreacionId ?? "sistema");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error generando asiento contable para documento {DocumentoId} - operación continúa", documentoId);
+                }
 
                 _logger.LogInformation("Documento {DocumentoId} aceptado por Hacienda", documentoId);
             }
@@ -817,6 +851,104 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             _logger.LogError(ex,
                 "Error al procesar inventario para documento {DocumentoId}: {Error}",
                 documento.Id, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Consulta el estado de un documento con reintentos progresivos
+    /// Estrategia: 5s, 10s, 20s, 40s, 60s (total ~2.5 minutos de reintentos)
+    /// </summary>
+    private async Task ConsultarEstadoConReintentosAsync(Guid documentoId)
+    {
+        try
+        {
+            // Configuración de reintentos progresivos
+            var intervalos = new[] { 5, 10, 20, 40, 60 }; // segundos
+            var maxIntentos = intervalos.Length;
+
+            _logger.LogInformation(
+                "Iniciando consultas automáticas con reintentos progresivos para documento {DocumentoId}",
+                documentoId);
+
+            for (int intento = 1; intento <= maxIntentos; intento++)
+            {
+                try
+                {
+                    // Esperar antes de consultar (excepto en el primer intento que ya esperó 5s)
+                    var delay = intervalos[intento - 1];
+                    _logger.LogDebug(
+                        "Esperando {Delay}s antes del intento {Intento}/{Max} para documento {DocumentoId}",
+                        delay, intento, maxIntentos, documentoId);
+
+                    await Task.Delay(TimeSpan.FromSeconds(delay));
+
+                    // Consultar estado
+                    _logger.LogInformation(
+                        "Intento {Intento}/{Max}: Consultando estado de documento {DocumentoId}",
+                        intento, maxIntentos, documentoId);
+
+                    var resultado = await ConsultarEstadoAsync(documentoId);
+
+                    // Si se obtuvo un estado final, detener los reintentos
+                    if (!string.IsNullOrEmpty(resultado.Estado))
+                    {
+                        var estadoFinal = resultado.Estado.ToLowerInvariant();
+
+                        if (estadoFinal == "aceptado" || estadoFinal == "rechazado")
+                        {
+                            _logger.LogInformation(
+                                "Documento {DocumentoId} obtuvo estado final '{Estado}' en el intento {Intento}. " +
+                                "Finalizando reintentos automáticos",
+                                documentoId, resultado.Estado, intento);
+                            return;
+                        }
+                        else if (estadoFinal == "procesando" || estadoFinal == "enviado")
+                        {
+                            _logger.LogDebug(
+                                "Documento {DocumentoId} aún en estado '{Estado}'. Continuando reintentos...",
+                                documentoId, resultado.Estado);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Documento {DocumentoId} tiene estado desconocido '{Estado}'. Continuando reintentos...",
+                                documentoId, resultado.Estado);
+                        }
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Error HTTP en intento {Intento}/{Max} para documento {DocumentoId}: {Message}. " +
+                        "Continuando con siguientes reintentos...",
+                        intento, maxIntentos, documentoId, ex.Message);
+                }
+                catch (TaskCanceledException ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Timeout en intento {Intento}/{Max} para documento {DocumentoId}. " +
+                        "Continuando con siguientes reintentos...",
+                        intento, maxIntentos, documentoId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Error en intento {Intento}/{Max} para documento {DocumentoId}: {Message}. " +
+                        "Continuando con siguientes reintentos...",
+                        intento, maxIntentos, documentoId, ex.Message);
+                }
+            }
+
+            _logger.LogInformation(
+                "Finalizados los {MaxIntentos} reintentos automáticos para documento {DocumentoId}. " +
+                "El BackgroundService continuará consultando cada 30 segundos",
+                maxIntentos, documentoId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error crítico en ConsultarEstadoConReintentosAsync para documento {DocumentoId}",
+                documentoId);
         }
     }
 

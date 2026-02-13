@@ -1,0 +1,429 @@
+@page
+@model Facturacion.Frontend.Pages.RRHH.PuestosModel
+@{
+    ViewData["Title"] = "Puestos";
+    ViewData["Breadcrumb"] = "Puestos";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-briefcase"></i> Puestos</h2>
+            <p class="mb-0">Gestión de puestos de trabajo</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo puesto">
+            <i class="fas fa-plus me-2"></i>Nuevo Puesto
+        </button>
+    </div>
+</div>
+
+<!-- Puestos Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Puestos</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalPuestos">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-success" onclick="generarCatalogo()" title="Generar catálogo predefinido">
+                <i class="fas fa-magic"></i> Generar Catálogo
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tablePuestosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando puestos...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tablePuestosContainer" style="display:none;">
+            <table id="tablePuestos" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Departamento</th>
+                        <th>Descripción</th>
+                        <th>Salario Mínimo</th>
+                        <th>Salario Máximo</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStatePuestos" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <h3 class="empty-state-title">No hay puestos registrados</h3>
+            <p class="empty-state-description">Comienza agregando tu primer puesto</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Puesto
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalPuesto" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Puesto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPuesto" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Puesto_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Puesto_Codigo" maxlength="20" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Puesto_Nombre" maxlength="100" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Departamento</label>
+                            <select class="form-select" id="Puesto_DepartamentoId"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nivel Jerárquico</label>
+                            <select class="form-select" id="Puesto_NivelJerarquico">
+                                <option value="1">Ejecutivo</option>
+                                <option value="2">Gerencial</option>
+                                <option value="3">Supervisión</option>
+                                <option value="4" selected>Operativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="Puesto_Descripcion" rows="2" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Salario Mínimo <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="Puesto_SalarioMinimo" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Salario Máximo <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="Puesto_SalarioMaximo" required />
+                        </div>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Puesto_Activo" checked />
+                        <label class="form-check-label" for="Puesto_Activo">
+                            Puesto Activo
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadDepartamentos();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tablePuestos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tablePuestosLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalPuestos').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tablePuestosContainer').show();
+                        $('#emptyStatePuestos').hide();
+                    } else {
+                        $('#tablePuestosContainer').hide();
+                        $('#emptyStatePuestos').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tablePuestosLoader').hide();
+                    $('#tablePuestosContainer').hide();
+                    $('#emptyStatePuestos').show();
+                    $('#badgeTotalPuestos').text('0');
+                }
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'departamento',
+                    render: function(data) {
+                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'descripcion',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'salarioMinimo',
+                    render: function(data) {
+                        return '₡' + parseFloat(data).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                },
+                {
+                    data: 'salarioMaximo',
+                    render: function(data) {
+                        return '₡' + parseFloat(data).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[1, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formPuesto').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function loadDepartamentos() {
+        $.ajax({
+            url: '?handler=Departamentos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Puesto_DepartamentoId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                const data = response.data || response;
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formPuesto')[0].reset();
+        $('#formPuesto').removeClass('was-validated');
+        $('#Puesto_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Puesto_NivelJerarquico').val('4');
+        $('#Puesto_Activo').prop('checked', true);
+        $('#modalTitle').text('Nuevo Puesto');
+        $('#modalPuesto').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    $('#Puesto_Id').val(data.id);
+                    $('#Puesto_Codigo').val(data.codigo);
+                    $('#Puesto_Nombre').val(data.nombre);
+                    $('#Puesto_DepartamentoId').val(data.departamentoId || '');
+                    $('#Puesto_Descripcion').val(data.descripcion || '');
+                    $('#Puesto_SalarioMinimo').val(data.salarioMinimo);
+                    $('#Puesto_SalarioMaximo').val(data.salarioMaximo);
+                    $('#Puesto_NivelJerarquico').val(data.nivelJerarquico);
+                    $('#Puesto_Activo').prop('checked', data.activo);
+
+                    $('#modalTitle').text('Editar Puesto');
+                    $('#formPuesto').removeClass('was-validated');
+                    $('#modalPuesto').modal('show');
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            }
+        });
+    }
+
+    function save() {
+        const puestoData = {
+            id: $('#Puesto_Id').val(),
+            empresaId: empresaId,
+            codigo: $('#Puesto_Codigo').val(),
+            nombre: $('#Puesto_Nombre').val(),
+            departamentoId: $('#Puesto_DepartamentoId').val() || null,
+            descripcion: $('#Puesto_Descripcion').val() || null,
+            salarioMinimo: parseFloat($('#Puesto_SalarioMinimo').val()),
+            salarioMaximo: parseFloat($('#Puesto_SalarioMaximo').val()),
+            nivelJerarquico: parseInt($('#Puesto_NivelJerarquico').val()),
+            activo: $('#Puesto_Activo').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(puestoData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalPuesto').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        $('#tablePuestosLoader').show();
+        $('#tablePuestosContainer').hide();
+        $('#emptyStatePuestos').hide();
+        table.ajax.reload();
+    }
+
+    function generarCatalogo() {
+        Swal.fire({
+            title: 'Generar Catálogo Predefinido',
+            html: '<p>Esta acción creará <strong>30 puestos</strong> predefinidos organizados por nivel jerárquico:</p>' +
+                  '<ul class="text-start small">' +
+                  '<li><strong>Nivel Ejecutivo:</strong> Gerente General</li>' +
+                  '<li><strong>Nivel Gerencial:</strong> Gerentes de área (6 puestos)</li>' +
+                  '<li><strong>Nivel Supervisión:</strong> Supervisores y Jefes (5 puestos)</li>' +
+                  '<li><strong>Nivel Operativo:</strong> Puestos operativos (20 puestos)</li>' +
+                  '</ul>' +
+                  '<p class="small text-muted">Incluye rangos salariales base en colones.</p>' +
+                  '<p class="text-warning mb-0"><i class="fas fa-exclamation-triangle me-1"></i>Solo funciona si no hay puestos existentes.</p>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-magic me-1"></i> Generar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Generando catálogo...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '?handler=GenerarCatalogo',
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Catálogo Generado',
+                                text: response.message
+                            });
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

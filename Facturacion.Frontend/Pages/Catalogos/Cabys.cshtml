@@ -1,0 +1,615 @@
+@page
+@model Facturacion.Frontend.Pages.Catalogos.CabysModel
+@{
+    ViewData["Title"] = "Códigos CABYS";
+    ViewData["Breadcrumb"] = "Códigos CABYS";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-barcode"></i> Códigos CABYS (Bienes y Servicios)</h2>
+                <div>
+                    <button class="btn btn-success me-2" onclick="descargarTemplate()">
+                        <i class="fas fa-download"></i> Descargar Template
+                    </button>
+                    <button class="btn btn-info me-2" onclick="openImportModal()">
+                        <i class="fas fa-file-excel"></i> Importar Excel
+                    </button>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <i class="fas fa-plus"></i> Nuevo Código CABYS
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <label class="form-label">Filtrar por Estado</label>
+                    <select id="filtroEstado" class="form-select" onchange="recargarTabla()">
+                        <option value="">Todos</option>
+                        <option value="true" selected>Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <label class="form-label">Filtrar por Categoría</label>
+                    <select id="filtroCategoria" class="form-select" onchange="recargarTabla()">
+                        <option value="">Todas</option>
+                        <option value="Bien">Bien</option>
+                        <option value="Servicio">Servicio</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="tableCabys" class="table table-striped table-hover table-bordered" style="width:100%">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Descripción</th>
+                                    <th>Impuesto</th>
+                                    <th>Categoría</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar -->
+<div class="modal fade" id="modalCabys" tabindex="-1" aria-labelledby="modalCabysLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalCabysLabel">
+                    <i class="fas fa-barcode"></i> <span id="modalTitle">Nuevo Código CABYS</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formCabys">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="cabysId" />
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="codigo" class="form-label">Código CABYS (13 dígitos) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="codigo" maxlength="13" minlength="13" required />
+                                <small class="form-text text-muted">Exactamente 13 dígitos</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="categoria" class="form-label">Categoría</label>
+                                <select class="form-select" id="categoria">
+                                    <option value="">Seleccione...</option>
+                                    <option value="Bien">Bien</option>
+                                    <option value="Servicio">Servicio</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="descripcion" rows="3" maxlength="500" required></textarea>
+                                <small class="form-text text-muted">Máximo 500 caracteres</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tarifaImpuesto" class="form-label">Tarifa Impuesto (%)</label>
+                                <input type="number" class="form-control" id="tarifaImpuesto" step="0.01" min="0" max="100" placeholder="Ej: 13.00" />
+                                <small class="form-text text-muted">Porcentaje de impuesto aplicable</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="codigoImpuesto" class="form-label">Código Impuesto</label>
+                                <input type="text" class="form-control" id="codigoImpuesto" maxlength="2" placeholder="Ej: 01" />
+                                <small class="form-text text-muted">Código del tipo de impuesto (opcional)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="activo" checked />
+                                <label class="form-check-label" for="activo">
+                                    Código Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Importar Excel -->
+<div class="modal fade" id="modalImportarExcel" tabindex="-1" aria-labelledby="modalImportarExcelLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalImportarExcelLabel">
+                    <i class="fas fa-file-excel"></i> Importar Códigos CABYS desde Excel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formImportarExcel">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Instrucciones:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>El archivo debe ser formato Excel (.xlsx o .xls)</li>
+                            <li>Debe contener cuatro columnas: <strong>Codigo</strong>, <strong>Descripcion</strong>, <strong>Impuesto</strong> y <strong>Categoria</strong></li>
+                            <li>La primera fila debe contener los encabezados</li>
+                            <li>El código debe tener exactamente 13 dígitos</li>
+                            <li>Si el código ya existe, se actualizará la información</li>
+                            <li>Si el código no existe, se creará un nuevo registro</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="archivoExcel" class="form-label">Seleccione el archivo Excel <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="archivoExcel" accept=".xlsx,.xls" required />
+                    </div>
+
+                    <div id="progressContainer" style="display: none;">
+                        <div class="progress">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-center mt-2" id="progressText">Procesando...</p>
+                    </div>
+
+                    <div id="resultadosImportacion" style="display: none;">
+                        <hr />
+                        <h6>Resultados de la Importación:</h6>
+                        <ul>
+                            <li>Registros procesados: <strong id="resProcessed">0</strong></li>
+                            <li>Registros creados: <strong id="resCreated" class="text-success">0</strong></li>
+                            <li>Registros actualizados: <strong id="resUpdated" class="text-info">0</strong></li>
+                            <li>Duplicados en Excel: <strong id="resDuplicados" class="text-warning">0</strong></li>
+                            <li>Errores: <strong id="resErrors" class="text-danger">0</strong></li>
+                        </ul>
+                        <div id="errorDetails" style="display: none;">
+                            <h6 class="text-danger">Detalle de Errores:</h6>
+                            <div class="alert alert-danger" id="errorList" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                    <button type="submit" class="btn btn-info" id="btnImportar">
+                        <i class="fas fa-upload"></i> Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let table;
+
+        $(document).ready(function () {
+            inicializarDataTable();
+        });
+
+        function inicializarDataTable() {
+            table = $('#tableCabys').DataTable({
+                ajax: {
+                    url: '?handler=Data',
+                    type: 'GET',
+                    data: function (d) {
+                        d.activo = $('#filtroEstado').val(); // Obtener valor actual del filtro
+                        d.categoria = $('#filtroCategoria').val(); // Obtener valor actual del filtro
+                    },
+                    dataSrc: ''
+                },
+                columns: [
+                    {
+                        data: 'codigo',
+                        width: '15%'
+                    },
+                    {
+                        data: 'descripcion',
+                        width: '45%'
+                    },
+                    {
+                        data: 'tarifaImpuesto',
+                        width: '10%',
+                        render: function (data) {
+                            if (data == null) {
+                                return '<span class="text-muted">N/A</span>';
+                            }
+                            return data.toFixed(2) + '%';
+                        }
+                    },
+                    {
+                        data: 'categoria',
+                        width: '10%',
+                        render: function (data) {
+                            if (!data) {
+                                return '<span class="text-muted">N/A</span>';
+                            }
+                            const badgeClass = data === 'Bien' ? 'bg-primary' : 'bg-info';
+                            return `<span class="badge ${badgeClass}">${data}</span>`;
+                        }
+                    },
+                    {
+                        data: 'activo',
+                        width: '10%',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-success">Activo</span>'
+                                : '<span class="badge bg-secondary">Inactivo</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        width: '10%',
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return `
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-warning" onclick="editarCabys(${row.id})" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger" onclick="eliminarCabys(${row.id}, '${row.codigo}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json'
+                },
+                responsive: true,
+                pageLength: 25,
+                order: [[0, 'asc']],
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excel',
+                        text: '<i class="fas fa-file-excel"></i> Excel',
+                        className: 'btn btn-success btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        text: '<i class="fas fa-file-pdf"></i> PDF',
+                        className: 'btn btn-danger btn-sm',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4]
+                        }
+                    }
+                ]
+            });
+        }
+
+        function recargarTabla() {
+            table.ajax.reload();
+        }
+
+        function openCreateModal() {
+            $('#modalTitle').text('Nuevo Código CABYS');
+            $('#cabysId').val('');
+            $('#codigo').val('').prop('readonly', false);
+            $('#descripcion').val('');
+            $('#tarifaImpuesto').val('');
+            $('#codigoImpuesto').val('');
+            $('#categoria').val('');
+            $('#activo').prop('checked', true);
+            $('#formCabys')[0].reset();
+            $('#modalCabys').modal('show');
+        }
+
+        async function editarCabys(id) {
+            try {
+                const response = await fetch(`?handler=Details&id=${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    $('#modalTitle').text('Editar Código CABYS');
+                    $('#cabysId').val(result.data.id);
+                    $('#codigo').val(result.data.codigo).prop('readonly', true);
+                    $('#descripcion').val(result.data.descripcion);
+                    $('#tarifaImpuesto').val(result.data.tarifaImpuesto || '');
+                    $('#codigoImpuesto').val(result.data.codigoImpuesto || '');
+                    $('#categoria').val(result.data.categoria || '');
+                    $('#activo').prop('checked', result.data.activo);
+                    $('#modalCabys').modal('show');
+                } else {
+                    Swal.fire('Error', result.message || 'No se pudo cargar el código CABYS', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al cargar el código CABYS', 'error');
+            }
+        }
+
+        $('#formCabys').on('submit', async function (e) {
+            e.preventDefault();
+
+            const tarifaImpuestoValue = $('#tarifaImpuesto').val();
+            const tarifaImpuesto = tarifaImpuestoValue ? parseFloat(tarifaImpuestoValue) : null;
+
+            const data = {
+                id: parseInt($('#cabysId').val() || '0'),
+                codigo: $('#codigo').val().trim(),
+                descripcion: $('#descripcion').val().trim(),
+                tarifaImpuesto: tarifaImpuesto,
+                codigoImpuesto: $('#codigoImpuesto').val().trim() || null,
+                categoria: $('#categoria').val() || null,
+                activo: $('#activo').is(':checked')
+            };
+
+            // Validar código (13 dígitos)
+            if (data.codigo.length !== 13) {
+                Swal.fire('Error', 'El código CABYS debe tener exactamente 13 dígitos', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('?handler=Save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: result.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    $('#modalCabys').modal('hide');
+                    recargarTabla();
+                } else {
+                    Swal.fire('Error', result.message || 'Error al guardar el código CABYS', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al guardar el código CABYS', 'error');
+            }
+        });
+
+        async function eliminarCabys(id, codigo) {
+            const result = await Swal.fire({
+                title: '¿Está seguro?',
+                text: `¿Desea eliminar el código CABYS ${codigo}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`?handler=Delete&id=${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminado',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        recargarTabla();
+                    } else {
+                        Swal.fire('Error', data.message || 'Error al eliminar el código CABYS', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Error al eliminar el código CABYS', 'error');
+                }
+            }
+        }
+
+        // ========================================
+        // IMPORTACIÓN EXCEL
+        // ========================================
+
+        function openImportModal() {
+            $('#formImportarExcel')[0].reset();
+            $('#progressContainer').hide();
+            $('#resultadosImportacion').hide();
+            $('#errorDetails').hide();
+            $('#btnImportar').prop('disabled', false).show();
+            $('#modalImportarExcel').modal('show');
+        }
+
+        $('#formImportarExcel').on('submit', async function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('archivoExcel');
+            if (!fileInput.files || !fileInput.files[0]) {
+                Swal.fire('Error', 'Debe seleccionar un archivo Excel', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('archivo', fileInput.files[0]);
+
+            // Reset estado previo
+            $('#btnImportar').prop('disabled', true).hide();
+            $('#progressContainer').show();
+            $('#resultadosImportacion').hide();
+            $('#errorDetails').hide();
+            $('#errorList').html('');
+            $('#progressBar').css('width', '50%').removeClass('bg-success bg-danger');
+            $('#progressText').text('Procesando archivo...');
+
+            try {
+                // Usar AbortController para manejar timeout de 10 minutos
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutos
+
+                const response = await fetch('?handler=ImportarExcel', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: formData,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const result = await response.json();
+
+                $('#progressBar').css('width', '100%');
+                $('#progressText').text('Proceso completado');
+
+                if (result.success) {
+                    $('#resProcessed').text(result.resultados.procesados);
+                    $('#resCreated').text(result.resultados.creados);
+                    $('#resUpdated').text(result.resultados.actualizados);
+                    $('#resDuplicados').text(result.resultados.duplicadosEnExcel || 0);
+                    $('#resErrors').text(result.resultados.errores);
+
+                    if (result.resultados.errores > 0 && result.resultados.detalleErrores) {
+                        $('#errorList').html(
+                            '<ul class="list-unstyled mb-0">' +
+                            result.resultados.detalleErrores.map(e => {
+                                // Resaltar el número de fila en negrita
+                                const formatted = e.replace(/^(Fila \d+:)/, '<strong class="text-danger">$1</strong>');
+                                return `<li class="mb-1"><i class="fas fa-exclamation-circle text-danger me-1"></i>${formatted}</li>`;
+                            }).join('') +
+                            '</ul>'
+                        );
+                        $('#errorDetails').show();
+                    } else {
+                        $('#errorDetails').hide();
+                    }
+
+                    $('#resultadosImportacion').show();
+
+                    const tieneErrores = result.resultados.errores > 0;
+                    const tieneDuplicados = (result.resultados.duplicadosEnExcel || 0) > 0;
+                    const tieneProblemas = tieneErrores || tieneDuplicados;
+                    Swal.fire({
+                        icon: tieneProblemas ? 'warning' : 'success',
+                        title: tieneProblemas ? 'Importación completada con observaciones' : 'Importación completada',
+                        html: `
+                            <p><strong>Procesados:</strong> ${result.resultados.procesados}</p>
+                            <p class="text-success"><strong>Creados:</strong> ${result.resultados.creados}</p>
+                            <p class="text-info"><strong>Actualizados:</strong> ${result.resultados.actualizados}</p>
+                            ${tieneDuplicados ? `<p class="text-warning"><strong>Duplicados en Excel:</strong> ${result.resultados.duplicadosEnExcel} (se procesó solo la primera ocurrencia)</p>` : ''}
+                            <p class="text-danger"><strong>Errores:</strong> ${result.resultados.errores}</p>
+                            ${tieneProblemas ? '<p class="small text-muted mt-2">Revise el detalle para ver las filas con problemas</p>' : ''}
+                        `,
+                        timer: tieneProblemas ? null : 4000,
+                        showConfirmButton: tieneProblemas
+                    });
+
+                    recargarTabla();
+                } else {
+                    Swal.fire('Error', result.message || 'Error al importar el archivo', 'error');
+                    $('#btnImportar').prop('disabled', false).show();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al procesar el archivo Excel', 'error');
+                $('#progressContainer').hide();
+                $('#btnImportar').prop('disabled', false).show();
+            }
+        });
+
+        async function descargarTemplate() {
+            try {
+                const response = await fetch('?handler=DescargarTemplate');
+
+                if (!response.ok) {
+                    throw new Error('Error al descargar el template');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Template_Codigos_CABYS.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Descarga iniciada',
+                    text: 'El template se está descargando',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Error al descargar el template', 'error');
+            }
+        }
+    </script>
+}

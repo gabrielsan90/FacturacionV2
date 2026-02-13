@@ -1,0 +1,511 @@
+@page
+@model Facturacion.Frontend.Pages.ActivosFijos.CategoriasActivoModel
+@{
+    ViewData["Title"] = "Categorías de Activos";
+    ViewData["Breadcrumb"] = "Categorías de Activos";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-tags"></i> Categorías de Activos Fijos</h2>
+            <p class="mb-0">Configuración de categorías con cuentas contables y parámetros de depreciación</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nueva Categoría
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Categorías de Activos</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotalCategorias">0</span>
+            </div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-success" onclick="descargarPlantilla()" title="Descargar plantilla Excel">
+                    <i class="fas fa-download"></i> Plantilla
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="$('#fileImport').click()" title="Importar desde Excel">
+                    <i class="fas fa-file-import"></i> Importar
+                </button>
+                <input type="file" id="fileImport" accept=".xlsx,.xls" style="display:none;" onchange="importarExcel(this)" />
+                <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableCategoriasLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando categorías...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableCategoriasContainer" style="display: none;">
+            <table id="tableCategorias" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Cuenta Activo</th>
+                        <th>Cuenta Depreciación</th>
+                        <th>Cuenta Gasto</th>
+                        <th>Vida Útil</th>
+                        <th>% Anual</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateCategorias" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-tags"></i>
+            </div>
+            <h3 class="empty-state-title">No hay categorías registradas</h3>
+            <p class="empty-state-description">Crea categorías para clasificar tus activos fijos</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Categoría
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalCategoria" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-tags me-2"></i>Nueva Categoría de Activo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCategoria">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Categoria_Id" value="0" />
+
+                    <!-- Información General -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Información General</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Categoria_Codigo" maxlength="20" required />
+                            <div class="invalid-feedback">El código es obligatorio.</div>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Categoria_Nombre" maxlength="100" required />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="Categoria_Descripcion" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas Contables -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-calculator me-2"></i>Cuentas Contables</h6>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cuenta de Activo</label>
+                            <input type="text" class="form-control" id="Categoria_CuentaActivo" maxlength="20" placeholder="Ej: 1-01-01-001" />
+                            <small class="text-muted">Cuenta contable para el activo fijo</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cuenta de Depreciación Acumulada</label>
+                            <input type="text" class="form-control" id="Categoria_CuentaDepreciacionAcumulada" maxlength="20" placeholder="Ej: 1-01-01-002" />
+                            <small class="text-muted">Cuenta para acumular la depreciación</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cuenta de Gasto por Depreciación</label>
+                            <input type="text" class="form-control" id="Categoria_CuentaGastoDepreciacion" maxlength="20" placeholder="Ej: 5-01-01-001" />
+                            <small class="text-muted">Cuenta de gasto para registrar la depreciación del período</small>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Parámetros de Depreciación -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-chart-line me-2"></i>Parámetros de Depreciación por Defecto</h6>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Vida Útil (Años) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Categoria_VidaUtilAnios" min="1" max="100" value="5" required />
+                            <div class="invalid-feedback">La vida útil es obligatoria.</div>
+                            <small class="text-muted">Años estimados de uso del activo</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Porcentaje Anual (%) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Categoria_PorcentajeDepreciacionAnual" step="0.01" min="0" max="100" value="20" required />
+                            <div class="invalid-feedback">El porcentaje es obligatorio.</div>
+                            <small class="text-muted">Porcentaje de depreciación anual</small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Estos valores se aplicarán por defecto a los nuevos activos de esta categoría, pero pueden modificarse individualmente.
+                    </div>
+
+                    <hr />
+
+                    <!-- Estado -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Categoria_Activo" checked />
+                                <label class="form-check-label" for="Categoria_Activo">
+                                    Categoría Activa
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        setupEventHandlers();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableCategorias', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableCategoriasLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalCategorias').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableCategoriasContainer').show();
+                        $('#emptyStateCategorias').hide();
+                    } else {
+                        $('#tableCategoriasContainer').hide();
+                        $('#emptyStateCategorias').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableCategoriasLoader').hide();
+                    $('#tableCategoriasContainer').hide();
+                    $('#emptyStateCategorias').show();
+                    $('#badgeTotalCategorias').text('0');
+                    console.error('Error loading categorias:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'cuentaActivo',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'cuentaDepreciacionAcumulada',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'cuentaGastoDepreciacion',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'vidaUtilAnios',
+                    render: function(data) {
+                        return data + ' años';
+                    }
+                },
+                {
+                    data: 'porcentajeDepreciacionAnual',
+                    render: function(data) {
+                        return data.toFixed(2) + '%';
+                    }
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activa</span>'
+                            : '<span class="badge bg-secondary">Inactiva</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}', '${row.nombre}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formCategoria').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupEventHandlers() {
+        // Auto-calculate percentage when vida util changes
+        $('#Categoria_VidaUtilAnios').on('change', function() {
+            const vidaUtil = parseFloat($(this).val());
+            if (vidaUtil > 0) {
+                const porcentaje = (100 / vidaUtil).toFixed(2);
+                $('#Categoria_PorcentajeDepreciacionAnual').val(porcentaje);
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formCategoria')[0].reset();
+        $('#formCategoria').removeClass('was-validated');
+        $('#Categoria_Id').val('0');
+        $('#Categoria_Activo').prop('checked', true);
+        $('#Categoria_VidaUtilAnios').val('5');
+        $('#Categoria_PorcentajeDepreciacionAnual').val('20.00');
+        $('#modalTitle').text('Nueva Categoría de Activo');
+        $('#modalCategoria').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                if (data && !data.error) {
+                    $('#Categoria_Id').val(data.id);
+                    $('#Categoria_Codigo').val(data.codigo);
+                    $('#Categoria_Nombre').val(data.nombre);
+                    $('#Categoria_Descripcion').val(data.descripcion || '');
+                    $('#Categoria_CuentaActivo').val(data.cuentaActivo || '');
+                    $('#Categoria_CuentaDepreciacionAcumulada').val(data.cuentaDepreciacionAcumulada || '');
+                    $('#Categoria_CuentaGastoDepreciacion').val(data.cuentaGastoDepreciacion || '');
+                    $('#Categoria_VidaUtilAnios').val(data.vidaUtilAnios);
+                    $('#Categoria_PorcentajeDepreciacionAnual').val(data.porcentajeDepreciacionAnual);
+                    $('#Categoria_Activo').prop('checked', data.activo);
+                    $('#modalTitle').text('Editar Categoría de Activo');
+                    $('#formCategoria').removeClass('was-validated');
+                    $('#modalCategoria').modal('show');
+                } else {
+                    showError('Error al cargar la categoría');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function save() {
+        const data = {
+            id: $('#Categoria_Id').val() || '00000000-0000-0000-0000-000000000000',
+            codigo: $('#Categoria_Codigo').val(),
+            nombre: $('#Categoria_Nombre').val(),
+            descripcion: $('#Categoria_Descripcion').val() || null,
+            cuentaActivo: $('#Categoria_CuentaActivo').val() || null,
+            cuentaDepreciacionAcumulada: $('#Categoria_CuentaDepreciacionAcumulada').val() || null,
+            cuentaGastoDepreciacion: $('#Categoria_CuentaGastoDepreciacion').val() || null,
+            vidaUtilAnios: parseInt($('#Categoria_VidaUtilAnios').val()),
+            porcentajeDepreciacionAnual: parseFloat($('#Categoria_PorcentajeDepreciacionAnual').val()),
+            activo: $('#Categoria_Activo').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalCategoria').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar la categoría');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id, nombre) {
+        confirmDelete(`¿Está seguro de eliminar la categoría "${nombre}"?`, function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar la categoría');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        $('#tableCategoriasLoader').show();
+        $('#tableCategoriasContainer').hide();
+        $('#emptyStateCategorias').hide();
+        table.ajax.reload();
+    }
+
+    function descargarPlantilla() {
+        window.location.href = '?handler=Plantilla';
+    }
+
+    function importarExcel(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            Swal.fire({
+                title: 'Importando...',
+                html: 'Por favor espere mientras se procesan los datos.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '?handler=Importar',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        let message = response.message;
+                        if (response.totalImportados > 0) {
+                            message += `<br><br><strong>Importados:</strong> ${response.totalImportados}`;
+                        }
+                        if (response.totalErrores > 0) {
+                            message += `<br><strong>Errores:</strong> ${response.totalErrores}`;
+                            if (response.errores && response.errores.length > 0) {
+                                message += '<br><br><strong>Detalle de errores:</strong><ul class="text-start small">';
+                                response.errores.slice(0, 10).forEach(function(err) {
+                                    message += `<li>${err}</li>`;
+                                });
+                                if (response.errores.length > 10) {
+                                    message += `<li>... y ${response.errores.length - 10} errores más</li>`;
+                                }
+                                message += '</ul>';
+                            }
+                        }
+                        Swal.fire({
+                            icon: response.totalErrores > 0 ? 'warning' : 'success',
+                            title: response.totalErrores > 0 ? 'Importación con advertencias' : 'Importación exitosa',
+                            html: message
+                        });
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al importar los datos');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    handleAjaxError(xhr);
+                },
+                complete: function() {
+                    input.value = '';
+                }
+            });
+        }
+    }
+
+    window.openCreateModal = openCreateModal;
+    window.edit = edit;
+    window.save = save;
+    window.deleteRecord = deleteRecord;
+    window.refrescarTabla = refrescarTabla;
+</script>
+}

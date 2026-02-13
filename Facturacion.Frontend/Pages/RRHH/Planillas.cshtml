@@ -1,0 +1,453 @@
+@page
+@model Facturacion.Frontend.Pages.RRHH.PlanillasModel
+@{
+    ViewData["Title"] = "Planillas";
+    ViewData["Breadcrumb"] = "Planillas";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Planillas</h2>
+            <p class="mb-0">Gestión de planillas de pago</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Generar nueva planilla">
+            <i class="fas fa-plus me-2"></i>Generar Planilla
+        </button>
+    </div>
+</div>
+
+<!-- Planillas Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Planillas</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalPlanillas">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tablePlanillasLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando planillas...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tablePlanillasContainer" style="display:none;">
+            <table id="tablePlanillas" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Período</th>
+                        <th>Tipo</th>
+                        <th>Empleados</th>
+                        <th>Total Bruto</th>
+                        <th>Total Deducciones</th>
+                        <th>Total Neto</th>
+                        <th>Estado</th>
+                        <th style="width: 150px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStatePlanillas" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <h3 class="empty-state-title">No hay planillas registradas</h3>
+            <p class="empty-state-description">Comienza generando tu primera planilla</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Generar Primera Planilla
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create -->
+<div class="modal fade" id="modalPlanilla" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Generar Nueva Planilla</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPlanilla" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Año <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Planilla_Anio" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Mes <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Planilla_Mes" required>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Período <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Planilla_Periodo" required>
+                                <option value="1">Primera Quincena</option>
+                                <option value="2">Segunda Quincena</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Planilla_TipoPlanilla" required>
+                                <option value="ORD">Ordinaria</option>
+                                <option value="EXT">Extraordinaria</option>
+                                <option value="AGU">Aguinaldo</option>
+                                <option value="LIQ">Liquidación</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" class="form-control" id="Planilla_Descripcion" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Inicio <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Planilla_FechaInicio" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Planilla_FechaFin" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-calculator me-1"></i> Generar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Details -->
+<div class="modal fade" id="modalDetallePlanilla" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Detalle de Planilla</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detallesPlanillaContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        setDefaultDates();
+    });
+
+    function setDefaultDates() {
+        const today = new Date();
+        $('#Planilla_Anio').val(today.getFullYear());
+        $('#Planilla_Mes').val(today.getMonth() + 1);
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tablePlanillas', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tablePlanillasLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalPlanillas').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tablePlanillasContainer').show();
+                        $('#emptyStatePlanillas').hide();
+                    } else {
+                        $('#tablePlanillasContainer').hide();
+                        $('#emptyStatePlanillas').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tablePlanillasLoader').hide();
+                    $('#tablePlanillasContainer').hide();
+                    $('#emptyStatePlanillas').show();
+                    $('#badgeTotalPlanillas').text('0');
+                }
+            },
+            columns: [
+                {
+                    data: null,
+                    render: function(data) {
+                        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                        return `${meses[data.mes - 1]} ${data.anio} - P${data.periodo}`;
+                    }
+                },
+                {
+                    data: 'tipoPlanilla',
+                    render: function(data) {
+                        const tipos = {
+                            'ORD': '<span class="badge bg-primary">Ordinaria</span>',
+                            'EXT': '<span class="badge bg-info">Extraordinaria</span>',
+                            'AGU': '<span class="badge bg-success">Aguinaldo</span>',
+                            'LIQ': '<span class="badge bg-warning">Liquidación</span>'
+                        };
+                        return tipos[data] || data;
+                    }
+                },
+                {
+                    data: 'detalles',
+                    render: function(data) {
+                        const count = data ? data.length : 0;
+                        return `<span class="badge bg-info">${count}</span>`;
+                    }
+                },
+                {
+                    data: 'totalSalarioBruto',
+                    render: function(data) {
+                        return '₡' + parseFloat(data).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                },
+                {
+                    data: 'totalDeducciones',
+                    render: function(data) {
+                        return '₡' + parseFloat(data).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                },
+                {
+                    data: 'totalSalarioNeto',
+                    render: function(data) {
+                        return '<strong>₡' + parseFloat(data).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong>';
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'BOR': '<span class="badge bg-secondary">Borrador</span>',
+                            'CAL': '<span class="badge bg-info">Calculada</span>',
+                            'APR': '<span class="badge bg-success">Aprobada</span>',
+                            'PAG': '<span class="badge bg-primary">Pagada</span>',
+                            'ANU': '<span class="badge bg-danger">Anulada</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="viewDetails('${data}')" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formPlanilla').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formPlanilla')[0].reset();
+        $('#formPlanilla').removeClass('was-validated');
+        setDefaultDates();
+        $('#Planilla_TipoPlanilla').val('ORD');
+        $('#Planilla_Periodo').val('1');
+        $('#modalPlanilla').modal('show');
+    }
+
+    function save() {
+        const planillaData = {
+            empresaId: empresaId,
+            anio: parseInt($('#Planilla_Anio').val()),
+            mes: parseInt($('#Planilla_Mes').val()),
+            periodo: parseInt($('#Planilla_Periodo').val()),
+            tipoPlanilla: $('#Planilla_TipoPlanilla').val(),
+            descripcion: $('#Planilla_Descripcion').val() || null,
+            fechaInicio: $('#Planilla_FechaInicio').val(),
+            fechaFin: $('#Planilla_FechaFin').val()
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(planillaData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalPlanilla').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function viewDetails(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    renderDetallePlanilla(response.data);
+                    $('#modalDetallePlanilla').modal('show');
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            }
+        });
+    }
+
+    function renderDetallePlanilla(planilla) {
+        const detalles = planilla.detalles || [];
+        let html = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Período:</strong> ${planilla.anio}-${String(planilla.mes).padStart(2, '0')} P${planilla.periodo}
+                </div>
+                <div class="col-md-6">
+                    <strong>Estado:</strong> ${planilla.estadoDescripcion || planilla.estado}
+                </div>
+            </div>
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Salario Bruto</th>
+                        <th>Deducciones</th>
+                        <th>Salario Neto</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        detalles.forEach(d => {
+            html += `
+                <tr>
+                    <td>${d.empleado ? d.empleado.nombreCompleto : '-'}</td>
+                    <td>₡${parseFloat(d.salarioBruto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</td>
+                    <td>₡${parseFloat(d.totalDeducciones).toLocaleString('es-CR', {minimumFractionDigits: 2})}</td>
+                    <td><strong>₡${parseFloat(d.salarioNeto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</strong></td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th>TOTALES</th>
+                        <th>₡${parseFloat(planilla.totalSalarioBruto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</th>
+                        <th>₡${parseFloat(planilla.totalDeducciones).toLocaleString('es-CR', {minimumFractionDigits: 2})}</th>
+                        <th><strong>₡${parseFloat(planilla.totalSalarioNeto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</strong></th>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+
+        $('#detallesPlanillaContent').html(html);
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        $('#tablePlanillasLoader').show();
+        $('#tablePlanillasContainer').hide();
+        $('#emptyStatePlanillas').hide();
+        table.ajax.reload();
+    }
+</script>
+}

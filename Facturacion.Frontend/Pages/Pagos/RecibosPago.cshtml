@@ -1,0 +1,1019 @@
+@page
+@model Facturacion.Frontend.Pages.Pagos.RecibosPagoModel
+@{
+    ViewData["Title"] = "Recibos Electrónicos de Pago (REP) - Hacienda v4.4";
+    ViewData["Breadcrumb"] = "Recibos de Pago";
+}
+
+<form method="post">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="container-fluid">
+    <!-- Header with Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-money-check-alt"></i> Recibos Electrónicos de Pago (REP)</h2>
+            <p class="text-muted">
+                Gestión de pagos recibidos sobre ventas a crédito - Nuevo en v4.4
+            </p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4" id="statsCards">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Por Cobrar
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="statTotalPorCobrar">
+                                ₡0.00
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Docs. Al Día
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="statDocsAlDia">
+                                0
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Docs. Vencidos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="statDocsVencidos">
+                                0
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Monto Vencido
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="statMontoVencido">
+                                ₡0.00
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-times fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-3" id="repTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button" role="tab">
+                <i class="fas fa-clock"></i> Documentos Pendientes
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="recibos-tab" data-bs-toggle="tab" data-bs-target="#recibos" type="button" role="tab">
+                <i class="fas fa-receipt"></i> Recibos Generados
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="repTabsContent">
+        <!-- Documentos Pendientes Tab -->
+        <div class="tab-pane fade show active" id="pendientes" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list"></i> Documentos Pendientes de Pago (Cuentas por Cobrar)
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadDocumentosPendientes()">
+                                <i class="fas fa-sync"></i> Actualizar
+                            </button>
+                            <div class="form-check form-switch d-inline-block ms-3">
+                                <input class="form-check-input" type="checkbox" id="filtroSoloVencidos">
+                                <label class="form-check-label" for="filtroSoloVencidos">
+                                    Solo Vencidos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table id="tablePendientes" class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Consecutivo</th>
+                                <th>Tipo</th>
+                                <th>Cliente</th>
+                                <th>Fecha Emisión</th>
+                                <th>Vencimiento</th>
+                                <th>Total</th>
+                                <th>Pagado</th>
+                                <th>Saldo</th>
+                                <th>Estado</th>
+                                <th style="width: 120px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recibos Generados Tab -->
+        <div class="tab-pane fade" id="recibos" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-receipt"></i> Recibos Electrónicos de Pago Generados
+                        </h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadRecibosGenerados()">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table id="tableRecibos" class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Consecutivo REP</th>
+                                <th>Clave REP</th>
+                                <th>Doc. Original</th>
+                                <th>Cliente</th>
+                                <th>Fecha Pago</th>
+                                <th>Monto Pagado</th>
+                                <th>Saldo Restante</th>
+                                <th>Estado</th>
+                                <th style="width: 120px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Generar REP -->
+<div class="modal fade" id="modalGenerarREP" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-money-check-alt"></i> Generar Recibo Electrónico de Pago
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formGenerarREP">
+                <div class="modal-body">
+                    <input type="hidden" id="REP_DocumentoOriginalId" />
+
+                    <!-- Información del Documento Original -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="fas fa-info-circle"></i> Documento a Pagar</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Consecutivo:</strong> <span id="REP_Info_Consecutivo">-</span><br>
+                                <strong>Cliente:</strong> <span id="REP_Info_Cliente">-</span><br>
+                                <strong>Fecha Emisión:</strong> <span id="REP_Info_FechaEmision">-</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Total Venta:</strong> <span id="REP_Info_Total">-</span><br>
+                                <strong>Total Pagado:</strong> <span id="REP_Info_Pagado">-</span><br>
+                                <strong>Saldo Pendiente:</strong> <span id="REP_Info_Saldo" class="fw-bold text-danger">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos del Pago -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-money-bill-wave"></i> Datos del Pago</h6>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha de Pago <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="REP_FechaPago" required />
+                            <div class="invalid-feedback">La fecha de pago es obligatoria.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Monto a Pagar <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="REP_MontoPagado"
+                                       min="0.01" step="0.01" required />
+                                <button class="btn btn-outline-secondary" type="button"
+                                        onclick="pagarSaldoCompleto()" title="Pagar saldo completo">
+                                    <i class="fas fa-percentage"></i> Total
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">El monto debe ser mayor a cero.</div>
+                        </div>
+                    </div>
+
+                    <!-- Medios de Pago -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-credit-card"></i> Medios de Pago</h6>
+
+                    <div id="mediosPagoContainer">
+                        <div class="medio-pago-item border rounded p-3 mb-2" data-index="0">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label">Medio de Pago <span class="text-danger">*</span></label>
+                                    <select class="form-select medio-pago-select" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="01">01 - Efectivo</option>
+                                        <option value="02">02 - Tarjeta</option>
+                                        <option value="03">03 - Cheque</option>
+                                        <option value="04">04 - Transferencia</option>
+                                        <option value="05">05 - Recaudado por terceros</option>
+                                        <option value="06">06 - SINPE Móvil</option>
+                                        <option value="99">99 - Otros</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label">Monto <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control medio-pago-monto"
+                                           min="0.01" step="0.01" required />
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label">Referencia</label>
+                                    <input type="text" class="form-control medio-pago-ref"
+                                           maxlength="100" placeholder="Núm. autorización, cheque, etc." />
+                                </div>
+                                <div class="col-md-1 mb-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-danger w-100"
+                                            onclick="eliminarMedioPago(0)" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="agregarMedioPago()">
+                        <i class="fas fa-plus"></i> Agregar Medio de Pago
+                    </button>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Nota:</strong> La suma de los medios de pago debe coincidir con el monto total a pagar.
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="REP_Observaciones"
+                                  rows="2" maxlength="500"
+                                  placeholder="Información adicional del pago (opcional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Generar y Enviar REP
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Ver Detalle de Pagos -->
+<div class="modal fade" id="modalDetallePagos" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-list"></i> Detalle de Pagos del Documento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-light">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Consecutivo:</strong><br>
+                                    <span id="Detalle_Consecutivo">-</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Total Venta:</strong><br>
+                                    <span id="Detalle_TotalVenta">-</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Total Pagado:</strong><br>
+                                    <span id="Detalle_TotalPagado" class="text-success">-</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Saldo Pendiente:</strong><br>
+                                    <span id="Detalle_SaldoPendiente" class="text-danger">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="text-primary mb-3">Historial de Pagos (REPs)</h6>
+                <table id="tableDetallePagos" class="table table-bordered table-sm">
+                    <thead>
+                        <tr>
+                            <th>Fecha Pago</th>
+                            <th>Consecutivo REP</th>
+                            <th>Clave REP</th>
+                            <th>Monto Pagado</th>
+                            <th>Saldo Restante</th>
+                            <th>Medios de Pago</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detallesPagosBody"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Ver XML del REP -->
+<div class="modal fade" id="modalVerXML" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-code"></i> XML del Recibo Electrónico de Pago
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <button class="btn btn-sm btn-primary" onclick="copiarXML()">
+                        <i class="fas fa-copy"></i> Copiar XML
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="descargarXML()">
+                        <i class="fas fa-download"></i> Descargar XML
+                    </button>
+                </div>
+                <pre id="xmlContent" class="bg-dark text-light p-3" style="max-height: 500px; overflow-y: auto;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let tablePendientes, tableRecibos;
+    let documentoSeleccionado = null;
+    let medioPagoCounter = 1;
+    let empresaId = '@Model.EmpresaId';
+    let terminalId = '@Model.TerminalId';
+
+    $(document).ready(function() {
+        // Initialize
+        loadDataTables();
+        loadEstadisticas();
+        setupFormSubmit();
+        setupEventHandlers();
+
+        // Set today's date as default
+        const today = new Date().toISOString().split('T')[0];
+        $('#REP_FechaPago').val(today);
+    });
+
+    function loadDataTables() {
+        // Documentos Pendientes Table
+        tablePendientes = initDataTable('#tablePendientes', {
+            ajax: {
+                url: '?handler=DocumentosPendientes',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(d) {
+                    d.soloVencidos = $('#filtroSoloVencidos').is(':checked');
+                },
+                dataSrc: ''
+            },
+            columns: [
+                { data: 'numeroConsecutivo' },
+                {
+                    data: 'tipoDocumento',
+                    render: function(data) {
+                        const tipos = {
+                            'FacturaElectronica': '<span class="badge bg-primary">FE</span>',
+                            'TiqueteElectronico': '<span class="badge bg-info">TE</span>',
+                            'FacturaElectronicaExportacion': '<span class="badge bg-success">FEE</span>'
+                        };
+                        return tipos[data] || data;
+                    }
+                },
+                { data: 'clienteNombre' },
+                {
+                    data: 'fechaEmision',
+                    render: function(data) {
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'fechaVencimiento',
+                    render: function(data, type, row) {
+                        if (!data) return '<span class="text-muted">N/A</span>';
+                        const fechaVenc = new Date(data);
+                        const diasVencido = row.diasVencido;
+                        let badge = diasVencido > 0 ? 'bg-danger' : 'bg-success';
+                        return `<span class="badge ${badge}">${fechaVenc.toLocaleDateString('es-CR')}</span>`;
+                    }
+                },
+                {
+                    data: 'totalVenta',
+                    render: function(data, type, row) {
+                        return formatCurrency(data, row.moneda);
+                    }
+                },
+                {
+                    data: 'totalPagado',
+                    render: function(data, type, row) {
+                        return formatCurrency(data, row.moneda);
+                    }
+                },
+                {
+                    data: 'saldoPendiente',
+                    render: function(data, type, row) {
+                        return `<strong class="text-danger">${formatCurrency(data, row.moneda)}</strong>`;
+                    }
+                },
+                {
+                    data: 'diasVencido',
+                    render: function(data) {
+                        if (data > 0) {
+                            return `<span class="badge bg-danger">${data} días vencido</span>`;
+                        } else if (data === 0) {
+                            return '<span class="badge bg-warning">Vence hoy</span>';
+                        } else {
+                            return '<span class="badge bg-success">Al día</span>';
+                        }
+                    }
+                },
+                {
+                    data: 'documentoId',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-primary" onclick="openGenerarREPModal('${data}')" title="Generar REP">
+                                <i class="fas fa-money-check-alt"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="verDetallePagos('${data}')" title="Ver pagos">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[4, 'asc']] // Order by fecha vencimiento
+        });
+
+        // Recibos Generados Table
+        tableRecibos = initDataTable('#tableRecibos', {
+            ajax: {
+                url: '?handler=RecibosGenerados',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: ''
+            },
+            columns: [
+                { data: 'numeroConsecutivoREP' },
+                {
+                    data: 'claveREP',
+                    render: function(data) {
+                        return `<small>${data}</small>`;
+                    }
+                },
+                { data: 'numeroConsecutivoOriginal' },
+                { data: 'clienteNombre' },
+                {
+                    data: 'fechaPago',
+                    render: function(data) {
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'montoPagado',
+                    render: function(data, type, row) {
+                        return formatCurrency(data, row.moneda);
+                    }
+                },
+                {
+                    data: 'saldoPendiente',
+                    render: function(data, type, row) {
+                        return formatCurrency(data, row.moneda);
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'Aceptado': '<span class="badge bg-success">Aceptado</span>',
+                            'Procesando': '<span class="badge bg-warning">Procesando</span>',
+                            'Rechazado': '<span class="badge bg-danger">Rechazado</span>',
+                            'Pendiente': '<span class="badge bg-secondary">Pendiente</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: 'documentoREPId',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-secondary" onclick="verXMLREP('${data}')" title="Ver XML">
+                                <i class="fas fa-code"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="descargarPDF('${data}')" title="Descargar PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[4, 'desc']] // Order by fecha pago desc
+        });
+    }
+
+    function setupEventHandlers() {
+        // Filtro solo vencidos
+        $('#filtroSoloVencidos').on('change', function() {
+            tablePendientes.ajax.reload();
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formGenerarREP').on('submit', function(e) {
+            e.preventDefault();
+
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                $(this).addClass('was-validated');
+                return;
+            }
+
+            generarREP();
+        });
+    }
+
+    async function loadEstadisticas() {
+        try {
+            const response = await fetch(`?handler=Estadisticas&empresaId=${empresaId}`, {
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (response.ok) {
+                const stats = await response.json();
+
+                $('#statTotalPorCobrar').text(formatCurrency(stats.totalPorCobrar, 'CRC'));
+                $('#statDocsAlDia').text(stats.documentosAlDia);
+                $('#statDocsVencidos').text(stats.documentosVencidos);
+                $('#statMontoVencido').text(formatCurrency(stats.montoVencido, 'CRC'));
+            }
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+        }
+    }
+
+    async function openGenerarREPModal(documentoId) {
+        try {
+            // Obtener detalles del documento
+            const response = await fetch(`?handler=DocumentoDetalle&documentoId=${documentoId}`, {
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al obtener documento');
+            }
+
+            const doc = await response.json();
+            documentoSeleccionado = doc;
+
+            // Llenar información del documento
+            $('#REP_DocumentoOriginalId').val(doc.documentoId);
+            $('#REP_Info_Consecutivo').text(doc.numeroConsecutivo);
+            $('#REP_Info_Cliente').text(doc.clienteNombre);
+            $('#REP_Info_FechaEmision').text(new Date(doc.fechaEmision).toLocaleDateString('es-CR'));
+            $('#REP_Info_Total').text(formatCurrency(doc.totalVenta, doc.moneda));
+            $('#REP_Info_Pagado').text(formatCurrency(doc.totalPagado, doc.moneda));
+            $('#REP_Info_Saldo').text(formatCurrency(doc.saldoPendiente, doc.moneda));
+
+            // Reset form
+            $('#formGenerarREP')[0].reset();
+            $('#formGenerarREP').removeClass('was-validated');
+            $('#REP_MontoPagado').val(doc.saldoPendiente.toFixed(2));
+
+            // Reset medios de pago
+            $('#mediosPagoContainer').html(`
+                <div class="medio-pago-item border rounded p-3 mb-2" data-index="0">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Medio de Pago <span class="text-danger">*</span></label>
+                            <select class="form-select medio-pago-select" required>
+                                <option value="">Seleccione...</option>
+                                <option value="01" selected>01 - Efectivo</option>
+                                <option value="02">02 - Tarjeta</option>
+                                <option value="03">03 - Cheque</option>
+                                <option value="04">04 - Transferencia</option>
+                                <option value="05">05 - Recaudado por terceros</option>
+                                <option value="06">06 - SINPE Móvil</option>
+                                <option value="99">99 - Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Monto <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control medio-pago-monto"
+                                   value="${doc.saldoPendiente.toFixed(2)}" min="0.01" step="0.01" required />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Referencia</label>
+                            <input type="text" class="form-control medio-pago-ref"
+                                   maxlength="100" placeholder="Núm. autorización, cheque, etc." />
+                        </div>
+                        <div class="col-md-1 mb-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger w-100"
+                                    onclick="eliminarMedioPago(0)" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+            medioPagoCounter = 1;
+
+            // Set default date
+            const today = new Date().toISOString().split('T')[0];
+            $('#REP_FechaPago').val(today);
+
+            // Show modal
+            new bootstrap.Modal(document.getElementById('modalGenerarREP')).show();
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar la información del documento', 'error');
+        }
+    }
+
+    function pagarSaldoCompleto() {
+        if (documentoSeleccionado) {
+            const saldo = documentoSeleccionado.saldoPendiente;
+            $('#REP_MontoPagado').val(saldo.toFixed(2));
+
+            // Update first medio pago
+            $('.medio-pago-monto').first().val(saldo.toFixed(2));
+        }
+    }
+
+    function agregarMedioPago() {
+        const index = medioPagoCounter++;
+        const html = `
+            <div class="medio-pago-item border rounded p-3 mb-2" data-index="${index}">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Medio de Pago <span class="text-danger">*</span></label>
+                        <select class="form-select medio-pago-select" required>
+                            <option value="">Seleccione...</option>
+                            <option value="01">01 - Efectivo</option>
+                            <option value="02">02 - Tarjeta</option>
+                            <option value="03">03 - Cheque</option>
+                            <option value="04">04 - Transferencia</option>
+                            <option value="05">05 - Recaudado por terceros</option>
+                            <option value="06">06 - SINPE Móvil</option>
+                            <option value="99">99 - Otros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label">Monto <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control medio-pago-monto"
+                               min="0.01" step="0.01" required />
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Referencia</label>
+                        <input type="text" class="form-control medio-pago-ref"
+                               maxlength="100" placeholder="Núm. autorización, cheque, etc." />
+                    </div>
+                    <div class="col-md-1 mb-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-danger w-100"
+                                onclick="eliminarMedioPago(${index})" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#mediosPagoContainer').append(html);
+    }
+
+    function eliminarMedioPago(index) {
+        const items = $('.medio-pago-item');
+        if (items.length === 1) {
+            Swal.fire('Advertencia', 'Debe tener al menos un medio de pago', 'warning');
+            return;
+        }
+        $(`.medio-pago-item[data-index="${index}"]`).remove();
+    }
+
+    async function generarREP() {
+        try {
+            // Recolectar medios de pago
+            const mediosPago = [];
+            $('.medio-pago-item').each(function() {
+                const codigo = $(this).find('.medio-pago-select').val();
+                const monto = parseFloat($(this).find('.medio-pago-monto').val());
+                const referencia = $(this).find('.medio-pago-ref').val();
+
+                if (codigo && monto > 0) {
+                    mediosPago.push({
+                        codigoMedioPago: codigo,
+                        monto: monto,
+                        numeroReferencia: referencia || null
+                    });
+                }
+            });
+
+            // Validar que haya al menos un medio de pago
+            if (mediosPago.length === 0) {
+                Swal.fire('Error', 'Debe agregar al menos un medio de pago', 'error');
+                return;
+            }
+
+            // Validar suma de medios de pago
+            const montoPagado = parseFloat($('#REP_MontoPagado').val());
+            const sumaMedios = mediosPago.reduce((sum, m) => sum + m.monto, 0);
+
+            if (Math.abs(sumaMedios - montoPagado) > 0.01) {
+                Swal.fire('Error',
+                    `La suma de los medios de pago (${formatCurrency(sumaMedios, 'CRC')}) no coincide con el monto a pagar (${formatCurrency(montoPagado, 'CRC')})`,
+                    'error');
+                return;
+            }
+
+            // Preparar datos del REP
+            const repData = {
+                documentoOriginalId: $('#REP_DocumentoOriginalId').val(),
+                fechaPago: $('#REP_FechaPago').val(),
+                montoPagado: montoPagado,
+                moneda: documentoSeleccionado.moneda,
+                tipoCambio: documentoSeleccionado.tipoCambio || null,
+                observaciones: $('#REP_Observaciones').val() || null,
+                mediosPago: mediosPago
+            };
+
+            // Mostrar loading
+            Swal.fire({
+                title: 'Generando REP...',
+                html: 'Generando XML, firmando y enviando a Hacienda...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Enviar a la API
+            const response = await fetch(`?handler=GenerarREP&empresaId=${empresaId}&terminalId=${terminalId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                body: JSON.stringify(repData)
+            });
+
+            const result = await response.json();
+
+            if (result.exitoso) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'REP Generado',
+                    html: `
+                        <p>${result.mensaje}</p>
+                        <p><strong>Clave REP:</strong> <small>${result.claveREP}</small></p>
+                        <p><strong>Monto Pagado:</strong> ${formatCurrency(result.montoPagado, 'CRC')}</p>
+                        <p><strong>Saldo Restante:</strong> ${formatCurrency(result.saldoPendiente, 'CRC')}</p>
+                    `,
+                    confirmButtonText: 'Aceptar'
+                });
+
+                // Cerrar modal y recargar tablas
+                bootstrap.Modal.getInstance(document.getElementById('modalGenerarREP')).hide();
+                tablePendientes.ajax.reload();
+                tableRecibos.ajax.reload();
+                loadEstadisticas();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al Generar REP',
+                    html: `
+                        <p>${result.mensaje}</p>
+                        ${result.errores && result.errores.length > 0 ?
+                            '<ul class="text-start">' + result.errores.map(e => '<li>' + e + '</li>').join('') + '</ul>'
+                            : ''}
+                    `
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Ocurrió un error al generar el REP: ' + error.message, 'error');
+        }
+    }
+
+    async function verDetallePagos(documentoId) {
+        try {
+            const response = await fetch(`?handler=DetallePagos&documentoId=${documentoId}`, {
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al obtener detalle');
+            }
+
+            const detalle = await response.json();
+
+            // Llenar resumen
+            $('#Detalle_Consecutivo').text(detalle.numeroConsecutivo);
+            $('#Detalle_TotalVenta').text(formatCurrency(detalle.totalVenta, 'CRC'));
+            $('#Detalle_TotalPagado').text(formatCurrency(detalle.totalPagado, 'CRC'));
+            $('#Detalle_SaldoPendiente').text(formatCurrency(detalle.saldoPendiente, 'CRC'));
+
+            // Llenar tabla de pagos
+            const tbody = $('#detallesPagosBody');
+            tbody.empty();
+
+            if (detalle.pagos && detalle.pagos.length > 0) {
+                detalle.pagos.forEach(pago => {
+                    const row = `
+                        <tr>
+                            <td>${new Date(pago.fechaPago).toLocaleDateString('es-CR')}</td>
+                            <td>${pago.numeroConsecutivoREP}</td>
+                            <td><small>${pago.claveREP}</small></td>
+                            <td class="text-end">${formatCurrency(pago.montoPagado, 'CRC')}</td>
+                            <td class="text-end">${formatCurrency(pago.saldoRestante, 'CRC')}</td>
+                            <td>${pago.mediosPago.join(', ')}</td>
+                            <td>${getEstadoBadge(pago.estado)}</td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            } else {
+                tbody.append('<tr><td colspan="7" class="text-center text-muted">No hay pagos registrados</td></tr>');
+            }
+
+            // Show modal
+            new bootstrap.Modal(document.getElementById('modalDetallePagos')).show();
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar el detalle de pagos', 'error');
+        }
+    }
+
+    async function verXMLREP(documentoREPId) {
+        try {
+            const response = await fetch(`?handler=XML&documentoId=${documentoREPId}`, {
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al obtener XML');
+            }
+
+            const data = await response.json();
+            $('#xmlContent').text(data.xml);
+
+            // Store for download
+            window.currentXML = {
+                xml: data.xml,
+                clave: data.clave
+            };
+
+            new bootstrap.Modal(document.getElementById('modalVerXML')).show();
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'No se pudo cargar el XML', 'error');
+        }
+    }
+
+    function copiarXML() {
+        const xml = $('#xmlContent').text();
+        navigator.clipboard.writeText(xml).then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'XML Copiado',
+                text: 'El XML ha sido copiado al portapapeles',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        });
+    }
+
+    function descargarXML() {
+        if (window.currentXML) {
+            const blob = new Blob([window.currentXML.xml], { type: 'text/xml' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `REP_${window.currentXML.clave}.xml`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    }
+
+    async function descargarPDF(documentoREPId) {
+        Swal.fire('Información', 'La generación de PDF estará disponible próximamente', 'info');
+    }
+
+    function loadDocumentosPendientes() {
+        tablePendientes.ajax.reload();
+        loadEstadisticas();
+    }
+
+    function loadRecibosGenerados() {
+        tableRecibos.ajax.reload();
+    }
+
+    function formatCurrency(amount, currency) {
+        const symbol = currency === 'USD' ? '$' : '₡';
+        return `${symbol} ${parseFloat(amount).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function getEstadoBadge(estado) {
+        const estados = {
+            'Aceptado': '<span class="badge bg-success">Aceptado</span>',
+            'Procesando': '<span class="badge bg-warning">Procesando</span>',
+            'Rechazado': '<span class="badge bg-danger">Rechazado</span>',
+            'Pendiente': '<span class="badge bg-secondary">Pendiente</span>'
+        };
+        return estados[estado] || estado;
+    }
+</script>
+}

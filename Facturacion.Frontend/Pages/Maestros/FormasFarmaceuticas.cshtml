@@ -1,0 +1,59 @@
+@page
+@model Facturacion.Frontend.Pages.Maestros.FormasFarmaceuticasModel
+@{
+    ViewData["Title"] = "Formas Farmacéuticas";
+    ViewData["Breadcrumb"] = "Formas Farmacéuticas";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-pills me-2"></i>Formas Farmacéuticas - Catálogo Ministerio de Hacienda
+        </h5>
+        <span class="badge bg-info">Solo Lectura</span>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Este catálogo es proporcionado por el Ministerio de Hacienda de Costa Rica y es de solo lectura.
+            <strong>Obligatorio desde 01/12/2024</strong> para productos farmacéuticos según v4.4 de Facturación Electrónica.
+        </div>
+        <table id="tableFormasFarmaceuticas" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableFormasFarmaceuticas', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'descripcion' }
+            ],
+            order: [[0, 'asc']]
+        });
+    }
+</script>
+}

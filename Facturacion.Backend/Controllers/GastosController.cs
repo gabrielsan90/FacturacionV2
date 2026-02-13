@@ -16,11 +16,13 @@ public class GastosController : ControllerBase
 {
     private readonly IGastoUnitOfWork _unitOfWork;
     private readonly DataContext _context;
+    private readonly ILogger<GastosController> _logger;
 
-    public GastosController(IGastoUnitOfWork unitOfWork, DataContext context)
+    public GastosController(IGastoUnitOfWork unitOfWork, DataContext context, ILogger<GastosController> logger)
     {
         _unitOfWork = unitOfWork;
         _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -29,13 +31,24 @@ public class GastosController : ControllerBase
     [HttpGet("empresa/{empresaId:guid}")]
     public async Task<IActionResult> GetByEmpresaAsync(Guid empresaId)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
-        }
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a gastos de empresa {EmpresaId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
 
-        var gastos = await _unitOfWork.GastoRepository.GetByEmpresaAsync(empresaId);
-        return Ok(gastos);
+            var gastos = await _unitOfWork.GastoRepository.GetByEmpresaAsync(empresaId);
+            _logger.LogInformation("Se obtuvieron {Count} gastos para empresa {EmpresaId}", gastos.Count(), empresaId);
+            return Ok(gastos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener gastos de empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener gastos.");
+        }
     }
 
     /// <summary>
@@ -47,13 +60,25 @@ public class GastosController : ControllerBase
         [FromQuery] DateTime? fechaInicio = null,
         [FromQuery] DateTime? fechaFin = null)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
-        }
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a resumen de gastos de empresa {EmpresaId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
 
-        var resumen = await _unitOfWork.GastoService.GetResumenGastosAsync(empresaId, fechaInicio, fechaFin);
-        return Ok(resumen);
+            var resumen = await _unitOfWork.GastoService.GetResumenGastosAsync(empresaId, fechaInicio, fechaFin);
+            _logger.LogInformation("Resumen de gastos generado para empresa {EmpresaId} (Período: {FechaInicio} - {FechaFin})",
+                empresaId, fechaInicio, fechaFin);
+            return Ok(resumen);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener resumen de gastos de empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener resumen de gastos.");
+        }
     }
 
     /// <summary>
@@ -62,19 +87,30 @@ public class GastosController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetAsync(Guid id)
     {
-        var gasto = await _unitOfWork.GastoRepository.GetAsync(id);
-
-        if (gasto == null)
+        try
         {
-            return NotFound("El gasto no existe.");
-        }
+            var gasto = await _unitOfWork.GastoRepository.GetAsync(id);
 
-        if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
+            if (gasto == null)
+            {
+                _logger.LogWarning("Gasto {GastoId} no encontrado", id);
+                return NotFound("El gasto no existe.");
+            }
+
+            if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a gasto {GastoId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), id);
+                return Forbid();
+            }
+
+            return Ok(gasto);
+        }
+        catch (Exception ex)
         {
-            return Forbid();
+            _logger.LogError(ex, "Error al obtener gasto {GastoId}", id);
+            return StatusCode(500, "Error interno al obtener gasto.");
         }
-
-        return Ok(gasto);
     }
 
     /// <summary>
@@ -83,13 +119,25 @@ public class GastosController : ControllerBase
     [HttpGet("empresa/{empresaId:guid}/pendientes")]
     public async Task<IActionResult> GetPendientesAsync(Guid empresaId)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
-        }
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a gastos pendientes de empresa {EmpresaId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
 
-        var pendientes = await _unitOfWork.GastoRepository.GetPendientesPagoAsync(empresaId);
-        return Ok(pendientes);
+            var pendientes = await _unitOfWork.GastoRepository.GetPendientesPagoAsync(empresaId);
+            _logger.LogInformation("Se obtuvieron {Count} gastos pendientes para empresa {EmpresaId}",
+                pendientes.Count(), empresaId);
+            return Ok(pendientes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener gastos pendientes de empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener gastos pendientes.");
+        }
     }
 
     /// <summary>
@@ -98,15 +146,27 @@ public class GastosController : ControllerBase
     [HttpGet("proveedor/{proveedorId:guid}")]
     public async Task<IActionResult> GetByProveedorAsync(Guid proveedorId)
     {
-        var gastos = await _unitOfWork.GastoRepository.GetByProveedorAsync(proveedorId);
-
-        // Verificar acceso a la empresa del primer gasto
-        if (gastos.Any() && !await TieneAccesoEmpresaAsync(gastos.First().EmpresaId))
+        try
         {
-            return Forbid();
-        }
+            var gastos = await _unitOfWork.GastoRepository.GetByProveedorAsync(proveedorId);
 
-        return Ok(gastos);
+            // Verificar acceso a la empresa del primer gasto
+            if (gastos.Any() && !await TieneAccesoEmpresaAsync(gastos.First().EmpresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a gastos de proveedor {ProveedorId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), proveedorId);
+                return Forbid();
+            }
+
+            _logger.LogInformation("Se obtuvieron {Count} gastos para proveedor {ProveedorId}",
+                gastos.Count(), proveedorId);
+            return Ok(gastos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener gastos de proveedor {ProveedorId}", proveedorId);
+            return StatusCode(500, "Error interno al obtener gastos por proveedor.");
+        }
     }
 
     /// <summary>
@@ -115,15 +175,27 @@ public class GastosController : ControllerBase
     [HttpGet("categoria/{categoriaId:int}")]
     public async Task<IActionResult> GetByCategoriaAsync(int categoriaId)
     {
-        var gastos = await _unitOfWork.GastoRepository.GetByCategoriaAsync(categoriaId);
-
-        // Verificar acceso a la empresa del primer gasto
-        if (gastos.Any() && !await TieneAccesoEmpresaAsync(gastos.First().EmpresaId))
+        try
         {
-            return Forbid();
-        }
+            var gastos = await _unitOfWork.GastoRepository.GetByCategoriaAsync(categoriaId);
 
-        return Ok(gastos);
+            // Verificar acceso a la empresa del primer gasto
+            if (gastos.Any() && !await TieneAccesoEmpresaAsync(gastos.First().EmpresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a gastos de categoría {CategoriaId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), categoriaId);
+                return Forbid();
+            }
+
+            _logger.LogInformation("Se obtuvieron {Count} gastos para categoría {CategoriaId}",
+                gastos.Count(), categoriaId);
+            return Ok(gastos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener gastos de categoría {CategoriaId}", categoriaId);
+            return StatusCode(500, "Error interno al obtener gastos por categoría.");
+        }
     }
 
     /// <summary>
@@ -135,13 +207,25 @@ public class GastosController : ControllerBase
         [FromQuery] DateTime fechaInicio,
         [FromQuery] DateTime fechaFin)
     {
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
-        }
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó acceder a estadísticas de gastos de empresa {EmpresaId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), empresaId);
+                return Forbid();
+            }
 
-        var estadisticas = await _unitOfWork.GastoService.GetEstadisticasAsync(empresaId, fechaInicio, fechaFin);
-        return Ok(estadisticas);
+            var estadisticas = await _unitOfWork.GastoService.GetEstadisticasAsync(empresaId, fechaInicio, fechaFin);
+            _logger.LogInformation("Estadísticas de gastos generadas para empresa {EmpresaId} (Período: {FechaInicio} - {FechaFin})",
+                empresaId, fechaInicio, fechaFin);
+            return Ok(estadisticas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener estadísticas de gastos de empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener estadísticas.");
+        }
     }
 
     /// <summary>
@@ -152,11 +236,14 @@ public class GastosController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Intento de crear gasto con datos inválidos");
             return BadRequest(ModelState);
         }
 
         if (!await TieneAccesoEmpresaAsync(dto.EmpresaId))
         {
+            _logger.LogWarning("Usuario {UserId} intentó crear gasto en empresa {EmpresaId} sin autorización",
+                User.FindFirstValue(ClaimTypes.NameIdentifier), dto.EmpresaId);
             return Forbid();
         }
 
@@ -165,15 +252,20 @@ public class GastosController : ControllerBase
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var gasto = await _unitOfWork.GastoService.CrearGastoAsync(dto, dto.EmpresaId, userId!);
 
-            return CreatedAtAction(nameof(GetAsync), new { id = gasto.Id }, gasto);
+            _logger.LogInformation("Gasto {GastoId} creado exitosamente para empresa {EmpresaId} por usuario {UserId}",
+                gasto.Id, dto.EmpresaId, userId);
+
+            return Ok(gasto);
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Error de validación al crear gasto para empresa {EmpresaId}", dto.EmpresaId);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al crear el gasto: {ex.Message}");
+            _logger.LogError(ex, "Error al crear gasto para empresa {EmpresaId}", dto.EmpresaId);
+            return StatusCode(500, "Error interno al crear el gasto.");
         }
     }
 
@@ -185,17 +277,21 @@ public class GastosController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Intento de actualizar gasto {GastoId} con datos inválidos", id);
             return BadRequest(ModelState);
         }
 
         var gastoExistente = await _unitOfWork.GastoRepository.GetAsync(id);
         if (gastoExistente == null)
         {
+            _logger.LogWarning("Intento de actualizar gasto inexistente {GastoId}", id);
             return NotFound("El gasto no existe.");
         }
 
         if (!await TieneAccesoEmpresaAsync(gastoExistente.EmpresaId))
         {
+            _logger.LogWarning("Usuario {UserId} intentó actualizar gasto {GastoId} sin autorización",
+                User.FindFirstValue(ClaimTypes.NameIdentifier), id);
             return Forbid();
         }
 
@@ -204,15 +300,19 @@ public class GastosController : ControllerBase
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var gasto = await _unitOfWork.GastoService.ActualizarGastoAsync(id, dto, userId!);
 
+            _logger.LogInformation("Gasto {GastoId} actualizado exitosamente por usuario {UserId}", id, userId);
+
             return Ok(gasto);
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Error de validación al actualizar gasto {GastoId}", id);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al actualizar el gasto: {ex.Message}");
+            _logger.LogError(ex, "Error al actualizar gasto {GastoId}", id);
+            return StatusCode(500, "Error interno al actualizar el gasto.");
         }
     }
 
@@ -222,33 +322,40 @@ public class GastosController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {
-        var gasto = await _unitOfWork.GastoRepository.GetAsync(id);
-        if (gasto == null)
-        {
-            return NotFound("El gasto no existe.");
-        }
-
-        if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
-        {
-            return Forbid();
-        }
-
-        // No permitir eliminar gastos aprobados
-        if (gasto.Aprobado)
-        {
-            return BadRequest("No se puede eliminar un gasto aprobado.");
-        }
-
         try
         {
+            var gasto = await _unitOfWork.GastoRepository.GetAsync(id);
+            if (gasto == null)
+            {
+                _logger.LogWarning("Intento de eliminar gasto inexistente {GastoId}", id);
+                return NotFound("El gasto no existe.");
+            }
+
+            if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó eliminar gasto {GastoId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), id);
+                return Forbid();
+            }
+
+            // No permitir eliminar gastos aprobados
+            if (gasto.Aprobado)
+            {
+                _logger.LogWarning("Intento de eliminar gasto aprobado {GastoId}", id);
+                return BadRequest("No se puede eliminar un gasto aprobado.");
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _unitOfWork.GastoRepository.DeleteAsync(id, userId!);
+
+            _logger.LogInformation("Gasto {GastoId} eliminado exitosamente por usuario {UserId}", id, userId);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al eliminar el gasto: {ex.Message}");
+            _logger.LogError(ex, "Error al eliminar gasto {GastoId}", id);
+            return StatusCode(500, "Error interno al eliminar el gasto.");
         }
     }
 
@@ -260,34 +367,43 @@ public class GastosController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Intento de registrar pago con datos inválidos");
             return BadRequest(ModelState);
-        }
-
-        var gasto = await _unitOfWork.GastoRepository.GetAsync(dto.GastoId);
-        if (gasto == null)
-        {
-            return NotFound("El gasto no existe.");
-        }
-
-        if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
-        {
-            return Forbid();
         }
 
         try
         {
+            var gasto = await _unitOfWork.GastoRepository.GetAsync(dto.GastoId);
+            if (gasto == null)
+            {
+                _logger.LogWarning("Intento de registrar pago para gasto inexistente {GastoId}", dto.GastoId);
+                return NotFound("El gasto no existe.");
+            }
+
+            if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó registrar pago para gasto {GastoId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), dto.GastoId);
+                return Forbid();
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var gastoActualizado = await _unitOfWork.GastoService.RegistrarPagoAsync(dto, userId!);
+
+            _logger.LogInformation("Pago de {MontoPago} registrado exitosamente para gasto {GastoId} por usuario {UserId}",
+                dto.MontoPago, dto.GastoId, userId);
 
             return Ok(gastoActualizado);
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Error de validación al registrar pago para gasto {GastoId}", dto.GastoId);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al registrar el pago: {ex.Message}");
+            _logger.LogError(ex, "Error al registrar pago para gasto {GastoId}", dto.GastoId);
+            return StatusCode(500, "Error interno al registrar el pago.");
         }
     }
 
@@ -299,34 +415,43 @@ public class GastosController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
+            _logger.LogWarning("Intento de aprobar/rechazar gasto con datos inválidos");
             return BadRequest(ModelState);
-        }
-
-        var gasto = await _unitOfWork.GastoRepository.GetAsync(dto.GastoId);
-        if (gasto == null)
-        {
-            return NotFound("El gasto no existe.");
-        }
-
-        if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
-        {
-            return Forbid();
         }
 
         try
         {
+            var gasto = await _unitOfWork.GastoRepository.GetAsync(dto.GastoId);
+            if (gasto == null)
+            {
+                _logger.LogWarning("Intento de aprobar/rechazar gasto inexistente {GastoId}", dto.GastoId);
+                return NotFound("El gasto no existe.");
+            }
+
+            if (!await TieneAccesoEmpresaAsync(gasto.EmpresaId))
+            {
+                _logger.LogWarning("Usuario {UserId} intentó aprobar/rechazar gasto {GastoId} sin autorización",
+                    User.FindFirstValue(ClaimTypes.NameIdentifier), dto.GastoId);
+                return Forbid();
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var gastoActualizado = await _unitOfWork.GastoService.AprobarGastoAsync(dto, userId!);
+
+            _logger.LogInformation("Gasto {GastoId} {Accion} exitosamente por usuario {UserId}",
+                dto.GastoId, dto.Aprobado ? "aprobado" : "rechazado", userId);
 
             return Ok(gastoActualizado);
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Error de validación al aprobar/rechazar gasto {GastoId}", dto.GastoId);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al aprobar/rechazar el gasto: {ex.Message}");
+            _logger.LogError(ex, "Error al aprobar/rechazar gasto {GastoId}", dto.GastoId);
+            return StatusCode(500, "Error interno al aprobar/rechazar el gasto.");
         }
     }
 
@@ -335,22 +460,30 @@ public class GastosController : ControllerBase
     /// </summary>
     private async Task<bool> TieneAccesoEmpresaAsync(Guid empresaId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+        try
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return false;
+            }
+
+            // Verificar si el usuario es admin (tiene acceso a todo)
+            if (User.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            // Verificar si el usuario tiene acceso a esta empresa
+            var tieneAcceso = await _context.UsuariosEmpresas
+                .AnyAsync(ue => ue.UserId == userId && ue.EmpresaId == empresaId);
+
+            return tieneAcceso;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar acceso a empresa {EmpresaId}", empresaId);
             return false;
         }
-
-        // Verificar si el usuario es admin (tiene acceso a todo)
-        if (User.IsInRole("Admin"))
-        {
-            return true;
-        }
-
-        // Verificar si el usuario tiene acceso a esta empresa
-        var tieneAcceso = await _context.UsuariosEmpresas
-            .AnyAsync(ue => ue.UserId == userId && ue.EmpresaId == empresaId);
-
-        return tieneAcceso;
     }
 }

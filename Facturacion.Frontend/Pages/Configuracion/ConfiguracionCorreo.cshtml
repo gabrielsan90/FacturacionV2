@@ -1,0 +1,330 @@
+@page
+@model Facturacion.Frontend.Pages.Configuracion.ConfiguracionCorreoModel
+@{
+    ViewData["Title"] = "Configuración de Correo";
+    ViewData["Breadcrumb"] = "Configuración de Correo";
+}
+
+<div class="row">
+    <!-- SMTP Configuration -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-envelope-open-text me-2"></i>Configuración SMTP
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="formCorreo">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Servidor SMTP <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="smtpServer" required placeholder="smtp.gmail.com" />
+                            <small class="text-muted">Ejemplo: smtp.gmail.com, smtp.office365.com</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Puerto <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="smtpPort" required value="587" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="emailFrom" required placeholder="noreply@empresa.com" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Contraseña / App Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="emailPassword" required />
+                            <small class="text-muted">Para Gmail, use un "App Password" en lugar de su contraseña normal</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Nombre del Remitente</label>
+                            <input type="text" class="form-control" id="displayName" placeholder="Sistema de Facturación" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enableSsl" checked />
+                                <label class="form-check-label" for="enableSsl">
+                                    Habilitar SSL/TLS
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="useDefaultCredentials" />
+                                <label class="form-check-label" for="useDefaultCredentials">
+                                    Usar Credenciales Predeterminadas
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <h6 class="mb-3">Plantillas de Correo</h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Enviar copia de facturas a:</label>
+                            <input type="email" class="form-control" id="copiaFacturasEmail" placeholder="Dejar vacío para no enviar copia" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enviarPDFAdjunto" checked />
+                                <label class="form-check-label" for="enviarPDFAdjunto">
+                                    Adjuntar PDF del documento en correos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enviarXMLAdjunto" checked />
+                                <label class="form-check-label" for="enviarXMLAdjunto">
+                                    Adjuntar XML del documento en correos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Guardar Configuración
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="probarConexion()">
+                            <i class="fas fa-paper-plane me-1"></i> Probar Conexión
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Email Panel -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-vial me-2"></i>Enviar Correo de Prueba
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Envíe un correo de prueba para verificar la configuración SMTP.</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Destinatario</label>
+                    <input type="email" class="form-control" id="testEmail" placeholder="correo@ejemplo.com" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Asunto</label>
+                    <input type="text" class="form-control" id="testSubject" value="Correo de Prueba - Sistema Facturación" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mensaje</label>
+                    <textarea class="form-control" id="testMessage" rows="4">Este es un correo de prueba del sistema de facturación electrónica.</textarea>
+                </div>
+
+                <button class="btn btn-success w-100" onclick="enviarCorreoPrueba()">
+                    <i class="fas fa-paper-plane me-1"></i> Enviar Correo de Prueba
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Help -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>Ayuda Rápida
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2"><strong>Gmail:</strong></p>
+                <ul class="small">
+                    <li>Servidor: smtp.gmail.com</li>
+                    <li>Puerto: 587</li>
+                    <li>SSL: Habilitado</li>
+                    <li>Use "App Password" no la contraseña normal</li>
+                </ul>
+
+                <p class="small mb-2"><strong>Office 365:</strong></p>
+                <ul class="small">
+                    <li>Servidor: smtp.office365.com</li>
+                    <li>Puerto: 587</li>
+                    <li>SSL: Habilitado</li>
+                </ul>
+
+                <p class="small mb-2"><strong>Outlook:</strong></p>
+                <ul class="small">
+                    <li>Servidor: smtp-mail.outlook.com</li>
+                    <li>Puerto: 587</li>
+                    <li>SSL: Habilitado</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        cargarConfiguracion();
+
+        $('#formCorreo').on('submit', function(e) {
+            e.preventDefault();
+            guardarConfiguracion();
+        });
+    });
+
+    function cargarConfiguracion() {
+        $.ajax({
+            url: '?handler=Configuracion',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#smtpServer').val(data.smtpServer || '');
+                $('#smtpPort').val(data.smtpPort || 587);
+                $('#emailFrom').val(data.emailFrom || '');
+                $('#emailPassword').val(data.emailPassword || '');
+                $('#displayName').val(data.displayName || '');
+                $('#enableSsl').prop('checked', data.enableSsl !== false);
+                $('#useDefaultCredentials').prop('checked', data.useDefaultCredentials || false);
+                $('#copiaFacturasEmail').val(data.copiaFacturasEmail || '');
+                $('#enviarPDFAdjunto').prop('checked', data.enviarPDFAdjunto !== false);
+                $('#enviarXMLAdjunto').prop('checked', data.enviarXMLAdjunto !== false);
+            }
+        });
+    }
+
+    function guardarConfiguracion() {
+        const config = {
+            smtpServer: $('#smtpServer').val(),
+            smtpPort: parseInt($('#smtpPort').val()),
+            emailFrom: $('#emailFrom').val(),
+            emailPassword: $('#emailPassword').val(),
+            displayName: $('#displayName').val(),
+            enableSsl: $('#enableSsl').is(':checked'),
+            useDefaultCredentials: $('#useDefaultCredentials').is(':checked'),
+            copiaFacturasEmail: $('#copiaFacturasEmail').val() || null,
+            enviarPDFAdjunto: $('#enviarPDFAdjunto').is(':checked'),
+            enviarXMLAdjunto: $('#enviarXMLAdjunto').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=GuardarConfiguracion',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(config),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess('Configuración guardada exitosamente');
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function() {
+                showError('Error al guardar la configuración');
+            }
+        });
+    }
+
+    function probarConexion() {
+        Swal.fire({
+            title: 'Probando conexión...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '?handler=ProbarConexion',
+            type: 'POST',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                Swal.close();
+                if (response.success) {
+                    showSuccess('Conexión exitosa al servidor SMTP');
+                } else {
+                    showError('Error de conexión: ' + response.message);
+                }
+            },
+            error: function() {
+                Swal.close();
+                showError('Error al probar la conexión');
+            }
+        });
+    }
+
+    function enviarCorreoPrueba() {
+        const destinatario = $('#testEmail').val();
+        if (!destinatario) {
+            showError('Ingrese un correo destinatario');
+            return;
+        }
+
+        const testData = {
+            destinatario: destinatario,
+            asunto: $('#testSubject').val(),
+            mensaje: $('#testMessage').val()
+        };
+
+        Swal.fire({
+            title: 'Enviando correo...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '?handler=EnviarPrueba',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(testData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                Swal.close();
+                if (response.success) {
+                    showSuccess('Correo de prueba enviado exitosamente');
+                } else {
+                    showError('Error al enviar: ' + response.message);
+                }
+            },
+            error: function() {
+                Swal.close();
+                showError('Error al enviar el correo de prueba');
+            }
+        });
+    }
+</script>
+}

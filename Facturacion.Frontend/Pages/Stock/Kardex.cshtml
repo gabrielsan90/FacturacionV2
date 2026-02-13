@@ -1,0 +1,353 @@
+@page
+@model Facturacion.Frontend.Pages.Stock.KardexModel
+@{
+    ViewData["Title"] = "Kardex de Inventario";
+    ViewData["Breadcrumb"] = "Kardex";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-invoice"></i> Kardex de Inventario</h2>
+            <p class="mb-0">Consulta del kardex valorado por producto y bodega</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Producto <span class="text-danger">*</span></label>
+                <select id="productoId" class="form-select" required>
+                    <option value="">Seleccione un producto...</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Bodega</label>
+                <select id="bodegaId" class="form-select">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Fecha Desde</label>
+                <input type="date" id="fechaDesde" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Fecha Hasta</label>
+                <input type="date" id="fechaHasta" class="form-control">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-primary w-100" onclick="buscarKardex()">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen del Producto -->
+<div class="row mb-4" id="resumenContainer" style="display: none;">
+    <div class="col-md-12">
+        <div class="card shadow-custom bg-light">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-box me-2"></i>
+                    <span id="productoNombre">-</span>
+                </h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <p class="mb-1 text-muted small">Código</p>
+                        <h6 id="productoCodigo">-</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1 text-muted small">Bodega</p>
+                        <h6 id="bodegaNombre">Todas las bodegas</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1 text-muted small">Período</p>
+                        <h6 id="periodoTexto">-</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1 text-muted small">Unidad de Medida</p>
+                        <h6 id="productoUnidad">-</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4" id="estadisticasContainer" style="display: none;">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-custom">
+            <div class="card-body py-3">
+                <h6 class="card-title mb-2">Saldo Inicial</h6>
+                <h3 id="saldoInicial" class="mb-0">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow-custom">
+            <div class="card-body py-3">
+                <h6 class="card-title mb-2">Saldo Final</h6>
+                <h3 id="saldoFinal" class="mb-0">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white shadow-custom">
+            <div class="card-body py-3">
+                <h6 class="card-title mb-2">Costo Promedio</h6>
+                <h3 id="costoPromedio">₡0.00</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark shadow-custom">
+            <div class="card-body py-3">
+                <h6 class="card-title mb-2">Valor Inventario</h6>
+                <h3 id="valorTotal">₡0.00</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla Kardex -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-list-alt me-2 text-primary"></i>
+            <strong>Movimientos del Kardex</strong>
+        </div>
+        <div>
+            <button type="button" class="btn btn-sm btn-success" onclick="exportarExcel()" id="btnExportar" style="display: none;">
+                <i class="fas fa-file-excel me-1"></i>Exportar Excel
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="tblKardex" class="table table-striped table-bordered table-hover table-sm" style="width:100%">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Origen</th>
+                        <th>Documento</th>
+                        <th class="text-end">Entrada</th>
+                        <th class="text-end">Salida</th>
+                        <th class="text-end">Costo Unit.</th>
+                        <th class="text-end">Costo Total</th>
+                        <th class="text-end">Saldo</th>
+                        <th class="text-end">Costo Prom.</th>
+                        <th class="text-end">Valor Inv.</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyKardex">
+                    <tr>
+                        <td colspan="11" class="text-center text-muted py-4">
+                            <i class="fas fa-search fa-2x mb-2"></i>
+                            <p class="mb-0">Seleccione un producto para ver el kardex</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let kardexData = null;
+        let currentProducto = null;
+
+        $(document).ready(function () {
+            cargarProductos();
+            cargarBodegas();
+
+            // Fechas por defecto: último mes
+            const hoy = new Date();
+            const hace30 = new Date();
+            hace30.setDate(hace30.getDate() - 30);
+            $('#fechaHasta').val(hoy.toISOString().split('T')[0]);
+            $('#fechaDesde').val(hace30.toISOString().split('T')[0]);
+        });
+
+        function getAntiForgeryToken() {
+            return $('input[name="__RequestVerificationToken"]').val();
+        }
+
+        function cargarProductos() {
+            $.ajax({
+                url: '?handler=Productos',
+                method: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    const productos = response.data || response || [];
+                    const select = $('#productoId');
+                    select.find('option:gt(0)').remove();
+                    productos.forEach(p => {
+                        select.append(`<option value="${p.id}">${p.codigo} - ${p.nombre}</option>`);
+                    });
+                }
+            });
+        }
+
+        function cargarBodegas() {
+            $.ajax({
+                url: '?handler=Bodegas',
+                method: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    const bodegas = response.data || response || [];
+                    const select = $('#bodegaId');
+                    select.find('option:gt(0)').remove();
+                    bodegas.forEach(b => {
+                        select.append(`<option value="${b.id}">${b.nombre}</option>`);
+                    });
+                }
+            });
+        }
+
+        function buscarKardex() {
+            const productoId = $('#productoId').val();
+            if (!productoId) {
+                Swal.fire('Atención', 'Debe seleccionar un producto', 'warning');
+                return;
+            }
+
+            const params = new URLSearchParams({
+                productoId: productoId
+            });
+
+            const bodegaId = $('#bodegaId').val();
+            if (bodegaId) params.append('bodegaId', bodegaId);
+
+            const fechaDesde = $('#fechaDesde').val();
+            if (fechaDesde) params.append('fechaDesde', fechaDesde);
+
+            const fechaHasta = $('#fechaHasta').val();
+            if (fechaHasta) params.append('fechaHasta', fechaHasta);
+
+            $.ajax({
+                url: `?handler=Kardex&${params.toString()}`,
+                method: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                beforeSend: function () {
+                    $('#tbodyKardex').html('<tr><td colspan="11" class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> Cargando...</td></tr>');
+                },
+                success: function (response) {
+                    if (response.success) {
+                        kardexData = response.data;
+                        currentProducto = response.producto;
+                        renderizarKardex(response.data, response.producto);
+                        mostrarResumen(response.producto, bodegaId);
+                        $('#resumenContainer').show();
+                        $('#estadisticasContainer').show();
+                        $('#btnExportar').show();
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                        $('#tbodyKardex').html('<tr><td colspan="11" class="text-center text-danger">' + response.message + '</td></tr>');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Error', 'Error al cargar el kardex', 'error');
+                    $('#tbodyKardex').html('<tr><td colspan="11" class="text-center text-danger">Error al cargar el kardex</td></tr>');
+                }
+            });
+        }
+
+        function mostrarResumen(producto, bodegaId) {
+            $('#productoNombre').text(producto.nombre || '-');
+            $('#productoCodigo').text(producto.codigo || '-');
+            $('#productoUnidad').text(producto.unidadMedida || 'Unidad');
+
+            const bodegaTexto = bodegaId ? $('#bodegaId option:selected').text() : 'Todas las bodegas';
+            $('#bodegaNombre').text(bodegaTexto);
+
+            const fechaDesde = $('#fechaDesde').val();
+            const fechaHasta = $('#fechaHasta').val();
+            const periodoTexto = `${formatDate(fechaDesde)} - ${formatDate(fechaHasta)}`;
+            $('#periodoTexto').text(periodoTexto);
+        }
+
+        function renderizarKardex(kardex, producto) {
+            // Actualizar estadísticas
+            $('#saldoInicial').text(formatNumber(kardex.saldoInicial || 0));
+            $('#saldoFinal').text(formatNumber(kardex.saldoFinal || 0));
+            $('#costoPromedio').text(formatCurrency(kardex.costoPromedioFinal || 0));
+            $('#valorTotal').text(formatCurrency(kardex.valorTotal || 0));
+
+            // Renderizar movimientos
+            const tbody = $('#tbodyKardex');
+            tbody.empty();
+
+            if (!kardex.movimientos || kardex.movimientos.length === 0) {
+                tbody.html('<tr><td colspan="11" class="text-center text-muted py-4">No hay movimientos en el período seleccionado</td></tr>');
+                return;
+            }
+
+            kardex.movimientos.forEach(m => {
+                const tipoClass = m.tipoMovimiento === 'ENT' ? 'text-success' : m.tipoMovimiento === 'SAL' ? 'text-danger' : 'text-warning';
+                tbody.append(`
+                    <tr>
+                        <td>${formatDateTime(m.fecha)}</td>
+                        <td><span class="badge ${m.tipoMovimiento === 'ENT' ? 'bg-success' : m.tipoMovimiento === 'SAL' ? 'bg-danger' : 'bg-warning'}">${m.tipoMovimientoDescripcion || m.tipoMovimiento}</span></td>
+                        <td>${m.origen || '-'}</td>
+                        <td>${m.numeroDocumento || '-'}</td>
+                        <td class="text-end text-success fw-bold">${m.entrada > 0 ? formatNumber(m.entrada) : '-'}</td>
+                        <td class="text-end text-danger fw-bold">${m.salida > 0 ? formatNumber(m.salida) : '-'}</td>
+                        <td class="text-end">${formatCurrency(m.costoUnitario)}</td>
+                        <td class="text-end">${formatCurrency(m.costoTotal)}</td>
+                        <td class="text-end fw-bold">${formatNumber(m.saldo)}</td>
+                        <td class="text-end">${formatCurrency(m.costoPromedio)}</td>
+                        <td class="text-end">${formatCurrency(m.valorInventario)}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        function exportarExcel() {
+            if (!kardexData) {
+                Swal.fire('Atención', 'Primero debe realizar una búsqueda', 'warning');
+                return;
+            }
+            Swal.fire('Info', 'Exportación a Excel en desarrollo', 'info');
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(num || 0);
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC' }).format(num || 0);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('es-CR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('es-CR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+    </script>
+}

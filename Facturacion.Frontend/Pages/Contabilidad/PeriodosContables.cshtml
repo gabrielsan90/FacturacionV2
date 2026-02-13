@@ -1,0 +1,615 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.PeriodosContablesModel
+@{
+    ViewData["Title"] = "Períodos Contables";
+    ViewData["Breadcrumb"] = "Períodos Contables";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-calendar-alt"></i> Períodos Contables</h2>
+            <p class="mb-0">Gestión de períodos fiscales y contables</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="openGenerarAnioModal()">
+                <i class="fas fa-calendar-plus me-2"></i>Generar Año
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Nuevo Período
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Info Cards Row -->
+<div class="row mb-4">
+    <!-- Current Open Period Card -->
+    <div class="col-lg-6 col-md-12 mb-3">
+        <div class="card border-success shadow-sm">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-lock-open me-2"></i>
+                <strong>Período Actual Abierto</strong>
+            </div>
+            <div class="card-body" id="periodoAbiertoCard">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Info Card -->
+    <div class="col-lg-6 col-md-12 mb-3">
+        <div class="card border-info shadow-sm">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Estados de Períodos</strong>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge bg-success fs-6 me-2">ABT</span>
+                    <strong>Abierto:</strong> El período está activo y permite registrar transacciones contables.
+                </div>
+                <div>
+                    <span class="badge bg-danger fs-6 me-2">CER</span>
+                    <strong>Cerrado:</strong> El período está cerrado y NO permite registrar ni modificar transacciones.
+                </div>
+                <hr>
+                <small class="text-muted">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Solo puede haber un período abierto a la vez. Cerrar un período es una acción irreversible.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Periodos Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-table me-2 text-primary"></i>
+                <strong>Listado de Períodos Contables</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotalPeriodos">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tablePeriodosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando períodos contables...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tablePeriodosContainer" style="display: none;">
+            <table id="tablePeriodos" class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>Año</th>
+                        <th>Mes</th>
+                        <th>Período</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th>Estado</th>
+                        <th>Cerrado Por</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStatePeriodos" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <h3 class="empty-state-title">No hay períodos contables registrados</h3>
+            <p class="empty-state-description">Crea períodos contables manualmente o genera todos los meses de un año automáticamente</p>
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-success" onclick="openGenerarAnioModal()">
+                    <i class="fas fa-calendar-plus me-2"></i>Generar Año Completo
+                </button>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus me-2"></i>Crear Período Manual
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create Periodo -->
+<div class="modal fade" id="modalPeriodo" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-alt me-2"></i>Nuevo Período Contable
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPeriodo">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>El período se creará en estado <strong>Abierto (ABT)</strong> por defecto.</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Año <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Periodo_Anio" min="2020" max="2050" required />
+                            <div class="invalid-feedback">El año es obligatorio.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mes <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Periodo_Mes" required>
+                                <option value="">Seleccione...</option>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                            <div class="invalid-feedback">El mes es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Período</label>
+                        <input type="text" class="form-control" id="Periodo_Nombre" maxlength="100"
+                               placeholder="Ej: Enero 2024" />
+                        <small class="text-muted">Opcional. Se generará automáticamente si se deja vacío.</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha Inicio <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Periodo_FechaInicio" required />
+                            <div class="invalid-feedback">La fecha de inicio es obligatoria.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Periodo_FechaFin" required />
+                            <div class="invalid-feedback">La fecha fin es obligatoria.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Crear Período
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Generar Año -->
+<div class="modal fade" id="modalGenerarAnio" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2"></i>Generar Períodos de Año Completo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formGenerarAnio">
+                <div class="modal-body">
+                    <div class="alert alert-success">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Esta función generará automáticamente 12 períodos mensuales</strong> (Enero a Diciembre)
+                        para el año seleccionado, todos en estado <strong>Abierto</strong>.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Año <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="GenerarAnio_Anio"
+                               min="2020" max="2050" required
+                               placeholder="Ej: 2024" />
+                        <div class="invalid-feedback">Ingrese un año válido entre 2020 y 2050.</div>
+                        <small class="text-muted">Se crearán períodos del 1 de enero al 31 de diciembre.</small>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Importante:</strong> Si ya existen períodos para el año seleccionado,
+                        estos NO serán duplicados. Solo se crearán los meses faltantes.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-calendar-plus me-1"></i> Generar 12 Períodos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const mesesNombres = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    $(document).ready(function() {
+        loadDataTable();
+        loadPeriodoAbierto();
+        setupFormSubmit();
+        setupGenerarAnioForm();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tablePeriodos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    // Hide loader
+                    $('#tablePeriodosLoader').hide();
+
+                    // Get data array
+                    const data = json.data || json || [];
+
+                    // Update badge count
+                    $('#badgeTotalPeriodos').text(data.length);
+
+                    // Show appropriate state
+                    if (data.length > 0) {
+                        $('#tablePeriodosContainer').show();
+                        $('#emptyStatePeriodos').hide();
+                    } else {
+                        $('#tablePeriodosContainer').hide();
+                        $('#emptyStatePeriodos').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tablePeriodosLoader').hide();
+                    $('#tablePeriodosContainer').hide();
+                    $('#emptyStatePeriodos').show();
+                    $('#badgeTotalPeriodos').text('0');
+                    console.error('Error loading periodos:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'anio' },
+                {
+                    data: 'mes',
+                    render: function(data) {
+                        return mesesNombres[data] || data;
+                    }
+                },
+                {
+                    data: 'nombre',
+                    render: function(data, type, row) {
+                        return data || `${mesesNombres[row.mes]} ${row.anio}`;
+                    }
+                },
+                {
+                    data: 'fechaInicio',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'fechaFin',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        if (data === 'ABT') {
+                            return '<span class="badge bg-success"><i class="fas fa-lock-open me-1"></i>Abierto</span>';
+                        } else if (data === 'CER') {
+                            return '<span class="badge bg-danger"><i class="fas fa-lock me-1"></i>Cerrado</span>';
+                        }
+                        return `<span class="badge bg-secondary">${data}</span>`;
+                    }
+                },
+                {
+                    data: 'cerradoPor',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let buttons = '';
+
+                        if (row.estado === 'ABT') {
+                            buttons = `
+                                <button class="btn btn-sm btn-danger" onclick="cerrarPeriodo('${data}', '${row.nombre || mesesNombres[row.mes] + ' ' + row.anio}')"
+                                        title="Cerrar Período">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                            `;
+                        } else {
+                            buttons = '<span class="text-muted small">Cerrado</span>';
+                        }
+
+                        return buttons;
+                    }
+                }
+            ],
+            order: [[0, 'desc'], [1, 'desc']]
+        });
+    }
+
+    function loadPeriodoAbierto() {
+        $.ajax({
+            url: '?handler=PeriodoAbierto',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const cardBody = $('#periodoAbiertoCard');
+
+                if (response.success && response.data) {
+                    const periodo = response.data;
+                    const nombrePeriodo = periodo.nombre || `${mesesNombres[periodo.mes]} ${periodo.anio}`;
+
+                    cardBody.html(`
+                        <h4 class="text-success mb-3">
+                            <i class="fas fa-calendar-check me-2"></i>${nombrePeriodo}
+                        </h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong>Año:</strong> ${periodo.anio}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Mes:</strong> ${mesesNombres[periodo.mes]}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Desde:</strong> ${formatDate(periodo.fechaInicio)}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Hasta:</strong> ${formatDate(periodo.fechaFin)}
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <span class="badge bg-success fs-6">
+                                <i class="fas fa-lock-open me-1"></i>Período Activo
+                            </span>
+                        </div>
+                    `);
+                } else {
+                    cardBody.html(`
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <p class="mb-0">No hay período abierto actualmente</p>
+                            <small>Debe crear o abrir un período contable para registrar transacciones.</small>
+                        </div>
+                    `);
+                }
+            },
+            error: function(xhr) {
+                $('#periodoAbiertoCard').html(`
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No se pudo cargar el período actual
+                    </div>
+                `);
+            }
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formPeriodo').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                savePeriodo();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupGenerarAnioForm() {
+        $('#formGenerarAnio').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                generarAnio();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formPeriodo')[0].reset();
+        $('#formPeriodo').removeClass('was-validated');
+
+        // Set current year by default
+        const currentYear = new Date().getFullYear();
+        $('#Periodo_Anio').val(currentYear);
+
+        $('#modalPeriodo').modal('show');
+    }
+
+    function openGenerarAnioModal() {
+        $('#formGenerarAnio')[0].reset();
+        $('#formGenerarAnio').removeClass('was-validated');
+
+        // Set current year by default
+        const currentYear = new Date().getFullYear();
+        $('#GenerarAnio_Anio').val(currentYear);
+
+        $('#modalGenerarAnio').modal('show');
+    }
+
+    function savePeriodo() {
+        const data = {
+            id: '00000000-0000-0000-0000-000000000000',
+            anio: parseInt($('#Periodo_Anio').val()),
+            mes: parseInt($('#Periodo_Mes').val()),
+            nombre: $('#Periodo_Nombre').val() || null,
+            fechaInicio: $('#Periodo_FechaInicio').val(),
+            fechaFin: $('#Periodo_FechaFin').val(),
+            estado: 'ABT'
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalPeriodo').modal('hide');
+                    table.ajax.reload();
+                    loadPeriodoAbierto();
+                } else {
+                    showError(response.message || 'Error al crear el período contable');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function cerrarPeriodo(id, nombre) {
+        Swal.fire({
+            title: '¿Cerrar Período?',
+            html: `<p>¿Está seguro de cerrar el período <strong>"${nombre}"</strong>?</p>
+                   <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>
+                   <strong>Esta acción es IRREVERSIBLE.</strong> Una vez cerrado, no podrá registrar
+                   ni modificar transacciones en este período.</p>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-lock me-1"></i> Sí, cerrar período',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true,
+            input: 'checkbox',
+            inputPlaceholder: 'Entiendo que esta acción no se puede revertir',
+            inputValidator: (result) => {
+                return !result && 'Debe confirmar que entiende la acción'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Cerrar&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Período Cerrado',
+                                text: response.message,
+                                timer: 3000
+                            });
+                            table.ajax.reload();
+                            loadPeriodoAbierto();
+                        } else {
+                            showError(response.message || 'Error al cerrar el período');
+                        }
+                    },
+                    error: function(xhr) {
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+
+    function generarAnio() {
+        const anio = parseInt($('#GenerarAnio_Anio').val());
+
+        Swal.fire({
+            title: '¿Generar Períodos?',
+            html: `<p>¿Está seguro de generar los 12 períodos mensuales para el año <strong>${anio}</strong>?</p>
+                   <p class="text-info"><i class="fas fa-info-circle me-1"></i>
+                   Se crearán períodos de enero a diciembre, todos en estado Abierto.</p>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-calendar-plus me-1"></i> Sí, generar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const data = { anio: anio };
+
+                $.ajax({
+                    url: '?handler=GenerarAnio',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    beforeSend: function() {
+                        showLoading('Generando períodos...');
+                    },
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Períodos Generados!',
+                                html: `<p>${response.message}</p>
+                                       <p class="text-success"><strong>${response.periodosCreados}</strong> períodos creados exitosamente.</p>`,
+                                timer: 4000
+                            });
+                            $('#modalGenerarAnio').modal('hide');
+                            table.ajax.reload();
+                            loadPeriodoAbierto();
+                        } else {
+                            showError(response.message || 'Error al generar los períodos');
+                        }
+                    },
+                    error: function(xhr) {
+                        hideLoading();
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+</script>
+}

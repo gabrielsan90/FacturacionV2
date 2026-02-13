@@ -1,0 +1,621 @@
+@page
+@model Facturacion.Frontend.Pages.Bancos.ConciliacionesBancariasModel
+@{
+    ViewData["Title"] = "Conciliaciones Bancarias";
+    ViewData["Breadcrumb"] = "Conciliaciones Bancarias";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-balance-scale"></i> Conciliaciones Bancarias</h2>
+            <p class="mb-0">Conciliación de estados de cuenta con movimientos del sistema</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" id="btnNuevaConciliacion" disabled>
+            <i class="fas fa-plus me-2"></i>Nueva Conciliación
+        </button>
+    </div>
+</div>
+
+<!-- Selector de Cuenta Bancaria -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-university me-2 text-primary"></i>
+        <strong>Seleccionar Cuenta Bancaria</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label">Cuenta Bancaria <span class="text-danger">*</span></label>
+                <select id="cuentaBancariaSelect" class="form-select" style="width: 100%;">
+                    <option value="">Seleccione una cuenta bancaria...</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-block">&nbsp;</label>
+                <button class="btn btn-secondary" onclick="limpiarSeleccion()">
+                    <i class="fas fa-eraser me-2"></i>Limpiar Selección
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Conciliaciones -->
+<div class="card shadow-custom" id="tablaConciliacionesCard" style="display: none;">
+    <div class="card-header">
+        <i class="fas fa-table me-2 text-primary"></i>
+        <strong>Conciliaciones de la Cuenta</strong>
+    </div>
+    <div class="card-body">
+        <table id="tblConciliaciones" class="table table-striped table-hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Periodo</th>
+                    <th>Fechas</th>
+                    <th>Saldo Libros</th>
+                    <th>Saldo Estado Cuenta</th>
+                    <th>Diferencia</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Crear Nueva Conciliación -->
+<div class="modal fade" id="modalConciliacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Conciliación Bancaria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formConciliacion">
+                    <input type="hidden" id="conciliacionId" value="">
+                    <input type="hidden" id="conciliacionCuentaBancariaId" value="">
+
+                    <!-- Información del Periodo -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Número <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="numero" required maxlength="20">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mes <span class="text-danger">*</span></label>
+                            <select class="form-select" id="mes" required>
+                                <option value="">Seleccione...</option>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Año <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="anio" required min="2020" max="2099" value="2026">
+                        </div>
+                    </div>
+
+                    <!-- Fechas del Periodo -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Inicio <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fechaInicio" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fechaFin" required>
+                        </div>
+                    </div>
+
+                    <!-- Saldos -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-calculator me-2"></i>Saldos</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Saldo Inicial Libros</label>
+                            <input type="number" class="form-control" id="saldoInicialLibros" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Saldo Final Libros</label>
+                            <input type="number" class="form-control" id="saldoFinalLibros" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Saldo Estado de Cuenta <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="saldoEstadoCuenta" step="0.01" required value="0">
+                        </div>
+                    </div>
+
+                    <!-- Partidas en Tránsito -->
+                    <h6 class="mb-3 text-primary"><i class="fas fa-exchange-alt me-2"></i>Partidas en Tránsito</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Depósitos en Tránsito</label>
+                            <input type="number" class="form-control" id="depositosEnTransito" step="0.01" value="0" onchange="calcularDiferencia()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cheques en Tránsito</label>
+                            <input type="number" class="form-control" id="chequesEnTransito" step="0.01" value="0" onchange="calcularDiferencia()">
+                        </div>
+                    </div>
+
+                    <!-- Notas del Banco -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Notas de Crédito</label>
+                            <input type="number" class="form-control" id="notasCredito" step="0.01" value="0" onchange="calcularDiferencia()">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Notas de Débito</label>
+                            <input type="number" class="form-control" id="notasDebito" step="0.01" value="0" onchange="calcularDiferencia()">
+                        </div>
+                    </div>
+
+                    <!-- Diferencia Calculada -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <strong>Diferencia Calculada:</strong>
+                                <span id="diferenciaCalculada" class="fs-5 ms-3">₡0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveConciliacion()">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let table;
+        let cuentasData = [];
+        let conciliacionesData = [];
+        let cuentaBancariaSeleccionada = null;
+
+        $(document).ready(function() {
+            loadCuentasBancarias();
+            initSelect2();
+        });
+
+        function initSelect2() {
+            $('#cuentaBancariaSelect').select2({
+                theme: 'bootstrap-5',
+                language: 'es',
+                width: '100%',
+                placeholder: 'Seleccione una cuenta bancaria...',
+                allowClear: true
+            });
+
+            $('#cuentaBancariaSelect').on('change', function() {
+                const cuentaId = $(this).val();
+                if (cuentaId) {
+                    cuentaBancariaSeleccionada = cuentaId;
+                    $('#btnNuevaConciliacion').prop('disabled', false);
+                    loadConciliaciones(cuentaId);
+                } else {
+                    cuentaBancariaSeleccionada = null;
+                    $('#btnNuevaConciliacion').prop('disabled', true);
+                    $('#tablaConciliacionesCard').hide();
+                    if (table) {
+                        table.destroy();
+                        table = null;
+                    }
+                }
+            });
+        }
+
+        function loadCuentasBancarias() {
+            $.get('?handler=CuentasBancarias', function(data) {
+                cuentasData = data;
+                let options = '<option value="">Seleccione una cuenta bancaria...</option>';
+                data.forEach(c => {
+                    const banco = c.banco?.nombre || c.nombreBanco || 'Sin banco';
+                    const monedaSimbolo = c.moneda === 'USD' ? '$' : (c.moneda === 'EUR' ? '€' : '₡');
+                    options += `<option value="${c.id}">${c.numeroCuenta} - ${c.nombre} (${banco}) [${monedaSimbolo}]</option>`;
+                });
+                $('#cuentaBancariaSelect').html(options);
+            });
+        }
+
+        function loadConciliaciones(cuentaId) {
+            if (table) {
+                table.destroy();
+            }
+
+            $('#tablaConciliacionesCard').show();
+
+            table = initDataTable('#tblConciliaciones', {
+                ajax: {
+                    url: '?handler=Data&cuentaBancariaId=' + cuentaId,
+                    type: 'GET',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataSrc: function(json) {
+                        conciliacionesData = json.data || json || [];
+                        return conciliacionesData;
+                    }
+                },
+                columns: [
+                    { data: 'numero' },
+                    {
+                        data: null,
+                        render: function(data) {
+                            const meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                            return `${meses[data.mes]}/${data.anio}`;
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data) {
+                            return `${formatDate(data.fechaInicio)} - ${formatDate(data.fechaFin)}`;
+                        }
+                    },
+                    {
+                        data: 'saldoFinalLibros',
+                        render: function(data, type, row) {
+                            return formatCurrencyByAccount(data, row.cuentaBancaria?.moneda || 'CRC');
+                        }
+                    },
+                    {
+                        data: 'saldoEstadoCuenta',
+                        render: function(data, type, row) {
+                            return formatCurrencyByAccount(data, row.cuentaBancaria?.moneda || 'CRC');
+                        }
+                    },
+                    {
+                        data: 'diferencia',
+                        render: function(data, type, row) {
+                            const formatted = formatCurrencyByAccount(Math.abs(data), row.cuentaBancaria?.moneda || 'CRC');
+                            const clase = Math.abs(data) < 0.01 ? 'text-success fw-bold' : 'text-danger fw-bold';
+                            return `<span class="${clase}">${formatted}</span>`;
+                        }
+                    },
+                    {
+                        data: 'estado',
+                        render: function(data) {
+                            const estados = {
+                                'PEN': { text: 'Pendiente', class: 'bg-warning' },
+                                'PAR': { text: 'Parcial', class: 'bg-info' },
+                                'CON': { text: 'Conciliada', class: 'bg-success' },
+                                'CER': { text: 'Cerrada', class: 'bg-secondary' }
+                            };
+                            const estado = estados[data] || { text: data, class: 'bg-secondary' };
+                            return `<span class="badge ${estado.class}">${estado.text}</span>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data) {
+                            let buttons = `
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" onclick="viewConciliacion('${data.id}')" title="Ver Detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>`;
+
+                            if (data.estado === 'CON') {
+                                buttons += `
+                                    <button class="btn btn-outline-success" onclick="cerrarConciliacion('${data.id}')" title="Cerrar">
+                                        <i class="fas fa-lock"></i>
+                                    </button>`;
+                            }
+
+                            if (data.estado === 'PEN') {
+                                buttons += `
+                                    <button class="btn btn-outline-danger" onclick="deleteConciliacion('${data.id}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>`;
+                            }
+
+                            buttons += `</div>`;
+                            return buttons;
+                        }
+                    }
+                ],
+                order: [[0, 'desc']]
+            });
+        }
+
+        function openCreateModal() {
+            if (!cuentaBancariaSeleccionada) {
+                showError('Debe seleccionar una cuenta bancaria primero.');
+                return;
+            }
+
+            resetForm();
+            $('#conciliacionCuentaBancariaId').val(cuentaBancariaSeleccionada);
+
+            // Generar número automático
+            const fecha = new Date();
+            const numero = `CONC-${fecha.getFullYear()}${String(fecha.getMonth() + 1).padStart(2, '0')}${String(fecha.getDate()).padStart(2, '0')}-${String(Date.now()).slice(-4)}`;
+            $('#numero').val(numero);
+
+            // Establecer mes y año actuales
+            $('#mes').val(fecha.getMonth() + 1);
+            $('#anio').val(fecha.getFullYear());
+
+            $('#modalConciliacion').modal('show');
+        }
+
+        function resetForm() {
+            $('#conciliacionId').val('');
+            $('#numero').val('');
+            $('#mes').val('');
+            $('#anio').val(new Date().getFullYear());
+            $('#fechaInicio').val('');
+            $('#fechaFin').val('');
+            $('#saldoInicialLibros').val('0');
+            $('#saldoFinalLibros').val('0');
+            $('#saldoEstadoCuenta').val('0');
+            $('#depositosEnTransito').val('0');
+            $('#chequesEnTransito').val('0');
+            $('#notasCredito').val('0');
+            $('#notasDebito').val('0');
+            $('#observaciones').val('');
+            $('#diferenciaCalculada').text('₡0.00');
+        }
+
+        function calcularDiferencia() {
+            const saldoLibros = parseFloat($('#saldoFinalLibros').val()) || 0;
+            const saldoEstado = parseFloat($('#saldoEstadoCuenta').val()) || 0;
+            const depositos = parseFloat($('#depositosEnTransito').val()) || 0;
+            const cheques = parseFloat($('#chequesEnTransito').val()) || 0;
+            const notasCredito = parseFloat($('#notasCredito').val()) || 0;
+            const notasDebito = parseFloat($('#notasDebito').val()) || 0;
+
+            const saldoConciliado = saldoEstado + depositos - cheques + notasCredito - notasDebito;
+            const diferencia = saldoLibros - saldoConciliado;
+
+            const cuenta = cuentasData.find(c => c.id === cuentaBancariaSeleccionada);
+            const moneda = cuenta?.moneda || 'CRC';
+
+            $('#diferenciaCalculada').text(formatCurrencyByAccount(diferencia, moneda));
+            $('#diferenciaCalculada').removeClass('text-success text-danger');
+            $('#diferenciaCalculada').addClass(Math.abs(diferencia) < 0.01 ? 'text-success' : 'text-danger');
+        }
+
+        function saveConciliacion() {
+            if (!$('#formConciliacion')[0].checkValidity()) {
+                $('#formConciliacion')[0].reportValidity();
+                return;
+            }
+
+            const saldoLibros = parseFloat($('#saldoFinalLibros').val()) || 0;
+            const saldoEstado = parseFloat($('#saldoEstadoCuenta').val()) || 0;
+            const depositos = parseFloat($('#depositosEnTransito').val()) || 0;
+            const cheques = parseFloat($('#chequesEnTransito').val()) || 0;
+            const notasCredito = parseFloat($('#notasCredito').val()) || 0;
+            const notasDebito = parseFloat($('#notasDebito').val()) || 0;
+
+            const saldoConciliado = saldoEstado + depositos - cheques + notasCredito - notasDebito;
+            const diferencia = saldoLibros - saldoConciliado;
+
+            const conciliacion = {
+                id: $('#conciliacionId').val() || '00000000-0000-0000-0000-000000000000',
+                cuentaBancariaId: $('#conciliacionCuentaBancariaId').val(),
+                numero: $('#numero').val(),
+                mes: parseInt($('#mes').val()),
+                anio: parseInt($('#anio').val()),
+                fechaInicio: $('#fechaInicio').val(),
+                fechaFin: $('#fechaFin').val(),
+                saldoInicialLibros: parseFloat($('#saldoInicialLibros').val()) || 0,
+                saldoFinalLibros: saldoLibros,
+                saldoEstadoCuenta: saldoEstado,
+                depositosEnTransito: depositos,
+                chequesEnTransito: cheques,
+                notasCredito: notasCredito,
+                notasDebito: notasDebito,
+                diferencia: diferencia,
+                estado: Math.abs(diferencia) < 0.01 ? 'CON' : 'PAR',
+                observaciones: $('#observaciones').val() || null
+            };
+
+            // Debug: mostrar lo que se envía
+            console.log('Enviando conciliación:', conciliacion);
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(conciliacion),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    console.log('Respuesta:', response);
+                    if (response.success) {
+                        $('#modalConciliacion').modal('hide');
+                        table.ajax.reload();
+                        showSuccess(response.message || 'La conciliación bancaria ha sido guardada correctamente.');
+                    } else {
+                        showError(response.message || 'Error al guardar la conciliación.');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error AJAX:', xhr.responseText);
+                    handleAjaxError(xhr);
+                }
+            });
+        }
+
+        function viewConciliacion(id) {
+            $.ajax({
+                url: '?handler=ById&id=' + id,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        const data = response.data;
+                        const cuenta = cuentasData.find(c => c.id === cuentaBancariaSeleccionada);
+                        const moneda = cuenta?.moneda || 'CRC';
+                        const meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+                        Swal.fire({
+                            title: `Conciliación ${data.numero}`,
+                            html: `
+                                <div class="text-start">
+                                    <p><strong>Periodo:</strong> ${meses[data.mes]}/${data.anio}</p>
+                                    <p><strong>Fechas:</strong> ${formatDate(data.fechaInicio)} - ${formatDate(data.fechaFin)}</p>
+                                    <hr>
+                                    <p><strong>Saldo Inicial Libros:</strong> ${formatCurrencyByAccount(data.saldoInicialLibros, moneda)}</p>
+                                    <p><strong>Saldo Final Libros:</strong> ${formatCurrencyByAccount(data.saldoFinalLibros, moneda)}</p>
+                                    <p><strong>Saldo Estado de Cuenta:</strong> ${formatCurrencyByAccount(data.saldoEstadoCuenta, moneda)}</p>
+                                    <hr>
+                                    <p><strong>Depósitos en Tránsito:</strong> ${formatCurrencyByAccount(data.depositosEnTransito, moneda)}</p>
+                                    <p><strong>Cheques en Tránsito:</strong> ${formatCurrencyByAccount(data.chequesEnTransito, moneda)}</p>
+                                    <p><strong>Notas de Crédito:</strong> ${formatCurrencyByAccount(data.notasCredito, moneda)}</p>
+                                    <p><strong>Notas de Débito:</strong> ${formatCurrencyByAccount(data.notasDebito, moneda)}</p>
+                                    <hr>
+                                    <p class="${Math.abs(data.diferencia) < 0.01 ? 'text-success' : 'text-danger'}">
+                                        <strong>Diferencia:</strong> ${formatCurrencyByAccount(data.diferencia, moneda)}
+                                    </p>
+                                    ${data.observaciones ? `<p><strong>Observaciones:</strong> ${data.observaciones}</p>` : ''}
+                                </div>
+                            `,
+                            icon: 'info',
+                            width: '600px',
+                            confirmButtonText: 'Cerrar'
+                        });
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        }
+
+        function cerrarConciliacion(id) {
+            Swal.fire({
+                title: '¿Cerrar conciliación?',
+                text: 'Una vez cerrada, no podrá realizar más cambios.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, cerrar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `?handler=Cerrar&id=${id}`,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                table.ajax.reload();
+                                showSuccess(response.message);
+                            } else {
+                                showError(response.message || 'Error al cerrar la conciliación.');
+                            }
+                        },
+                        error: function(xhr) {
+                            handleAjaxError(xhr);
+                        }
+                    });
+                }
+            });
+        }
+
+        function deleteConciliacion(id) {
+            const conciliacion = conciliacionesData.find(c => c.id === id);
+            if (!conciliacion) return;
+
+            Swal.fire({
+                title: '¿Eliminar conciliación?',
+                html: `¿Está seguro que desea eliminar la conciliación <strong>${conciliacion.numero}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `?handler=Delete&id=${id}`,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                table.ajax.reload();
+                                showSuccess(response.message);
+                            } else {
+                                showError(response.message || 'Error al eliminar la conciliación.');
+                            }
+                        },
+                        error: function(xhr) {
+                            handleAjaxError(xhr);
+                        }
+                    });
+                }
+            });
+        }
+
+        function limpiarSeleccion() {
+            $('#cuentaBancariaSelect').val('').trigger('change');
+            cuentaBancariaSeleccionada = null;
+            $('#btnNuevaConciliacion').prop('disabled', true);
+            $('#tablaConciliacionesCard').hide();
+            if (table) {
+                table.destroy();
+                table = null;
+            }
+        }
+
+        function formatCurrencyByAccount(value, moneda) {
+            const simbolos = {
+                'CRC': '₡',
+                'USD': '$',
+                'EUR': '€'
+            };
+            const simbolo = simbolos[moneda] || '₡';
+            const formatted = parseFloat(value).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return `${simbolo}${formatted}`;
+        }
+
+        // Watch for changes to recalculate difference
+        $('#saldoFinalLibros, #saldoEstadoCuenta').on('input', calcularDiferencia);
+    </script>
+}

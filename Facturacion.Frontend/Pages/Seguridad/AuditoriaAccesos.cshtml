@@ -1,0 +1,525 @@
+@page
+@model Facturacion.Frontend.Pages.Seguridad.AuditoriaAccesosModel
+@{
+    ViewData["Title"] = "Auditoría de Accesos";
+    ViewData["Breadcrumb"] = "Seguridad > Auditoría de Accesos";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-history"></i> Auditoría de Accesos</h2>
+            <p class="mb-0">Registro completo de accesos e intentos de inicio de sesión</p>
+        </div>
+        <button class="btn btn-success" onclick="exportar()">
+            <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+        </button>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Accesos</h6>
+                        <h3 class="mb-0" id="totalAccesos">0</h3>
+                    </div>
+                    <div class="text-primary fs-1">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Exitosos</h6>
+                        <h3 class="mb-0 text-success" id="accesosExitosos">0</h3>
+                    </div>
+                    <div class="text-success fs-1">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Fallidos</h6>
+                        <h3 class="mb-0 text-danger" id="accesosFallidos">0</h3>
+                    </div>
+                    <div class="text-danger fs-1">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Usuarios Únicos</h6>
+                        <h3 class="mb-0" id="usuariosUnicos">0</h3>
+                    </div>
+                    <div class="text-info fs-1">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <strong><i class="fas fa-filter me-2"></i>Filtros de Búsqueda</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Fecha Inicio</label>
+                <input type="date" class="form-control" id="filtroFechaInicio" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha Fin</label>
+                <input type="date" class="form-control" id="filtroFechaFin" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Usuario</label>
+                <select class="form-select" id="filtroUsuario">
+                    <option value="TODOS">Todos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Acción</label>
+                <select class="form-select" id="filtroAccion">
+                    <option value="TODAS">Todas</option>
+                    <option value="LOGIN">Login</option>
+                    <option value="LOGOUT">Logout</option>
+                    <option value="LOGIN_FAILED">Login Fallido</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="filtroExitoso">
+                    <option value="TODOS">Todos</option>
+                    <option value="true">Exitoso</option>
+                    <option value="false">Fallido</option>
+                </select>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-12 text-end">
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-2"></i>Limpiar
+                </button>
+                <button class="btn btn-primary" onclick="aplicarFiltros()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Registro de Accesos</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando registros de auditoría...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableContainer" style="display: none;">
+            <table id="tableAuditoria" class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Usuario</th>
+                        <th>Acción</th>
+                        <th>IP</th>
+                        <th>Navegador</th>
+                        <th>Estado</th>
+                        <th>Duración</th>
+                        <th style="width: 80px;">Detalle</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-history"></i>
+            </div>
+            <h3 class="empty-state-title">No hay registros de acceso</h3>
+            <p class="empty-state-description">No se encontraron registros con los filtros seleccionados</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Details -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2 text-primary"></i>Detalle del Registro
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Usuario:</strong>
+                        <p id="detalle_usuario" class="mb-0"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Fecha/Hora:</strong>
+                        <p id="detalle_fecha" class="mb-0"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Acción:</strong>
+                        <p id="detalle_accion" class="mb-0"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Estado:</strong>
+                        <p id="detalle_estado" class="mb-0"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Dirección IP:</strong>
+                        <p id="detalle_ip" class="mb-0"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Duración:</strong>
+                        <p id="detalle_duracion" class="mb-0"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>User Agent (Navegador):</strong>
+                        <p id="detalle_userAgent" class="mb-0 text-muted small"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Endpoint:</strong>
+                        <p id="detalle_endpoint" class="mb-0"></p>
+                    </div>
+                </div>
+                <div class="row mb-3" id="detalle_error_section" style="display: none;">
+                    <div class="col-md-12">
+                        <strong>Mensaje de Error:</strong>
+                        <div class="alert alert-danger mb-0" id="detalle_error"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <strong>Descripción:</strong>
+                        <p id="detalle_descripcion" class="mb-0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        initializeDates();
+        loadUsuarios();
+        loadDataTable();
+        loadEstadisticas();
+    });
+
+    function initializeDates() {
+        // Set default date range to last 7 days
+        const today = new Date();
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+
+        $('#filtroFechaInicio').val(lastWeek.toISOString().split('T')[0]);
+        $('#filtroFechaFin').val(today.toISOString().split('T')[0]);
+    }
+
+    async function loadUsuarios() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Usuarios',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+            const usuarios = response || [];
+
+            $('#filtroUsuario').empty().append('<option value="TODOS">Todos</option>');
+            usuarios.forEach(usuario => {
+                $('#filtroUsuario').append(
+                    `<option value="${usuario.id}">${usuario.fullName}</option>`
+                );
+            });
+        } catch (error) {
+            console.error('Error loading usuarios:', error);
+        }
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tableAuditoria', {
+            ajax: {
+                url: function() {
+                    const fechaInicio = $('#filtroFechaInicio').val();
+                    const fechaFin = $('#filtroFechaFin').val();
+                    const usuarioId = $('#filtroUsuario').val();
+                    const accion = $('#filtroAccion').val();
+                    const exitoso = $('#filtroExitoso').val();
+
+                    let url = '?handler=Data';
+                    const params = [];
+                    if (fechaInicio) params.push('fechaInicio=' + fechaInicio);
+                    if (fechaFin) params.push('fechaFin=' + fechaFin);
+                    if (usuarioId) params.push('usuarioId=' + usuarioId);
+                    if (accion) params.push('accion=' + accion);
+                    if (exitoso) params.push('exitoso=' + exitoso);
+
+                    if (params.length > 0) {
+                        url += '&' + params.join('&');
+                    }
+                    return url;
+                },
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotal').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableContainer').show();
+                        $('#emptyState').hide();
+                    } else {
+                        $('#tableContainer').hide();
+                        $('#emptyState').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableLoader').hide();
+                    $('#tableContainer').hide();
+                    $('#emptyState').show();
+                    $('#badgeTotal').text('0');
+                    console.error('Error loading auditoria:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return data ? new Date(data).toLocaleString('es-CR') : '-';
+                    }
+                },
+                {
+                    data: 'nombreUsuario',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'accion',
+                    render: function(data) {
+                        const badges = {
+                            'LOGIN': '<span class="badge bg-success">Login</span>',
+                            'LOGOUT': '<span class="badge bg-secondary">Logout</span>',
+                            'LOGIN_FAILED': '<span class="badge bg-danger">Login Fallido</span>'
+                        };
+                        return badges[data] || '<span class="badge bg-info">' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'direccionIP',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'userAgent',
+                    render: function(data) {
+                        if (!data) return '<span class="text-muted">-</span>';
+
+                        // Extract browser name
+                        let browser = 'Desconocido';
+                        if (data.includes('Chrome')) browser = 'Chrome';
+                        else if (data.includes('Firefox')) browser = 'Firefox';
+                        else if (data.includes('Safari')) browser = 'Safari';
+                        else if (data.includes('Edge')) browser = 'Edge';
+
+                        return browser;
+                    }
+                },
+                {
+                    data: 'exitoso',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success"><i class="fas fa-check"></i></span>'
+                            : '<span class="badge bg-danger"><i class="fas fa-times"></i></span>';
+                    }
+                },
+                {
+                    data: 'duracionMs',
+                    render: function(data) {
+                        return data ? data + ' ms' : '-';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="verDetalle('${data}')" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            pageLength: 50
+        });
+    }
+
+    async function loadEstadisticas() {
+        try {
+            const fechaInicio = $('#filtroFechaInicio').val();
+            const fechaFin = $('#filtroFechaFin').val();
+
+            const response = await $.ajax({
+                url: `?handler=Estadisticas&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (response.success && response.data) {
+                const data = response.data;
+                $('#totalAccesos').text(data.totalAccesos || 0);
+                $('#accesosExitosos').text(data.accesosExitosos || 0);
+                $('#accesosFallidos').text(data.accesosFallidos || 0);
+                $('#usuariosUnicos').text(data.usuariosUnicos || 0);
+            }
+        } catch (error) {
+            console.error('Error loading estadisticas:', error);
+        }
+    }
+
+    function aplicarFiltros() {
+        table.ajax.reload();
+        loadEstadisticas();
+    }
+
+    function limpiarFiltros() {
+        initializeDates();
+        $('#filtroUsuario').val('TODOS');
+        $('#filtroAccion').val('TODAS');
+        $('#filtroExitoso').val('TODOS');
+        aplicarFiltros();
+    }
+
+    function verDetalle(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const data = response.data;
+
+                    $('#detalle_usuario').text(data.nombreUsuario || '-');
+                    $('#detalle_fecha').text(data.fecha ? new Date(data.fecha).toLocaleString('es-CR') : '-');
+                    $('#detalle_accion').text(data.accion || '-');
+                    $('#detalle_estado').html(data.exitoso
+                        ? '<span class="badge bg-success">Exitoso</span>'
+                        : '<span class="badge bg-danger">Fallido</span>');
+                    $('#detalle_ip').text(data.direccionIP || '-');
+                    $('#detalle_duracion').text(data.duracionMs ? data.duracionMs + ' ms' : '-');
+                    $('#detalle_userAgent').text(data.userAgent || '-');
+                    $('#detalle_endpoint').text(data.endpoint || '-');
+                    $('#detalle_descripcion').text(data.descripcion || '-');
+
+                    if (!data.exitoso && data.mensajeError) {
+                        $('#detalle_error_section').show();
+                        $('#detalle_error').text(data.mensajeError);
+                    } else {
+                        $('#detalle_error_section').hide();
+                    }
+
+                    $('#modalDetalle').modal('show');
+                } else {
+                    showError('Error al cargar el detalle del registro');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function exportar() {
+        const fechaInicio = $('#filtroFechaInicio').val();
+        const fechaFin = $('#filtroFechaFin').val();
+        const usuarioId = $('#filtroUsuario').val();
+        const accion = $('#filtroAccion').val();
+
+        const params = [];
+        if (fechaInicio) params.push('fechaInicio=' + fechaInicio);
+        if (fechaFin) params.push('fechaFin=' + fechaFin);
+        if (usuarioId) params.push('usuarioId=' + usuarioId);
+        if (accion) params.push('accion=' + accion);
+
+        const queryString = params.length > 0 ? '&' + params.join('&') : '';
+        window.location.href = `?handler=Exportar${queryString}`;
+    }
+</script>
+}

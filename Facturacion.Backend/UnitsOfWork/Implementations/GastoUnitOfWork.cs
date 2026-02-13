@@ -4,20 +4,28 @@ using Facturacion.Backend.Repositories.Interfaces;
 using Facturacion.Backend.Services.Implementations;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Backend.UnitsOfWork.Implementations;
 
 public class GastoUnitOfWork : IGastoUnitOfWork
 {
     private readonly DataContext _context;
+    private readonly IContabilidadIntegracionService _contabilidadIntegracion;
+    private readonly ILogger<GastoService> _logger;
     private IGastoRepository? _gastoRepository;
     private ICategoriaGastoRepository? _categoriaGastoRepository;
     private IGastoService? _gastoService;
     private IProveedorRepository? _proveedorRepository;
 
-    public GastoUnitOfWork(DataContext context)
+    public GastoUnitOfWork(
+        DataContext context,
+        IContabilidadIntegracionService contabilidadIntegracion,
+        ILogger<GastoService> logger)
     {
         _context = context;
+        _contabilidadIntegracion = contabilidadIntegracion;
+        _logger = logger;
     }
 
     public IGastoRepository GastoRepository
@@ -51,7 +59,12 @@ public class GastoUnitOfWork : IGastoUnitOfWork
     {
         get
         {
-            _gastoService ??= new GastoService(GastoRepository, CategoriaGastoRepository, ProveedorRepository);
+            _gastoService ??= new GastoService(
+                GastoRepository,
+                CategoriaGastoRepository,
+                ProveedorRepository,
+                _contabilidadIntegracion,
+                _logger);
             return _gastoService;
         }
     }

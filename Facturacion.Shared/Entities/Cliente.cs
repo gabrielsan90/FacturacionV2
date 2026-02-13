@@ -91,6 +91,80 @@ public class Cliente
     [MaxLength(10, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? ActividadEconomicaCIIU3 { get; set; }
 
+    // =====================================================
+    // Campos CRM/Comerciales (Integración ERP)
+    // =====================================================
+
+    [Display(Name = "Días de Crédito")]
+    public int DiasCredito { get; set; }
+
+    [Display(Name = "Exento de IVA")]
+    public bool ExentoIVA { get; set; }
+
+    // Exoneración (v4.4)
+    [Display(Name = "Tipo de Exoneración")]
+    [MaxLength(2)]
+    public string? TipoExoneracion { get; set; }
+
+    [Display(Name = "Número de Exoneración")]
+    [MaxLength(40)]
+    public string? NumeroExoneracion { get; set; }
+
+    [Display(Name = "Institución Exoneración")]
+    [MaxLength(160)]
+    public string? NombreInstitucionExoneracion { get; set; }
+
+    [Display(Name = "Fecha de Exoneración")]
+    public DateTime? FechaExoneracion { get; set; }
+
+    [Display(Name = "Porcentaje de Exoneración")]
+    public decimal PorcentajeExoneracion { get; set; }
+
+    // Comercial
+    [Display(Name = "Descuento General %")]
+    public decimal DescuentoGeneral { get; set; }
+
+    [Display(Name = "Fecha Último Pago")]
+    public DateTime? FechaUltimoPago { get; set; }
+
+    [Display(Name = "Fecha Última Compra")]
+    public DateTime? FechaUltimaCompra { get; set; }
+
+    [Display(Name = "Categoría")]
+    [MaxLength(50)]
+    public string? Categoria { get; set; }
+
+    [Display(Name = "Requiere Orden de Compra")]
+    public bool RequiereOrdenCompra { get; set; }
+
+    // Contacto
+    [Display(Name = "Contacto Principal")]
+    [MaxLength(100)]
+    public string? Contacto { get; set; }
+
+    [Display(Name = "Teléfono del Contacto")]
+    [MaxLength(20)]
+    public string? TelefonoContacto { get; set; }
+
+    // Gestión
+    [Display(Name = "Zona")]
+    [MaxLength(50)]
+    public string? Zona { get; set; }
+
+    [Display(Name = "En Mora")]
+    public bool EnMora { get; set; }
+
+    [Display(Name = "Bloqueado")]
+    public bool Bloqueado { get; set; }
+
+    [Display(Name = "Motivo de Bloqueo")]
+    [MaxLength(200)]
+    public string? MotivoBloqueo { get; set; }
+
+    [Display(Name = "Notas")]
+    [MaxLength(500)]
+    public string? Notas { get; set; }
+
     [Display(Name = "Fecha de Creación")]
     public DateTime FechaCreacion { get; set; }
 

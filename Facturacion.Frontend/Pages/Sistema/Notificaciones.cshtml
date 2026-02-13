@@ -1,0 +1,561 @@
+@page
+@model Facturacion.Frontend.Pages.Sistema.NotificacionesModel
+@{
+    ViewData["Title"] = "Notificaciones";
+    ViewData["Breadcrumb"] = "Notificaciones";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-bell"></i> Centro de Notificaciones</h2>
+            <p class="mb-0">Visualiza y gestiona las notificaciones del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="marcarTodasLeidas()" title="Marcar todas como leídas">
+                <i class="fas fa-check-double me-2"></i>Marcar Todas Leídas
+            </button>
+            <button class="btn btn-outline-danger" onclick="eliminarExpiradas()" title="Eliminar notificaciones expiradas">
+                <i class="fas fa-trash me-2"></i>Limpiar Expiradas
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4" id="summaryCards">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total</h6>
+                        <h3 class="mb-0" id="totalNotificaciones">0</h3>
+                    </div>
+                    <div class="text-primary">
+                        <i class="fas fa-bell fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">No Leídas</h6>
+                        <h3 class="mb-0" id="noLeidasCount">0</h3>
+                    </div>
+                    <div class="text-warning">
+                        <i class="fas fa-envelope fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Leídas</h6>
+                        <h3 class="mb-0" id="leidasCount">0</h3>
+                    </div>
+                    <div class="text-success">
+                        <i class="fas fa-envelope-open fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-start border-danger border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Importantes</h6>
+                        <h3 class="mb-0" id="importantesCount">0</h3>
+                    </div>
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="filterEstado" class="form-label">Estado</label>
+                <select class="form-select" id="filterEstado" onchange="loadNotificaciones()">
+                    <option value="">Todas</option>
+                    <option value="no-leida">No Leídas</option>
+                    <option value="leida">Leídas</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="filterTipo" class="form-label">Tipo</label>
+                <select class="form-select" id="filterTipo" onchange="loadNotificaciones()">
+                    <option value="">Todos los Tipos</option>
+                    <option value="1">Documento Aceptado</option>
+                    <option value="2">Documento Rechazado</option>
+                    <option value="3">Documento Pendiente</option>
+                    <option value="4">Pago Recibido</option>
+                    <option value="5">Pago Pendiente</option>
+                    <option value="6">Inventario Bajo</option>
+                    <option value="7">Gasto Aprobado</option>
+                    <option value="8">Gasto Rechazado</option>
+                    <option value="9">Gasto Requiere Aprobación</option>
+                    <option value="11">Sistema</option>
+                    <option value="12">Advertencia</option>
+                    <option value="13">Error</option>
+                    <option value="14">Certificado Por Vencer</option>
+                    <option value="15">Certificado Vencido</option>
+                    <option value="16">Error Envío Hacienda</option>
+                    <option value="18">Consecutivo Por Agotar</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="filterImportante" class="form-label">Prioridad</label>
+                <select class="form-select" id="filterImportante" onchange="loadNotificaciones()">
+                    <option value="">Todas</option>
+                    <option value="true">Solo Importantes</option>
+                    <option value="false">No Importantes</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications List Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-list me-2 text-primary"></i>
+            <strong>Listado de Notificaciones</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalNotificaciones">0</span>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="refrescarNotificaciones()" title="Refrescar">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="notificacionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando notificaciones...</p>
+        </div>
+
+        <!-- Notifications Container -->
+        <div id="notificacionesContainer" style="display:none;">
+            <div id="notificacionesList" class="list-group">
+                <!-- Notifications will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateNotificaciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-bell-slash"></i>
+            </div>
+            <h3 class="empty-state-title">No hay notificaciones</h3>
+            <p class="empty-state-description">No tienes notificaciones en este momento</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    @Html.AntiForgeryToken()
+
+    <script>
+        let notificaciones = [];
+        let empresaIdActual = null;
+
+        $(document).ready(function () {
+            // Get empresaId from session storage or user selection
+            empresaIdActual = sessionStorage.getItem('empresaId');
+
+            if (!empresaIdActual || empresaIdActual === 'null') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empresa no seleccionada',
+                    text: 'Por favor seleccione una empresa para ver sus notificaciones',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+
+            loadNotificaciones();
+            loadResumen();
+        });
+
+        function loadNotificaciones() {
+            if (!empresaIdActual) return;
+
+            $('#notificacionesLoader').show();
+            $('#notificacionesContainer').hide();
+            $('#emptyStateNotificaciones').hide();
+
+            $.ajax({
+                url: '?handler=Data&empresaId=' + empresaIdActual,
+                type: 'GET',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    notificaciones = response.data || [];
+                    applyFilters();
+                    updateBadge();
+                    $('#notificacionesLoader').hide();
+                },
+                error: function (xhr) {
+                    console.error('Error loading notificaciones:', xhr);
+                    $('#notificacionesLoader').hide();
+                    $('#emptyStateNotificaciones').show();
+                }
+            });
+        }
+
+        function applyFilters() {
+            const filterEstado = $('#filterEstado').val();
+            const filterTipo = $('#filterTipo').val();
+            const filterImportante = $('#filterImportante').val();
+
+            let filtered = notificaciones.filter(function (notif) {
+                // Filter by estado (leída/no leída)
+                if (filterEstado === 'leida' && !notif.leida) return false;
+                if (filterEstado === 'no-leida' && notif.leida) return false;
+
+                // Filter by tipo
+                if (filterTipo && notif.tipoNotificacion.toString() !== filterTipo) return false;
+
+                // Filter by importante
+                if (filterImportante === 'true' && !notif.importante) return false;
+                if (filterImportante === 'false' && notif.importante) return false;
+
+                return true;
+            });
+
+            renderNotificaciones(filtered);
+        }
+
+        function renderNotificaciones(notifs) {
+            const container = $('#notificacionesList');
+            container.empty();
+
+            if (notifs.length === 0) {
+                $('#notificacionesContainer').hide();
+                $('#emptyStateNotificaciones').show();
+                return;
+            }
+
+            $('#notificacionesContainer').show();
+            $('#emptyStateNotificaciones').hide();
+
+            notifs.forEach(function (notif) {
+                const card = createNotificationCard(notif);
+                container.append(card);
+            });
+        }
+
+        function createNotificationCard(notif) {
+            const tipoConfig = getTipoConfig(notif.tipoNotificacion);
+            const leidaClass = notif.leida ? 'opacity-75' : '';
+            const importanteIcon = notif.importante ? '<i class="fas fa-star text-warning ms-2" title="Importante"></i>' : '';
+
+            return `
+                <div class="list-group-item list-group-item-action ${leidaClass}" id="notif-${notif.id}">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div class="d-flex align-items-start flex-grow-1">
+                            <div class="me-3">
+                                <i class="fas ${tipoConfig.icon} fa-2x text-${tipoConfig.color}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                    <h5 class="mb-0">${notif.titulo}${importanteIcon}</h5>
+                                    <span class="badge bg-${tipoConfig.color} ms-2">${tipoConfig.label}</span>
+                                    ${notif.leida ? '<span class="badge bg-secondary ms-2"><i class="fas fa-check"></i> Leída</span>' : '<span class="badge bg-warning ms-2"><i class="fas fa-envelope"></i> Nueva</span>'}
+                                </div>
+                                <p class="mb-2">${notif.mensaje}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> ${notif.tiempoTranscurrido || formatFecha(notif.fechaCreacion)}
+                                    ${notif.fechaLeida ? ' | Leída: ' + formatFecha(notif.fechaLeida) : ''}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="btn-group-vertical ms-3" role="group">
+                            ${!notif.leida ? `
+                                <button class="btn btn-sm btn-outline-primary" onclick="marcarLeida('${notif.id}')" title="Marcar como leída">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            ` : ''}
+                            ${notif.urlAccion ? `
+                                <button class="btn btn-sm btn-outline-info" onclick="navegarAccion('${notif.urlAccion}')" title="Ir a la acción">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarNotificacion('${notif.id}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getTipoConfig(tipo) {
+            const configs = {
+                1: { icon: 'fa-check-circle', color: 'success', label: 'Documento Aceptado' },
+                2: { icon: 'fa-times-circle', color: 'danger', label: 'Documento Rechazado' },
+                3: { icon: 'fa-clock', color: 'warning', label: 'Pendiente' },
+                4: { icon: 'fa-money-bill-wave', color: 'success', label: 'Pago Recibido' },
+                5: { icon: 'fa-hourglass-half', color: 'warning', label: 'Pago Pendiente' },
+                6: { icon: 'fa-box', color: 'warning', label: 'Inventario Bajo' },
+                7: { icon: 'fa-check', color: 'success', label: 'Gasto Aprobado' },
+                8: { icon: 'fa-times', color: 'danger', label: 'Gasto Rechazado' },
+                9: { icon: 'fa-question-circle', color: 'info', label: 'Requiere Aprobación' },
+                10: { icon: 'fa-user-plus', color: 'info', label: 'Nuevo Usuario' },
+                11: { icon: 'fa-cog', color: 'info', label: 'Sistema' },
+                12: { icon: 'fa-exclamation-triangle', color: 'warning', label: 'Advertencia' },
+                13: { icon: 'fa-exclamation-circle', color: 'danger', label: 'Error' },
+                14: { icon: 'fa-certificate', color: 'warning', label: 'Certificado Por Vencer' },
+                15: { icon: 'fa-certificate', color: 'danger', label: 'Certificado Vencido' },
+                16: { icon: 'fa-exclamation-triangle', color: 'danger', label: 'Error Hacienda' },
+                17: { icon: 'fa-exclamation', color: 'warning', label: 'Contingencia' },
+                18: { icon: 'fa-sort-numeric-up', color: 'warning', label: 'Consecutivo Por Agotar' },
+                19: { icon: 'fa-download', color: 'info', label: 'Actualización Disponible' },
+                20: { icon: 'fa-file-invoice', color: 'warning', label: 'REP Pendiente' }
+            };
+            return configs[tipo] || { icon: 'fa-bell', color: 'secondary', label: 'Notificación' };
+        }
+
+        function formatFecha(fecha) {
+            if (!fecha) return '';
+            const date = new Date(fecha);
+            return date.toLocaleString('es-CR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function loadResumen() {
+            if (!empresaIdActual) return;
+
+            $.ajax({
+                url: '?handler=Resumen&empresaId=' + empresaIdActual,
+                type: 'GET',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        $('#totalNotificaciones').text(response.data.total || 0);
+                        $('#noLeidasCount').text(response.data.noLeidas || 0);
+                        $('#leidasCount').text(response.data.leidas || 0);
+                        $('#importantesCount').text(response.data.importantes || 0);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading resumen:', xhr);
+                }
+            });
+        }
+
+        function marcarLeida(id) {
+            $.ajax({
+                url: '?handler=MarcarLeida&id=' + id,
+                type: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // Find notification and update state
+                        const notif = notificaciones.find(n => n.id === id);
+                        if (notif) {
+                            notif.leida = true;
+                            notif.fechaLeida = new Date().toISOString();
+                        }
+                        applyFilters();
+                        loadResumen();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error marking as read:', xhr);
+                    Swal.fire('Error', 'No se pudo marcar como leída', 'error');
+                }
+            });
+        }
+
+        function marcarTodasLeidas() {
+            Swal.fire({
+                title: '¿Marcar todas como leídas?',
+                text: "Todas las notificaciones no leídas se marcarán como leídas",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, marcar todas',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=MarcarTodasLeidas&empresaId=' + empresaIdActual,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                loadNotificaciones();
+                                loadResumen();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Éxito',
+                                    text: response.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            console.error('Error marking all as read:', xhr);
+                            Swal.fire('Error', 'No se pudieron marcar todas como leídas', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function eliminarNotificacion(id) {
+            Swal.fire({
+                title: '¿Eliminar notificación?',
+                text: "Esta acción no se puede deshacer",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Delete&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                // Remove from array
+                                notificaciones = notificaciones.filter(n => n.id !== id);
+                                applyFilters();
+                                updateBadge();
+                                loadResumen();
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Eliminada',
+                                    text: response.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            console.error('Error deleting notification:', xhr);
+                            Swal.fire('Error', 'No se pudo eliminar la notificación', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function eliminarExpiradas() {
+            Swal.fire({
+                title: '¿Eliminar notificaciones expiradas?',
+                text: "Se eliminarán todas las notificaciones que hayan pasado su fecha de expiración",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=DeleteExpiradas&empresaId=' + empresaIdActual,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                loadNotificaciones();
+                                loadResumen();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Éxito',
+                                    text: response.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            console.error('Error deleting expired notifications:', xhr);
+                            Swal.fire('Error', 'No se pudieron eliminar las notificaciones expiradas', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function navegarAccion(url) {
+            if (url) {
+                window.location.href = url;
+            }
+        }
+
+        function refrescarNotificaciones() {
+            loadNotificaciones();
+            loadResumen();
+        }
+
+        function updateBadge() {
+            $('#badgeTotalNotificaciones').text(notificaciones.length);
+        }
+
+    </script>
+}

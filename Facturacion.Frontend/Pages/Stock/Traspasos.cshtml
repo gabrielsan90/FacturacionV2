@@ -1,0 +1,852 @@
+@page
+@model Facturacion.Frontend.Pages.Stock.TraspasosModel
+@{
+    ViewData["Title"] = "Traspasos de Inventario";
+    ViewData["Breadcrumb"] = "Traspasos";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-truck"></i> Traspasos de Inventario</h2>
+            <p class="mb-0">Traslados de productos entre bodegas</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo traspaso">
+                <i class="fas fa-plus me-2"></i>Nuevo Traspaso
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-custom border-start border-primary border-4">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded-circle p-3">
+                            <i class="fas fa-list fa-lg"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Total Traspasos</h6>
+                        <h3 id="statTotal" class="mb-0">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom border-start border-warning border-4">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning rounded-circle p-3">
+                            <i class="fas fa-clock fa-lg"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Pendientes</h6>
+                        <h3 id="statPendientes" class="text-warning mb-0">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom border-start border-info border-4">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-info bg-opacity-10 text-info rounded-circle p-3">
+                            <i class="fas fa-truck fa-lg"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">En Tránsito</h6>
+                        <h3 id="statTransito" class="text-info mb-0">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom border-start border-success border-4">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success rounded-circle p-3">
+                            <i class="fas fa-check-circle fa-lg"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-1">Recibidos</h6>
+                        <h3 id="statRecibidos" class="text-success mb-0">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Traspasos Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Traspasos</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalTraspasos">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableTraspasosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando traspasos...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableTraspasosContainer" style="display:none;">
+            <table id="tableTraspasos" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Número</th>
+                        <th>Bodega Origen</th>
+                        <th>Bodega Destino</th>
+                        <th>Estado</th>
+                        <th>Items</th>
+                        <th style="width: 200px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateTraspasos" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-truck"></i>
+            </div>
+            <h3 class="empty-state-title">No hay traspasos registrados</h3>
+            <p class="empty-state-description">Comienza creando tu primer traspaso</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Traspaso
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Create/Edit Traspaso -->
+<div class="modal fade" id="modalTraspaso" tabindex="-1" aria-labelledby="modalTraspasoLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTraspasoLabel">
+                    <i class="fas fa-truck"></i> <span id="modalTraspasoTitulo">Nuevo Traspaso</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formTraspaso">
+                <div class="modal-body">
+                    <input type="hidden" id="Traspaso_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <!-- Header Information -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="Traspaso_Fecha" class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Traspaso_Fecha" required />
+                            <div class="invalid-feedback">La fecha es obligatoria.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="Traspaso_Numero" class="form-label">Número</label>
+                            <input type="text" class="form-control" id="Traspaso_Numero" readonly placeholder="Auto-generado" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="Traspaso_BodegaOrigenId" class="form-label">Bodega Origen <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Traspaso_BodegaOrigenId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la bodega origen.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="Traspaso_BodegaDestinoId" class="form-label">Bodega Destino <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Traspaso_BodegaDestinoId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la bodega destino.</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="Traspaso_Observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="Traspaso_Observaciones" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Product Lines Section -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="fas fa-boxes me-2"></i>Productos a Traspasar</h6>
+                        <button type="button" class="btn btn-sm btn-success" onclick="agregarLineaProducto()" id="btnAgregarLinea">
+                            <i class="fas fa-plus me-1"></i>Agregar Producto
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered" id="tableDetalles">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40%;">Producto</th>
+                                    <th style="width: 15%;">Stock Origen</th>
+                                    <th style="width: 15%;">Cantidad a Traspasar</th>
+                                    <th style="width: 20%;">Observaciones</th>
+                                    <th style="width: 10%;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detallesBody">
+                                <!-- Dynamic rows will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyDetalles" class="alert alert-info" style="display:none;">
+                        <i class="fas fa-info-circle me-2"></i>Agregue al menos un producto al traspaso.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarTraspaso">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for View Details -->
+<div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="modalDetallesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalDetallesLabel">
+                    <i class="fas fa-info-circle"></i> Detalles del Traspaso
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detallesContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let table;
+        let productos = [];
+        let bodegas = [];
+        let detalleCounter = 0;
+        let currentTraspasoId = null;
+
+        $(document).ready(function () {
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            $('#Traspaso_Fecha').val(today);
+
+            loadDataTable();
+            setupFormSubmit();
+        });
+
+        function getAntiForgeryToken() {
+            return $('input[name="__RequestVerificationToken"]').val();
+        }
+
+        function loadDataTable() {
+            table = $('#tableTraspasos').DataTable({
+                ajax: {
+                    url: '?handler=Data',
+                    type: 'GET',
+                    headers: {
+                        "RequestVerificationToken": getAntiForgeryToken()
+                    },
+                    dataSrc: function (json) {
+                        $('#tableTraspasosLoader').hide();
+                        const data = json.data || json || [];
+                        $('#badgeTotalTraspasos').text(data.length);
+                        updateStatistics(data);
+
+                        if (data.length > 0) {
+                            $('#tableTraspasosContainer').show();
+                            $('#emptyStateTraspasos').hide();
+                        } else {
+                            $('#tableTraspasosContainer').hide();
+                            $('#emptyStateTraspasos').show();
+                        }
+                        return data;
+                    },
+                    error: function (xhr, error, thrown) {
+                        $('#tableTraspasosLoader').hide();
+                        $('#tableTraspasosContainer').hide();
+                        $('#emptyStateTraspasos').show();
+                        $('#badgeTotalTraspasos').text('0');
+                        console.error('Error loading data:', error);
+                        Swal.fire('Error', 'No se pudo cargar los traspasos.', 'error');
+                    }
+                },
+                columns: [
+                    {
+                        data: 'fecha',
+                        render: function (data) {
+                            return formatDate(data);
+                        }
+                    },
+                    { data: 'numero' },
+                    {
+                        data: 'bodegaOrigen',
+                        render: function (data) {
+                            return data ? data.nombre : '-';
+                        }
+                    },
+                    {
+                        data: 'bodegaDestino',
+                        render: function (data) {
+                            return data ? data.nombre : '-';
+                        }
+                    },
+                    {
+                        data: 'estado',
+                        render: function (data) {
+                            return getEstadoBadge(data);
+                        }
+                    },
+                    {
+                        data: 'detalles',
+                        render: function (data) {
+                            const count = data ? data.length : 0;
+                            return `<span class="badge bg-secondary">${count}</span>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            const isPendiente = row.estado === 'PEN';
+                            const isTransito = row.estado === 'TRA';
+
+                            let actions = `
+                                <button class="btn btn-sm btn-info" onclick="viewDetails('${row.id}')" title="Ver Detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            `;
+
+                            if (isPendiente) {
+                                actions += `
+                                    <button class="btn btn-sm btn-success" onclick="enviarTraspaso('${row.id}')" title="Enviar">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTraspaso('${row.id}', '${row.numero}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                `;
+                            }
+
+                            if (isTransito) {
+                                actions += `
+                                    <button class="btn btn-sm btn-primary" onclick="recibirTraspaso('${row.id}')" title="Recibir">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                `;
+                            }
+
+                            return actions;
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                pageLength: 25,
+                order: [[0, 'desc']]
+            });
+        }
+
+        function setupFormSubmit() {
+            $('#formTraspaso').on('submit', function (e) {
+                e.preventDefault();
+                if (this.checkValidity()) {
+                    saveTraspaso();
+                } else {
+                    $(this).addClass('was-validated');
+                }
+            });
+
+            // Validar que origen y destino sean diferentes
+            $('#Traspaso_BodegaOrigenId, #Traspaso_BodegaDestinoId').on('change', function() {
+                const origen = $('#Traspaso_BodegaOrigenId').val();
+                const destino = $('#Traspaso_BodegaDestinoId').val();
+
+                if (origen && destino && origen === destino) {
+                    Swal.fire('Error', 'La bodega origen y destino no pueden ser la misma', 'error');
+                    $(this).val('');
+                }
+            });
+        }
+
+        function loadProductos() {
+            return $.ajax({
+                url: '?handler=Productos',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    const data = response.data || response.result || response || [];
+                    if (Array.isArray(data)) {
+                        productos = data.filter(p =>
+                            (p.controlarInventario === true || p.ControlarInventario === true) &&
+                            (p.activo === true || p.Activo === true)
+                        );
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading productos:', xhr);
+                }
+            });
+        }
+
+        function loadBodegas() {
+            return $.ajax({
+                url: '?handler=Bodegas',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    const data = response.data || response.result || response || [];
+                    if (Array.isArray(data)) {
+                        bodegas = data.filter(b => b.activo === true || b.Activo === true);
+
+                        // Populate both selects
+                        const selectOrigen = $('#Traspaso_BodegaOrigenId');
+                        const selectDestino = $('#Traspaso_BodegaDestinoId');
+
+                        selectOrigen.empty().append('<option value="">Seleccione...</option>');
+                        selectDestino.empty().append('<option value="">Seleccione...</option>');
+
+                        bodegas.forEach(function (item) {
+                            const nombre = item.nombre || item.Nombre || '';
+                            selectOrigen.append(`<option value="${item.id || item.Id}">${nombre}</option>`);
+                            selectDestino.append(`<option value="${item.id || item.Id}">${nombre}</option>`);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error loading bodegas:', xhr);
+                }
+            });
+        }
+
+        function openCreateModal() {
+            $('#formTraspaso')[0].reset();
+            $('#formTraspaso').removeClass('was-validated');
+            $('#Traspaso_Id').val('00000000-0000-0000-0000-000000000000');
+            $('#modalTraspasoTitulo').text('Nuevo Traspaso');
+
+            const today = new Date().toISOString().split('T')[0];
+            $('#Traspaso_Fecha').val(today);
+
+            // Clear details
+            detalleCounter = 0;
+            $('#detallesBody').empty();
+            $('#emptyDetalles').show();
+
+            $.when(loadProductos(), loadBodegas()).done(function () {
+                $('#modalTraspaso').modal('show');
+            });
+        }
+
+        function agregarLineaProducto() {
+            if (productos.length === 0) {
+                Swal.fire('Error', 'No hay productos disponibles.', 'error');
+                return;
+            }
+
+            detalleCounter++;
+            const rowId = `detalle_${detalleCounter}`;
+
+            let productosOptions = '<option value="">Seleccione producto...</option>';
+            productos.forEach(p => {
+                const codigo = p.codigo || p.Codigo || '';
+                const nombre = p.nombre || p.Nombre || '';
+                productosOptions += `<option value="${p.id || p.Id}">${codigo} - ${nombre}</option>`;
+            });
+
+            const row = `
+                <tr id="${rowId}" data-index="${detalleCounter}">
+                    <td>
+                        <select class="form-select form-select-sm detalle-producto" data-index="${detalleCounter}" required>
+                            ${productosOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-end detalle-stock"
+                               data-index="${detalleCounter}" step="0.0001" readonly value="0" />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm text-end detalle-cantidad"
+                               data-index="${detalleCounter}" step="0.0001" min="0.0001" required value="1" />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm detalle-observaciones"
+                               data-index="${detalleCounter}" maxlength="200" />
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-danger" onclick="eliminarLineaProducto('${rowId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+            $('#detallesBody').append(row);
+            $('#emptyDetalles').hide();
+        }
+
+        function eliminarLineaProducto(rowId) {
+            $(`#${rowId}`).remove();
+            if ($('#detallesBody tr').length === 0) {
+                $('#emptyDetalles').show();
+            }
+        }
+
+        function saveTraspaso() {
+            // Validate at least one detail
+            if ($('#detallesBody tr').length === 0) {
+                Swal.fire('Error', 'Debe agregar al menos un producto.', 'error');
+                return;
+            }
+
+            // Collect details
+            const detalles = [];
+            $('#detallesBody tr').each(function () {
+                const index = $(this).data('index');
+                const productoId = $(`.detalle-producto[data-index="${index}"]`).val();
+
+                if (!productoId) {
+                    return; // Skip empty rows
+                }
+
+                detalles.push({
+                    id: '00000000-0000-0000-0000-000000000000',
+                    productoId: productoId,
+                    cantidad: parseFloat($(`.detalle-cantidad[data-index="${index}"]`).val()) || 0,
+                    observaciones: $(`.detalle-observaciones[data-index="${index}"]`).val() || null
+                });
+            });
+
+            if (detalles.length === 0) {
+                Swal.fire('Error', 'Debe completar la información de al menos un producto.', 'error');
+                return;
+            }
+
+            const traspaso = {
+                id: $('#Traspaso_Id').val(),
+                fecha: $('#Traspaso_Fecha').val(),
+                bodegaOrigenId: $('#Traspaso_BodegaOrigenId').val(),
+                bodegaDestinoId: $('#Traspaso_BodegaDestinoId').val(),
+                observaciones: $('#Traspaso_Observaciones').val() || null,
+                detalles: detalles
+            };
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                data: JSON.stringify(traspaso),
+                success: function (response) {
+                    if (response.success) {
+                        Swal.fire('Éxito', response.message || 'Traspaso guardado correctamente.', 'success');
+                        $('#modalTraspaso').modal('hide');
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire('Error', response.message || 'Ocurrió un error al guardar el traspaso.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al guardar el traspaso.';
+                    Swal.fire('Error', message, 'error');
+                }
+            });
+        }
+
+        function viewDetails(id) {
+            $.ajax({
+                url: '?handler=Details&id=' + id,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        const traspaso = response.data;
+                        renderDetailsView(traspaso);
+                        $('#modalDetalles').modal('show');
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudo cargar la información del traspaso.', 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Error', 'No se pudo cargar la información del traspaso.', 'error');
+                }
+            });
+        }
+
+        function renderDetailsView(traspaso) {
+            let html = `
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">Número</label>
+                        <p class="form-control-plaintext">${traspaso.numero}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">Fecha</label>
+                        <p class="form-control-plaintext">${formatDate(traspaso.fecha)}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">Estado</label>
+                        <p class="form-control-plaintext">${getEstadoBadge(traspaso.estado)}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">Items</label>
+                        <p class="form-control-plaintext"><span class="badge bg-secondary">${traspaso.detalles?.length || 0}</span></p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted">Bodega Origen</label>
+                        <p class="form-control-plaintext">${traspaso.bodegaOrigen?.nombre || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted">Bodega Destino</label>
+                        <p class="form-control-plaintext">${traspaso.bodegaDestino?.nombre || 'N/A'}</p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold text-muted">Observaciones</label>
+                        <p class="form-control-plaintext">${traspaso.observaciones || 'Sin observaciones'}</p>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h6 class="mb-3"><i class="fas fa-boxes me-2"></i>Detalle de Productos</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-end">Cantidad</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            if (traspaso.detalles && traspaso.detalles.length > 0) {
+                traspaso.detalles.forEach(det => {
+                    html += `
+                        <tr>
+                            <td>${det.producto?.nombre || 'N/A'}</td>
+                            <td class="text-end">${det.cantidad.toFixed(4)}</td>
+                            <td>${det.observaciones || '-'}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            $('#detallesContent').html(html);
+        }
+
+        function enviarTraspaso(id) {
+            Swal.fire({
+                title: '¿Enviar este traspaso?',
+                text: "El inventario se descontará de la bodega origen",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, enviar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Enviar&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": getAntiForgeryToken()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire('Enviado', response.message || 'Traspaso enviado correctamente.', 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('Error', response.message || 'Ocurrió un error al enviar el traspaso.', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al enviar el traspaso.';
+                            Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function recibirTraspaso(id) {
+            Swal.fire({
+                title: '¿Recibir este traspaso?',
+                text: "El inventario se agregará a la bodega destino",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, recibir',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Recibir&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": getAntiForgeryToken()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire('Recibido', response.message || 'Traspaso recibido correctamente.', 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('Error', response.message || 'Ocurrió un error al recibir el traspaso.', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al recibir el traspaso.';
+                            Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function deleteTraspaso(id, numero) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: `¿Desea eliminar el traspaso ${numero}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Delete&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": getAntiForgeryToken()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire('Eliminado', response.message || 'Traspaso eliminado correctamente.', 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('Error', response.message || 'Ocurrió un error al eliminar el traspaso.', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al eliminar el traspaso.';
+                            Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function getEstadoBadge(estado) {
+            const badges = {
+                'PEN': { text: 'Pendiente', class: 'bg-warning' },
+                'TRA': { text: 'En Tránsito', class: 'bg-info' },
+                'REC': { text: 'Recibido', class: 'bg-success' },
+                'ANU': { text: 'Anulado', class: 'bg-danger' }
+            };
+            const badge = badges[estado] || { text: estado, class: 'bg-secondary' };
+            return `<span class="badge ${badge.class}">${badge.text}</span>`;
+        }
+
+        function updateStatistics(data) {
+            if (!data || !Array.isArray(data)) {
+                $('#statTotal').text('0');
+                $('#statPendientes').text('0');
+                $('#statTransito').text('0');
+                $('#statRecibidos').text('0');
+                return;
+            }
+
+            const total = data.length;
+            const pendientes = data.filter(t => t.estado === 'PEN').length;
+            const transito = data.filter(t => t.estado === 'TRA').length;
+            const recibidos = data.filter(t => t.estado === 'REC').length;
+
+            $('#statTotal').text(total);
+            $('#statPendientes').text(pendientes);
+            $('#statTransito').text(transito);
+            $('#statRecibidos').text(recibidos);
+        }
+
+        function refrescarTabla() {
+            $('#tableTraspasosLoader').show();
+            $('#tableTraspasosContainer').hide();
+            $('#emptyStateTraspasos').hide();
+            table.ajax.reload();
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-CR');
+        }
+    </script>
+}

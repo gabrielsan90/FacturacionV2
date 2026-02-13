@@ -4,6 +4,7 @@ using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Facturacion.Backend.Services.Implementations;
 
@@ -12,15 +13,21 @@ public class GastoService : IGastoService
     private readonly IGastoRepository _gastoRepository;
     private readonly ICategoriaGastoRepository _categoriaGastoRepository;
     private readonly IProveedorRepository _proveedorRepository;
+    private readonly IContabilidadIntegracionService _contabilidadIntegracion;
+    private readonly ILogger<GastoService> _logger;
 
     public GastoService(
         IGastoRepository gastoRepository,
         ICategoriaGastoRepository categoriaGastoRepository,
-        IProveedorRepository proveedorRepository)
+        IProveedorRepository proveedorRepository,
+        IContabilidadIntegracionService contabilidadIntegracion,
+        ILogger<GastoService> logger)
     {
         _gastoRepository = gastoRepository;
         _categoriaGastoRepository = categoriaGastoRepository;
         _proveedorRepository = proveedorRepository;
+        _contabilidadIntegracion = contabilidadIntegracion;
+        _logger = logger;
     }
 
     public async Task<Gasto> CrearGastoAsync(GastoDTO dto, Guid empresaId, string userId)
@@ -144,6 +151,17 @@ public class GastoService : IGastoService
         gasto.UsuarioModificacionId = userId;
 
         await _gastoRepository.UpdateAsync(gasto);
+
+        // Generar asiento contable para el pago (si está habilitado)
+        try
+        {
+            await _contabilidadIntegracion.GenerarAsientoPagoGastoAsync(gasto, dto.MontoPago, userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error generando asiento contable para pago de gasto {GastoId} - operación continúa", gasto.Id);
+        }
+
         return gasto;
     }
 
@@ -162,6 +180,20 @@ public class GastoService : IGastoService
         gasto.UsuarioModificacionId = userId;
 
         await _gastoRepository.UpdateAsync(gasto);
+
+        // Generar asiento contable para la compra aprobada (si está habilitado)
+        if (dto.Aprobado)
+        {
+            try
+            {
+                await _contabilidadIntegracion.GenerarAsientoCompraAsync(gasto, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error generando asiento contable para gasto aprobado {GastoId} - operación continúa", gasto.Id);
+            }
+        }
+
         return gasto;
     }
 

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Facturacion.Shared.DTOs;
 
@@ -39,4 +40,8 @@ public class UserManagementDto
 
     [Display(Name = "Empresas")]
     public List<Guid> EmpresaIds { get; set; } = new();
+
+    [Display(Name = "Generar Contraseña Aleatoria")]
+    [JsonPropertyName("generateRandomPassword")]
+    public bool GenerateRandomPassword { get; set; }
 }

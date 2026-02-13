@@ -1,0 +1,460 @@
+@page
+@model Facturacion.Frontend.Pages.Bancos.BancosModel
+@{
+    ViewData["Title"] = "Bancos";
+    ViewData["Breadcrumb"] = "Bancos";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-university"></i> Bancos</h2>
+            <p class="mb-0">Catálogo de bancos para gestión de cuentas bancarias</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nuevo Banco
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Bancos</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalBancos">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-success" onclick="generarCatalogo()" title="Generar catálogo predefinido">
+                <i class="fas fa-magic"></i> Generar Catálogo
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableBancosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando bancos...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableBancosContainer" style="display: none;">
+            <table id="tableBancos" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Nombre Corto</th>
+                        <th>Código SINPE</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateBancos" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-university"></i>
+            </div>
+            <h3 class="empty-state-title">No hay bancos registrados</h3>
+            <p class="empty-state-description">Puedes generar el catálogo predefinido de bancos de Costa Rica o crear bancos manualmente</p>
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-success" onclick="generarCatalogo()">
+                    <i class="fas fa-magic me-2"></i>Generar Catálogo
+                </button>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus me-2"></i>Crear Banco
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalBanco" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-university me-2"></i>Nuevo Banco
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formBanco">
+                <div class="modal-body">
+                    <input type="hidden" id="Banco_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Banco_Codigo" maxlength="10" required />
+                            <div class="invalid-feedback">El código es obligatorio.</div>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Banco_Nombre" maxlength="200" required />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre Corto</label>
+                            <input type="text" class="form-control" id="Banco_NombreCorto" maxlength="50" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Código SINPE</label>
+                            <input type="text" class="form-control" id="Banco_CodigoSINPE" maxlength="10" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Código SWIFT</label>
+                            <input type="text" class="form-control" id="Banco_CodigoSWIFT" maxlength="11" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">País</label>
+                            <input type="text" class="form-control" id="Banco_Pais" maxlength="50" value="Costa Rica" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Sitio Web</label>
+                            <input type="url" class="form-control" id="Banco_SitioWeb" maxlength="200" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="Banco_Telefono" maxlength="20" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Banco_EsNacional" checked />
+                                <label class="form-check-label" for="Banco_EsNacional">
+                                    Es Nacional
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Banco_EsEstatal" />
+                                <label class="form-check-label" for="Banco_EsEstatal">
+                                    Es Estatal
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Banco_Activo" checked />
+                                <label class="form-check-label" for="Banco_Activo">
+                                    Banco Activo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableBancos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableBancosLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalBancos').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableBancosContainer').show();
+                        $('#emptyStateBancos').hide();
+                    } else {
+                        $('#tableBancosContainer').hide();
+                        $('#emptyStateBancos').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableBancosLoader').hide();
+                    $('#tableBancosContainer').hide();
+                    $('#emptyStateBancos').show();
+                    $('#badgeTotalBancos').text('0');
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'nombreCorto',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'codigoSINPE',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: null,
+                    render: function(data) {
+                        let badges = [];
+                        if (data.esNacional) badges.push('<span class="badge bg-info">Nacional</span>');
+                        if (data.esEstatal) badges.push('<span class="badge bg-primary">Estatal</span>');
+                        return badges.length > 0 ? badges.join(' ') : '<span class="badge bg-secondary">Privado</span>';
+                    }
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activo</span>'
+                            : '<span class="badge bg-secondary">Inactivo</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}', '${escapeHtml(row.nombre)}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[1, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formBanco').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formBanco')[0].reset();
+        $('#formBanco').removeClass('was-validated');
+        $('#Banco_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Banco_EsNacional').prop('checked', true);
+        $('#Banco_Activo').prop('checked', true);
+        $('#Banco_Pais').val('Costa Rica');
+        $('#modalTitle').html('<i class="fas fa-university me-2"></i>Nuevo Banco');
+        $('#modalBanco').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const data = response.data;
+                    $('#Banco_Id').val(data.id);
+                    $('#Banco_Codigo').val(data.codigo);
+                    $('#Banco_Nombre').val(data.nombre);
+                    $('#Banco_NombreCorto').val(data.nombreCorto || '');
+                    $('#Banco_CodigoSINPE').val(data.codigoSINPE || '');
+                    $('#Banco_CodigoSWIFT').val(data.codigoSWIFT || '');
+                    $('#Banco_Pais').val(data.pais || 'Costa Rica');
+                    $('#Banco_SitioWeb').val(data.sitioWeb || '');
+                    $('#Banco_Telefono').val(data.telefono || '');
+                    $('#Banco_EsNacional').prop('checked', data.esNacional);
+                    $('#Banco_EsEstatal').prop('checked', data.esEstatal);
+                    $('#Banco_Activo').prop('checked', data.activo);
+
+                    $('#modalTitle').html('<i class="fas fa-university me-2"></i>Editar Banco');
+                    $('#formBanco').removeClass('was-validated');
+                    $('#modalBanco').modal('show');
+                } else {
+                    showError(response.message || 'Error al cargar el banco');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function save() {
+        const data = {
+            id: $('#Banco_Id').val(),
+            codigo: $('#Banco_Codigo').val(),
+            nombre: $('#Banco_Nombre').val(),
+            nombreCorto: $('#Banco_NombreCorto').val() || null,
+            codigoSINPE: $('#Banco_CodigoSINPE').val() || null,
+            codigoSWIFT: $('#Banco_CodigoSWIFT').val() || null,
+            pais: $('#Banco_Pais').val() || null,
+            sitioWeb: $('#Banco_SitioWeb').val() || null,
+            telefono: $('#Banco_Telefono').val() || null,
+            esNacional: $('#Banco_EsNacional').is(':checked'),
+            esEstatal: $('#Banco_EsEstatal').is(':checked'),
+            activo: $('#Banco_Activo').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalBanco').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar el banco');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id, nombre) {
+        confirmDelete(`¿Está seguro de eliminar el banco "${nombre}"?`, function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar el banco');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        $('#tableBancosLoader').show();
+        $('#tableBancosContainer').hide();
+        $('#emptyStateBancos').hide();
+        table.ajax.reload();
+    }
+
+    function generarCatalogo() {
+        Swal.fire({
+            title: 'Generar Catálogo de Bancos',
+            html: '<p>Esta acción creará <strong>18 bancos</strong> predefinidos de Costa Rica:</p>' +
+                  '<ul class="text-start small">' +
+                  '<li><strong>Estatales:</strong> BCR, BNCR, Banco Popular, BCCR</li>' +
+                  '<li><strong>Privados:</strong> BAC, Davivienda, Lafise, Promérica, etc.</li>' +
+                  '<li><strong>Cooperativas:</strong> Coocique, Coopenae, Mutual, etc.</li>' +
+                  '</ul>' +
+                  '<p class="text-warning mb-0"><i class="fas fa-exclamation-triangle me-1"></i>Solo funciona si no hay bancos existentes.</p>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-magic me-1"></i> Generar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Generando catálogo...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '?handler=GenerarCatalogo',
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Catálogo Generado',
+                                text: response.message
+                            });
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+</script>
+}

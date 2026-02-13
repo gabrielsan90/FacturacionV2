@@ -2,486 +2,174 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Build Environment
+This project runs on Windows/.NET (Visual Studio). Do NOT attempt to build, run migrations, or start the application from WSL/Linux — it will fail or be extremely slow. Always assume the user will verify builds in Visual Studio unless explicitly told otherwise.
+
+## Session Continuations
+When continuing from a previous session, do NOT re-read the entire codebase from scratch. Ask the user for a brief summary of where they left off and which files were being modified. Keep responses focused and avoid exceeding context limits.
+
+## Bug Fix Workflow
+When fixing bugs, verify variable names, field mappings, and function references against the ACTUAL codebase before submitting changes. Do not guess at names. After each fix, check for related downstream breakages (e.g., fixing a controller may break JS that references it). Prefer fixing all related issues in one pass rather than iterative back-and-forth.
+
+## CSS & UI Changes
+When modifying CSS or UI layouts, check for duplicate/conflicting styles before adding new ones. Always verify z-index stacking contexts when working with modals or overlays. Test that grid/flex layouts render correctly (cards horizontal vs vertical).
+
+## DataTables Pattern
+This project uses DataTables extensively. When adding or modifying DataTable pages, always ensure: (1) `dataTableConfig` utility object is defined or imported, (2) column field names match the API response exactly, (3) pagination parameters are sent correctly to the backend. Check ALL pages that share DataTable utilities when modifying shared config.
+
+
 ## Project Overview
 
-**FacturacionV2** - Electronic invoicing system for Costa Rica (Facturación Electrónica v4.4 compliant)
+**FacturacionV2** - Multi-tenant electronic invoicing system for Costa Rica (Facturación Electrónica v4.4)
 - **Framework**: .NET 9.0
-- **Architecture**: MJL 3-Layer Architecture
-- **Database**: SQL Server (remote: www.smarttechcr.com)
-- **Business Domain**: Multi-tenant electronic invoicing, inventory, and expense management
+- **Architecture**: 3-Layer (Backend API / Frontend Razor Pages / Shared Library)
+- **Database**: SQL Server via Entity Framework Core 9
+- **Auth**: JWT (Backend) + Cookie "FacturacionAuth" (Frontend)
 
-## Solution Structure
+## Build and Run
 
-```
-FacturacionV2/
-├── Facturacion.Backend/       # ASP.NET Core Web API (JWT authentication)
-├── Facturacion.Frontend/      # ASP.NET Core Razor Pages (Cookie authentication)
-└── Facturacion.Shared/        # Class Library (Entities, DTOs, Enums, Responses)
-```
-
-## Build and Run Commands
-
-### Build & Restore
 ```bash
-# Restore dependencies
-dotnet restore
+dotnet build                    # Build entire solution
+dotnet build Facturacion.Backend/Facturacion.Backend.csproj   # Build single project
 
-# Build entire solution
-dotnet build
+# Run Backend API (HTTPS 7501, HTTP 5001)
+cd Facturacion.Backend && dotnet run
 
-# Build specific project
-dotnet build Facturacion.Backend/Facturacion.Backend.csproj
+# Run Frontend (HTTPS 5501, HTTP 5402)
+cd Facturacion.Frontend && dotnet run
 ```
 
-### Run Projects
-```bash
-# Run Backend API (configured ports: HTTPS 7501, HTTP 5001)
-cd Facturacion.Backend
-dotnet run
-
-# Run Frontend (default port: 7031)
-cd Facturacion.Frontend
-dotnet run
-
-# Run both in separate terminals for full stack development
-```
+Swagger: `https://localhost:7501/swagger`
+Frontend ApiBaseUrl configured in `Facturacion.Frontend/appsettings.json` (currently points to production; comment swap for local dev with `https://localhost:7501`).
 
 ### Database Migrations
+
 ```bash
-# Create new migration (run from solution root or Backend directory)
 cd Facturacion.Backend
 dotnet ef migrations add MigrationName
-
-# Apply migrations to database
 dotnet ef database update
-
-# Rollback to specific migration
-dotnet ef database update MigrationName
-
-# Remove last migration (if not applied)
-dotnet ef migrations remove
-
-# If dotnet-ef version conflicts occur, use:
+# If dotnet-ef version conflicts:
 DOTNET_ROLL_FORWARD=Major dotnet ef migrations add MigrationName
-DOTNET_ROLL_FORWARD=Major dotnet ef database update
 ```
 
-### Testing
-```bash
-# No test projects currently configured
-# When tests are added, run with:
-dotnet test
+No test projects currently configured.
+
+## Architecture (CRITICAL)
+
+### 3-Layer Separation
+
+| Layer | Project | Role |
+|-------|---------|------|
+| **Presentation** | `Facturacion.Frontend` | Razor Pages + jQuery. NEVER accesses DB directly. |
+| **API** | `Facturacion.Backend` | Controllers, Services, Repositories, UoW. JWT auth. |
+| **Shared** | `Facturacion.Shared` | Entities, DTOs, Enums, `ActionResponse<T>` |
+
+### Frontend → Backend Communication (CRITICAL RULE)
+
+**JavaScript NEVER calls the API directly.** The flow is always:
+
+```
+Browser JS → AJAX to Razor PageHandler → PageModel calls API via IHttpClientFactory → Backend API
 ```
 
-## Architecture Patterns
+```javascript
+// ✅ CORRECT: JS calls page handler
+$.ajax({ url: '?handler=GetData', type: 'GET', ... });
+```
 
-### MJL 3-Layer Architecture
+```csharp
+// ✅ PageModel handler proxies to API
+public async Task<IActionResult> OnGetDataAsync() {
+    var client = _httpClientFactory.CreateClient("FacturacionApi");
+    var token = User.FindFirst("Token")?.Value;  // JWT stored as claim in auth cookie
+    if (!string.IsNullOrEmpty(token))
+        client.DefaultRequestHeaders.Authorization = new("Bearer", token);
+    var response = await client.GetAsync("/api/endpoint");
+    // ...
+}
+```
 
-**CRITICAL**: This project follows strict separation of concerns:
-
-1. **Presentation Layer** (Frontend)
-   - Razor Pages for UI
-   - Page handlers call Backend API via IHttpClientFactory
-   - Cookie-based authentication
-   - NEVER accesses database directly
-
-2. **Business Logic Layer** (Backend)
-   - RESTful API controllers
-   - Services for business logic
-   - Repositories for data access
-   - Unit of Work for transaction management
-   - JWT authentication
-   - NEVER exposes DbContext outside Backend project
-
-3. **Data Layer** (Shared)
-   - Entity classes (database models)
-   - DTOs for data transfer
-   - Enums
-   - ActionResponse<T> wrapper for all API responses
-
-### Repository Pattern
+### Backend Patterns
 
 - **Generic Repository**: `IGenericRepository<T>` / `GenericRepository<T>` for standard CRUD
-- **Specific Repositories**: Created only when complex queries needed (e.g., `IDocumentoRepository` for Include() joins)
-- All repositories return `ActionResponse<T>`
+- **Specific Repositories**: Only when complex queries needed (e.g., `IDocumentoRepository` with Include() joins)
+- **Unit of Work**: `IGenericUnitOfWork<T>` wraps repository + transaction management
+- **All repositories return `ActionResponse<T>`**:
+  ```csharp
+  public class ActionResponse<T> {
+      public bool WasSuccess { get; set; }
+      public string? Message { get; set; }
+      public T? Result { get; set; }
+  }
+  ```
 
-### Unit of Work Pattern
+### Backend JSON Serialization Config
 
-- **Generic UoW**: `IGenericUnitOfWork<T>` / `GenericUnitOfWork<T>`
-- **Specific UoW**: Created when entity needs specific repository
-- Manages transactions across multiple repositories
-
-### ActionResponse Pattern
-
-All API responses use the wrapper pattern:
+Configured in `Backend/Program.cs`:
 ```csharp
-public class ActionResponse<T>
-{
-    public bool WasSuccess { get; set; }
-    public string? Message { get; set; }
-    public T? Result { get; set; }
-}
+options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+// NOTE: PropertyNameCaseInsensitive is NOT set (defaults to false)
 ```
 
-## Frontend-Backend Communication Pattern
+**Implication**: When adding new DTO properties that will be sent from JS (camelCase) to the Backend API, use `[JsonPropertyName("camelCaseName")]` on the C# property to ensure correct deserialization. The CamelCase naming policy handles standard conversions, but explicit attributes are safer for new properties.
 
-**CRITICAL RULE**: Frontend JavaScript NEVER calls API directly.
+### Frontend Global JS Helpers
 
-### ✅ CORRECT Pattern:
-```javascript
-// In .cshtml file - AJAX calls page handler
-$.ajax({
-    url: '?handler=GetData',
-    type: 'GET',
-    success: function(data) { ... }
-});
-```
-
-```csharp
-// In .cshtml.cs PageModel - Handler calls API via IHttpClientFactory
-private readonly IHttpClientFactory _httpClientFactory;
-
-public async Task<IActionResult> OnGetDataAsync()
-{
-    var client = _httpClientFactory.CreateClient("FacturacionApi");
-    if (Request.Cookies.TryGetValue("jwtAdmin", out var jwt))
-        client.DefaultRequestHeaders.Authorization = new("Bearer", jwt);
-
-    var response = await client.GetAsync("/api/endpoint");
-    if (response.IsSuccessStatusCode)
-    {
-        var data = await response.Content.ReadFromJsonAsync<ActionResponse<T>>();
-        return new JsonResult(data);
-    }
-    return BadRequest();
-}
-```
-
-### ❌ INCORRECT Pattern:
-```javascript
-// NEVER do this - no direct API calls from JavaScript
-$.ajax({
-    url: 'https://localhost:7030/api/endpoint',  // ❌ WRONG
-    type: 'GET',
-    ...
-});
-```
-
-## Key Technologies
-
-### Backend
-- **Microsoft.EntityFrameworkCore** 9.0 - ORM for database access
-- **Microsoft.AspNetCore.Identity** - User/role management
-- **Microsoft.AspNetCore.Authentication.JwtBearer** - JWT authentication
-- **Swashbuckle.AspNetCore** - Swagger/OpenAPI documentation
-- **FirmaXadesNet** - Digital signature generation (XAdES format for Hacienda)
-- **MailKit/MimeKit** - Email sending
-
-### Frontend
-- **Bootstrap** - UI framework
-- **jQuery** - DOM manipulation and AJAX
-- **DataTables** - Advanced table features with search/sort/pagination
-
-### External Integrations
-- **Hacienda API** - Costa Rica government electronic invoicing API
-  - Staging: `https://api-sandbox.comprobanteselectronicos.go.cr`
-  - Production: `https://api.comprobanteselectronicos.go.cr`
-- **BCCR API** - Costa Rica Central Bank for exchange rates
-- **Hacienda IDP** - OAuth2 token service for API authentication
-
-## Important Configuration
-
-### Backend (appsettings.json)
-- `ConnectionStrings:LocalConnection` - SQL Server connection
-- `Jwt:Issuer`, `Jwt:Audience`, `Jwt:Key` - JWT configuration
-- `Jwt:ExpirationHours` - Token expiration (default: 8 hours)
-- `HaciendaApi:UrlRecepcionStaging/Production` - Government API URLs
-- `HaciendaIdp:UrlStaging/Production` - OAuth2 token endpoints
-
-### Frontend (appsettings.json)
-- `ApiBaseUrl` - Backend API URL (e.g., `https://localhost:7030`)
-
-## Database Schema Highlights
-
-**60+ Entity Framework migrations** establishing:
-
-### Core Entities
-- `User` - System users (ASP.NET Identity)
-- `Empresa` - Multi-tenant companies
-- `Sucursal` - Branches
-- `Terminal` - Point of sale terminals
-- `Cliente` - Customers
-- `Proveedor` - Suppliers
-- `Producto` - Products/services
-- `Categoria` - Product categories
-
-### Electronic Documents (Hacienda v4.4)
-- `Documento` - Main document (FE, TE, NC, ND, FEC, FEE, MR, REP)
-- `DocumentoDetalle` - Line items
-- `DocumentoDetalleImpuesto` - Taxes per line (supports multiple taxes per line - FASE 2)
-- `DocumentoDetalleDescuento` - Discounts per line (supports multiple discounts per line - FASE 2)
-- `DocumentoDetalleExoneracion` - Exonerations per line (FASE 2)
-- `DocumentoOtroCargo` - Additional charges (otros cargos - FASE 2)
-- `DocumentoMedioPago` - Payment methods
-
-### Catalog Entities (Costa Rica specific)
-- `Provincia`, `Canton`, `Distrito`, `Barrio` - Geographic divisions
-- `CAByS` - Goods and services classifier (13-digit code)
-- `TipoCodigo`, `TipoDocumento`, `UnidadMedida`, `Impuesto`, etc.
-
-### Business Entities
-- `Inventario` - Stock tracking
-- `MovimientoInventario` - Stock transactions
-- `Gasto` - Expenses
-- `Consecutivo` - Document sequential numbering
-- `HaciendaToken` - OAuth2 token storage
-- `Auditoria` - Change audit logs
+Defined in `wwwroot/js/site.js` — use these instead of raw Swal/jQuery:
+- `showSuccess(message)` / `showError(message)` / `showWarning(message)` — SweetAlert2 toasts
+- `confirmDelete(message, onConfirm)` — Red delete confirmation dialog
+- `confirmAction(title, text, onConfirm)` — Generic confirmation (in `helpers.js`)
+- `handleAjaxError(xhr)` — Standard AJAX error handler (401 redirects to login)
+- `initDataTable(selector, options)` — DataTable with Spanish locale, responsive, 25 rows default
 
 ## Coding Conventions
 
-### Naming
-- **Razor Pages**: Use entity name in plural (e.g., `Productos.cshtml`, NOT `Index.cshtml`)
-- **Page Handlers**: Suffix with "Async" (e.g., `OnPostSaveAsync()`)
-- **Controllers**: Suffix with "Controller" (e.g., `ClientesController`)
-- **Interfaces**: Prefix with "I" (e.g., `IDocumentoService`)
-
-### File Organization
-```
-Backend/
-├── Controllers/          # API endpoints with [ApiController] and [Route]
-├── Services/
-│   ├── Interfaces/      # Service contracts
-│   └── Implementations/ # Business logic
-├── Repositories/
-│   ├── Interfaces/      # Repository contracts
-│   └── Implementations/ # Data access
-├── UnitsOfWork/
-│   ├── Interfaces/      # UoW contracts
-│   └── Implementations/ # Transaction management
-├── Helpers/             # UserHelper, etc.
-├── Data/
-│   ├── DataContext.cs   # EF Core DbContext
-│   └── SeedDb.cs        # Database seeding
-└── Migrations/          # EF Core migrations
-
-Frontend/
-├── Pages/
-│   ├── [Entity].cshtml      # Razor view
-│   ├── [Entity].cshtml.cs   # PageModel code-behind
-│   └── Auth/                # Authentication pages
-├── Services/            # IApiService, IAuthService
-├── Helpers/
-└── wwwroot/
-    ├── css/
-    ├── js/
-    └── lib/             # Bootstrap, jQuery, DataTables
-
-Shared/
-├── Entities/            # Database models
-├── DTOs/                # Data transfer objects
-├── Enums/               # Enumerations
-└── Responses/           # ActionResponse<T>
-```
-
-## Security Configuration
-
-### Authentication
-- **Backend**: JWT Bearer tokens (8-hour expiration)
-- **Frontend**: Secure cookies (HttpOnly, SameSite=Lax)
-
-### Authorization
-- Role-based access control (RBAC)
-- Roles: SuperUser, Administrador, Contador, Facturador, Vendedor, Inventarista, Consultor
-- Privilege-based at module level with CRUD granularity
-
-### Password Policy
-- Minimum 6 characters (no special requirements)
-- Account lockout: 5 failed attempts → 15 minute lockout
-
-## Data Precision Standards
-
-Follow Costa Rica Hacienda requirements:
-- **Prices**: 5 decimals
-- **Quantities**: 3 decimals
-- **Totals**: 2 decimals
-- **Exchange rates**: 5 decimals
-- **ALWAYS use `decimal` type, NEVER `float` or `double`**
-
-## Development Workflow
-
-### Adding a New Entity
-
-1. Create entity class in `Facturacion.Shared/Entities/`
-2. Create DTOs in `Facturacion.Shared/DTOs/` (if needed)
-3. Add `DbSet<T>` to `DataContext.cs`
-4. **CRITICAL**: Configure navigation properties in `DataContext.OnModelCreating` if entity has relationships to `User` or other entities
-   - Use `HasOne().WithMany().HasForeignKey().OnDelete(DeleteBehavior.Restrict)` pattern
-   - Missing navigation property configurations will cause runtime 500 errors when saving entities
-5. Create migration: `dotnet ef migrations add Add[Entity]`
-6. Update database: `dotnet ef database update`
-7. Create repository interface/implementation (if complex queries needed)
-8. Create Unit of Work interface/implementation (if custom repository)
-9. Register in DI container (`Program.cs`)
-10. Create API controller in `Backend/Controllers/`
-11. Create Razor Page in `Frontend/Pages/`
-12. Implement page handlers with IHttpClientFactory pattern
-
-### Creating a New Page
-
-1. Create `[Entity].cshtml` and `[Entity].cshtml.cs` in `Frontend/Pages/`
-2. Use DataTables for lists with jQuery
-3. Use Bootstrap modals for create/edit forms
-4. Handlers call Backend via `IHttpClientFactory`
-5. NEVER call API directly from JavaScript
-
-## Testing Strategy
-
-Currently no automated tests configured. When implementing tests:
-- Unit tests for Services and Repositories
-- Integration tests for API endpoints
-- Consider testing Hacienda XML generation against XSD schemas
-
-## Background Services
-
-- `DocumentoEnvioBackgroundService` - Async queue for sending documents to Hacienda
-  - Handles retries on failures
-  - Updates document status in real-time
+- **Razor Pages**: Plural entity names (`Productos.cshtml`, NOT `Index.cshtml`)
+- **Page Handlers**: Suffix `Async` (`OnPostSaveAsync()`)
+- **Controllers**: Suffix `Controller` (`ClientesController`)
+- **Interfaces**: Prefix `I` (`IDocumentoService`)
+- **Decimal precision**: Prices=5 dec, Quantities=3 dec, Totals=2 dec, Exchange rates=5 dec. ALWAYS `decimal`, NEVER `float`/`double`.
 
 ## Common Gotchas
 
-1. **Navigation Property Configuration**: ALL navigation properties to User entities MUST be explicitly configured in `DataContext.OnModelCreating()` using `HasOne().WithMany().HasForeignKey().OnDelete(DeleteBehavior.Restrict)`. Missing configurations cause HTTP 500 errors at runtime when saving entities.
-2. **IHttpClientFactory Pattern**: Always use named client "FacturacionApi" in Frontend
-3. **JWT Cookie**: Frontend must extract JWT from cookie "jwtAdmin" and pass as Bearer token
-4. **Soft Delete**: Most entities use soft delete (mark inactive) rather than physical deletion
-5. **Multi-tenancy**: Always filter by `EmpresaId` where applicable
-6. **Consecutive Numbering**: Format is `SSS-TTTTT-NNNNNNNN-TT` (Sucursal-Terminal-Sequential-Type)
-7. **Digital Signatures**: Use FirmaXadesNet for XAdES-EPES signatures (Hacienda requirement)
-8. **DataTables Spanish**: Always set language to Spanish: `url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'`
-9. **Port Configuration**: Backend uses HTTPS port 7501 and HTTP port 5001 (configured in launchSettings.json)
+1. **Navigation Properties to User**: ALL must be configured in `DataContext.OnModelCreating()` with `HasOne().WithMany().HasForeignKey().OnDelete(DeleteBehavior.Restrict)`. Missing = runtime 500 errors.
+2. **JWT Token Access**: Frontend gets JWT via `User.FindFirst("Token")?.Value` (stored as a Claim inside the "FacturacionAuth" cookie), NOT from a separate cookie.
+3. **HttpClient**: Always use named client `"FacturacionApi"` in Frontend.
+4. **API Response Parsing**: Some API endpoints return arrays directly, others wrap in `ActionResponse<T>`. PageModel handlers must check `doc.RootElement.ValueKind == JsonValueKind.Array` before calling `TryGetProperty("result", ...)` to avoid `InvalidOperationException`.
+5. **Multi-tenancy**: Always filter by `EmpresaId` where applicable.
+6. **Soft Delete**: Most entities use soft delete (mark inactive), not physical deletion.
+7. **DataTables**: Always Spanish locale, loaded via `initDataTable()` helper.
 
-## Documentation Files
+## Adding a New Entity (Workflow)
 
-Extensive documentation available in root directory:
-- `ESPECIFICACION_SISTEMA.md` - Complete system specification (26KB)
-- `ARCHITECTURE_GUIDE.md` - MJL architecture principles
-- `BACKEND_PATTERNS.md` - Backend code patterns (35KB)
-- `FRONTEND_PATTERNS.md` - Frontend code patterns (29KB)
-- `SECURITY_CONFIG.md` - Security configuration details
-- `HACIENDA_TOKEN_SERVICE_README.md` - OAuth2 token management
-- `DOCUMENTACION_CAMPOS_V44.md` - Hacienda v4.4 field specifications
-- `guia-facturacion-electronica-cr-v44.md` - Complete e-invoicing guide (80KB)
+1. Entity class in `Shared/Entities/`
+2. DTOs in `Shared/DTOs/` if needed
+3. `DbSet<T>` in `Backend/Data/DataContext.cs`
+4. **Configure navigation properties** in `DataContext.OnModelCreating` (see Gotcha #1)
+5. Migration: `dotnet ef migrations add Add[Entity]` + `dotnet ef database update`
+6. Repository interface/implementation (only if complex queries needed)
+7. Unit of Work interface/implementation (only if custom repository)
+8. Register in DI container (`Backend/Program.cs`)
+9. API Controller in `Backend/Controllers/`
+10. Razor Page (`.cshtml` + `.cshtml.cs`) in `Frontend/Pages/`
 
-**IMPORTANT**: Always consult `ESPECIFICACION_SISTEMA.md` for business requirements and refer to pattern guides before implementing features.
+## Security
 
-## Default Credentials
+- **Roles**: SuperUser, Administrador de Empresa, Contador, Facturador, Vendedor, Inventarista, Consultor
+- **Password Policy**: Min 6 chars, lockout after 5 failed attempts (15 min)
+- **Controllers**: `[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "...")]`
+- **Pages**: `[Authorize(Roles = "...")]`
 
-Initial admin user (created by SeedDb):
-- Email: `admin@facturacion.com`
-- Password: `Admin123!`
-- Role: SuperUser
+## Reference Documentation
 
-## API Documentation
+Consult these files (in project root) for detailed specifications:
+- `ESPECIFICACION_SISTEMA.md` — Business requirements and system spec
+- `BACKEND_PATTERNS.md` — Backend code patterns and conventions
+- `FRONTEND_PATTERNS.md` — Frontend code patterns and conventions
+- `ARCHITECTURE_GUIDE.md` — Architecture principles
+- `DOCUMENTACION_CAMPOS_V44.md` — Hacienda v4.4 field specifications
 
-Swagger UI available at: `https://localhost:7030/swagger` (when Backend is running)
-
-## Specialized Agents
-
-This project includes 8 specialized agents configured in `.claude/agents/` that can be invoked for specific development tasks:
-
-### 1. **full-stack-mjl**
-**Use when**: Implementing complete end-to-end features spanning all layers
-- Creates Entity/DTO in Shared layer
-- Implements Repository/UnitOfWork/Controller in Backend
-- Creates Razor Pages with DataTables in Frontend
-- Follows complete MJL architecture workflow
-- **Example**: "Create a complete Suppliers module with CRUD operations"
-
-### 2. **dotnet-backend-architect**
-**Use when**: Implementing or modifying backend functionality
-- Creates Repository and Unit of Work patterns
-- Implements API controllers with proper error handling
-- Configures Entity Framework relationships
-- Creates and manages migrations
-- Ensures ActionResponse<T> pattern compliance
-- **Example**: "Implement Repository pattern for Order entities"
-
-### 3. **razor-frontend-developer**
-**Use when**: Creating or modifying Razor Pages
-- Creates properly named Razor Pages (plural entity names)
-- Implements PageModels with async handlers
-- Sets up DataTables with AJAX loading
-- Creates Bootstrap modals for forms
-- Implements JWT authentication from cookies
-- **Example**: "Create a page to manage products with DataTable"
-
-### 4. **database-architect**
-**Use when**: Working with database schema or EF Core configuration
-- Designs normalized database schemas
-- Configures Entity Framework relationships in DataContext
-- Creates and reviews migrations
-- Defines indexes and constraints
-- Ensures proper data types and precision
-- **Example**: "Configure proper indexes and relationships for Paquete entity"
-
-### 5. **code-reviewer**
-**Use when**: Reviewing code for compliance with patterns
-- Validates Repository/UnitOfWork pattern usage
-- Checks naming conventions compliance
-- Verifies security attributes are applied
-- Ensures ActionResponse<T> usage
-- Reviews Entity Framework optimizations
-- **Example**: "Review the ProductRepository for pattern compliance"
-
-### 6. **security-expert**
-**Use when**: Implementing or reviewing security features
-- Configures JWT authentication in Backend
-- Sets up cookie authentication in Frontend
-- Implements role-based authorization
-- Reviews authentication/authorization code
-- Ensures HTTPS and secure cookie policies
-- Protects against CSRF, XSS, SQL Injection
-- **Example**: "Review login endpoint for security best practices"
-
-### 7. **project-manager**
-**Use when**: Planning features or coordinating development tasks
-- Creates user stories with acceptance criteria
-- Breaks down features into Backend/Frontend tasks
-- Validates architectural compliance
-- Creates realistic sprint schedules
-- Coordinates team assignments
-- **Example**: "Create development plan for Customer module"
-
-### 8. **ui-ux-designer**
-**Use when**: Designing or reviewing user interfaces
-- Designs Bootstrap and CoreUI interfaces
-- Ensures accessibility (WCAG 2.1 Level AA)
-- Reviews form UX and validation
-- Defines reusable UI components
-- Ensures design consistency
-- **Example**: "Review the order form for accessibility and UX"
-
-### How to Use Agents
-
-To invoke an agent, use the Task tool with the appropriate `subagent_type`:
-```
-Task(
-  subagent_type="full-stack-mjl",
-  description="Create complete Product module",
-  prompt="Implement a complete Product module with CRUD operations following MJL architecture..."
-)
-```
-
-**Best Practice**: Choose the most specialized agent for your task. For example:
-- Need full stack? → Use `full-stack-mjl`
-- Backend only? → Use `dotnet-backend-architect`
-- Frontend only? → Use `razor-frontend-developer`
-- Database design? → Use `database-architect`
-
-## Version Control
-
-- **Main Branch**: `master`
-- Use descriptive commit messages
-- Recent commits show work on:
-  - Digital signatures (FIRMAXADES)
-  - Hacienda v4.4 FASE 2 features (multiple taxes, discounts, exonerations, otros cargos)
-  - Navigation property configurations for new entities
+Default admin: `admin@facturacion.com` / `Admin123!` (SuperUser role, created by SeedDb)

@@ -51,6 +51,30 @@
         </div>
 
         <!-- Navigation Menu -->
+        @{
+            var isSuperUser = User.IsInRole("SuperUser");
+            var isAdmin = User.IsInRole("Administrador de Empresa");
+            var isContador = User.IsInRole("Contador");
+            var isFacturador = User.IsInRole("Facturador");
+            var isVendedor = User.IsInRole("Vendedor");
+            var isInventarista = User.IsInRole("Inventarista");
+            var isConsultor = User.IsInRole("Consultor");
+
+            var fullAccess = isSuperUser || isAdmin;
+            var canInvoice = fullAccess || isFacturador || isVendedor || isContador || isConsultor;
+            var canSell = fullAccess || isVendedor || isFacturador || isConsultor;
+            var canBuy = fullAccess || isContador || isConsultor;
+            var canCatalog = true; // Todos ven catálogo
+            var canInventory = fullAccess || isInventarista || isConsultor;
+            var canAccounting = fullAccess || isContador || isConsultor;
+            var canCxC = fullAccess || isFacturador || isVendedor || isContador || isConsultor;
+            var canCxP = fullAccess || isContador || isConsultor;
+            var canHR = fullAccess;
+            var canAssets = fullAccess || isContador || isConsultor;
+            var canBudgets = fullAccess || isContador || isConsultor;
+            var canReports = true; // Todos ven reportes
+            var canSystem = fullAccess;
+        }
         <ul class="sidebar-nav" data-simplebar>
             <!-- Dashboard -->
             <li class="nav-item">
@@ -60,6 +84,8 @@
                 </a>
             </li>
 
+            @if (canInvoice)
+            {
             <!-- ========== FACTURACIÓN ========== -->
             <li class="nav-group">
                 <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#facturacionGroup" aria-expanded="false">
@@ -69,38 +95,121 @@
                 </a>
                 <ul class="nav-group-items collapse" id="facturacionGroup">
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Facturacion">
+                        <a class="nav-link" asp-page="/DocumentosElectronicos/CrearDocumento">
                             <i class="fas fa-file-invoice"></i>
                             Nueva Factura
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Documentos">
+                        <a class="nav-link" asp-page="/DocumentosElectronicos/Documentos">
                             <i class="fas fa-file-alt"></i>
                             Documentos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/RecibosPago">
+                        <a class="nav-link" asp-page="/DocumentosElectronicos/MensajesReceptor">
+                            <i class="fas fa-envelope-open-text"></i>
+                            Mensajes Receptor
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Pagos/RecibosPago">
                             <i class="fas fa-money-check-alt"></i>
                             Recibo Electrónico de Pago
                             <span class="badge bg-success text-white ms-auto" style="font-size: 0.65rem;">v4.4</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Recepciones">
+                        <a class="nav-link" asp-page="/Stock/Recepciones">
                             <i class="fas fa-inbox"></i>
                             Recepciones
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Gasto">
+                        <a class="nav-link" asp-page="/Gastos/Gasto">
                             <i class="fas fa-receipt"></i>
                             Gastos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Gastos/CategoriasGasto">
+                            <i class="fas fa-folder-open"></i>
+                            Categorías de Gastos
+                        </a>
+                    </li>
                 </ul>
             </li>
+            }
+
+            @if (canSell)
+            {
+            <!-- ========== VENTAS ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#ventasGroup" aria-expanded="false">
+                    <i class="fas fa-shopping-cart nav-icon"></i>
+                    VENTAS
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="ventasGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Ventas/Cotizaciones">
+                            <i class="fas fa-file-signature"></i>
+                            Cotizaciones
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Ventas/PedidosVenta">
+                            <i class="fas fa-clipboard-list"></i>
+                            Pedidos de Venta
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Ventas/HistorialVentas">
+                            <i class="fas fa-history"></i>
+                            Historial de Ventas
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canBuy)
+            {
+            <!-- ========== COMPRAS ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#comprasGroup" aria-expanded="false">
+                    <i class="fas fa-truck-loading nav-icon"></i>
+                    COMPRAS
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="comprasGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Compras/Requisiciones">
+                            <i class="fas fa-file-alt"></i>
+                            Requisiciones
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Compras/CotizacionesProveedor">
+                            <i class="fas fa-balance-scale"></i>
+                            Cotizaciones Proveedor
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Compras/OrdenesCompra">
+                            <i class="fas fa-clipboard-list"></i>
+                            Órdenes de Compra
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Compras/RecepcionesCompra">
+                            <i class="fas fa-dolly"></i>
+                            Recepciones de Compra
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
 
             <!-- ========== CATÁLOGO ========== -->
             <li class="nav-group">
@@ -111,27 +220,33 @@
                 </a>
                 <ul class="nav-group-items collapse" id="catalogoGroup">
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Clientes">
+                        <a class="nav-link" asp-page="/Maestros/Clientes">
                             <i class="fas fa-user-tie"></i>
                             Clientes
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Productos">
+                        <a class="nav-link" asp-page="/Maestros/Productos">
                             <i class="fas fa-box"></i>
                             Productos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Proveedores">
+                        <a class="nav-link" asp-page="/Maestros/Proveedores">
                             <i class="fas fa-truck"></i>
                             Proveedores
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Categorias">
+                        <a class="nav-link" asp-page="/Maestros/Categorias">
                             <i class="fas fa-tags"></i>
                             Categorías
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Maestros/Exoneraciones">
+                            <i class="fas fa-file-contract"></i>
+                            Exoneraciones
                         </a>
                     </li>
                     <!-- Catálogos Hacienda Sub-group -->
@@ -143,85 +258,85 @@
                         </a>
                         <ul class="nav-group-items collapse" id="catalogosHaciendaGroup">
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/Monedas">
+                                <a class="nav-link" asp-page="/Catalogos/Monedas">
                                     <i class="fas fa-coins"></i>
                                     Monedas
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/FormasPago">
+                                <a class="nav-link" asp-page="/Catalogos/FormasPago">
                                     <i class="fas fa-credit-card"></i>
                                     Formas de Pago
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/TiposDocumentos">
+                                <a class="nav-link" asp-page="/Catalogos/TiposDocumentos">
                                     <i class="fas fa-file-alt"></i>
                                     Tipos de Documentos
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/TiposReferencias">
+                                <a class="nav-link" asp-page="/Catalogos/TiposReferencias">
                                     <i class="fas fa-link"></i>
                                     Tipos de Referencias
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/TiposOtrosCargos">
+                                <a class="nav-link" asp-page="/Catalogos/TiposOtrosCargos">
                                     <i class="fas fa-plus-circle"></i>
                                     Tipos de Otros Cargos
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/TiposCodigosProducto">
+                                <a class="nav-link" asp-page="/Catalogos/TiposCodigosProducto">
                                     <i class="fas fa-barcode"></i>
                                     Tipos de Códigos Producto
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/CondicionesVenta">
+                                <a class="nav-link" asp-page="/Catalogos/CondicionesVenta">
                                     <i class="fas fa-handshake"></i>
                                     Condiciones de Venta
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/UnidadesMedidaPage">
+                                <a class="nav-link" asp-page="/Maestros/UnidadesMedidaPage">
                                     <i class="fas fa-ruler"></i>
                                     Unidades de Medida
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/TiposIdentificacion">
+                                <a class="nav-link" asp-page="/Catalogos/TiposIdentificacion">
                                     <i class="fas fa-id-card"></i>
                                     Tipos de Identificación
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/ImpuestosPage">
+                                <a class="nav-link" asp-page="/Maestros/ImpuestosPage">
                                     <i class="fas fa-percent"></i>
                                     Impuestos
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/CodigosTarifasIVA">
+                                <a class="nav-link" asp-page="/Catalogos/CodigosTarifasIVA">
                                     <i class="fas fa-percentage"></i>
                                     Códigos de Tarifas IVA
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/TiposExoneracion">
+                                <a class="nav-link" asp-page="/Catalogos/TiposExoneracion">
                                     <i class="fas fa-file-contract"></i>
                                     Tipos de Exoneración
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/ActividadesEconomicas">
+                                <a class="nav-link" asp-page="/Catalogos/ActividadesEconomicas">
                                     <i class="fas fa-briefcase"></i>
                                     Actividades Económicas
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-page="/Cabys">
+                                <a class="nav-link" asp-page="/Catalogos/Cabys">
                                     <i class="fas fa-barcode"></i>
                                     Códigos CABYS
                                 </a>
@@ -231,6 +346,8 @@
                 </ul>
             </li>
 
+            @if (canInventory)
+            {
             <!-- ========== INVENTARIO ========== -->
             <li class="nav-group">
                 <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#inventarioGroup" aria-expanded="false">
@@ -240,31 +357,372 @@
                 </a>
                 <ul class="nav-group-items collapse" id="inventarioGroup">
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Inventario">
+                        <a class="nav-link" asp-page="/Stock/Inventario">
                             <i class="fas fa-boxes"></i>
                             Stock Actual
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/AsignarProductosSucursal">
+                        <a class="nav-link" asp-page="/Stock/Bodegas">
+                            <i class="fas fa-warehouse"></i>
+                            Bodegas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Stock/MovimientosInventario">
+                            <i class="fas fa-exchange-alt"></i>
+                            Movimientos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Stock/Kardex">
+                            <i class="fas fa-clipboard-list"></i>
+                            Kardex
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Stock/Traspasos">
+                            <i class="fas fa-truck-moving"></i>
+                            Traspasos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Stock/AjustesInventario">
+                            <i class="fas fa-sliders-h"></i>
+                            Ajustes de Inventario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Maestros/AsignarProductosSucursal">
                             <i class="fas fa-cubes"></i>
                             Asignar Productos a Sucursal
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Movimientos">
-                            <i class="fas fa-exchange-alt"></i>
-                            Movimientos de Inventario
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/MantenimientoCabys">
+                        <a class="nav-link" asp-page="/Catalogos/MantenimientoCabys">
                             <i class="fas fa-tools"></i>
                             Mantenimiento CABYS
                         </a>
                     </li>
                 </ul>
             </li>
+            }
+
+            @if (canAccounting)
+            {
+            <!-- ========== CONTABILIDAD ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#contabilidadGroup" aria-expanded="false">
+                    <i class="fas fa-calculator nav-icon"></i>
+                    CONTABILIDAD
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="contabilidadGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/PlanCuentas">
+                            <i class="fas fa-sitemap"></i>
+                            Plan de Cuentas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/PeriodosContables">
+                            <i class="fas fa-calendar-alt"></i>
+                            Períodos Contables
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/AsientosContables">
+                            <i class="fas fa-book"></i>
+                            Asientos Contables
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/MayoresContables">
+                            <i class="fas fa-balance-scale"></i>
+                            Mayores Contables
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/PlantillasAsiento">
+                            <i class="fas fa-file-alt"></i>
+                            Plantillas de Asientos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/CuentasIntegracion">
+                            <i class="fas fa-plug"></i>
+                            Cuentas de Integración
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/ConfiguracionContable">
+                            <i class="fas fa-cog"></i>
+                            Configuración
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canAccounting)
+            {
+            <!-- ========== BANCOS ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#bancosGroup" aria-expanded="false">
+                    <i class="fas fa-university nav-icon"></i>
+                    BANCOS
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="bancosGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Bancos/Bancos">
+                            <i class="fas fa-building-columns"></i>
+                            Catálogo de Bancos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Bancos/CuentasBancarias">
+                            <i class="fas fa-credit-card"></i>
+                            Cuentas Bancarias
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Bancos/MovimientosBancarios">
+                            <i class="fas fa-exchange-alt"></i>
+                            Movimientos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Bancos/ConciliacionesBancarias">
+                            <i class="fas fa-check-double"></i>
+                            Conciliaciones
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Bancos/ExtractosBancarios">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Extractos Bancarios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Bancos/ReglasConciliacion">
+                            <i class="fas fa-magic"></i>
+                            Reglas de Conciliación
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canCxC)
+            {
+            <!-- ========== CUENTAS POR COBRAR ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#cxcGroup" aria-expanded="false">
+                    <i class="fas fa-hand-holding-usd nav-icon"></i>
+                    CUENTAS POR COBRAR
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="cxcGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/CxC/CuentasPorCobrar">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Cuentas por Cobrar
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/CxC/EstadoCuenta">
+                            <i class="fas fa-user-clock"></i>
+                            Estado de Cuenta Cliente
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canCxP)
+            {
+            <!-- ========== CUENTAS POR PAGAR ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#cxpGroup" aria-expanded="false">
+                    <i class="fas fa-money-check-alt nav-icon"></i>
+                    CUENTAS POR PAGAR
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="cxpGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/CxP/CuentasPorPagar">
+                            <i class="fas fa-file-invoice"></i>
+                            Cuentas por Pagar
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/CxP/EstadoCuentaProveedor">
+                            <i class="fas fa-truck"></i>
+                            Estado de Cuenta Proveedor
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canHR)
+            {
+            <!-- ========== RECURSOS HUMANOS ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#rrhhGroup" aria-expanded="false">
+                    <i class="fas fa-users nav-icon"></i>
+                    RECURSOS HUMANOS
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="rrhhGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/RRHH/Empleados">
+                            <i class="fas fa-id-badge"></i>
+                            Empleados
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/RRHH/Departamentos">
+                            <i class="fas fa-sitemap"></i>
+                            Departamentos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/RRHH/Puestos">
+                            <i class="fas fa-briefcase"></i>
+                            Puestos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/RRHH/Planillas">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Planillas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/RRHH/Vacaciones">
+                            <i class="fas fa-umbrella-beach"></i>
+                            Vacaciones
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/RRHH/Incapacidades">
+                            <i class="fas fa-notes-medical"></i>
+                            Incapacidades
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canAssets)
+            {
+            <!-- ========== ACTIVOS FIJOS ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#activosFijosGroup" aria-expanded="false">
+                    <i class="fas fa-building nav-icon"></i>
+                    ACTIVOS FIJOS
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="activosFijosGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ActivosFijos/ActivosFijos">
+                            <i class="fas fa-laptop-house"></i>
+                            Activos Fijos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ActivosFijos/CategoriasActivo">
+                            <i class="fas fa-tags"></i>
+                            Categorías de Activos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/ActivosFijos/DepreciacionesActivo">
+                            <i class="fas fa-chart-line"></i>
+                            Depreciaciones
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (canBudgets)
+            {
+            <!-- ========== PRESUPUESTOS ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#presupuestosGroup" aria-expanded="false">
+                    <i class="fas fa-coins nav-icon"></i>
+                    PRESUPUESTOS
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="presupuestosGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Presupuestos/CentrosCosto">
+                            <i class="fas fa-sitemap"></i>
+                            Centros de Costo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Presupuestos/Presupuestos">
+                            <i class="fas fa-file-invoice"></i>
+                            Presupuestos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Presupuestos/EjecucionPresupuestal">
+                            <i class="fas fa-chart-pie"></i>
+                            Ejecución Presupuestal
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
+
+            @if (fullAccess)
+            {
+            <!-- ========== APROBACIONES ========== -->
+            <li class="nav-group">
+                <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#aprobacionesGroup" aria-expanded="false">
+                    <i class="fas fa-tasks nav-icon"></i>
+                    APROBACIONES
+                    <i class="fas fa-chevron-down nav-arrow"></i>
+                </a>
+                <ul class="nav-group-items collapse" id="aprobacionesGroup">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Aprobaciones/MisSolicitudes">
+                            <i class="fas fa-clipboard-list"></i>
+                            Mis Solicitudes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Aprobaciones/PendientesAprobar">
+                            <i class="fas fa-hourglass-half"></i>
+                            Pendientes de Aprobar
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Aprobaciones/TiposWorkflow">
+                            <i class="fas fa-project-diagram"></i>
+                            Tipos de Workflow
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Aprobaciones/NivelesAprobacion">
+                            <i class="fas fa-layer-group"></i>
+                            Niveles de Aprobación
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Aprobaciones/HistorialAprobaciones">
+                            <i class="fas fa-history"></i>
+                            Historial
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            }
 
             <!-- ========== REPORTES ========== -->
             <li class="nav-group">
@@ -275,31 +733,31 @@
                 </a>
                 <ul class="nav-group-items collapse" id="reportesGroup">
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/ReporteVentas">
+                        <a class="nav-link" asp-page="/Reportes/ReporteVentas">
                             <i class="fas fa-chart-line"></i>
                             Reporte de Ventas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/ReporteDocumentosEmitidos">
+                        <a class="nav-link" asp-page="/Reportes/ReporteDocumentosEmitidos">
                             <i class="fas fa-file-export"></i>
                             Documentos Emitidos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/ReporteDocumentosRecibidos">
+                        <a class="nav-link" asp-page="/Reportes/ReporteDocumentosRecibidos">
                             <i class="fas fa-file-import"></i>
                             Documentos Recibidos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/ReporteProductos">
+                        <a class="nav-link" asp-page="/Reportes/ReporteProductos">
                             <i class="fas fa-box-open"></i>
                             Reporte de Productos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/ReporteGastos">
+                        <a class="nav-link" asp-page="/Reportes/ReporteGastos">
                             <i class="fas fa-receipt"></i>
                             Reporte de Gastos
                         </a>
@@ -307,6 +765,8 @@
                 </ul>
             </li>
 
+            @if (canSystem)
+            {
             <!-- ========== SISTEMA ========== -->
             <li class="nav-group">
                 <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#sistemaGroup" aria-expanded="false">
@@ -316,49 +776,78 @@
                 </a>
                 <ul class="nav-group-items collapse" id="sistemaGroup">
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Empresas">
+                        <a class="nav-link" asp-page="/Configuracion/Empresas">
                             <i class="fas fa-building"></i>
                             Empresas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Sucursales">
+                        <a class="nav-link" asp-page="/Configuracion/Sucursales">
                             <i class="fas fa-store"></i>
                             Sucursales
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Terminales">
+                        <a class="nav-link" asp-page="/Configuracion/Terminales">
                             <i class="fas fa-cash-register"></i>
                             Terminales
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-page="/Usuarios">
-                            <i class="fas fa-users"></i>
-                            Usuarios
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/Roles">
-                            <i class="fas fa-user-shield"></i>
-                            Roles
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/Seguridad">
-                            <i class="fas fa-shield-alt"></i>
-                            Seguridad
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" asp-page="/ConfiguracionCorreo">
+                        <a class="nav-link" asp-page="/Configuracion/ConfiguracionCorreo">
                             <i class="fas fa-envelope-open-text"></i>
                             Configuración de Correo
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Configuracion/TipoCambio">
+                            <i class="fas fa-exchange-alt"></i>
+                            Tipo de Cambio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Sistema/Notificaciones">
+                            <i class="fas fa-bell"></i>
+                            Notificaciones
+                        </a>
+                    </li>
+                    <!-- Seguridad Sub-group -->
+                    <li class="nav-group nav-subgroup">
+                        <a class="nav-link nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#seguridadSubGroup" aria-expanded="false">
+                            <i class="fas fa-shield-alt"></i>
+                            Seguridad
+                            <i class="fas fa-chevron-down nav-arrow"></i>
+                        </a>
+                        <ul class="nav-group-items collapse" id="seguridadSubGroup">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Seguridad/Usuarios">
+                                    <i class="fas fa-users"></i>
+                                    Usuarios
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Seguridad/Roles">
+                                    <i class="fas fa-user-shield"></i>
+                                    Roles
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Seguridad/Privilegios">
+                                    <i class="fas fa-key"></i>
+                                    Privilegios
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Seguridad/AuditoriaAccesos">
+                                    <i class="fas fa-history"></i>
+                                    Auditoría de Accesos
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </li>
+            }
         </ul>
 
         <!-- User Profile in Sidebar -->
@@ -442,7 +931,8 @@
 
                     <!-- Company Selector -->
                     <li class="nav-item dropdown d-none d-md-block me-2">
-                        <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="companySelector">
+                        <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="companySelector"
+                           data-empresa-id="@(User.Claims.FirstOrDefault(c => c.Type == "EmpresaId")?.Value ?? "")">
                             <i class="fas fa-building"></i>
                             <span class="d-none d-lg-inline ms-2" id="currentCompanyName">
                                 @if (User.Identity?.IsAuthenticated == true)
@@ -468,92 +958,39 @@
                     <li class="nav-item dropdown me-2">
                         <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" id="notificationDropdown">
                             <i class="fas fa-bell"></i>
-                            <span class="badge-notification" id="notificationBadge">3</span>
+                            <span class="badge-notification" id="notificationBadge" style="display: none;">0</span>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-end" style="width: 350px; max-height: 400px; overflow-y: auto;">
-                            <div class="dropdown-header d-flex justify-content-between align-items-center">
-                                <strong>Notificaciones</strong>
-                                <a href="#" class="text-primary small" onclick="markAllAsRead(); return false;">
+                        <div class="dropdown-menu dropdown-menu-end" style="width: 380px; max-height: 500px;">
+                            <div class="dropdown-header d-flex justify-content-between align-items-center py-3 px-3 border-bottom">
+                                <div>
+                                    <i class="fas fa-bell me-2"></i>
+                                    <strong>Notificaciones</strong>
+                                </div>
+                                <a href="#" class="text-primary small" id="markAllNotificationsRead" style="text-decoration: none;">
+                                    <i class="fas fa-check-double me-1"></i>
                                     Marcar todas
                                 </a>
                             </div>
-                            <div id="notificationList">
-                                <div class="notification-item d-flex">
-                                    <div class="notification-icon success">
-                                        <i class="fas fa-check-circle"></i>
+                            <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
+                                <div class="notification-item text-center py-4">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Documento Aceptado</div>
-                                        <div class="small text-muted">Factura FE-00001 aceptada por Hacienda</div>
-                                        <div class="small text-muted">Hace 5 minutos</div>
-                                    </div>
-                                </div>
-                                <div class="notification-item d-flex">
-                                    <div class="notification-icon warning">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Stock Bajo</div>
-                                        <div class="small text-muted">Producto XYZ tiene stock bajo</div>
-                                        <div class="small text-muted">Hace 1 hora</div>
-                                    </div>
-                                </div>
-                                <div class="notification-item d-flex">
-                                    <div class="notification-icon info">
-                                        <i class="fas fa-info-circle"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">Nuevo Cliente</div>
-                                        <div class="small text-muted">Cliente ABC S.A. registrado</div>
-                                        <div class="small text-muted">Hace 2 horas</div>
-                                    </div>
+                                    <p class="text-muted mt-2 mb-0 small">Cargando notificaciones...</p>
                                 </div>
                             </div>
                             <div class="dropdown-footer text-center border-top py-2">
-                                <a asp-page="/Notificaciones" class="small">Ver todas las notificaciones</a>
-                            </div>
-                        </div>
-                    </li>
-
-                    <!-- Messages (Optional) -->
-                    <li class="nav-item dropdown me-2 d-none d-lg-block">
-                        <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-envelope"></i>
-                            <span class="badge-notification">2</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end" style="width: 320px;">
-                            <div class="dropdown-header">
-                                <strong>Mensajes</strong>
-                            </div>
-                            <div class="notification-item d-flex">
-                                <div class="notification-icon info">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold">Juan Pérez</div>
-                                    <div class="small text-muted">Consulta sobre factura...</div>
-                                    <div class="small text-muted">Hace 30 minutos</div>
-                                </div>
-                            </div>
-                            <div class="notification-item d-flex">
-                                <div class="notification-icon success">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold">María González</div>
-                                    <div class="small text-muted">Pedido confirmado</div>
-                                    <div class="small text-muted">Hace 1 hora</div>
-                                </div>
-                            </div>
-                            <div class="dropdown-footer text-center border-top py-2">
-                                <a href="#" class="small">Ver todos los mensajes</a>
+                                <a asp-page="/Sistema/Notificaciones" class="small text-decoration-none">
+                                    <i class="fas fa-list me-1"></i>
+                                    Ver todas las notificaciones
+                                </a>
                             </div>
                         </div>
                     </li>
 
                     <!-- User Profile Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link py-0" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link py-0 d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="avatar">
                                 @if (User.Identity?.IsAuthenticated == true)
                                 {
@@ -564,6 +1001,17 @@
                                     <text>U</text>
                                 }
                             </div>
+                            <span class="d-none d-lg-inline ms-2 text-body">
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    @User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value
+                                }
+                                else
+                                {
+                                    <text>Invitado</text>
+                                }
+                            </span>
+                            <i class="fas fa-chevron-down ms-1 d-none d-lg-inline" style="font-size: 0.7rem;"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
@@ -645,6 +1093,9 @@
     <!-- Theme Toggle JS -->
     <script src="~/js/theme-toggle.js" asp-append-version="true"></script>
 
+    <!-- Notifications System -->
+    <script src="~/js/notifications.js" asp-append-version="true"></script>
+
     <script>
         // Toggle Sidebar Function
         function toggleSidebar() {
@@ -670,25 +1121,6 @@
                 if (result.isConfirmed) {
                     window.location.href = '/Auth/Logout';
                 }
-            });
-        }
-
-        // Mark all notifications as read
-        function markAllAsRead() {
-            const badge = document.getElementById('notificationBadge');
-            if (badge) {
-                badge.textContent = '0';
-                badge.style.display = 'none';
-            }
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Notificaciones marcadas',
-                text: 'Todas las notificaciones han sido marcadas como leídas',
-                timer: 2000,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end'
             });
         }
 
@@ -798,7 +1230,7 @@
                                 $('<li>').append(
                                     $('<a>')
                                         .addClass('dropdown-item')
-                                        .attr('href', '/Empresas')
+                                        .attr('href', '/Configuracion/Empresas')
                                         .html('<i class="fas fa-cog me-2"></i> Administrar Empresas')
                                 )
                             );

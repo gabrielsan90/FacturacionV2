@@ -1,0 +1,467 @@
+@page
+@model Facturacion.Frontend.Pages.Stock.BodegasModel
+@{
+    ViewData["Title"] = "Bodegas";
+    ViewData["Breadcrumb"] = "Bodegas";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-warehouse"></i> Gestión de Bodegas</h2>
+            <p class="mb-0">Administración de bodegas y almacenes por sucursal</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nueva bodega">
+                <i class="fas fa-plus me-2"></i>Nueva Bodega
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bodegas Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Bodegas</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalBodegas">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableBodegasLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando bodegas...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableBodegasContainer" style="display:none;">
+            <table id="tableBodegas" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Sucursal</th>
+                        <th>Ubicación</th>
+                        <th>Responsable</th>
+                        <th>Principal</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateBodegas" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-warehouse"></i>
+            </div>
+            <h3 class="empty-state-title">No hay bodegas registradas</h3>
+            <p class="empty-state-description">Comienza creando tu primera bodega</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Bodega
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalBodega" tabindex="-1" aria-labelledby="modalBodegaLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalBodegaLabel">
+                    <i class="fas fa-warehouse"></i> <span id="modalBodegaTitulo">Nueva Bodega</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formBodega">
+                <div class="modal-body">
+                    <input type="hidden" id="Bodega_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="Bodega_Codigo" class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Bodega_Codigo" maxlength="10" required />
+                            <div class="invalid-feedback">El código es obligatorio.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="Bodega_Nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Bodega_Nombre" maxlength="100" required />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="Bodega_SucursalId" class="form-label">Sucursal <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Bodega_SucursalId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una sucursal.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="Bodega_Ubicacion" class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" id="Bodega_Ubicacion" maxlength="200" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="Bodega_Descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="Bodega_Descripcion" rows="2" maxlength="200"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-user-tie me-2"></i>Información de Contacto</h6>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="Bodega_Responsable" class="form-label">Responsable</label>
+                            <input type="text" class="form-control" id="Bodega_Responsable" maxlength="100" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="Bodega_Telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="Bodega_Telefono" maxlength="20" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="Bodega_Email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="Bodega_Email" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Bodega_EsPrincipal" />
+                                <label class="form-check-label" for="Bodega_EsPrincipal">
+                                    Bodega Principal
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Bodega_PermiteNegativos" />
+                                <label class="form-check-label" for="Bodega_PermiteNegativos">
+                                    Permite Inventario Negativo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="Bodega_Activo" checked />
+                        <label class="form-check-label" for="Bodega_Activo">
+                            Bodega Activa
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarBodega">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/utils.js"></script>
+    <script>
+        let table;
+
+        $(document).ready(function () {
+            loadDataTable();
+            setupFormSubmit();
+        });
+
+        function getAntiForgeryToken() {
+            return $('input[name="__RequestVerificationToken"]').val();
+        }
+
+        function loadDataTable() {
+            table = $('#tableBodegas').DataTable({
+                ajax: {
+                    url: '?handler=Data',
+                    type: 'GET',
+                    headers: {
+                        "RequestVerificationToken": getAntiForgeryToken()
+                    },
+                    dataSrc: function (json) {
+                        $('#tableBodegasLoader').hide();
+                        const data = json.data || json || [];
+                        $('#badgeTotalBodegas').text(data.length);
+
+                        if (data.length > 0) {
+                            $('#tableBodegasContainer').show();
+                            $('#emptyStateBodegas').hide();
+                        } else {
+                            $('#tableBodegasContainer').hide();
+                            $('#emptyStateBodegas').show();
+                        }
+                        return data;
+                    },
+                    error: function (xhr, error, thrown) {
+                        $('#tableBodegasLoader').hide();
+                        $('#tableBodegasContainer').hide();
+                        $('#emptyStateBodegas').show();
+                        $('#badgeTotalBodegas').text('0');
+                        console.error('Error loading data:', error);
+                        Swal.fire('Error', 'No se pudo cargar las bodegas.', 'error');
+                    }
+                },
+                columns: [
+                    { data: 'codigo' },
+                    { data: 'nombre' },
+                    {
+                        data: 'sucursal',
+                        render: function (data) {
+                            return data ? data.nombre : '-';
+                        }
+                    },
+                    {
+                        data: 'ubicacion',
+                        render: function (data) {
+                            return data || '<span class="text-muted">-</span>';
+                        }
+                    },
+                    {
+                        data: 'responsable',
+                        render: function (data) {
+                            return data || '<span class="text-muted">-</span>';
+                        }
+                    },
+                    {
+                        data: 'esPrincipal',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-success">Sí</span>'
+                                : '<span class="badge bg-secondary">No</span>';
+                        }
+                    },
+                    {
+                        data: 'activo',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-success">Activo</span>'
+                                : '<span class="badge bg-secondary">Inactivo</span>';
+                        }
+                    },
+                    {
+                        data: 'id',
+                        orderable: false,
+                        render: function (data) {
+                            return `
+                                <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                responsive: true,
+                order: [[0, 'asc']],
+                pageLength: 25
+            });
+        }
+
+        function setupFormSubmit() {
+            $('#formBodega').on('submit', function (e) {
+                e.preventDefault();
+                if (this.checkValidity()) {
+                    save();
+                } else {
+                    $(this).addClass('was-validated');
+                }
+            });
+        }
+
+        function openCreateModal() {
+            $('#formBodega')[0].reset();
+            $('#formBodega').removeClass('was-validated');
+            $('#Bodega_Id').val('00000000-0000-0000-0000-000000000000');
+            $('#Bodega_Activo').prop('checked', true);
+            $('#Bodega_EsPrincipal').prop('checked', false);
+            $('#Bodega_PermiteNegativos').prop('checked', false);
+            $('#modalBodegaTitulo').text('Nueva Bodega');
+
+            loadSucursales();
+            $('#modalBodega').modal('show');
+        }
+
+        function loadSucursales() {
+            $.ajax({
+                url: '?handler=Sucursales',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    const select = $('#Bodega_SucursalId');
+                    select.empty().append('<option value="">Seleccione...</option>');
+
+                    const sucursales = response.data || response || [];
+                    sucursales.forEach(function (item) {
+                        select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                    });
+                },
+                error: function (xhr) {
+                    console.error('Error loading sucursales:', xhr);
+                }
+            });
+        }
+
+        function edit(id) {
+            $.ajax({
+                url: '?handler=Details&id=' + id,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        const bodega = response.data;
+
+                        $('#Bodega_Id').val(bodega.id);
+                        $('#Bodega_Codigo').val(bodega.codigo);
+                        $('#Bodega_Nombre').val(bodega.nombre);
+                        $('#Bodega_Descripcion').val(bodega.descripcion || '');
+                        $('#Bodega_Ubicacion').val(bodega.ubicacion || '');
+                        $('#Bodega_Responsable').val(bodega.responsable || '');
+                        $('#Bodega_Telefono').val(bodega.telefono || '');
+                        $('#Bodega_Email').val(bodega.email || '');
+                        $('#Bodega_EsPrincipal').prop('checked', bodega.esPrincipal);
+                        $('#Bodega_PermiteNegativos').prop('checked', bodega.permiteNegativos);
+                        $('#Bodega_Activo').prop('checked', bodega.activo);
+
+                        loadSucursales();
+                        setTimeout(function () {
+                            $('#Bodega_SucursalId').val(bodega.sucursalId);
+                        }, 300);
+
+                        $('#modalBodegaTitulo').text('Editar Bodega');
+                        $('#formBodega').removeClass('was-validated');
+                        $('#modalBodega').modal('show');
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudo cargar la bodega', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    Swal.fire('Error', 'No se pudo cargar la bodega', 'error');
+                }
+            });
+        }
+
+        function save() {
+            const bodegaData = {
+                id: $('#Bodega_Id').val(),
+                codigo: $('#Bodega_Codigo').val(),
+                nombre: $('#Bodega_Nombre').val(),
+                descripcion: $('#Bodega_Descripcion').val() || null,
+                ubicacion: $('#Bodega_Ubicacion').val() || null,
+                sucursalId: $('#Bodega_SucursalId').val(),
+                responsable: $('#Bodega_Responsable').val() || null,
+                telefono: $('#Bodega_Telefono').val() || null,
+                email: $('#Bodega_Email').val() || null,
+                esPrincipal: $('#Bodega_EsPrincipal').is(':checked'),
+                permiteNegativos: $('#Bodega_PermiteNegativos').is(':checked'),
+                activo: $('#Bodega_Activo').is(':checked')
+            };
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(bodegaData),
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        Swal.fire('Éxito', response.message || 'Bodega guardada correctamente', 'success');
+                        $('#modalBodega').modal('hide');
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire('Error', response.message || 'Ocurrió un error al guardar', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al guardar';
+                    Swal.fire('Error', message, 'error');
+                }
+            });
+        }
+
+        function deleteRecord(id) {
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: "Esta acción no se puede revertir",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '?handler=Delete&id=' + id,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": getAntiForgeryToken()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire('Eliminado', response.message || 'Bodega eliminada correctamente', 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('Error', response.message || 'Ocurrió un error al eliminar', 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al eliminar';
+                            Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function refrescarTabla() {
+            $('#tableBodegasLoader').show();
+            $('#tableBodegasContainer').hide();
+            $('#emptyStateBodegas').hide();
+            table.ajax.reload();
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-CR');
+        }
+    </script>
+}

@@ -156,7 +156,7 @@ public class EmpresasController : ControllerBase
             _logger.LogInformation("Empresa creada: {EmpresaId} - {NombreComercial} por usuario {UserId}",
                 empresa.Id, empresa.NombreComercial, userId);
 
-            return CreatedAtAction(nameof(GetAsync), new { id = empresa.Id }, response.Result);
+            return Ok(new { success = true, message = "Empresa creada exitosamente", empresaId = empresa.Id });
         }
         catch (Exception ex)
         {

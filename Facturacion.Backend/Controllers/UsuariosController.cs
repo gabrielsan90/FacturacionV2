@@ -1,5 +1,6 @@
 using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
+using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,17 +21,20 @@ public class UsuariosController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly DataContext _context;
     private readonly ILogger<UsuariosController> _logger;
+    private readonly IEmailService _emailService;
 
     public UsuariosController(
         UserManager<User> userManager,
         RoleManager<IdentityRole> roleManager,
         DataContext context,
-        ILogger<UsuariosController> logger)
+        ILogger<UsuariosController> logger,
+        IEmailService emailService)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _context = context;
         _logger = logger;
+        _emailService = emailService;
     }
 
     /// <summary>
@@ -44,6 +48,9 @@ public class UsuariosController : ControllerBase
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
             var isSuperUser = userRoles.Contains("SuperUser");
+
+            _logger.LogInformation("Getting user list. RequestedBy: {UserId}, IsSuperUser: {IsSuperUser}",
+                currentUserId, isSuperUser);
 
             IQueryable<User> query = _context.Users;
 
@@ -62,6 +69,8 @@ public class UsuariosController : ControllerBase
             }
 
             var users = await query.ToListAsync();
+
+            _logger.LogDebug("Found {UserCount} users in query", users.Count);
 
             var userList = new List<UserListDto>();
 
@@ -88,15 +97,21 @@ public class UsuariosController : ControllerBase
                     PhoneNumber = user.PhoneNumber,
                     EmailConfirmed = user.EmailConfirmed,
                     Roles = roles.ToList(),
-                    Empresas = empresas
+                    Empresas = empresas,
+                    IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
+                    LockoutEnd = user.LockoutEnd,
+                    AccessFailedCount = user.AccessFailedCount
                 });
             }
+
+            _logger.LogInformation("Successfully retrieved {UserCount} users for user {CurrentUserId}",
+                userList.Count, currentUserId);
 
             return Ok(userList);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener los usuarios");
+            _logger.LogError(ex, "Error getting users list. RequestedBy: {UserId}", User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al obtener los usuarios.");
         }
     }
@@ -109,9 +124,13 @@ public class UsuariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Getting user details. TargetUserId: {TargetUserId}, RequestedBy: {CurrentUserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
             {
+                _logger.LogWarning("User not found. TargetUserId: {TargetUserId}", id);
                 return NotFound("Usuario no encontrado.");
             }
 
@@ -134,6 +153,8 @@ public class UsuariosController : ControllerBase
 
                 if (!hasAccess)
                 {
+                    _logger.LogWarning("Access denied to user {TargetUserId} by user {CurrentUserId}. No shared empresas",
+                        id, currentUserId);
                     return Forbid("No tiene permisos para ver este usuario.");
                 }
             }
@@ -156,11 +177,15 @@ public class UsuariosController : ControllerBase
                 EmpresaIds = empresaIds
             };
 
+            _logger.LogInformation("Successfully retrieved user details. UserId: {UserId}, Roles: {RoleCount}, Empresas: {EmpresaCount}",
+                id, roles.Count, empresaIds.Count);
+
             return Ok(userDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener el usuario {UserId}", id);
+            _logger.LogError(ex, "Error getting user details. TargetUserId: {UserId}, RequestedBy: {CurrentUserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al obtener el usuario.");
         }
     }
@@ -173,9 +198,22 @@ public class UsuariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Creating new user. Email: {Email}, CreatedBy: {CreatedBy}",
+                model.Email, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state when creating user. Email: {Email}", model.Email);
                 return BadRequest(ModelState);
+            }
+
+            // Generar contraseña aleatoria si se solicitó
+            string? generatedPassword = null;
+            if (model.GenerateRandomPassword)
+            {
+                generatedPassword = GenerateRandomPassword();
+                model.Password = generatedPassword;
+                model.ConfirmPassword = generatedPassword;
             }
 
             // Validar contraseña para creación
@@ -193,6 +231,7 @@ public class UsuariosController : ControllerBase
             var existingEmail = await _userManager.FindByEmailAsync(model.Email);
             if (existingEmail != null)
             {
+                _logger.LogWarning("Attempted to create user with existing email. Email: {Email}", model.Email);
                 return BadRequest("Ya existe un usuario con este correo electrónico.");
             }
 
@@ -201,6 +240,7 @@ public class UsuariosController : ControllerBase
                 .FirstOrDefaultAsync(u => u.Document == model.Document);
             if (existingDocument != null)
             {
+                _logger.LogWarning("Attempted to create user with existing document. Document: {Document}", model.Document);
                 return BadRequest("Ya existe un usuario con este número de documento.");
             }
 
@@ -219,47 +259,108 @@ public class UsuariosController : ControllerBase
             if (!result.Succeeded)
             {
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogWarning("Failed to create user {Email}. Errors: {Errors}", model.Email, errors);
                 return BadRequest($"Error al crear el usuario: {errors}");
             }
 
-            // Asignar roles
-            if (model.Roles != null && model.Roles.Any())
+            _logger.LogDebug("User created successfully. UserId: {UserId}. Now assigning roles and empresas", user.Id);
+
+            // Post-creation operations wrapped so user creation success is always reported
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            bool emailSent = false;
+
+            try
             {
-                foreach (var roleName in model.Roles)
+                // Asignar roles
+                if (model.Roles != null && model.Roles.Any())
                 {
-                    if (await _roleManager.RoleExistsAsync(roleName))
+                    foreach (var roleName in model.Roles)
                     {
-                        await _userManager.AddToRoleAsync(user, roleName);
+                        if (await _roleManager.RoleExistsAsync(roleName))
+                        {
+                            await _userManager.AddToRoleAsync(user, roleName);
+                        }
+                    }
+                    _logger.LogDebug("Assigned {RoleCount} roles to user {UserId}", model.Roles.Count, user.Id);
+                }
+
+                // Asignar empresas
+                if (model.EmpresaIds != null && model.EmpresaIds.Any())
+                {
+                    foreach (var empresaId in model.EmpresaIds)
+                    {
+                        var usuarioEmpresa = new UsuarioEmpresa
+                        {
+                            UserId = user.Id,
+                            EmpresaId = empresaId,
+                            FechaAsignacion = FechaCostaRicaHelper.Ahora,
+                            AsignadoPorId = currentUserId
+                        };
+                        _context.UsuariosEmpresas.Add(usuarioEmpresa);
+                    }
+                    await _context.SaveChangesAsync();
+                    _logger.LogDebug("Assigned {EmpresaCount} empresas to user {UserId}", model.EmpresaIds.Count, user.Id);
+                }
+
+                // Enviar correo de bienvenida usando la empresa del admin (ConfiguracionCorreo)
+                if (!string.IsNullOrEmpty(user.Email))
+                {
+                    try
+                    {
+                        // Usar la empresa del admin actual (la que tiene SMTP configurado via ConfiguracionCorreo)
+                        var adminEmpresaClaim = User.FindFirst("EmpresaId")?.Value;
+                        var emailEmpresaId = !string.IsNullOrEmpty(adminEmpresaClaim) && Guid.TryParse(adminEmpresaClaim, out var parsedId)
+                            ? parsedId
+                            : Guid.Empty;
+
+                        if (emailEmpresaId != Guid.Empty)
+                        {
+                            var passwordParaEmail = generatedPassword ?? model.Password;
+
+                            var emailResult = await _emailService.EnviarEmailAsync(emailEmpresaId, new EmailDTO
+                            {
+                                Para = new List<string> { user.Email },
+                                Asunto = "Bienvenido - Su cuenta ha sido creada",
+                                Cuerpo = $"<h3>Bienvenido {user.FullName}</h3>" +
+                                         $"<p>Se ha creado su cuenta en el sistema.</p>" +
+                                         $"<p><strong>Email:</strong> {user.Email}</p>" +
+                                         $"<p><strong>Contraseña:</strong> {passwordParaEmail}</p>" +
+                                         $"<p>Le recomendamos cambiar su contraseña al ingresar.</p>"
+                            });
+                            emailSent = emailResult.WasSuccess;
+                        }
+                        else
+                        {
+                            _logger.LogWarning("No se pudo determinar la empresa del admin para enviar email de bienvenida");
+                        }
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogWarning(emailEx, "No se pudo enviar email de bienvenida al usuario {Email}", user.Email);
                     }
                 }
             }
-
-            // Asignar empresas
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (model.EmpresaIds != null && model.EmpresaIds.Any())
+            catch (Exception postCreateEx)
             {
-                foreach (var empresaId in model.EmpresaIds)
-                {
-                    var usuarioEmpresa = new UsuarioEmpresa
-                    {
-                        UserId = user.Id,
-                        EmpresaId = empresaId,
-                        FechaAsignacion = FechaCostaRicaHelper.Ahora,
-                        AsignadoPorId = currentUserId
-                    };
-                    _context.UsuariosEmpresas.Add(usuarioEmpresa);
-                }
-                await _context.SaveChangesAsync();
+                _logger.LogError(postCreateEx, "Error in post-creation operations for user {UserId}. User was created but roles/empresas may not be fully assigned.", user.Id);
             }
 
-            _logger.LogInformation("Usuario creado: {UserId} - {Email} por usuario {CreatedBy}",
-                user.Id, user.Email, currentUserId);
+            _logger.LogInformation("User created successfully. UserId: {UserId}, Email: {Email}, Roles: {RoleCount}, Empresas: {EmpresaCount}, CreatedBy: {CreatedBy}",
+                user.Id, user.Email, model.Roles?.Count ?? 0, model.EmpresaIds?.Count ?? 0, currentUserId);
 
-            return CreatedAtAction(nameof(GetAsync), new { id = user.Id }, new { id = user.Id, email = user.Email });
+            return Ok(new
+            {
+                id = user.Id,
+                email = user.Email,
+                passwordGenerated = generatedPassword != null,
+                generatedPassword = emailSent ? null : generatedPassword,
+                emailSent
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al crear el usuario");
+            _logger.LogError(ex, "Error creating user. Email: {Email}, CreatedBy: {CreatedBy}",
+                model.Email, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al crear el usuario.");
         }
     }
@@ -272,19 +373,25 @@ public class UsuariosController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Updating user. UserId: {UserId}, UpdatedBy: {UpdatedBy}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state when updating user. UserId: {UserId}", id);
                 return BadRequest(ModelState);
             }
 
             if (id != model.Id)
             {
+                _logger.LogWarning("ID mismatch when updating user. URL ID: {UrlId}, Model ID: {ModelId}", id, model.Id);
                 return BadRequest("El ID de la URL no coincide con el ID del usuario.");
             }
 
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
             {
+                _logger.LogWarning("User not found for update. UserId: {UserId}", id);
                 return NotFound("Usuario no encontrado.");
             }
 
@@ -418,14 +525,15 @@ public class UsuariosController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Usuario actualizado: {UserId} - {Email} por usuario {UpdatedBy}",
-                user.Id, user.Email, currentUserId);
+            _logger.LogInformation("User updated successfully. UserId: {UserId}, Email: {Email}, Roles: {RoleCount}, Empresas: {EmpresaCount}, UpdatedBy: {UpdatedBy}",
+                user.Id, user.Email, model.Roles?.Count ?? 0, model.EmpresaIds?.Count ?? 0, currentUserId);
 
             return Ok(new { id = user.Id, email = user.Email });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar el usuario {UserId}", id);
+            _logger.LogError(ex, "Error updating user. UserId: {UserId}, UpdatedBy: {UpdatedBy}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al actualizar el usuario.");
         }
     }
@@ -579,6 +687,112 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
+    /// Desbloquea un usuario bloqueado por intentos fallidos de contraseña
+    /// </summary>
+    [HttpPost("{id}/unlock")]
+    public async Task<IActionResult> UnlockAsync(string id)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound("Usuario no encontrado.");
+            }
+
+            await _userManager.SetLockoutEndDateAsync(user, null);
+            await _userManager.ResetAccessFailedCountAsync(user);
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Usuario {UserId} desbloqueado por {UnlockedBy}", id, currentUserId);
+
+            return Ok(new { message = "Usuario desbloqueado exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al desbloquear usuario {UserId}", id);
+            return StatusCode(500, "Error interno del servidor al desbloquear el usuario.");
+        }
+    }
+
+    /// <summary>
+    /// Restablece la contraseña de un usuario, genera una nueva y la envía por correo
+    /// </summary>
+    [HttpPost("{id}/reset-password")]
+    public async Task<IActionResult> ResetPasswordAsync(string id)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound("Usuario no encontrado.");
+            }
+
+            var newPassword = GenerateRandomPassword();
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                return BadRequest($"Error al restablecer contraseña: {errors}");
+            }
+
+            // Enviar nueva contraseña por correo
+            bool emailSent = false;
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                try
+                {
+                    var adminEmpresaClaim = User.FindFirst("EmpresaId")?.Value;
+                    var emailEmpresaId = !string.IsNullOrEmpty(adminEmpresaClaim) && Guid.TryParse(adminEmpresaClaim, out var parsedId)
+                        ? parsedId
+                        : Guid.Empty;
+
+                    if (emailEmpresaId != Guid.Empty)
+                    {
+                        var emailResult = await _emailService.EnviarEmailAsync(emailEmpresaId, new EmailDTO
+                        {
+                            Para = new List<string> { user.Email },
+                            Asunto = "Restablecimiento de contraseña",
+                            Cuerpo = $"<h3>Hola {user.FullName}</h3>" +
+                                     $"<p>Su contraseña ha sido restablecida por un administrador.</p>" +
+                                     $"<p><strong>Email:</strong> {user.Email}</p>" +
+                                     $"<p><strong>Nueva contraseña:</strong> {newPassword}</p>" +
+                                     $"<p>Le recomendamos cambiar su contraseña al ingresar.</p>"
+                        });
+                        emailSent = emailResult.WasSuccess;
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogWarning(emailEx, "No se pudo enviar email de restablecimiento al usuario {Email}", user.Email);
+                }
+            }
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Contraseña restablecida para usuario {UserId} por {ResetBy}. Email enviado: {EmailSent}",
+                id, currentUserId, emailSent);
+
+            return Ok(new
+            {
+                message = emailSent
+                    ? "Contraseña restablecida y enviada por correo exitosamente."
+                    : "Contraseña restablecida exitosamente.",
+                emailSent,
+                generatedPassword = emailSent ? null : newPassword
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al restablecer contraseña del usuario {UserId}", id);
+            return StatusCode(500, "Error interno del servidor al restablecer la contraseña.");
+        }
+    }
+
+    /// <summary>
     /// Actualiza los roles de un usuario
     /// </summary>
     [HttpPut("{userId}/roles")]
@@ -637,5 +851,28 @@ public class UsuariosController : ControllerBase
             _logger.LogError(ex, "Error al actualizar roles del usuario {UserId}", userId);
             return StatusCode(500, "Error interno del servidor al actualizar los roles.");
         }
+    }
+
+    private static string GenerateRandomPassword(int length = 12)
+    {
+        const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string lower = "abcdefghijklmnopqrstuvwxyz";
+        const string digits = "0123456789";
+        const string special = "!@#$%&*";
+
+        var random = new Random();
+        var password = new List<char>
+        {
+            upper[random.Next(upper.Length)],
+            lower[random.Next(lower.Length)],
+            digits[random.Next(digits.Length)],
+            special[random.Next(special.Length)]
+        };
+
+        var allChars = upper + lower + digits + special;
+        for (int i = password.Count; i < length; i++)
+            password.Add(allChars[random.Next(allChars.Length)]);
+
+        return new string(password.OrderBy(_ => random.Next()).ToArray());
     }
 }

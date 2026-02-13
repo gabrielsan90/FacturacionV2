@@ -1,0 +1,472 @@
+@page
+@model Facturacion.Frontend.Pages.Ventas.HistorialVentasModel
+@{
+    ViewData["Title"] = "Historial de Ventas";
+    ViewData["Breadcrumb"] = "Ventas > Historial";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-chart-line"></i> Historial de Ventas</h2>
+            <p class="mb-0">Consulta y análisis de ventas realizadas</p>
+        </div>
+        <button class="btn btn-success" onclick="exportar()">
+            <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+        </button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Ventas</h6>
+                        <h3 class="mb-0" id="totalVentas">₡0.00</h3>
+                    </div>
+                    <div class="text-primary fs-1">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Cantidad Docs.</h6>
+                        <h3 class="mb-0" id="cantidadDocumentos">0</h3>
+                    </div>
+                    <div class="text-info fs-1">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Ticket Promedio</h6>
+                        <h3 class="mb-0" id="ticketPromedio">₡0.00</h3>
+                    </div>
+                    <div class="text-success fs-1">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Clientes Únicos</h6>
+                        <h3 class="mb-0" id="clientesUnicos">0</h3>
+                    </div>
+                    <div class="text-warning fs-1">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <strong><i class="fas fa-filter me-2"></i>Filtros de Búsqueda</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Fecha Inicio</label>
+                <input type="date" class="form-control" id="filtroFechaInicio" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha Fin</label>
+                <input type="date" class="form-control" id="filtroFechaFin" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Cliente</label>
+                <select class="form-select" id="filtroCliente">
+                    <option value="TODOS">Todos los clientes</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Sucursal</label>
+                <select class="form-select" id="filtroSucursal">
+                    <option value="TODAS">Todas las sucursales</option>
+                </select>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-12 text-end">
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-2"></i>Limpiar Filtros
+                </button>
+                <button class="btn btn-primary" onclick="aplicarFiltros()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Detalle de Ventas</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando historial de ventas...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableContainer" style="display: none;">
+            <table id="tableHistorialVentas" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo Doc.</th>
+                        <th>Número</th>
+                        <th>Cliente</th>
+                        <th>Sucursal</th>
+                        <th>Moneda</th>
+                        <th>Subtotal</th>
+                        <th>IVA</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th style="width: 100px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="6" class="text-end">Totales:</td>
+                        <td id="footerSubtotal">₡0.00</td>
+                        <td id="footerIVA">₡0.00</td>
+                        <td id="footerTotal">₡0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="empty-state-title">No hay ventas en el período seleccionado</h3>
+            <p class="empty-state-description">Ajusta los filtros para ver resultados</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        initializeDates();
+        loadClientes();
+        loadSucursales();
+        loadDataTable();
+        loadResumen();
+    });
+
+    function initializeDates() {
+        // Set default date range to current month
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        $('#filtroFechaInicio').val(firstDay.toISOString().split('T')[0]);
+        $('#filtroFechaFin').val(lastDay.toISOString().split('T')[0]);
+    }
+
+    async function loadClientes() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Clientes',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+            const clientes = response || [];
+
+            $('#filtroCliente').empty().append('<option value="TODOS">Todos los clientes</option>');
+            clientes.forEach(cliente => {
+                $('#filtroCliente').append(
+                    `<option value="${cliente.id}">${cliente.nombre}</option>`
+                );
+            });
+        } catch (error) {
+            console.error('Error loading clientes:', error);
+        }
+    }
+
+    async function loadSucursales() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Sucursales',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+            const sucursales = response || [];
+
+            $('#filtroSucursal').empty().append('<option value="TODAS">Todas las sucursales</option>');
+            sucursales.forEach(sucursal => {
+                $('#filtroSucursal').append(
+                    `<option value="${sucursal.id}">${sucursal.nombre}</option>`
+                );
+            });
+        } catch (error) {
+            console.error('Error loading sucursales:', error);
+        }
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tableHistorialVentas', {
+            ajax: {
+                url: function() {
+                    const fechaInicio = $('#filtroFechaInicio').val();
+                    const fechaFin = $('#filtroFechaFin').val();
+                    const clienteId = $('#filtroCliente').val();
+                    const sucursalId = $('#filtroSucursal').val();
+
+                    let url = '?handler=Data';
+                    const params = [];
+                    if (fechaInicio) params.push('fechaInicio=' + fechaInicio);
+                    if (fechaFin) params.push('fechaFin=' + fechaFin);
+                    if (clienteId) params.push('clienteId=' + clienteId);
+                    if (sucursalId) params.push('sucursalId=' + sucursalId);
+
+                    if (params.length > 0) {
+                        url += '&' + params.join('&');
+                    }
+                    return url;
+                },
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotal').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableContainer').show();
+                        $('#emptyState').hide();
+                        calculateFooterTotals(data);
+                    } else {
+                        $('#tableContainer').hide();
+                        $('#emptyState').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableLoader').hide();
+                    $('#tableContainer').hide();
+                    $('#emptyState').show();
+                    $('#badgeTotal').text('0');
+                    console.error('Error loading historial:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return data ? new Date(data).toLocaleDateString('es-CR') : '-';
+                    }
+                },
+                {
+                    data: 'tipoDocumento',
+                    render: function(data) {
+                        const tipos = {
+                            'FE': '<span class="badge bg-primary">Factura</span>',
+                            'TE': '<span class="badge bg-info">Tiquete</span>',
+                            'NC': '<span class="badge bg-warning">N. Crédito</span>',
+                            'ND': '<span class="badge bg-danger">N. Débito</span>'
+                        };
+                        return tipos[data] || data;
+                    }
+                },
+                { data: 'numero' },
+                {
+                    data: 'cliente.nombre',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                },
+                {
+                    data: 'sucursal.nombre',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                },
+                {
+                    data: 'moneda',
+                    render: function(data) {
+                        return data || 'CRC';
+                    }
+                },
+                {
+                    data: 'subtotal',
+                    render: function(data, type, row) {
+                        const symbol = row.moneda === 'USD' ? '$' : '₡';
+                        return symbol + parseFloat(data || 0).toFixed(2);
+                    }
+                },
+                {
+                    data: 'iva',
+                    render: function(data, type, row) {
+                        const symbol = row.moneda === 'USD' ? '$' : '₡';
+                        return symbol + parseFloat(data || 0).toFixed(2);
+                    }
+                },
+                {
+                    data: 'total',
+                    render: function(data, type, row) {
+                        const symbol = row.moneda === 'USD' ? '$' : '₡';
+                        return '<strong>' + symbol + parseFloat(data || 0).toFixed(2) + '</strong>';
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const badges = {
+                            'ACEPTADO': '<span class="badge bg-success">Aceptado</span>',
+                            'RECHAZADO': '<span class="badge bg-danger">Rechazado</span>',
+                            'PROCESANDO': '<span class="badge bg-warning">Procesando</span>',
+                            'ERROR': '<span class="badge bg-danger">Error</span>'
+                        };
+                        return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="verDetalle('${data}')" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="descargarPDF('${data}')" title="Descargar PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']],
+            footerCallback: function(row, data, start, end, display) {
+                // Footer is updated via calculateFooterTotals()
+            }
+        });
+    }
+
+    function calculateFooterTotals(data) {
+        let totalSubtotal = 0;
+        let totalIVA = 0;
+        let totalTotal = 0;
+
+        data.forEach(item => {
+            totalSubtotal += parseFloat(item.subtotal || 0);
+            totalIVA += parseFloat(item.iva || 0);
+            totalTotal += parseFloat(item.total || 0);
+        });
+
+        $('#footerSubtotal').text('₡' + totalSubtotal.toFixed(2));
+        $('#footerIVA').text('₡' + totalIVA.toFixed(2));
+        $('#footerTotal').text('₡' + totalTotal.toFixed(2));
+    }
+
+    async function loadResumen() {
+        try {
+            const fechaInicio = $('#filtroFechaInicio').val();
+            const fechaFin = $('#filtroFechaFin').val();
+
+            const response = await $.ajax({
+                url: `?handler=Resumen&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (response.success && response.data) {
+                const data = response.data;
+                $('#totalVentas').text('₡' + parseFloat(data.totalVentas || 0).toFixed(2));
+                $('#cantidadDocumentos').text(data.cantidadDocumentos || 0);
+                $('#ticketPromedio').text('₡' + parseFloat(data.ticketPromedio || 0).toFixed(2));
+                $('#clientesUnicos').text(data.clientesUnicos || 0);
+            }
+        } catch (error) {
+            console.error('Error loading resumen:', error);
+        }
+    }
+
+    function aplicarFiltros() {
+        table.ajax.reload();
+        loadResumen();
+    }
+
+    function limpiarFiltros() {
+        initializeDates();
+        $('#filtroCliente').val('TODOS');
+        $('#filtroSucursal').val('TODAS');
+        aplicarFiltros();
+    }
+
+    function exportar() {
+        const fechaInicio = $('#filtroFechaInicio').val();
+        const fechaFin = $('#filtroFechaFin').val();
+        const clienteId = $('#filtroCliente').val();
+        const sucursalId = $('#filtroSucursal').val();
+
+        const params = [];
+        if (fechaInicio) params.push('fechaInicio=' + fechaInicio);
+        if (fechaFin) params.push('fechaFin=' + fechaFin);
+        if (clienteId) params.push('clienteId=' + clienteId);
+        if (sucursalId) params.push('sucursalId=' + sucursalId);
+
+        const queryString = params.length > 0 ? '&' + params.join('&') : '';
+        window.location.href = `?handler=Exportar${queryString}`;
+    }
+
+    function verDetalle(id) {
+        window.location.href = `/DocumentosElectronicos/DocumentoDetalle?id=${id}`;
+    }
+
+    function descargarPDF(id) {
+        window.open(`/api/documentos/${id}/pdf`, '_blank');
+    }
+</script>
+}

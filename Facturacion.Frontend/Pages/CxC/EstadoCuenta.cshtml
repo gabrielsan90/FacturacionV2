@@ -1,0 +1,413 @@
+@page
+@model Facturacion.Frontend.Pages.CxC.EstadoCuentaModel
+@{
+    ViewData["Title"] = "Estado de Cuenta";
+    ViewData["Breadcrumb"] = "Estado de Cuenta";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-invoice"></i> Estado de Cuenta</h2>
+            <p class="mb-0">Estado de cuenta detallado del cliente</p>
+        </div>
+        <div>
+            <a href="/CxC/CuentasPorCobrar" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Volver
+            </a>
+            <button class="btn btn-primary me-2" onclick="imprimirEstado()">
+                <i class="fas fa-print me-1"></i>Imprimir
+            </button>
+            <button class="btn btn-success" onclick="exportarPDF()">
+                <i class="fas fa-file-pdf me-1"></i>Exportar PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Client Info Card -->
+<div class="card shadow-custom mb-4" id="clienteInfoCard">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Información del Cliente</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-2"><strong>Cliente:</strong> <span id="clienteNombre">-</span></p>
+                <p class="mb-2"><strong>Identificación:</strong> <span id="clienteIdentificacion">-</span></p>
+                <p class="mb-0"><strong>Email:</strong> <span id="clienteEmail">-</span></p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-2"><strong>Teléfono:</strong> <span id="clienteTelefono">-</span></p>
+                <p class="mb-2"><strong>Límite de Crédito:</strong> <span id="clienteLimiteCredito">₡0.00</span></p>
+                <p class="mb-0"><strong>Saldo Actual:</strong> <span id="clienteSaldoActual" class="fw-bold text-danger">₡0.00</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-left-info shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                    Total Facturado
+                </div>
+                <div class="h6 mb-0 font-weight-bold text-gray-800" id="totalFacturado">₡0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-left-success shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                    Total Pagado
+                </div>
+                <div class="h6 mb-0 font-weight-bold text-gray-800" id="totalPagado">₡0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-left-warning shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                    Saldo Pendiente
+                </div>
+                <div class="h6 mb-0 font-weight-bold text-gray-800" id="saldoPendiente">₡0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-left-danger shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                    Facturas Vencidas
+                </div>
+                <div class="h6 mb-0 font-weight-bold text-gray-800" id="facturasVencidas">0</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                <strong>Filtros de Fecha</strong>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                <i class="fas fa-redo me-1"></i>Limpiar Filtros
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Fecha Desde</label>
+                <input type="date" class="form-control" id="filtroFechaDesde" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Fecha Hasta</label>
+                <input type="date" class="form-control" id="filtroFechaHasta" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                    <i class="fas fa-search me-1"></i>Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Statement Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-list me-2 text-primary"></i>
+            <strong>Movimientos de Cuenta</strong>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refrescarTabla()" title="Refrescar">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableEstadoLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando estado de cuenta...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableEstadoContainer" style="display:none;">
+            <table id="tableEstado" class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Documento</th>
+                        <th>Descripción</th>
+                        <th class="text-end">Débito</th>
+                        <th class="text-end">Crédito</th>
+                        <th class="text-end">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr class="fw-bold bg-light">
+                        <td colspan="4" class="text-end">TOTALES:</td>
+                        <td class="text-end" id="totalDebito">₡0.00</td>
+                        <td class="text-end" id="totalCredito">₡0.00</td>
+                        <td class="text-end" id="saldoFinal">₡0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateEstado" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <h3 class="empty-state-title">No hay movimientos</h3>
+            <p class="empty-state-description">No se encontraron movimientos para el período seleccionado</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const clienteId = '@Model.ClienteId';
+
+    $(document).ready(function () {
+        if (!clienteId || clienteId === '') {
+            showError('No se especificó un cliente');
+            setTimeout(() => window.location.href = '/CxC/CuentasPorCobrar', 2000);
+            return;
+        }
+
+        loadClienteInfo();
+        loadDataTable();
+        loadSummary();
+        initializeDateFilters();
+    });
+
+    function initializeDateFilters() {
+        // Set default dates to last 6 months
+        const now = new Date();
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+
+        $('#filtroFechaDesde').val(sixMonthsAgo.toISOString().split('T')[0]);
+        $('#filtroFechaHasta').val(now.toISOString().split('T')[0]);
+    }
+
+    function loadClienteInfo() {
+        $.ajax({
+            url: '?handler=ClienteInfo&clienteId=' + clienteId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (data) {
+                $('#clienteNombre').text(data.nombre || '-');
+                $('#clienteIdentificacion').text(data.numeroIdentificacion || '-');
+                $('#clienteEmail').text(data.emailPrincipal || '-');
+                $('#clienteTelefono').text(data.telefonoPrincipal || '-');
+                $('#clienteLimiteCredito').text(formatCurrency(data.limiteCredito || 0));
+                $('#clienteSaldoActual').text(formatCurrency(data.saldoActual || 0));
+            },
+            error: function () {
+                showError('Error al cargar información del cliente');
+            }
+        });
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tableEstado', {
+            ajax: {
+                url: '?handler=Data&clienteId=' + clienteId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(d) {
+                    d.fechaDesde = $('#filtroFechaDesde').val();
+                    d.fechaHasta = $('#filtroFechaHasta').val();
+                    return d;
+                },
+                dataSrc: function (json) {
+                    // Hide loader
+                    $('#tableEstadoLoader').hide();
+
+                    // Get data array
+                    const data = json.data || json || [];
+
+                    // Show appropriate state
+                    if (data.length > 0) {
+                        $('#tableEstadoContainer').show();
+                        $('#emptyStateEstado').hide();
+                    } else {
+                        $('#tableEstadoContainer').hide();
+                        $('#emptyStateEstado').show();
+                    }
+
+                    // Calculate running balance and totals
+                    let saldo = 0;
+                    let totalDebito = 0;
+                    let totalCredito = 0;
+
+                    data.forEach(function(row) {
+                        if (row.tipo === 'Factura' || row.tipo === 'Nota de Débito') {
+                            saldo += row.debito;
+                            totalDebito += row.debito;
+                        } else {
+                            saldo -= row.credito;
+                            totalCredito += row.credito;
+                        }
+                        row.saldoAcumulado = saldo;
+                    });
+
+                    // Update footer totals
+                    $('#totalDebito').text(formatCurrency(totalDebito));
+                    $('#totalCredito').text(formatCurrency(totalCredito));
+                    $('#saldoFinal').text(formatCurrency(saldo));
+
+                    return data;
+                },
+                error: function (xhr, error, code) {
+                    $('#tableEstadoLoader').hide();
+                    $('#tableEstadoContainer').hide();
+                    $('#emptyStateEstado').show();
+                    console.error('Error loading estado de cuenta:', error);
+                }
+            },
+            columns: [
+                {
+                    data: 'fecha',
+                    render: function (data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'tipo',
+                    render: function (data) {
+                        let badge = 'bg-info';
+                        if (data === 'Factura') badge = 'bg-primary';
+                        else if (data === 'Pago') badge = 'bg-success';
+                        else if (data === 'Nota de Crédito') badge = 'bg-warning';
+                        else if (data === 'Nota de Débito') badge = 'bg-danger';
+
+                        return '<span class="badge ' + badge + '">' + data + '</span>';
+                    }
+                },
+                { data: 'numeroDocumento' },
+                {
+                    data: 'descripcion',
+                    render: function (data) {
+                        return data || '-';
+                    }
+                },
+                {
+                    data: 'debito',
+                    className: 'text-end',
+                    render: function (data) {
+                        return data > 0 ? formatCurrency(data) : '-';
+                    }
+                },
+                {
+                    data: 'credito',
+                    className: 'text-end',
+                    render: function (data) {
+                        return data > 0 ? formatCurrency(data) : '-';
+                    }
+                },
+                {
+                    data: 'saldoAcumulado',
+                    className: 'text-end fw-bold',
+                    render: function (data) {
+                        const colorClass = data > 0 ? 'text-danger' : 'text-success';
+                        return '<span class="' + colorClass + '">' + formatCurrency(data) + '</span>';
+                    }
+                }
+            ],
+            order: [[0, 'asc']],
+            paging: false,
+            searching: false,
+            info: false
+        });
+    }
+
+    function loadSummary() {
+        $.ajax({
+            url: '?handler=Summary&clienteId=' + clienteId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (data) {
+                $('#totalFacturado').text(formatCurrency(data.totalFacturado || 0));
+                $('#totalPagado').text(formatCurrency(data.totalPagado || 0));
+                $('#saldoPendiente').text(formatCurrency(data.saldoPendiente || 0));
+                $('#facturasVencidas').text(data.facturasVencidas || 0);
+            },
+            error: function (xhr) {
+                console.error('Error loading summary:', xhr);
+            }
+        });
+    }
+
+    function aplicarFiltros() {
+        $('#tableEstadoLoader').show();
+        $('#tableEstadoContainer').hide();
+        table.ajax.reload();
+    }
+
+    function clearFilters() {
+        initializeDateFilters();
+        table.ajax.reload();
+    }
+
+    function refrescarTabla() {
+        $('#tableEstadoLoader').show();
+        $('#tableEstadoContainer').hide();
+        table.ajax.reload();
+        loadSummary();
+    }
+
+    function imprimirEstado() {
+        window.print();
+    }
+
+    function exportarPDF() {
+        showWarning('Función de exportación a PDF en desarrollo');
+    }
+</script>
+
+<style>
+    @@media print {
+        .page-header .btn,
+        .card-header .btn,
+        .sidebar,
+        .navbar,
+        footer {
+            display: none !important;
+        }
+
+        .card {
+            border: 1px solid #000 !important;
+            page-break-inside: avoid;
+        }
+
+        .card-header {
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+}

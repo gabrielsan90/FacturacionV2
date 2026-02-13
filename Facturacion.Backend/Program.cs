@@ -153,6 +153,7 @@ builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.ISucursalU
 // Dependency Injection - Inventario Module
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IInventarioRepository, Facturacion.Backend.Repositories.Implementations.InventarioRepository>();
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IMovimientoInventarioRepository, Facturacion.Backend.Repositories.Implementations.MovimientoInventarioRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IAjusteInventarioRepository, Facturacion.Backend.Repositories.Implementations.AjusteInventarioRepository>();
 builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IInventarioUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.InventarioUnitOfWork>();
 
 // Dependency Injection - Documento Module
@@ -179,11 +180,60 @@ builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IDocument
 builder.Services.AddScoped<Facturacion.Backend.Repositories.IReciboPagoRepository, Facturacion.Backend.Repositories.ReciboPagoRepository>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IReciboPagoService, Facturacion.Backend.Services.Implementations.ReciboPagoService>();
 
+// Dependency Injection - Cuentas Por Cobrar Module (CxC)
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICuentaPorCobrarRepository, Facturacion.Backend.Repositories.Implementations.CuentaPorCobrarRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IAbonoCobroRepository, Facturacion.Backend.Repositories.Implementations.AbonoCobroRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICotizacionRepository, Facturacion.Backend.Repositories.Implementations.CotizacionRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.ICuentaPorCobrarUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.CuentaPorCobrarUnitOfWork>();
+
+// Dependency Injection - Cuentas Por Pagar Module
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICuentaPorPagarRepository, Facturacion.Backend.Repositories.Implementations.CuentaPorPagarRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IAbonoPagoRepository, Facturacion.Backend.Repositories.Implementations.AbonoPagoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.ICuentaPorPagarUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.CuentaPorPagarUnitOfWork>();
+
+// Dependency Injection - Bancos Module
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IMovimientoBancarioRepository, Facturacion.Backend.Repositories.Implementations.MovimientoBancarioRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICuentaBancariaRepository, Facturacion.Backend.Repositories.Implementations.CuentaBancariaRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IConciliacionBancariaRepository, Facturacion.Backend.Repositories.Implementations.ConciliacionBancariaRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IExtractoBancarioRepository, Facturacion.Backend.Repositories.Implementations.ExtractoBancarioRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IReglaConciliacionRepository, Facturacion.Backend.Repositories.Implementations.ReglaConciliacionRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IMovimientoBancarioUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.MovimientoBancarioUnitOfWork>();
+
 // Dependency Injection - Gastos Module
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IGastoRepository, Facturacion.Backend.Repositories.Implementations.GastoRepository>();
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICategoriaGastoRepository, Facturacion.Backend.Repositories.Implementations.CategoriaGastoRepository>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IGastoService, Facturacion.Backend.Services.Implementations.GastoService>();
 builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IGastoUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.GastoUnitOfWork>();
+
+// Dependency Injection - Activos Fijos Module
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IActivoFijoRepository, Facturacion.Backend.Repositories.Implementations.ActivoFijoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IDepreciacionActivoRepository, Facturacion.Backend.Repositories.Implementations.DepreciacionActivoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICategoriaActivoRepository, Facturacion.Backend.Repositories.Implementations.CategoriaActivoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ITrasladoActivoRepository, Facturacion.Backend.Repositories.Implementations.TrasladoActivoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IActivoFijoUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.ActivoFijoUnitOfWork>();
+
+// Dependency Injection - Compras Module
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IOrdenCompraRepository, Facturacion.Backend.Repositories.Implementations.OrdenCompraRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IRecepcionCompraRepository, Facturacion.Backend.Repositories.Implementations.RecepcionCompraRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IRequisicionRepository, Facturacion.Backend.Repositories.Implementations.RequisicionRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICotizacionProveedorRepository, Facturacion.Backend.Repositories.Implementations.CotizacionProveedorRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IOrdenCompraUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.OrdenCompraUnitOfWork>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IRecepcionCompraUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.RecepcionCompraUnitOfWork>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IRequisicionUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.RequisicionUnitOfWork>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.ICotizacionProveedorUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.CotizacionProveedorUnitOfWork>();
+
+// Dependency Injection - RRHH Module (Recursos Humanos)
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IEmpleadoRepository, Facturacion.Backend.Repositories.Implementations.EmpleadoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IDepartamentoRepository, Facturacion.Backend.Repositories.Implementations.DepartamentoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IPuestoRepository, Facturacion.Backend.Repositories.Implementations.PuestoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IVacacionRepository, Facturacion.Backend.Repositories.Implementations.VacacionRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IIncapacidadRepository, Facturacion.Backend.Repositories.Implementations.IncapacidadRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IPlanillaRepository, Facturacion.Backend.Repositories.Implementations.PlanillaRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IEmpleadoUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.EmpleadoUnitOfWork>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IPlanillaUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.PlanillaUnitOfWork>();
+
+// Dependency Injection - Workflow Module (Aprobaciones)
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ITipoWorkflowRepository, Facturacion.Backend.Repositories.Implementations.TipoWorkflowRepository>();
 
 // Dependency Injection - Dashboard Module
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IDashboardService, Facturacion.Backend.Services.Implementations.DashboardService>();
@@ -202,6 +252,17 @@ builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.INotificacion
 // Dependency Injection - Auditoría Module
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IAuditoriaRepository, Facturacion.Backend.Repositories.Implementations.AuditoriaRepository>();
 
+// Dependency Injection - Contabilidad Module
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IAsientoContableRepository, Facturacion.Backend.Repositories.Implementations.AsientoContableRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IPeriodoContableRepository, Facturacion.Backend.Repositories.Implementations.PeriodoContableRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IPlantillaAsientoRepository, Facturacion.Backend.Repositories.Implementations.PlantillaAsientoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICuentaContableRepository, Facturacion.Backend.Repositories.Implementations.CuentaContableRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICentroCostoRepository, Facturacion.Backend.Repositories.Implementations.CentroCostoRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICuentaIntegracionRepository, Facturacion.Backend.Repositories.Implementations.CuentaIntegracionRepository>();
+builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IConfiguracionContableRepository, Facturacion.Backend.Repositories.Implementations.ConfiguracionContableRepository>();
+builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IContabilidadUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.ContabilidadUnitOfWork>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IContabilidadIntegracionService, Facturacion.Backend.Services.Implementations.ContabilidadIntegracionService>();
+
 // Dependency Injection - Servicios v4.4 (Validación, Tipo de Cambio, Encriptación, Errores)
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IValidacionDocumentoService, Facturacion.Backend.Services.Implementations.ValidacionDocumentoService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IValidacionCalculosService, Facturacion.Backend.Services.Implementations.ValidacionCalculosService>(); // NUEVO v4.4 - M8
@@ -212,6 +273,9 @@ builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IXsdValidacio
 
 // Dependency Injection - PDF Generation Service
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IPdfGeneradorService, Facturacion.Backend.Services.Implementations.PdfGeneradorService>();
+
+// Dependency Injection - Excel Import Service
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IExcelImportService, Facturacion.Backend.Services.Implementations.ExcelImportService>();
 
 // Dependency Injection - Servicios de APIs de Hacienda (CABYS, Actividades Económicas, Exoneraciones)
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.ICabysService, Facturacion.Backend.Services.Implementations.CabysService>();

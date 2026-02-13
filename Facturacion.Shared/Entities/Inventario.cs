@@ -21,12 +21,31 @@ public class Inventario
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public Guid SucursalId { get; set; }
 
+    /// <summary>
+    /// Bodega específica dentro de la sucursal (opcional para compatibilidad con datos existentes)
+    /// </summary>
+    [Display(Name = "Bodega")]
+    public Guid? BodegaId { get; set; }
+
+    /// <summary>
+    /// Lote del producto (opcional, para productos con control de lotes)
+    /// </summary>
+    [Display(Name = "Lote")]
+    public Guid? LoteId { get; set; }
+
     [Display(Name = "Cantidad Actual")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public decimal CantidadActual { get; set; }
 
     [Display(Name = "Cantidad Reservada")]
     public decimal? CantidadReservada { get; set; }
+
+    /// <summary>
+    /// Costo promedio ponderado del producto en esta ubicación
+    /// </summary>
+    [Display(Name = "Costo Promedio")]
+    [Column(TypeName = "decimal(18,6)")]
+    public decimal CostoPromedio { get; set; }
 
     [Display(Name = "Última Actualización")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
@@ -63,6 +82,8 @@ public class Inventario
     // Navigation Properties
     public Producto? Producto { get; set; }
     public Sucursal? Sucursal { get; set; }
+    public Bodega? Bodega { get; set; }
+    public Lote? Lote { get; set; }
     public User? UsuarioCreacion { get; set; }
     public User? UsuarioModificacion { get; set; }
     public User? UsuarioEliminacion { get; set; }

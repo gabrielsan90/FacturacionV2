@@ -1,0 +1,647 @@
+@page
+@model Facturacion.Frontend.Pages.Ventas.PedidosVentaModel
+@{
+    ViewData["Title"] = "Pedidos de Venta";
+    ViewData["Breadcrumb"] = "Ventas > Pedidos de Venta";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-shopping-cart"></i> Pedidos de Venta</h2>
+            <p class="mb-0">Gestión de pedidos de venta antes de convertir a facturas</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nuevo Pedido
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Pedidos</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
+            </div>
+            <div>
+                <label class="me-2">Filtrar por Estado:</label>
+                <select id="filtroEstado" class="form-select form-select-sm d-inline-block w-auto">
+                    <option value="TODAS">Todas</option>
+                    <option value="BORRADOR">Borrador</option>
+                    <option value="PENDIENTE">Pendiente</option>
+                    <option value="APROBADO">Aprobado</option>
+                    <option value="FACTURADO">Facturado</option>
+                    <option value="CANCELADO">Cancelado</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando pedidos...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableContainer" style="display: none;">
+            <table id="tablePedidosVenta" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Moneda</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th style="width: 180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <h3 class="empty-state-title">No hay pedidos de venta registrados</h3>
+            <p class="empty-state-description">Crea pedidos de venta para gestionar antes de facturar</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Pedido
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalPedido" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-shopping-cart me-2 text-primary"></i>Nuevo Pedido de Venta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPedido">
+                <div class="modal-body">
+                    <input type="hidden" id="Pedido_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <!-- Customer and Basic Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Pedido_ClienteId" required>
+                                <option value="">Seleccione un cliente...</option>
+                            </select>
+                            <div class="invalid-feedback">El cliente es obligatorio.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Pedido_Fecha" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vencimiento</label>
+                            <input type="date" class="form-control" id="Pedido_FechaVencimiento" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="Pedido_Observaciones" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="Pedido_Estado">
+                                <option value="BORRADOR">Borrador</option>
+                                <option value="PENDIENTE">Pendiente</option>
+                                <option value="APROBADO">Aprobado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Moneda</label>
+                            <select class="form-select" id="Pedido_MonedaId">
+                                <option value="">Colones (CRC)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Line Items Section -->
+                    <hr />
+                    <h6 class="mb-3">
+                        <i class="fas fa-list me-2"></i>Líneas del Pedido
+                        <button type="button" class="btn btn-sm btn-success float-end" onclick="addLineItem()">
+                            <i class="fas fa-plus"></i> Agregar Línea
+                        </button>
+                    </h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="tableLineas">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%;">Producto</th>
+                                    <th style="width: 15%;">Cantidad</th>
+                                    <th style="width: 20%;">Precio Unit.</th>
+                                    <th style="width: 10%;">Descuento %</th>
+                                    <th style="width: 15%;">Total</th>
+                                    <th style="width: 5%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="lineasContainer">
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">
+                                        <i>No hay líneas agregadas. Haga clic en "Agregar Línea"</i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="row mt-3">
+                        <div class="col-md-8"></div>
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <strong>Subtotal:</strong>
+                                <span id="subtotalDisplay">₡0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <strong>Descuentos:</strong>
+                                <span id="descuentosDisplay">₡0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <strong>IVA (13%):</strong>
+                                <span id="ivaDisplay">₡0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between border-top pt-2">
+                                <strong class="fs-5">Total:</strong>
+                                <strong class="fs-5 text-primary" id="totalDisplay">₡0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar Pedido
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let clientes = [];
+    let productos = [];
+    let lineCounter = 0;
+
+    $(document).ready(function() {
+        loadDataTable();
+        loadClientes();
+        loadProductos();
+        setupFormSubmit();
+        setupEstadoFilter();
+        initializeDate();
+    });
+
+    function initializeDate() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#Pedido_Fecha').val(today);
+    }
+
+    function setupEstadoFilter() {
+        $('#filtroEstado').on('change', function() {
+            table.ajax.reload();
+        });
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tablePedidosVenta', {
+            ajax: {
+                url: function() {
+                    const estado = $('#filtroEstado').val();
+                    return `?handler=Data${estado ? '&estado=' + estado : ''}`;
+                },
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotal').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableContainer').show();
+                        $('#emptyState').hide();
+                    } else {
+                        $('#tableContainer').hide();
+                        $('#emptyState').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableLoader').hide();
+                    $('#tableContainer').hide();
+                    $('#emptyState').show();
+                    $('#badgeTotal').text('0');
+                    console.error('Error loading pedidos:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                {
+                    data: 'numero',
+                    render: function(data) {
+                        return data || '<span class="text-muted">Pendiente</span>';
+                    }
+                },
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return data ? new Date(data).toLocaleDateString('es-CR') : '-';
+                    }
+                },
+                {
+                    data: 'cliente.nombre',
+                    render: function(data) {
+                        return data || '-';
+                    }
+                },
+                {
+                    data: 'moneda',
+                    render: function(data) {
+                        return data || 'CRC';
+                    }
+                },
+                {
+                    data: 'total',
+                    render: function(data, type, row) {
+                        const symbol = row.moneda === 'USD' ? '$' : '₡';
+                        return symbol + parseFloat(data || 0).toFixed(2);
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const badges = {
+                            'BORRADOR': '<span class="badge bg-secondary">Borrador</span>',
+                            'PENDIENTE': '<span class="badge bg-warning">Pendiente</span>',
+                            'APROBADO': '<span class="badge bg-success">Aprobado</span>',
+                            'FACTURADO': '<span class="badge bg-info">Facturado</span>',
+                            'CANCELADO': '<span class="badge bg-danger">Cancelado</span>'
+                        };
+                        return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let actions = `
+                            <button class="btn btn-sm btn-info" onclick="view('${data}')" title="Ver">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>`;
+
+                        if (row.estado === 'APROBADO') {
+                            actions += `
+                            <button class="btn btn-sm btn-success" onclick="convertir('${data}')" title="Convertir a Factura">
+                                <i class="fas fa-file-invoice"></i>
+                            </button>`;
+                        }
+
+                        actions += `
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>`;
+
+                        return actions;
+                    }
+                }
+            ],
+            order: [[1, 'desc']]
+        });
+    }
+
+    async function loadClientes() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Clientes',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+            clientes = response || [];
+
+            $('#Pedido_ClienteId').empty().append('<option value="">Seleccione un cliente...</option>');
+            clientes.forEach(cliente => {
+                $('#Pedido_ClienteId').append(
+                    `<option value="${cliente.id}">${cliente.nombre}</option>`
+                );
+            });
+        } catch (error) {
+            console.error('Error loading clientes:', error);
+        }
+    }
+
+    async function loadProductos() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Productos',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+            productos = response || [];
+        } catch (error) {
+            console.error('Error loading productos:', error);
+        }
+    }
+
+    function setupFormSubmit() {
+        $('#formPedido').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formPedido')[0].reset();
+        $('#formPedido').removeClass('was-validated');
+        $('#Pedido_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Pedido_Estado').val('BORRADOR');
+        $('#lineasContainer').html('<tr><td colspan="6" class="text-center text-muted"><i>No hay líneas agregadas. Haga clic en "Agregar Línea"</i></td></tr>');
+        lineCounter = 0;
+        updateTotals();
+        initializeDate();
+        $('#modalTitle').text('Nuevo Pedido de Venta');
+        $('#modalPedido').modal('show');
+    }
+
+    function view(id) {
+        // Implement view functionality
+        edit(id);
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const data = response.data;
+                    $('#Pedido_Id').val(data.id);
+                    $('#Pedido_ClienteId').val(data.clienteId);
+                    $('#Pedido_Fecha').val(data.fecha ? data.fecha.split('T')[0] : '');
+                    $('#Pedido_FechaVencimiento').val(data.fechaVencimiento ? data.fechaVencimiento.split('T')[0] : '');
+                    $('#Pedido_Observaciones').val(data.observaciones || '');
+                    $('#Pedido_Estado').val(data.estado || 'BORRADOR');
+                    $('#Pedido_MonedaId').val(data.monedaId || '');
+
+                    // Load line items if available
+                    $('#lineasContainer').empty();
+                    lineCounter = 0;
+
+                    if (data.detalles && data.detalles.length > 0) {
+                        data.detalles.forEach(detalle => {
+                            addLineItem(detalle);
+                        });
+                    } else {
+                        $('#lineasContainer').html('<tr><td colspan="6" class="text-center text-muted"><i>No hay líneas agregadas</i></td></tr>');
+                    }
+
+                    updateTotals();
+                    $('#modalTitle').text('Editar Pedido de Venta');
+                    $('#formPedido').removeClass('was-validated');
+                    $('#modalPedido').modal('show');
+                } else {
+                    showError('Error al cargar el pedido');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function addLineItem(detalle = null) {
+        if ($('#lineasContainer tr td[colspan]').length > 0) {
+            $('#lineasContainer').empty();
+        }
+
+        lineCounter++;
+        const lineId = 'line_' + lineCounter;
+
+        let productoOptions = '<option value="">Seleccione producto...</option>';
+        productos.forEach(p => {
+            const selected = detalle && p.id === detalle.productoId ? 'selected' : '';
+            productoOptions += `<option value="${p.id}" data-precio="${p.precioVenta || 0}" ${selected}>${p.nombre}</option>`;
+        });
+
+        const row = `
+            <tr id="${lineId}">
+                <td>
+                    <select class="form-select form-select-sm line-producto" onchange="updateLineTotal('${lineId}')" required>
+                        ${productoOptions}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm line-cantidad" value="${detalle ? detalle.cantidad : 1}"
+                           min="0.001" step="0.001" onchange="updateLineTotal('${lineId}')" required />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm line-precio" value="${detalle ? detalle.precioUnitario : 0}"
+                           min="0" step="0.01" onchange="updateLineTotal('${lineId}')" required />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm line-descuento" value="${detalle ? detalle.porcentajeDescuento : 0}"
+                           min="0" max="100" step="0.01" onchange="updateLineTotal('${lineId}')" />
+                </td>
+                <td>
+                    <span class="line-total fw-bold">₡0.00</span>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeLine('${lineId}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#lineasContainer').append(row);
+        updateLineTotal(lineId);
+    }
+
+    function removeLine(lineId) {
+        $('#' + lineId).remove();
+        if ($('#lineasContainer tr').length === 0) {
+            $('#lineasContainer').html('<tr><td colspan="6" class="text-center text-muted"><i>No hay líneas agregadas</i></td></tr>');
+        }
+        updateTotals();
+    }
+
+    function updateLineTotal(lineId) {
+        const row = $('#' + lineId);
+        const cantidad = parseFloat(row.find('.line-cantidad').val()) || 0;
+        const precio = parseFloat(row.find('.line-precio').val()) || 0;
+        const descuentoPct = parseFloat(row.find('.line-descuento').val()) || 0;
+
+        const subtotal = cantidad * precio;
+        const descuento = subtotal * (descuentoPct / 100);
+        const total = subtotal - descuento;
+
+        row.find('.line-total').text('₡' + total.toFixed(2));
+        updateTotals();
+    }
+
+    function updateTotals() {
+        let subtotal = 0;
+        let descuentos = 0;
+
+        $('#lineasContainer tr').each(function() {
+            const cantidad = parseFloat($(this).find('.line-cantidad').val()) || 0;
+            const precio = parseFloat($(this).find('.line-precio').val()) || 0;
+            const descuentoPct = parseFloat($(this).find('.line-descuento').val()) || 0;
+
+            const lineSubtotal = cantidad * precio;
+            const lineDescuento = lineSubtotal * (descuentoPct / 100);
+
+            subtotal += lineSubtotal;
+            descuentos += lineDescuento;
+        });
+
+        const baseImponible = subtotal - descuentos;
+        const iva = baseImponible * 0.13;
+        const total = baseImponible + iva;
+
+        $('#subtotalDisplay').text('₡' + subtotal.toFixed(2));
+        $('#descuentosDisplay').text('₡' + descuentos.toFixed(2));
+        $('#ivaDisplay').text('₡' + iva.toFixed(2));
+        $('#totalDisplay').text('₡' + total.toFixed(2));
+    }
+
+    function save() {
+        const lineas = [];
+        $('#lineasContainer tr').each(function() {
+            const productoId = $(this).find('.line-producto').val();
+            if (productoId) {
+                lineas.push({
+                    productoId: productoId,
+                    cantidad: parseFloat($(this).find('.line-cantidad').val()) || 0,
+                    precioUnitario: parseFloat($(this).find('.line-precio').val()) || 0,
+                    porcentajeDescuento: parseFloat($(this).find('.line-descuento').val()) || 0
+                });
+            }
+        });
+
+        if (lineas.length === 0) {
+            showError('Debe agregar al menos una línea al pedido');
+            return;
+        }
+
+        const data = {
+            id: $('#Pedido_Id').val(),
+            empresaId: '@Model.EmpresaId',
+            clienteId: $('#Pedido_ClienteId').val(),
+            fecha: $('#Pedido_Fecha').val(),
+            fechaVencimiento: $('#Pedido_FechaVencimiento').val() || null,
+            observaciones: $('#Pedido_Observaciones').val() || null,
+            estado: $('#Pedido_Estado').val(),
+            monedaId: $('#Pedido_MonedaId').val() || null,
+            detalles: lineas
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalPedido').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar el pedido');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function convertir(id) {
+        confirmAction('¿Desea convertir este pedido a factura?', function() {
+            $.ajax({
+                url: '?handler=Convertir&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al convertir el pedido');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('¿Está seguro de eliminar este pedido de venta?', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar el pedido');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+</script>
+}

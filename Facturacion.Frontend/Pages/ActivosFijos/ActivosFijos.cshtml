@@ -1,0 +1,957 @@
+@page
+@model Facturacion.Frontend.Pages.ActivosFijos.ActivosFijosModel
+@{
+    ViewData["Title"] = "Activos Fijos";
+    ViewData["Breadcrumb"] = "Activos Fijos";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-building"></i> Activos Fijos</h2>
+            <p class="mb-0">Gestión de activos fijos de la empresa con control de depreciación</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo activo fijo">
+            <i class="fas fa-plus me-2"></i>Nuevo Activo Fijo
+        </button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Activos</h6>
+                        <h3 class="mb-0" id="totalActivos">0</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-building fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Valor Total</h6>
+                        <h3 class="mb-0" id="valorTotal">₡0.00</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-custom">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Depreciación Acumulada</h6>
+                        <h3 class="mb-0" id="depreciacionAcumulada">₡0.00</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-chart-line fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-3">
+    <div class="card-header">
+        <strong><i class="fas fa-filter me-2"></i>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Categoría</label>
+                <select class="form-select" id="filtroCategoriaId">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="ACT">En Uso</option>
+                    <option value="BAJ">Dado de Baja</option>
+                    <option value="VEN">Vendido</option>
+                    <option value="ROB">Robo/Pérdida</option>
+                    <option value="DEP">Depreciado Total</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Sucursal</label>
+                <select class="form-select" id="filtroSucursalId">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                    <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activos Fijos Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Activos Fijos</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalActivos">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-success" onclick="descargarPlantilla()" title="Descargar plantilla Excel">
+                <i class="fas fa-download"></i> Plantilla
+            </button>
+            <button type="button" class="btn btn-outline-success" onclick="$('#fileImport').click()" title="Importar desde Excel">
+                <i class="fas fa-file-import"></i> Importar
+            </button>
+            <input type="file" id="fileImport" accept=".xlsx,.xls" style="display:none;" onchange="importarExcel(this)" />
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableActivosFijosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando activos fijos...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableActivosFijosContainer" style="display:none;">
+            <table id="tableActivosFijos" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Fecha Compra</th>
+                        <th>Valor Original</th>
+                        <th>Valor Libros</th>
+                        <th>Sucursal</th>
+                        <th>Estado</th>
+                        <th style="width: 180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateActivosFijos" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <h3 class="empty-state-title">No hay activos fijos registrados</h3>
+            <p class="empty-state-description">Comienza agregando tu primer activo fijo</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Activo
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalActivoFijo" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Activo Fijo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formActivoFijo" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="ActivoFijo_Id" value="0" />
+
+                    <!-- Información General -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Información General</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ActivoFijo_Codigo" maxlength="20" required />
+                            <div class="invalid-feedback">El código es obligatorio.</div>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ActivoFijo_Nombre" maxlength="200" required />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="ActivoFijo_Descripcion" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                            <select class="form-select" id="ActivoFijo_CategoriaActivoId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una categoría.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sucursal <span class="text-danger">*</span></label>
+                            <select class="form-select" id="ActivoFijo_SucursalId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una sucursal.</div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Datos de Adquisición -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-shopping-cart me-2"></i>Datos de Adquisición</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha de Compra <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="ActivoFijo_FechaCompra" required />
+                            <div class="invalid-feedback">La fecha de compra es obligatoria.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Número de Factura</label>
+                            <input type="text" class="form-control" id="ActivoFijo_NumeroFactura" maxlength="50" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Proveedor</label>
+                            <input type="text" class="form-control" id="ActivoFijo_Proveedor" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Valores y Depreciación -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-dollar-sign me-2"></i>Valores y Depreciación</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor Original <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="ActivoFijo_ValorOriginal" step="0.01" min="0" required />
+                                <div class="invalid-feedback">El valor original es obligatorio.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor Residual</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="ActivoFijo_ValorResidual" step="0.01" min="0" value="0" />
+                            </div>
+                            <small class="text-muted">Valor de salvamento estimado</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Vida Útil (Años) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="ActivoFijo_VidaUtilAnios" min="1" max="100" value="5" required />
+                            <div class="invalid-feedback">La vida útil es obligatoria.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Método de Depreciación <span class="text-danger">*</span></label>
+                            <select class="form-select" id="ActivoFijo_MetodoDepreciacion" required>
+                                <option value="LR" selected>Línea Recta</option>
+                                <option value="SAD">Suma de Años Dígitos</option>
+                                <option value="SDD">Saldo Doble Decreciente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Frecuencia de Depreciación <span class="text-danger">*</span></label>
+                            <select class="form-select" id="ActivoFijo_FrecuenciaDepreciacion" required>
+                                <option value="MEN" selected>Mensual</option>
+                                <option value="ANU">Anual</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Inicio Depreciación</label>
+                            <input type="date" class="form-control" id="ActivoFijo_FechaInicioDepreciacion" />
+                            <small class="text-muted">Opcional, por defecto usa la fecha de compra</small>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Datos Adicionales -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-clipboard-list me-2"></i>Datos Adicionales</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="ActivoFijo_Marca" maxlength="100" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Modelo</label>
+                            <input type="text" class="form-control" id="ActivoFijo_Modelo" maxlength="100" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Número de Serie</label>
+                            <input type="text" class="form-control" id="ActivoFijo_NumeroSerie" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="ActivoFijo_Observaciones" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Estado -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado <span class="text-danger">*</span></label>
+                            <select class="form-select" id="ActivoFijo_Estado" required>
+                                <option value="ACT" selected>Activo</option>
+                                <option value="BAJ">Baja</option>
+                                <option value="VEN">Vendido</option>
+                                <option value="ROB">Robo/Pérdida</option>
+                                <option value="DEP">Depreciado Total</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Depreciar -->
+<div class="modal fade" id="modalDepreciar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i>Depreciar Activo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="depreciarActivoId" />
+                <p>¿Está seguro de aplicar la depreciación del período actual a este activo?</p>
+                <div class="alert alert-info">
+                    <strong>Activo:</strong> <span id="depreciarActivoNombre"></span><br>
+                    <strong>Valor Actual:</strong> <span id="depreciarValorActual"></span><br>
+                    <strong>Depreciación Acumulada:</strong> <span id="depreciarDepreciacionAcumulada"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="confirmarDepreciar()">
+                    <i class="fas fa-check me-1"></i>Aplicar Depreciación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Dar de Baja -->
+<div class="modal fade" id="modalDarDeBaja" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-ban me-2"></i>Dar de Baja Activo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formDarDeBaja">
+                <div class="modal-body">
+                    <input type="hidden" id="bajaActivoId" />
+                    <p>Complete la información para dar de baja el activo:</p>
+                    <div class="alert alert-warning">
+                        <strong>Activo:</strong> <span id="bajaActivoNombre"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo <span class="text-danger">*</span></label>
+                        <select class="form-select" id="bajaTipo" required>
+                            <option value="BAJ">Baja Normal</option>
+                            <option value="VEN">Vendido</option>
+                            <option value="ROB">Robo/Pérdida</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción del Motivo <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="bajaMotivo" rows="3" maxlength="200" required></textarea>
+                    </div>
+                    <div class="mb-3" id="bajaValorVentaContainer" style="display:none;">
+                        <label class="form-label">Valor de Venta</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₡</span>
+                            <input type="number" class="form-control" id="bajaValorVenta" step="0.01" min="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban me-1"></i>Dar de Baja
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadCategorias();
+        loadSucursales();
+        setupEventHandlers();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableActivosFijos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableActivosFijosLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalActivos').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableActivosFijosContainer').show();
+                        $('#emptyStateActivosFijos').hide();
+                        updateSummaryCards(data);
+                    } else {
+                        $('#tableActivosFijosContainer').hide();
+                        $('#emptyStateActivosFijos').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableActivosFijosLoader').hide();
+                    $('#tableActivosFijosContainer').hide();
+                    $('#emptyStateActivosFijos').show();
+                    $('#badgeTotalActivos').text('0');
+                    console.error('Error loading activos fijos:', error);
+                }
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'categoriaActivo',
+                    render: function(data) {
+                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'fechaCompra',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'valorOriginal',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: null,
+                    render: function(data, type, row) {
+                        const valorActual = row.valorOriginal - row.depreciacionAcumulada;
+                        return formatCurrency(valorActual);
+                    }
+                },
+                {
+                    data: 'sucursal',
+                    render: function(data) {
+                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'ACT': '<span class="badge bg-success">Activo</span>',
+                            'BAJ': '<span class="badge bg-secondary">Baja</span>',
+                            'VEN': '<span class="badge bg-info">Vendido</span>',
+                            'ROB': '<span class="badge bg-danger">Robo/Pérdida</span>',
+                            'DEP': '<span class="badge bg-warning">Depreciado Total</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let html = `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>`;
+
+                        if (row.estado === 'ACT') {
+                            html += `
+                            <button class="btn btn-sm btn-warning" onclick="depreciar('${data}', '${row.nombre}', ${row.valorOriginal}, ${row.depreciacionAcumulada})" title="Depreciar">
+                                <i class="fas fa-chart-line"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="darDeBaja('${data}', '${row.nombre}')" title="Dar de Baja">
+                                <i class="fas fa-ban"></i>
+                            </button>`;
+                        }
+
+                        html += `
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                        return html;
+                    }
+                }
+            ],
+            order: [[0, 'asc']]
+        });
+    }
+
+    function updateSummaryCards(data) {
+        const totalActivos = data.length;
+        const valorTotal = data.reduce((sum, item) => sum + item.valorOriginal, 0);
+        const depreciacionTotal = data.reduce((sum, item) => sum + item.depreciacionAcumulada, 0);
+
+        $('#totalActivos').text(totalActivos);
+        $('#valorTotal').text(formatCurrency(valorTotal));
+        $('#depreciacionAcumulada').text(formatCurrency(depreciacionTotal));
+    }
+
+    function setupFormSubmit() {
+        $('#formActivoFijo').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+
+        $('#formDarDeBaja').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                confirmarDarDeBaja();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupEventHandlers() {
+        $('#bajaTipo').on('change', function() {
+            if ($(this).val() === 'VEN') {
+                $('#bajaValorVentaContainer').show();
+            } else {
+                $('#bajaValorVentaContainer').hide();
+                $('#bajaValorVenta').val('');
+            }
+        });
+    }
+
+    function loadCategorias() {
+        return $.ajax({
+            url: '?handler=Categorias',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const data = response?.data || response || [];
+                const select = $('#ActivoFijo_CategoriaActivoId');
+                const filtro = $('#filtroCategoriaId');
+
+                select.empty().append('<option value="">Seleccione...</option>');
+                filtro.empty().append('<option value="">Todas</option>');
+
+                if (Array.isArray(data)) {
+                    data.forEach(cat => {
+                        const id = cat.id || cat.Id;
+                        const nombre = cat.nombre || cat.Nombre || '';
+                        select.append(`<option value="${id}">${nombre}</option>`);
+                        filtro.append(`<option value="${id}">${nombre}</option>`);
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading categorias:', xhr);
+            }
+        });
+    }
+
+    function loadSucursales() {
+        return $.ajax({
+            url: '?handler=Sucursales',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const data = response?.data || response || [];
+                const select = $('#ActivoFijo_SucursalId');
+                const filtro = $('#filtroSucursalId');
+
+                select.empty().append('<option value="">Seleccione...</option>');
+                filtro.empty().append('<option value="">Todas</option>');
+
+                if (Array.isArray(data)) {
+                    data.forEach(suc => {
+                        const id = suc.id || suc.Id;
+                        const nombre = suc.nombre || suc.Nombre || '';
+                        select.append(`<option value="${id}">${nombre}</option>`);
+                        filtro.append(`<option value="${id}">${nombre}</option>`);
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading sucursales:', xhr);
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formActivoFijo')[0].reset();
+        $('#formActivoFijo').removeClass('was-validated');
+        $('#ActivoFijo_Id').val('0');
+        $('#ActivoFijo_Estado').val('ACT');
+        $('#ActivoFijo_MetodoDepreciacion').val('LR');
+        $('#ActivoFijo_FrecuenciaDepreciacion').val('MEN');
+        $('#ActivoFijo_ValorResidual').val('0');
+        $('#ActivoFijo_VidaUtilAnios').val('5');
+        $('#modalTitle').text('Nuevo Activo Fijo');
+
+        $.when(loadCategorias(), loadSucursales())
+            .done(function() {
+                $('#modalActivoFijo').modal('show');
+            });
+    }
+
+    function edit(id) {
+        $.when(loadCategorias(), loadSucursales())
+            .done(function() {
+                $.ajax({
+                    url: '?handler=Details&id=' + id,
+                    type: 'GET',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(data) {
+                        $('#ActivoFijo_Id').val(data.id);
+                        $('#ActivoFijo_Codigo').val(data.codigo);
+                        $('#ActivoFijo_Nombre').val(data.nombre);
+                        $('#ActivoFijo_Descripcion').val(data.descripcion || '');
+                        $('#ActivoFijo_CategoriaActivoId').val(data.categoriaActivoId || '');
+                        $('#ActivoFijo_SucursalId').val(data.sucursalId || '');
+                        $('#ActivoFijo_FechaCompra').val(data.fechaCompra ? data.fechaCompra.split('T')[0] : '');
+                        $('#ActivoFijo_NumeroFactura').val(data.numeroFactura || '');
+                        $('#ActivoFijo_Proveedor').val(data.proveedor || '');
+                        $('#ActivoFijo_ValorOriginal').val(data.valorOriginal);
+                        $('#ActivoFijo_ValorResidual').val(data.valorResidual || 0);
+                        $('#ActivoFijo_VidaUtilAnios').val(data.vidaUtilAnios);
+                        $('#ActivoFijo_MetodoDepreciacion').val(data.metodoDepreciacion || 'LR');
+                        $('#ActivoFijo_FrecuenciaDepreciacion').val(data.frecuenciaDepreciacion || 'MEN');
+                        $('#ActivoFijo_FechaInicioDepreciacion').val(data.fechaInicioDepreciacion ? data.fechaInicioDepreciacion.split('T')[0] : '');
+                        $('#ActivoFijo_Marca').val(data.marca || '');
+                        $('#ActivoFijo_Modelo').val(data.modelo || '');
+                        $('#ActivoFijo_NumeroSerie').val(data.numeroSerie || '');
+                        $('#ActivoFijo_Observaciones').val(data.observaciones || '');
+                        $('#ActivoFijo_Estado').val(data.estado || 'ACT');
+
+                        $('#modalTitle').text('Editar Activo Fijo');
+                        $('#formActivoFijo').removeClass('was-validated');
+                        $('#modalActivoFijo').modal('show');
+                    },
+                    error: function(xhr) {
+                        showError('Error al cargar el activo fijo');
+                    }
+                });
+            });
+    }
+
+    function save() {
+        const activoData = {
+            id: $('#ActivoFijo_Id').val() === '0' ? '00000000-0000-0000-0000-000000000000' : $('#ActivoFijo_Id').val(),
+            empresaId: empresaId,
+            codigo: $('#ActivoFijo_Codigo').val(),
+            nombre: $('#ActivoFijo_Nombre').val(),
+            descripcion: $('#ActivoFijo_Descripcion').val() || null,
+            categoriaActivoId: $('#ActivoFijo_CategoriaActivoId').val(),
+            sucursalId: $('#ActivoFijo_SucursalId').val(),
+            fechaCompra: $('#ActivoFijo_FechaCompra').val(),
+            numeroFactura: $('#ActivoFijo_NumeroFactura').val() || null,
+            proveedor: $('#ActivoFijo_Proveedor').val() || null,
+            valorOriginal: parseFloat($('#ActivoFijo_ValorOriginal').val()),
+            valorResidual: parseFloat($('#ActivoFijo_ValorResidual').val()) || 0,
+            vidaUtilAnios: parseInt($('#ActivoFijo_VidaUtilAnios').val()),
+            metodoDepreciacion: $('#ActivoFijo_MetodoDepreciacion').val(),
+            frecuenciaDepreciacion: $('#ActivoFijo_FrecuenciaDepreciacion').val(),
+            fechaInicioDepreciacion: $('#ActivoFijo_FechaInicioDepreciacion').val() || null,
+            marca: $('#ActivoFijo_Marca').val() || null,
+            modelo: $('#ActivoFijo_Modelo').val() || null,
+            numeroSerie: $('#ActivoFijo_NumeroSerie').val() || null,
+            observaciones: $('#ActivoFijo_Observaciones').val() || null,
+            estado: $('#ActivoFijo_Estado').val()
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(activoData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalActivoFijo').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function depreciar(id, nombre, valorOriginal, depreciacionAcumulada) {
+        $('#depreciarActivoId').val(id);
+        $('#depreciarActivoNombre').text(nombre);
+        $('#depreciarValorActual').text(formatCurrency(valorOriginal - depreciacionAcumulada));
+        $('#depreciarDepreciacionAcumulada').text(formatCurrency(depreciacionAcumulada));
+        $('#modalDepreciar').modal('show');
+    }
+
+    function confirmarDepreciar() {
+        const id = $('#depreciarActivoId').val();
+
+        $.ajax({
+            url: '?handler=Depreciar&id=' + id,
+            type: 'POST',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalDepreciar').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function darDeBaja(id, nombre) {
+        $('#bajaActivoId').val(id);
+        $('#bajaActivoNombre').text(nombre);
+        $('#bajaTipo').val('BAJ');
+        $('#bajaMotivo').val('');
+        $('#bajaValorVenta').val('');
+        $('#bajaValorVentaContainer').hide();
+        $('#formDarDeBaja').removeClass('was-validated');
+        $('#modalDarDeBaja').modal('show');
+    }
+
+    function confirmarDarDeBaja() {
+        const bajaData = {
+            id: $('#bajaActivoId').val(),
+            estado: $('#bajaTipo').val(),
+            motivo: $('#bajaMotivo').val(),
+            valorVenta: $('#bajaTipo').val() === 'VEN' ? parseFloat($('#bajaValorVenta').val()) || null : null
+        };
+
+        $.ajax({
+            url: '?handler=DarDeBaja',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(bajaData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalDarDeBaja').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function aplicarFiltros() {
+        table.ajax.reload();
+    }
+
+    function refrescarTabla() {
+        $('#tableActivosFijosLoader').show();
+        $('#tableActivosFijosContainer').hide();
+        $('#emptyStateActivosFijos').hide();
+        table.ajax.reload();
+    }
+
+    function exportarExcel() {
+        showWarning('Función de exportación en desarrollo');
+    }
+
+    function descargarPlantilla() {
+        window.location.href = '?handler=Plantilla';
+    }
+
+    function importarExcel(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            Swal.fire({
+                title: 'Importando...',
+                html: 'Por favor espere mientras se procesan los datos.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '?handler=Importar',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        let message = response.message;
+                        if (response.totalImportados > 0) {
+                            message += `<br><br><strong>Importados:</strong> ${response.totalImportados}`;
+                        }
+                        if (response.totalErrores > 0) {
+                            message += `<br><strong>Errores:</strong> ${response.totalErrores}`;
+                            if (response.errores && response.errores.length > 0) {
+                                message += '<br><br><strong>Detalle de errores:</strong><ul class="text-start small">';
+                                response.errores.slice(0, 10).forEach(function(err) {
+                                    message += `<li>${err}</li>`;
+                                });
+                                if (response.errores.length > 10) {
+                                    message += `<li>... y ${response.errores.length - 10} errores más</li>`;
+                                }
+                                message += '</ul>';
+                            }
+                        }
+                        Swal.fire({
+                            icon: response.totalErrores > 0 ? 'warning' : 'success',
+                            title: response.totalErrores > 0 ? 'Importación con advertencias' : 'Importación exitosa',
+                            html: message
+                        });
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al importar los datos');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    handleAjaxError(xhr);
+                },
+                complete: function() {
+                    input.value = '';
+                }
+            });
+        }
+    }
+
+    window.openCreateModal = openCreateModal;
+    window.edit = edit;
+    window.save = save;
+    window.depreciar = depreciar;
+    window.confirmarDepreciar = confirmarDepreciar;
+    window.darDeBaja = darDeBaja;
+    window.confirmarDarDeBaja = confirmarDarDeBaja;
+    window.deleteRecord = deleteRecord;
+    window.aplicarFiltros = aplicarFiltros;
+    window.refrescarTabla = refrescarTabla;
+    window.exportarExcel = exportarExcel;
+</script>
+}

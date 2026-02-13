@@ -1,0 +1,562 @@
+@page
+@model Facturacion.Frontend.Pages.ActivosFijos.DepreciacionesActivoModel
+@{
+    ViewData["Title"] = "Depreciaciones de Activos";
+    ViewData["Breadcrumb"] = "Depreciaciones de Activos";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-chart-line"></i> Depreciaciones de Activos Fijos</h2>
+            <p class="mb-0">Registro histórico y generación de depreciaciones periódicas</p>
+        </div>
+        <button class="btn btn-success" onclick="openGenerarDepreciacionModal()" aria-label="Generar depreciación del período">
+            <i class="fas fa-calculator me-2"></i>Generar Depreciación del Período
+        </button>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-3">
+    <div class="card-header">
+        <strong><i class="fas fa-filter me-2"></i>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Activo</label>
+                <select class="form-select" id="filtroActivoId">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Año</label>
+                <input type="number" class="form-control" id="filtroAnio" min="2000" max="2099" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Mes</label>
+                <select class="form-select" id="filtroMes">
+                    <option value="">Todos</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="CAL">Calculada</option>
+                    <option value="APL">Aplicada</option>
+                    <option value="REV">Reversada</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                    <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Depreciaciones Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Depreciaciones</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalDepreciaciones">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableDepreciacionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando depreciaciones...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableDepreciacionesContainer" style="display:none;">
+            <table id="tableDepreciaciones" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Período</th>
+                        <th>Activo</th>
+                        <th>Monto Depreciación</th>
+                        <th>Depreciación Acumulada</th>
+                        <th>Valor en Libros</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateDepreciaciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="empty-state-title">No hay depreciaciones registradas</h3>
+            <p class="empty-state-description">Genera la depreciación del período para comenzar</p>
+            <button class="btn btn-success" onclick="openGenerarDepreciacionModal()">
+                <i class="fas fa-calculator me-2"></i>Generar Depreciación
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Generar Depreciación -->
+<div class="modal fade" id="modalGenerarDepreciacion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-calculator me-2"></i>Generar Depreciación del Período</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formGenerarDepreciacion">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Esta acción generará la depreciación para todos los activos activos del período seleccionado.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Año <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="generarAnio" min="2000" max="2099" required />
+                            <div class="invalid-feedback">El año es obligatorio.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Mes <span class="text-danger">*</span></label>
+                            <select class="form-select" id="generarMes" required>
+                                <option value="">Seleccione...</option>
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                            <div class="invalid-feedback">El mes es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="generarObservaciones" rows="2" maxlength="200"></textarea>
+                        <small class="text-muted">Opcional</small>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>Nota:</strong> Solo se depreciarán activos con estado "Activo" y frecuencia mensual. Los activos con frecuencia anual se procesan en el mes de cierre del año.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-calculator me-1"></i>Generar Depreciación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Detalle de Depreciación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Activo:</strong>
+                        <p id="detalleActivo"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Período:</strong>
+                        <p id="detallePeriodo"></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Fecha:</strong>
+                        <p id="detalleFecha"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Estado:</strong>
+                        <p id="detalleEstado"></p>
+                    </div>
+                </div>
+                <hr>
+                <h6 class="text-primary">Valores</h6>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Monto Depreciación:</strong>
+                        <p id="detalleMontoDepreciacion"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Depreciación Acumulada Anterior:</strong>
+                        <p id="detalleDepreciacionAnterior"></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Depreciación Acumulada Nueva:</strong>
+                        <p id="detalleDepreciacionNueva"></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Valor en Libros Anterior:</strong>
+                        <p id="detalleValorLibrosAnterior"></p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Valor en Libros Nuevo:</strong>
+                        <p id="detalleValorLibrosNuevo"></p>
+                    </div>
+                </div>
+                <div class="row" id="detalleObservacionesContainer" style="display:none;">
+                    <div class="col-md-12 mb-3">
+                        <strong>Observaciones:</strong>
+                        <p id="detalleObservaciones"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadActivos();
+        setCurrentPeriod();
+    });
+
+    function setCurrentPeriod() {
+        const now = new Date();
+        $('#filtroAnio').val(now.getFullYear());
+        $('#filtroMes').val(now.getMonth() + 1);
+        $('#generarAnio').val(now.getFullYear());
+        $('#generarMes').val(now.getMonth() + 1);
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tableDepreciaciones', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(d) {
+                    d.activoId = $('#filtroActivoId').val();
+                    d.anio = $('#filtroAnio').val();
+                    d.mes = $('#filtroMes').val();
+                    d.estado = $('#filtroEstado').val();
+                },
+                dataSrc: function(json) {
+                    $('#tableDepreciacionesLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalDepreciaciones').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableDepreciacionesContainer').show();
+                        $('#emptyStateDepreciaciones').hide();
+                    } else {
+                        $('#tableDepreciacionesContainer').hide();
+                        $('#emptyStateDepreciaciones').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableDepreciacionesLoader').hide();
+                    $('#tableDepreciacionesContainer').hide();
+                    $('#emptyStateDepreciaciones').show();
+                    $('#badgeTotalDepreciaciones').text('0');
+                    console.error('Error loading depreciaciones:', error);
+                }
+            },
+            columns: [
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: null,
+                    render: function(data, type, row) {
+                        const mes = String(row.mes).padStart(2, '0');
+                        return `${row.anio}-${mes}`;
+                    }
+                },
+                {
+                    data: 'activoFijo',
+                    render: function(data) {
+                        return data ? `${data.codigo} - ${data.nombre}` : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'montoDepreciacion',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'depreciacionAcumuladaNueva',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'valorLibrosNuevo',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'CAL': '<span class="badge bg-info">Calculada</span>',
+                            'APL': '<span class="badge bg-success">Aplicada</span>',
+                            'REV': '<span class="badge bg-danger">Reversada</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="verDetalle('${data}')" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formGenerarDepreciacion').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                generarDepreciacion();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function loadActivos() {
+        return $.ajax({
+            url: '?handler=Activos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const data = response?.data || response || [];
+                const select = $('#filtroActivoId');
+
+                select.empty().append('<option value="">Todos</option>');
+
+                if (Array.isArray(data)) {
+                    data.forEach(activo => {
+                        const id = activo.id || activo.Id;
+                        const codigo = activo.codigo || activo.Codigo || '';
+                        const nombre = activo.nombre || activo.Nombre || '';
+                        select.append(`<option value="${id}">${codigo} - ${nombre}</option>`);
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading activos:', xhr);
+            }
+        });
+    }
+
+    function openGenerarDepreciacionModal() {
+        $('#formGenerarDepreciacion')[0].reset();
+        $('#formGenerarDepreciacion').removeClass('was-validated');
+        setCurrentPeriod();
+        $('#modalGenerarDepreciacion').modal('show');
+    }
+
+    function generarDepreciacion() {
+        const data = {
+            anio: parseInt($('#generarAnio').val()),
+            mes: parseInt($('#generarMes').val()),
+            observaciones: $('#generarObservaciones').val() || null
+        };
+
+        showLoading('Generando depreciaciones...');
+
+        $.ajax({
+            url: '?handler=GenerarDepreciacion',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                hideLoading();
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalGenerarDepreciacion').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                hideLoading();
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function verDetalle(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                if (data && !data.error) {
+                    const mes = String(data.mes).padStart(2, '0');
+                    const periodo = `${data.anio}-${mes}`;
+
+                    const estados = {
+                        'CAL': '<span class="badge bg-info">Calculada</span>',
+                        'APL': '<span class="badge bg-success">Aplicada</span>',
+                        'REV': '<span class="badge bg-danger">Reversada</span>'
+                    };
+
+                    $('#detalleActivo').text(data.activoFijo ? `${data.activoFijo.codigo} - ${data.activoFijo.nombre}` : '-');
+                    $('#detallePeriodo').text(periodo);
+                    $('#detalleFecha').text(formatDate(data.fecha));
+                    $('#detalleEstado').html(estados[data.estado] || data.estado);
+                    $('#detalleMontoDepreciacion').text(formatCurrency(data.montoDepreciacion));
+                    $('#detalleDepreciacionAnterior').text(formatCurrency(data.depreciacionAcumuladaAnterior));
+                    $('#detalleDepreciacionNueva').text(formatCurrency(data.depreciacionAcumuladaNueva));
+                    $('#detalleValorLibrosAnterior').text(formatCurrency(data.valorLibrosAnterior));
+                    $('#detalleValorLibrosNuevo').text(formatCurrency(data.valorLibrosNuevo));
+
+                    if (data.observaciones) {
+                        $('#detalleObservaciones').text(data.observaciones);
+                        $('#detalleObservacionesContainer').show();
+                    } else {
+                        $('#detalleObservacionesContainer').hide();
+                    }
+
+                    $('#modalDetalle').modal('show');
+                } else {
+                    showError('Error al cargar el detalle de la depreciación');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function aplicarFiltros() {
+        table.ajax.reload();
+    }
+
+    function refrescarTabla() {
+        $('#tableDepreciacionesLoader').show();
+        $('#tableDepreciacionesContainer').hide();
+        $('#emptyStateDepreciaciones').hide();
+        table.ajax.reload();
+    }
+
+    function exportarExcel() {
+        showWarning('Función de exportación en desarrollo');
+    }
+
+    window.openGenerarDepreciacionModal = openGenerarDepreciacionModal;
+    window.generarDepreciacion = generarDepreciacion;
+    window.verDetalle = verDetalle;
+    window.deleteRecord = deleteRecord;
+    window.aplicarFiltros = aplicarFiltros;
+    window.refrescarTabla = refrescarTabla;
+    window.exportarExcel = exportarExcel;
+</script>
+}

@@ -1,8 +1,10 @@
+using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Facturacion.Backend.Controllers;
 
@@ -17,13 +19,16 @@ public class MensajesReceptorController : ControllerBase
 {
     private readonly IMensajeReceptorService _mensajeReceptorService;
     private readonly ILogger<MensajesReceptorController> _logger;
+    private readonly DataContext _context;
 
     public MensajesReceptorController(
         IMensajeReceptorService mensajeReceptorService,
-        ILogger<MensajesReceptorController> logger)
+        ILogger<MensajesReceptorController> logger,
+        DataContext context)
     {
         _mensajeReceptorService = mensajeReceptorService;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
@@ -173,6 +178,179 @@ public class MensajesReceptorController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al validar Mensaje Receptor");
+            return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los mensajes receptor con filtros opcionales
+    /// GET /api/mensajesreceptor
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetMensajes(
+        [FromQuery] Guid? empresaId,
+        [FromQuery] string? fechaInicio,
+        [FromQuery] string? fechaFin,
+        [FromQuery] int? tipoMensaje,
+        [FromQuery] string? estado)
+    {
+        try
+        {
+            var query = _context.Set<Shared.Entities.DocumentoReceptorMensaje>()
+                .Include(m => m.DocumentoOriginal)
+                .Where(m => !m.IsDeleted);
+
+            // Apply filters
+            if (empresaId.HasValue)
+            {
+                query = query.Where(m => m.DocumentoOriginal!.EmpresaId == empresaId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(fechaInicio) && DateTime.TryParse(fechaInicio, out var fInicio))
+            {
+                query = query.Where(m => m.FechaEmision >= fInicio);
+            }
+
+            if (!string.IsNullOrEmpty(fechaFin) && DateTime.TryParse(fechaFin, out var fFin))
+            {
+                fFin = fFin.AddDays(1); // Include entire day
+                query = query.Where(m => m.FechaEmision < fFin);
+            }
+
+            if (tipoMensaje.HasValue)
+            {
+                query = query.Where(m => m.TipoMensaje == tipoMensaje.Value);
+            }
+
+            if (!string.IsNullOrEmpty(estado))
+            {
+                query = query.Where(m => m.Estado == estado);
+            }
+
+            var mensajes = await query
+                .OrderByDescending(m => m.FechaEmision)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.ClaveMensaje,
+                    m.NumeroConsecutivo,
+                    m.TipoMensaje,
+                    m.CodigoMensaje,
+                    m.DetalleMensaje,
+                    m.FechaEmision,
+                    m.FechaEnvioHacienda,
+                    m.FechaRespuestaHacienda,
+                    m.MensajeHacienda,
+                    m.Estado,
+                    m.MontoTotalAceptado,
+                    m.MontoTotalImpuestoAceptado,
+                    m.DocumentoOriginalId,
+                    DocumentoOriginal = m.DocumentoOriginal == null ? null : new
+                    {
+                        m.DocumentoOriginal.Id,
+                        m.DocumentoOriginal.Clave,
+                        m.DocumentoOriginal.NumeroConsecutivo,
+                        m.DocumentoOriginal.TipoDocumento
+                    }
+                })
+                .ToListAsync();
+
+            _logger.LogInformation("Retrieved {Count} mensajes receptor", mensajes.Count);
+
+            return Ok(mensajes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener mensajes receptor");
+            return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene un mensaje receptor por ID
+    /// GET /api/mensajesreceptor/{id}
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetMensaje(Guid id)
+    {
+        try
+        {
+            var mensaje = await _context.Set<Shared.Entities.DocumentoReceptorMensaje>()
+                .Include(m => m.DocumentoOriginal)
+                .Where(m => m.Id == id && !m.IsDeleted)
+                .Select(m => new
+                {
+                    m.Id,
+                    m.ClaveMensaje,
+                    m.NumeroConsecutivo,
+                    m.TipoMensaje,
+                    m.CodigoMensaje,
+                    m.DetalleMensaje,
+                    m.FechaEmision,
+                    m.FechaEnvioHacienda,
+                    m.FechaRespuestaHacienda,
+                    m.MensajeHacienda,
+                    m.Estado,
+                    m.MontoTotalAceptado,
+                    m.MontoTotalImpuestoAceptado,
+                    m.DocumentoOriginalId,
+                    m.XmlGenerado,
+                    m.XmlFirmado,
+                    DocumentoOriginal = m.DocumentoOriginal == null ? null : new
+                    {
+                        m.DocumentoOriginal.Id,
+                        m.DocumentoOriginal.Clave,
+                        m.DocumentoOriginal.NumeroConsecutivo,
+                        m.DocumentoOriginal.TipoDocumento
+                    }
+                })
+                .FirstOrDefaultAsync();
+
+            if (mensaje == null)
+            {
+                return NotFound(new { mensaje = "Mensaje receptor no encontrado" });
+            }
+
+            return Ok(mensaje);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener mensaje receptor");
+            return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Descarga el XML firmado de un mensaje receptor
+    /// GET /api/mensajesreceptor/{id}/descargar-xml
+    /// </summary>
+    [HttpGet("{id}/descargar-xml")]
+    public async Task<IActionResult> DescargarXml(Guid id)
+    {
+        try
+        {
+            var mensaje = await _context.Set<Shared.Entities.DocumentoReceptorMensaje>()
+                .Where(m => m.Id == id && !m.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (mensaje == null)
+            {
+                return NotFound(new { mensaje = "Mensaje receptor no encontrado" });
+            }
+
+            if (string.IsNullOrEmpty(mensaje.XmlFirmado))
+            {
+                return BadRequest(new { mensaje = "XML no disponible para este mensaje" });
+            }
+
+            var xmlBytes = System.Text.Encoding.UTF8.GetBytes(mensaje.XmlFirmado);
+            var fileName = $"MR_{mensaje.ClaveMensaje}.xml";
+
+            return File(xmlBytes, "application/xml", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al descargar XML");
             return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
         }
     }

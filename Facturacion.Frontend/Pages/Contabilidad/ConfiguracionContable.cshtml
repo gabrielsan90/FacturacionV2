@@ -1,0 +1,964 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.ConfiguracionContableModel
+@{
+    ViewData["Title"] = "Configuración Contable";
+    ViewData["Breadcrumb"] = "Configuración Contable";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-cog"></i> Configuración Contable</h2>
+            <p class="mb-0">Parámetros generales del módulo de contabilidad</p>
+        </div>
+        <div class="btn-group" role="group">
+            <button class="btn btn-success" onclick="guardarConfiguracion()" id="btnGuardar">
+                <i class="fas fa-save me-2"></i>Guardar Configuración
+            </button>
+            <button class="btn btn-outline-secondary" onclick="cargarConfiguracion()">
+                <i class="fas fa-sync-alt me-2"></i>Recargar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="loadingConfig" class="text-center py-5">
+    <div class="spinner-modern mx-auto"></div>
+    <p class="text-muted mt-3">Cargando configuración...</p>
+</div>
+
+<!-- Main Configuration Card with Tabs -->
+<div class="card shadow-custom" id="cardConfiguracion" style="display:none;">
+    <div class="card-body">
+        <form id="formConfiguracion">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="Config_Id" value="00000000-0000-0000-0000-000000000000" />
+            <input type="hidden" id="Config_EmpresaId" value="@Model.EmpresaId" />
+
+            <!-- Nav Tabs -->
+            <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-general" data-bs-toggle="tab" data-bs-target="#tabGeneral" type="button" role="tab">
+                        <i class="fas fa-cog me-2"></i>General
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-periodos" data-bs-toggle="tab" data-bs-target="#tabPeriodos" type="button" role="tab">
+                        <i class="fas fa-calendar-alt me-2"></i>Períodos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-integracion" data-bs-toggle="tab" data-bs-target="#tabIntegracion" type="button" role="tab">
+                        <i class="fas fa-plug me-2"></i>Integración
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-cuentas" data-bs-toggle="tab" data-bs-target="#tabCuentas" type="button" role="tab">
+                        <i class="fas fa-list-alt me-2"></i>Cuentas Principales
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="configTabContent">
+
+                <!-- TAB 1: GENERAL -->
+                <div class="tab-pane fade show active" id="tabGeneral" role="tabpanel">
+                    <!-- Período Fiscal -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-calendar-check me-2"></i>Período Fiscal</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Mes Inicio Período Fiscal</label>
+                            <select class="form-select" id="Config_MesInicioPeriodoFiscal">
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10">Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                            <small class="text-muted">Desde 2020, Costa Rica usa año calendario (Enero-Diciembre)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Número de Períodos por Año</label>
+                            <select class="form-select" id="Config_NumeroPeriodosPorAnio">
+                                <option value="12">12 - Mensual</option>
+                                <option value="4">4 - Trimestral</option>
+                                <option value="1">1 - Anual</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Moneda -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-dollar-sign me-2"></i>Moneda</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Moneda Base</label>
+                            <select class="form-select" id="Config_MonedaBase">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Decimales Moneda</label>
+                            <input type="number" class="form-control" id="Config_DecimalesMoneda" min="0" max="4" value="2" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Decimales Tipo Cambio</label>
+                            <input type="number" class="form-control" id="Config_DecimalesTipoCambio" min="2" max="6" value="4" />
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Numeración de Asientos -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-hashtag me-2"></i>Numeración de Asientos</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tipo de Numeración</label>
+                            <select class="form-select" id="Config_TipoNumeracion">
+                                <option value="PER">Por Período</option>
+                                <option value="ANO">Por Año</option>
+                                <option value="CON">Continua</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Longitud del Número</label>
+                            <input type="number" class="form-control" id="Config_LongitudNumero" min="1" max="10" value="6" />
+                            <small class="text-muted">Ej: 6 para 000001</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="Config_UsarPrefijoNumero" />
+                                <label class="form-check-label" for="Config_UsarPrefijoNumero">
+                                    Usar Prefijo en Número
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="prefijoContainer" style="display:none;">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Formato Prefijo</label>
+                            <input type="text" class="form-control" id="Config_FormatoPrefijo" maxlength="20" placeholder="Ej: ASI-{AAAA}-{MM}-" />
+                            <small class="text-muted">Variables: {AAAA}=Año, {MM}=Mes</small>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Control de Períodos -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-lock me-2"></i>Control de Períodos</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Períodos Abiertos Simultáneos</label>
+                            <input type="number" class="form-control" id="Config_PeriodosAbiertosSimultaneos" min="1" max="12" value="2" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="Config_BloquearPeriodosCerrados" />
+                                <label class="form-check-label" for="Config_BloquearPeriodosCerrados">
+                                    Bloquear Edición de Períodos Cerrados
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="Config_PermitirMovimientosFuturos" />
+                                <label class="form-check-label" for="Config_PermitirMovimientosFuturos">
+                                    Permitir Movimientos en Períodos Futuros
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Reglas de Cierre -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-check-circle me-2"></i>Reglas de Cierre</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Config_RequiereAprobacionCierre" />
+                                <label class="form-check-label" for="Config_RequiereAprobacionCierre">
+                                    Requiere Aprobación para Cierre
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Config_ValidarBalanceAntesCierre" />
+                                <label class="form-check-label" for="Config_ValidarBalanceAntesCierre">
+                                    Validar Balance Antes de Cierre
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Config_GenerarAsientoCierreAutomatico" />
+                                <label class="form-check-label" for="Config_GenerarAsientoCierreAutomatico">
+                                    Generar Asiento de Cierre Automático
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Diferencias y Ajustes -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-balance-scale me-2"></i>Diferencias y Ajustes</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tolerancia Diferencias de Redondeo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="Config_ToleranciaDiferencias" step="0.01" min="0" value="0.01" />
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="Config_RegistrarDiferenciasCambiarias" />
+                                <label class="form-check-label" for="Config_RegistrarDiferenciasCambiarias">
+                                    Registrar Diferencias Cambiarias Automáticas
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: PERÍODOS -->
+                <div class="tab-pane fade" id="tabPeriodos" role="tabpanel">
+                    <h6 class="text-primary mb-3"><i class="fas fa-calendar-alt me-2"></i>Gestión de Períodos Contables</h6>
+
+                    <!-- Current Open Period -->
+                    <div class="alert alert-info" id="alertPeriodoActual">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong><i class="fas fa-calendar-check me-2"></i>Período Actual:</strong>
+                                <span id="periodoActualNombre">-</span>
+                            </div>
+                            <span class="badge bg-success" id="periodoActualEstado">Abierto</span>
+                        </div>
+                    </div>
+
+                    <!-- Recent Periods Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <strong><i class="fas fa-list me-2"></i>Períodos Recientes</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="tablePeriodosRecientes">
+                                    <thead>
+                                        <tr>
+                                            <th>Período</th>
+                                            <th>Fecha Inicio</th>
+                                            <th>Fecha Fin</th>
+                                            <th>Estado</th>
+                                            <th>Asientos</th>
+                                            <th>Total Debe</th>
+                                            <th>Total Haber</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbodyPeriodosRecientes">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">
+                                                <div class="py-3">
+                                                    <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                                    <p class="mb-0">No hay períodos registrados</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Nota:</strong> La gestión completa de períodos contables se realiza desde el módulo de Períodos Contables.
+                        Esta sección muestra solo información de consulta.
+                    </div>
+                </div>
+
+                <!-- TAB 3: INTEGRACIÓN -->
+                <div class="tab-pane fade" id="tabIntegracion" role="tabpanel">
+                    <!-- Generación Automática -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-magic me-2"></i>Generación Automática de Asientos</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Config_GenerarAsientosAutomaticos" />
+                                <label class="form-check-label" for="Config_GenerarAsientosAutomaticos">
+                                    <strong>Generar Asientos Automáticos</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Frecuencia de Generación</label>
+                            <select class="form-select" id="Config_FrecuenciaGeneracion">
+                                <option value="INM">Inmediata</option>
+                                <option value="DIA">Diaria</option>
+                                <option value="SEM">Semanal</option>
+                                <option value="MEN">Mensual</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="Config_AprobarAsientosAutomaticos" />
+                                <label class="form-check-label" for="Config_AprobarAsientosAutomaticos">
+                                    Aprobar Asientos Automáticos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Módulos Integrados -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-plug me-2"></i>Módulos Integrados</h6>
+                    <p class="text-muted">Seleccione los módulos que generarán asientos contables automáticamente:</p>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-shopping-cart me-2 text-primary"></i>Ventas
+                                    </h6>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="Config_IntegracionVentas" />
+                                        <label class="form-check-label" for="Config_IntegracionVentas">
+                                            Generar asientos desde facturas de venta
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Registra cuentas por cobrar, ventas e IVA débito</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-file-invoice me-2 text-success"></i>Compras
+                                    </h6>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="Config_IntegracionCompras" />
+                                        <label class="form-check-label" for="Config_IntegracionCompras">
+                                            Generar asientos desde facturas de compra
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Registra cuentas por pagar, gastos e IVA crédito</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-boxes me-2 text-warning"></i>Inventario
+                                    </h6>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="Config_IntegracionInventario" />
+                                        <label class="form-check-label" for="Config_IntegracionInventario">
+                                            Generar asientos desde movimientos de inventario
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Registra ajustes, traslados y costo de ventas</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-hand-holding-usd me-2 text-info"></i>Cuentas por Cobrar
+                                    </h6>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="Config_IntegracionCxC" />
+                                        <label class="form-check-label" for="Config_IntegracionCxC">
+                                            Generar asientos desde recibos de cobro
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Registra cobros y aplicaciones de pago</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-money-check-alt me-2 text-danger"></i>Cuentas por Pagar
+                                    </h6>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="Config_IntegracionCxP" />
+                                        <label class="form-check-label" for="Config_IntegracionCxP">
+                                            Generar asientos desde pagos a proveedores
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Registra pagos y aplicaciones de deuda</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-university me-2 text-secondary"></i>Bancos
+                                    </h6>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="Config_IntegracionBancos" />
+                                        <label class="form-check-label" for="Config_IntegracionBancos">
+                                            Generar asientos desde movimientos bancarios
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Registra depósitos, retiros y conciliación bancaria</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Workflow y Aprobaciones -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-tasks me-2"></i>Workflow y Aprobaciones</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Config_RequiereAprobacionAsientos" />
+                                <label class="form-check-label" for="Config_RequiereAprobacionAsientos">
+                                    <strong>Requiere Aprobación de Asientos</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Monto Límite sin Aprobación</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="Config_MontoLimiteSinAprobacion" step="1000" min="0" value="100000" />
+                            </div>
+                            <small class="text-muted">Asientos menores a este monto no requieren aprobación</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Niveles de Aprobación</label>
+                            <select class="form-select" id="Config_NivelesAprobacion">
+                                <option value="1">1 Nivel</option>
+                                <option value="2">2 Niveles</option>
+                                <option value="3">3 Niveles</option>
+                                <option value="4">4 Niveles</option>
+                                <option value="5">5 Niveles</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: CUENTAS PRINCIPALES -->
+                <div class="tab-pane fade" id="tabCuentas" role="tabpanel">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Cuentas Principales:</strong> Configure las cuentas contables que se utilizarán por defecto en las operaciones automáticas del sistema.
+                    </div>
+
+                    <!-- Cuentas de Ventas -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-shopping-cart me-2"></i>Ventas</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Ventas Gravadas</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaVentasGravadasId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Ventas Exentas</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaVentasExentasId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Costo de Ventas</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaCostoVentasId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas de IVA -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-percentage me-2"></i>IVA</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta IVA Débito (Por Pagar)</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaIvaDebitoId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta IVA Crédito Fiscal</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaIvaCreditoId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas por Cobrar y Pagar -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-exchange-alt me-2"></i>Cuentas por Cobrar y Pagar</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Clientes (CxC)</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaClientesId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Proveedores (CxP)</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaProveedoresId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas de Inventario -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-boxes me-2"></i>Inventario</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Inventarios</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaInventarioId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas de Efectivo -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-money-bill-wave me-2"></i>Efectivo y Bancos</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Caja General</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaCajaGeneralId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Bancos Colones</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaBancosColonesId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Bancos Dólares</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaBancosDolaresId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas de Diferencia Cambiaria -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-chart-line me-2"></i>Diferencia Cambiaria</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Diferencia Cambiaria Ganancia</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaDifCambiariaGananciaId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Diferencia Cambiaria Pérdida</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaDifCambiariaPerdidaId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Cuentas de Resultado -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-chart-pie me-2"></i>Resultado del Ejercicio</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Utilidad del Ejercicio</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaUtilidadEjercicioId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cuenta Pérdida del Ejercicio</label>
+                            <select class="form-select select2-cuenta" id="Config_CuentaPerdidaEjercicioId">
+                                <option value="">Seleccione una cuenta...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" onclick="cargarConfiguracion()">
+                <i class="fas fa-undo me-2"></i>Descartar Cambios
+            </button>
+            <button type="button" class="btn btn-success" onclick="guardarConfiguracion()">
+                <i class="fas fa-save me-2"></i>Guardar Configuración
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let configuracionActual = null;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        cargarConfiguracion();
+        setupEventHandlers();
+    });
+
+    function setupEventHandlers() {
+        // Show/hide prefix container
+        $('#Config_UsarPrefijoNumero').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#prefijoContainer').slideDown();
+            } else {
+                $('#prefijoContainer').slideUp();
+                $('#Config_FormatoPrefijo').val('');
+            }
+        });
+
+        // Enable/disable integration-related fields
+        $('#Config_GenerarAsientosAutomaticos').on('change', function() {
+            const enabled = $(this).is(':checked');
+            $('#Config_FrecuenciaGeneracion').prop('disabled', !enabled);
+            $('#Config_AprobarAsientosAutomaticos').prop('disabled', !enabled);
+        });
+
+        // Enable/disable approval fields
+        $('#Config_RequiereAprobacionAsientos').on('change', function() {
+            const enabled = $(this).is(':checked');
+            $('#Config_MontoLimiteSinAprobacion').prop('disabled', !enabled);
+            $('#Config_NivelesAprobacion').prop('disabled', !enabled);
+        });
+    }
+
+    async function cargarConfiguracion() {
+        try {
+            $('#loadingConfig').show();
+            $('#cardConfiguracion').hide();
+
+            // Load configuration
+            const configResponse = await $.ajax({
+                url: '?handler=Configuracion',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (configResponse.success) {
+                configuracionActual = configResponse.data;
+                populateForm(configResponse.data);
+
+                // Load dropdowns in parallel
+                await Promise.all([
+                    cargarMonedas(),
+                    cargarCuentasContables(),
+                    cargarPeriodosRecientes()
+                ]);
+
+                $('#loadingConfig').hide();
+                $('#cardConfiguracion').show();
+            } else {
+                showError(configResponse.message || 'Error al cargar la configuración');
+                $('#loadingConfig').hide();
+            }
+        } catch (error) {
+            console.error('Error loading configuration:', error);
+            showError('Error al cargar la configuración');
+            $('#loadingConfig').hide();
+        }
+    }
+
+    async function cargarMonedas() {
+        try {
+            const monedas = await $.ajax({
+                url: '?handler=Monedas',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            const select = $('#Config_MonedaBase');
+            select.empty();
+
+            monedas.forEach(moneda => {
+                select.append(`<option value="${moneda.codigo}">${moneda.nombre}</option>`);
+            });
+
+            // Set current value if exists
+            if (configuracionActual && configuracionActual.monedaBase) {
+                select.val(configuracionActual.monedaBase);
+            }
+        } catch (error) {
+            console.error('Error loading monedas:', error);
+        }
+    }
+
+    async function cargarCuentasContables() {
+        try {
+            const cuentas = await $.ajax({
+                url: '?handler=CuentasContables',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Populate all cuenta selects
+            $('.select2-cuenta').each(function() {
+                const select = $(this);
+                const currentValue = select.data('current-value');
+
+                select.empty().append('<option value="">Seleccione una cuenta...</option>');
+
+                cuentas.forEach(cuenta => {
+                    select.append(`<option value="${cuenta.id}">${cuenta.codigo} - ${cuenta.nombre}</option>`);
+                });
+
+                if (currentValue) {
+                    select.val(currentValue);
+                }
+            });
+
+            // Initialize Select2 if available
+            if ($.fn.select2) {
+                $('.select2-cuenta').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Seleccione una cuenta...',
+                    allowClear: true
+                });
+            }
+        } catch (error) {
+            console.error('Error loading cuentas contables:', error);
+        }
+    }
+
+    async function cargarPeriodosRecientes() {
+        try {
+            const periodos = await $.ajax({
+                url: '?handler=PeriodosRecientes',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            const tbody = $('#tbodyPeriodosRecientes');
+            tbody.empty();
+
+            if (periodos && periodos.length > 0) {
+                // Show current period
+                const periodoActual = periodos.find(p => p.estado === 'ABT');
+                if (periodoActual) {
+                    $('#periodoActualNombre').text(periodoActual.periodoNombre || `${periodoActual.nombreMes || ''} ${periodoActual.anio || ''}`);
+                    $('#periodoActualEstado').removeClass('bg-secondary').addClass('bg-success').text('Abierto');
+                } else {
+                    $('#periodoActualNombre').text('No hay período abierto');
+                    $('#periodoActualEstado').removeClass('bg-success').addClass('bg-secondary').text('Cerrado');
+                }
+
+                // Populate table
+                periodos.forEach(periodo => {
+                    const estadoBadge = periodo.estado === 'ABT'
+                        ? '<span class="badge bg-success">Abierto</span>'
+                        : '<span class="badge bg-secondary">Cerrado</span>';
+
+                    tbody.append(`
+                        <tr>
+                            <td><strong>${periodo.periodoNombre || (periodo.nombreMes + ' ' + periodo.anio)}</strong></td>
+                            <td>${formatDate(periodo.fechaInicio)}</td>
+                            <td>${formatDate(periodo.fechaFin)}</td>
+                            <td>${estadoBadge}</td>
+                            <td>${periodo.cantidadAsientos || 0}</td>
+                            <td>${formatCurrency(periodo.totalDebe || 0)}</td>
+                            <td>${formatCurrency(periodo.totalHaber || 0)}</td>
+                        </tr>
+                    `);
+                });
+            } else {
+                tbody.append(`
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            <div class="py-3">
+                                <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                <p class="mb-0">No hay períodos registrados</p>
+                            </div>
+                        </td>
+                    </tr>
+                `);
+            }
+        } catch (error) {
+            console.error('Error loading periodos recientes:', error);
+        }
+    }
+
+    function populateForm(config) {
+        // General tab
+        $('#Config_Id').val(config.id || '00000000-0000-0000-0000-000000000000');
+        $('#Config_EmpresaId').val(config.empresaId || empresaId);
+        $('#Config_MesInicioPeriodoFiscal').val(config.mesInicioPeriodoFiscal || 1);
+        $('#Config_DiaInicioPeriodoFiscal').val(config.diaInicioPeriodoFiscal || 1);
+        $('#Config_NumeroPeriodosPorAnio').val(config.numeroPeriodosPorAnio || 12);
+        $('#Config_MonedaBase').val(config.monedaBase || 'CRC');
+        $('#Config_DecimalesMoneda').val(config.decimalesMoneda || 2);
+        $('#Config_DecimalesTipoCambio').val(config.decimalesTipoCambio || 4);
+        $('#Config_TipoNumeracion').val(config.tipoNumeracion || 'PER');
+        $('#Config_LongitudNumero').val(config.longitudNumero || 6);
+        $('#Config_UsarPrefijoNumero').prop('checked', config.usarPrefijoNumero || false);
+        $('#Config_FormatoPrefijo').val(config.formatoPrefijo || '');
+        $('#Config_PeriodosAbiertosSimultaneos').val(config.periodosAbiertosSimultaneos || 2);
+        $('#Config_BloquearPeriodosCerrados').prop('checked', config.bloquearPeriodosCerrados !== false);
+        $('#Config_PermitirMovimientosFuturos').prop('checked', config.permitirMovimientosFuturos || false);
+        $('#Config_RequiereAprobacionCierre').prop('checked', config.requiereAprobacionCierre !== false);
+        $('#Config_ValidarBalanceAntesCierre').prop('checked', config.validarBalanceAntesCierre !== false);
+        $('#Config_GenerarAsientoCierreAutomatico').prop('checked', config.generarAsientoCierreAutomatico !== false);
+        $('#Config_ToleranciaDiferencias').val(config.toleranciaDiferencias || 0.01);
+        $('#Config_RegistrarDiferenciasCambiarias').prop('checked', config.registrarDiferenciasCambiarias !== false);
+
+        // Show/hide prefix container
+        if (config.usarPrefijoNumero) {
+            $('#prefijoContainer').show();
+        }
+
+        // Integration tab
+        $('#Config_GenerarAsientosAutomaticos').prop('checked', config.generarAsientosAutomaticos !== false);
+        $('#Config_FrecuenciaGeneracion').val(config.frecuenciaGeneracion || 'INM');
+        $('#Config_AprobarAsientosAutomaticos').prop('checked', config.aprobarAsientosAutomaticos || false);
+        $('#Config_IntegracionVentas').prop('checked', config.integracionVentas !== false);
+        $('#Config_IntegracionCompras').prop('checked', config.integracionCompras !== false);
+        $('#Config_IntegracionInventario').prop('checked', config.integracionInventario !== false);
+        $('#Config_IntegracionCxC').prop('checked', config.integracionCxC !== false);
+        $('#Config_IntegracionCxP').prop('checked', config.integracionCxP !== false);
+        $('#Config_IntegracionBancos').prop('checked', config.integracionBancos !== false);
+        $('#Config_RequiereAprobacionAsientos').prop('checked', config.requiereAprobacionAsientos !== false);
+        $('#Config_MontoLimiteSinAprobacion').val(config.montoLimiteSinAprobacion || 100000);
+        $('#Config_NivelesAprobacion').val(config.nivelesAprobacion || 1);
+
+        // Principal accounts tab - store current values to set after loading cuentas
+        $('#Config_CuentaVentasGravadasId').data('current-value', config.cuentaVentasGravadasId);
+        $('#Config_CuentaVentasExentasId').data('current-value', config.cuentaVentasExentasId);
+        $('#Config_CuentaIvaDebitoId').data('current-value', config.cuentaIvaDebitoId);
+        $('#Config_CuentaIvaCreditoId').data('current-value', config.cuentaIvaCreditoId);
+        $('#Config_CuentaClientesId').data('current-value', config.cuentaClientesId);
+        $('#Config_CuentaProveedoresId').data('current-value', config.cuentaProveedoresId);
+        $('#Config_CuentaInventarioId').data('current-value', config.cuentaInventarioId);
+        $('#Config_CuentaCostoVentasId').data('current-value', config.cuentaCostoVentasId);
+        $('#Config_CuentaCajaGeneralId').data('current-value', config.cuentaCajaGeneralId);
+        $('#Config_CuentaBancosColonesId').data('current-value', config.cuentaBancosColonesId);
+        $('#Config_CuentaBancosDolaresId').data('current-value', config.cuentaBancosDolaresId);
+        $('#Config_CuentaDifCambiariaGananciaId').data('current-value', config.cuentaDifCambiariaGananciaId);
+        $('#Config_CuentaDifCambiariaPerdidaId').data('current-value', config.cuentaDifCambiariaPerdidaId);
+        $('#Config_CuentaUtilidadEjercicioId').data('current-value', config.cuentaUtilidadEjercicioId);
+        $('#Config_CuentaPerdidaEjercicioId').data('current-value', config.cuentaPerdidaEjercicioId);
+    }
+
+    async function guardarConfiguracion() {
+        try {
+            const configData = {
+                id: $('#Config_Id').val() === '00000000-0000-0000-0000-000000000000' ? '00000000-0000-0000-0000-000000000000' : $('#Config_Id').val(),
+                empresaId: $('#Config_EmpresaId').val(),
+                mesInicioPeriodoFiscal: parseInt($('#Config_MesInicioPeriodoFiscal').val()),
+                diaInicioPeriodoFiscal: parseInt($('#Config_DiaInicioPeriodoFiscal').val()) || 1,
+                numeroPeriodosPorAnio: parseInt($('#Config_NumeroPeriodosPorAnio').val()),
+                monedaBase: $('#Config_MonedaBase').val(),
+                decimalesMoneda: parseInt($('#Config_DecimalesMoneda').val()),
+                decimalesTipoCambio: parseInt($('#Config_DecimalesTipoCambio').val()),
+                tipoNumeracion: $('#Config_TipoNumeracion').val(),
+                usarPrefijoNumero: $('#Config_UsarPrefijoNumero').is(':checked'),
+                formatoPrefijo: $('#Config_FormatoPrefijo').val() || null,
+                longitudNumero: parseInt($('#Config_LongitudNumero').val()),
+                periodosAbiertosSimultaneos: parseInt($('#Config_PeriodosAbiertosSimultaneos').val()),
+                permitirMovimientosFuturos: $('#Config_PermitirMovimientosFuturos').is(':checked'),
+                bloquearPeriodosCerrados: $('#Config_BloquearPeriodosCerrados').is(':checked'),
+                generarAsientosAutomaticos: $('#Config_GenerarAsientosAutomaticos').is(':checked'),
+                frecuenciaGeneracion: $('#Config_FrecuenciaGeneracion').val(),
+                aprobarAsientosAutomaticos: $('#Config_AprobarAsientosAutomaticos').is(':checked'),
+                requiereAprobacionCierre: $('#Config_RequiereAprobacionCierre').is(':checked'),
+                validarBalanceAntesCierre: $('#Config_ValidarBalanceAntesCierre').is(':checked'),
+                generarAsientoCierreAutomatico: $('#Config_GenerarAsientoCierreAutomatico').is(':checked'),
+                toleranciaDiferencias: parseFloat($('#Config_ToleranciaDiferencias').val()),
+                registrarDiferenciasCambiarias: $('#Config_RegistrarDiferenciasCambiarias').is(':checked'),
+                requiereAprobacionAsientos: $('#Config_RequiereAprobacionAsientos').is(':checked'),
+                montoLimiteSinAprobacion: parseFloat($('#Config_MontoLimiteSinAprobacion').val()) || null,
+                nivelesAprobacion: parseInt($('#Config_NivelesAprobacion').val()),
+                integracionVentas: $('#Config_IntegracionVentas').is(':checked'),
+                integracionCompras: $('#Config_IntegracionCompras').is(':checked'),
+                integracionInventario: $('#Config_IntegracionInventario').is(':checked'),
+                integracionCxC: $('#Config_IntegracionCxC').is(':checked'),
+                integracionCxP: $('#Config_IntegracionCxP').is(':checked'),
+                integracionBancos: $('#Config_IntegracionBancos').is(':checked'),
+                cuentaVentasGravadasId: $('#Config_CuentaVentasGravadasId').val() || null,
+                cuentaVentasExentasId: $('#Config_CuentaVentasExentasId').val() || null,
+                cuentaIvaDebitoId: $('#Config_CuentaIvaDebitoId').val() || null,
+                cuentaIvaCreditoId: $('#Config_CuentaIvaCreditoId').val() || null,
+                cuentaClientesId: $('#Config_CuentaClientesId').val() || null,
+                cuentaProveedoresId: $('#Config_CuentaProveedoresId').val() || null,
+                cuentaInventarioId: $('#Config_CuentaInventarioId').val() || null,
+                cuentaCostoVentasId: $('#Config_CuentaCostoVentasId').val() || null,
+                cuentaCajaGeneralId: $('#Config_CuentaCajaGeneralId').val() || null,
+                cuentaBancosColonesId: $('#Config_CuentaBancosColonesId').val() || null,
+                cuentaBancosDolaresId: $('#Config_CuentaBancosDolaresId').val() || null,
+                cuentaDifCambiariaGananciaId: $('#Config_CuentaDifCambiariaGananciaId').val() || null,
+                cuentaDifCambiariaPerdidaId: $('#Config_CuentaDifCambiariaPerdidaId').val() || null,
+                cuentaUtilidadEjercicioId: $('#Config_CuentaUtilidadEjercicioId').val() || null,
+                cuentaPerdidaEjercicioId: $('#Config_CuentaPerdidaEjercicioId').val() || null
+            };
+
+            const response = await $.ajax({
+                url: '?handler=Guardar',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(configData),
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if (response.success) {
+                showSuccess(response.message);
+                await cargarConfiguracion();
+            } else {
+                showError(response.message);
+            }
+        } catch (error) {
+            console.error('Error saving configuration:', error);
+            handleAjaxError(error);
+        }
+    }
+
+    window.cargarConfiguracion = cargarConfiguracion;
+    window.guardarConfiguracion = guardarConfiguracion;
+</script>
+}

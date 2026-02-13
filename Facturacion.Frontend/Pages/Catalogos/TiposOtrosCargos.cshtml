@@ -1,0 +1,58 @@
+@page
+@model Facturacion.Frontend.Pages.Catalogos.TiposOtrosCargosModel
+@{
+    ViewData["Title"] = "Tipos de Otros Cargos";
+    ViewData["Breadcrumb"] = "Tipos de Otros Cargos";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-plus-circle me-2"></i>Tipos de Otros Cargos - Catálogo Ministerio de Hacienda
+        </h5>
+        <span class="badge bg-info">Solo Lectura</span>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Este catálogo es proporcionado por el Ministerio de Hacienda de Costa Rica y es de solo lectura.
+        </div>
+        <table id="tableTiposOtrosCargos" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableTiposOtrosCargos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' }
+            ],
+            order: [[0, 'asc']]
+        });
+    }
+</script>
+}

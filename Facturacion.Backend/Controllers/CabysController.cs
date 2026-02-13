@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml;
 
 namespace Facturacion.Backend.Controllers;
 
@@ -31,9 +31,6 @@ public class CabysController : ControllerBase
         _cabysService = cabysService;
         _context = context;
         _logger = logger;
-
-        // Configure EPPlus license
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
     /// <summary>
@@ -381,7 +378,7 @@ public class CabysController : ControllerBase
 
             _logger.LogInformation("Código CABYS creado: {Codigo} - {Descripcion}", cabys.Codigo, cabys.Descripcion);
 
-            return CreatedAtAction(nameof(GetByIdLocalAsync), new { id = cabys.Id }, cabys);
+            return Ok(cabys);
         }
         catch (Exception ex)
         {
@@ -510,9 +507,10 @@ public class CabysController : ControllerBase
 
             using var stream = new MemoryStream();
             await archivo.CopyToAsync(stream);
+            stream.Position = 0;
 
-            using var package = new ExcelPackage(stream);
-            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheets.FirstOrDefault();
 
             if (worksheet == null)
             {
@@ -520,10 +518,10 @@ public class CabysController : ControllerBase
             }
 
             // Validar encabezados (asumiendo que están en la fila 1)
-            var headerCodigo = worksheet.Cells[1, 1].Value?.ToString();
-            var headerDescripcion = worksheet.Cells[1, 2].Value?.ToString();
-            var headerImpuesto = worksheet.Cells[1, 3].Value?.ToString();
-            var headerCategoria = worksheet.Cells[1, 4].Value?.ToString();
+            var headerCodigo = worksheet.Cell(1, 1).GetString();
+            var headerDescripcion = worksheet.Cell(1, 2).GetString();
+            var headerImpuesto = worksheet.Cell(1, 3).GetString();
+            var headerCategoria = worksheet.Cell(1, 4).GetString();
 
             if (string.IsNullOrWhiteSpace(headerCodigo) || string.IsNullOrWhiteSpace(headerDescripcion))
             {
@@ -533,7 +531,7 @@ public class CabysController : ControllerBase
                 });
             }
 
-            var rowCount = worksheet.Dimension?.Rows ?? 0;
+            var rowCount = worksheet.LastRowUsed()?.RowNumber() ?? 0;
 
             // OPTIMIZACIÓN: Cargar todos los códigos existentes en memoria
             _logger.LogInformation("Cargando códigos CABYS existentes en memoria...");
@@ -556,7 +554,7 @@ public class CabysController : ControllerBase
             // Primera pasada: detectar duplicados
             for (int row = 2; row <= rowCount; row++)
             {
-                var codigo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                var codigo = worksheet.Cell(row, 1).GetString()?.Trim();
                 if (!string.IsNullOrWhiteSpace(codigo))
                 {
                     if (codigosEnExcel.ContainsKey(codigo))
@@ -589,10 +587,10 @@ public class CabysController : ControllerBase
             {
                 try
                 {
-                    var codigo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
-                    var descripcion = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
-                    var impuestoStr = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
-                    var categoria = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                    var codigo = worksheet.Cell(row, 1).GetString()?.Trim();
+                    var descripcion = worksheet.Cell(row, 2).GetString()?.Trim();
+                    var impuestoStr = worksheet.Cell(row, 3).GetString()?.Trim();
+                    var categoria = worksheet.Cell(row, 4).GetString()?.Trim();
 
                     if (string.IsNullOrWhiteSpace(codigo) || string.IsNullOrWhiteSpace(descripcion))
                     {
@@ -773,33 +771,30 @@ public class CabysController : ControllerBase
     {
         try
         {
-            using var package = new ExcelPackage();
-            var worksheet = package.Workbook.Worksheets.Add("Códigos CABYS");
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Códigos CABYS");
 
             // Encabezados
-            worksheet.Cells[1, 1].Value = "Codigo";
-            worksheet.Cells[1, 2].Value = "Descripcion";
-            worksheet.Cells[1, 3].Value = "Impuesto";
-            worksheet.Cells[1, 4].Value = "Categoria";
+            worksheet.Cell(1, 1).Value = "Codigo";
+            worksheet.Cell(1, 2).Value = "Descripcion";
+            worksheet.Cell(1, 3).Value = "Impuesto";
+            worksheet.Cell(1, 4).Value = "Categoria";
 
             // Dar formato a los encabezados
-            using (var range = worksheet.Cells[1, 1, 1, 4])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
-            }
+            var headerRange = worksheet.Range(1, 1, 1, 4);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.LightBlue;
 
             // Agregar algunos ejemplos
-            worksheet.Cells[2, 1].Value = "8523490100000";
-            worksheet.Cells[2, 2].Value = "Software de contabilidad y facturación";
-            worksheet.Cells[2, 3].Value = 13.00;
-            worksheet.Cells[2, 4].Value = "Servicio";
+            worksheet.Cell(2, 1).Value = "8523490100000";
+            worksheet.Cell(2, 2).Value = "Software de contabilidad y facturación";
+            worksheet.Cell(2, 3).Value = 13.00;
+            worksheet.Cell(2, 4).Value = "Servicio";
 
-            worksheet.Cells[3, 1].Value = "8523490200000";
-            worksheet.Cells[3, 2].Value = "Servicios de consultoría informática";
-            worksheet.Cells[3, 3].Value = 13.00;
-            worksheet.Cells[3, 4].Value = "Servicio";
+            worksheet.Cell(3, 1).Value = "8523490200000";
+            worksheet.Cell(3, 2).Value = "Servicios de consultoría informática";
+            worksheet.Cell(3, 3).Value = 13.00;
+            worksheet.Cell(3, 4).Value = "Servicio";
 
             // Ajustar columnas
             worksheet.Column(1).Width = 20;
@@ -807,7 +802,9 @@ public class CabysController : ControllerBase
             worksheet.Column(3).Width = 15;
             worksheet.Column(4).Width = 20;
 
-            var fileBytes = package.GetAsByteArray();
+            using var outputStream = new MemoryStream();
+            workbook.SaveAs(outputStream);
+            var fileBytes = outputStream.ToArray();
 
             return File(fileBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

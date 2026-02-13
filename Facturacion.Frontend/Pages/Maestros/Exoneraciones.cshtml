@@ -1,0 +1,572 @@
+@page
+@model Facturacion.Frontend.Pages.Maestros.ExoneracionesModel
+@{
+    ViewData["Title"] = "Exoneraciones";
+    ViewData["Breadcrumb"] = "Exoneraciones";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-contract"></i> Exoneraciones de Impuestos</h2>
+            <p class="mb-0">Consulta y validación de documentos de exoneración autorizados por Hacienda</p>
+        </div>
+        <button class="btn btn-primary" onclick="openSearchModal()" aria-label="Buscar exoneración">
+            <i class="fas fa-search me-2"></i>Buscar Exoneración
+        </button>
+    </div>
+</div>
+
+<!-- Información -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Nota:</strong> Esta funcionalidad consulta el sistema oficial de Hacienda para validar documentos de exoneración.
+    Los documentos deben estar debidamente registrados en el Ministerio de Hacienda de Costa Rica.
+</div>
+
+<!-- Exoneraciones Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Exoneraciones Consultadas</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalExoneraciones">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="limpiarCache()" title="Limpiar caché">
+                <i class="fas fa-broom"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableExoneracionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando exoneraciones...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableExoneracionesContainer" style="display:none;">
+            <table id="tableExoneraciones" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Número Documento</th>
+                        <th>Institución Emisora</th>
+                        <th>Beneficiario</th>
+                        <th>Tipo Documento</th>
+                        <th>Porcentaje</th>
+                        <th>Fecha Emisión</th>
+                        <th>Fecha Vencimiento</th>
+                        <th>Estado</th>
+                        <th style="width: 100px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateExoneraciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <h3 class="empty-state-title">No hay exoneraciones consultadas</h3>
+            <p class="empty-state-description">Utiliza el botón "Buscar Exoneración" para consultar documentos de exoneración registrados en Hacienda</p>
+            <button class="btn btn-primary" onclick="openSearchModal()">
+                <i class="fas fa-search me-2"></i>Buscar Primera Exoneración
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Search Exoneración -->
+<div class="modal fade" id="modalSearchExoneracion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Buscar Exoneración en Hacienda</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formSearchExoneracion" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Importante:</strong> Ingrese los datos exactos como aparecen en el documento de autorización de exoneración emitido por el Ministerio de Hacienda.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Número de Documento de Autorización <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="NumeroDocumento" required
+                               placeholder="Ejemplo: EX-2025-001234" />
+                        <div class="invalid-feedback">El número de documento es obligatorio.</div>
+                        <small class="text-muted">Ingrese el número del documento de exoneración tal como aparece en el documento oficial.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Institución Emisora <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="NombreInstitucion" required
+                               placeholder="Ejemplo: Ministerio de Hacienda" />
+                        <div class="invalid-feedback">El nombre de la institución es obligatorio.</div>
+                        <small class="text-muted">Nombre completo de la institución que emitió la exoneración.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Validación (Opcional)</label>
+                        <input type="date" class="form-control" id="FechaValidacion" />
+                        <small class="text-muted">Deje en blanco para usar la fecha actual. Útil para validar vigencia en una fecha específica.</small>
+                    </div>
+
+                    <hr />
+
+                    <!-- Búsqueda por Beneficiario -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-user me-2"></i>O buscar por Beneficiario</h6>
+
+                    <div class="mb-3">
+                        <label class="form-label">Identificación del Beneficiario</label>
+                        <input type="text" class="form-control" id="IdentificacionBeneficiario"
+                               placeholder="Cédula o número de identificación del beneficiario" />
+                        <small class="text-muted">Consulte todas las exoneraciones vigentes de un beneficiario específico.</small>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-info" onclick="buscarPorBeneficiario()">
+                        <i class="fas fa-search me-2"></i>Buscar por Beneficiario
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Buscar y Validar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Details Exoneración -->
+<div class="modal fade" id="modalDetailsExoneracion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Detalles de Exoneración</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="exoneracionDetails">
+                    <!-- Details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let exoneracionesData = [];
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+    });
+
+    function loadDataTable() {
+        // Hide loader initially - show empty state
+        $('#tableExoneracionesLoader').hide();
+        $('#emptyStateExoneraciones').show();
+        $('#badgeTotalExoneraciones').text('0');
+
+        table = $('#tableExoneraciones').DataTable({
+            data: exoneracionesData,
+            deferRender: true,
+            responsive: true,
+            autoWidth: false,
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Todos']],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json'
+            },
+            columns: [
+                { data: 'numeroDocumento' },
+                {
+                    data: 'nombreInstitucion',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'nombreBeneficiario',
+                    render: function(data, type, row) {
+                        if (data) {
+                            return `<strong>${data}</strong><br>
+                                    <small class="text-muted">${row.identificacionBeneficiario || ''}</small>`;
+                        }
+                        return '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'tipoDocumento',
+                    render: function(data) {
+                        const tipos = {
+                            '01': 'Compras Autorizadas',
+                            '02': 'Ventas Exentas IVA',
+                            '03': 'Otros'
+                        };
+                        const tipo = tipos[data] || data;
+                        return `<span class="badge bg-info">${tipo}</span>`;
+                    }
+                },
+                {
+                    data: 'porcentajeExoneracion',
+                    render: function(data) {
+                        return `<strong>${parseFloat(data).toFixed(2)}%</strong>`;
+                    }
+                },
+                {
+                    data: 'fechaEmision',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'fechaVencimiento',
+                    render: function(data) {
+                        if (!data) return '<span class="text-muted">Sin vencimiento</span>';
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'vigente',
+                    render: function(data, type, row) {
+                        if (data) {
+                            return '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Vigente</span>';
+                        } else {
+                            const razon = row.razonNoVigente || 'No vigente';
+                            return `<span class="badge bg-danger" title="${razon}"><i class="fas fa-times-circle me-1"></i>Vencida</span>`;
+                        }
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="viewDetails('${row.numeroDocumento}', '${row.nombreInstitucion}')" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[5, 'desc']] // Order by Fecha Emisión descending
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formSearchExoneracion').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                buscarExoneracion();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openSearchModal() {
+        $('#formSearchExoneracion')[0].reset();
+        $('#formSearchExoneracion').removeClass('was-validated');
+        $('#FechaValidacion').val('');
+        $('#modalSearchExoneracion').modal('show');
+    }
+
+    function buscarExoneracion() {
+        const numeroDocumento = $('#NumeroDocumento').val().trim();
+        const nombreInstitucion = $('#NombreInstitucion').val().trim();
+        const fechaValidacion = $('#FechaValidacion').val();
+
+        if (!numeroDocumento || !nombreInstitucion) {
+            showWarning('Debe ingresar el número de documento y el nombre de la institución');
+            return;
+        }
+
+        showLoading('Consultando exoneración en Hacienda...');
+
+        const params = {
+            numeroDocumento: numeroDocumento,
+            nombreInstitucion: nombreInstitucion
+        };
+
+        if (fechaValidacion) {
+            params.fechaValidacion = fechaValidacion;
+        }
+
+        $.ajax({
+            url: '?handler=Validar',
+            type: 'POST',
+            data: JSON.stringify(params),
+            contentType: 'application/json',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                hideLoading();
+
+                if (response.success && response.data) {
+                    const validacion = response.data;
+
+                    if (validacion.esValida) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Exoneración Válida',
+                            html: `<div class="text-start">
+                                <p><strong>Número:</strong> ${validacion.exoneracion.numeroDocumento}</p>
+                                <p><strong>Institución:</strong> ${validacion.exoneracion.nombreInstitucion}</p>
+                                <p><strong>Porcentaje:</strong> ${validacion.exoneracion.porcentajeExoneracion}%</p>
+                                <p><strong>Vigente:</strong> <span class="text-success">Sí</span></p>
+                                ${validacion.mensaje ? `<p class="text-muted">${validacion.mensaje}</p>` : ''}
+                            </div>`,
+                            confirmButtonText: 'Aceptar'
+                        });
+
+                        // Add to table
+                        addExoneracionToTable(validacion.exoneracion);
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Exoneración No Válida',
+                            text: validacion.mensaje,
+                            confirmButtonText: 'Entendido'
+                        });
+
+                        // Still add to table if we have data
+                        if (validacion.exoneracion) {
+                            addExoneracionToTable(validacion.exoneracion);
+                        }
+                    }
+
+                    $('#modalSearchExoneracion').modal('hide');
+                } else {
+                    showError(response.message || 'No se encontró la exoneración');
+                }
+            },
+            error: function(xhr) {
+                hideLoading();
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function buscarPorBeneficiario() {
+        const identificacion = $('#IdentificacionBeneficiario').val().trim();
+
+        if (!identificacion) {
+            showWarning('Debe ingresar la identificación del beneficiario');
+            return;
+        }
+
+        showLoading('Consultando exoneraciones del beneficiario...');
+
+        $.ajax({
+            url: '?handler=PorBeneficiario&identificacion=' + encodeURIComponent(identificacion),
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                hideLoading();
+
+                if (response.success && response.data) {
+                    const exoneraciones = response.data.exoneraciones || [];
+
+                    if (exoneraciones.length > 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Exoneraciones Encontradas',
+                            html: `<p>Se encontraron <strong>${exoneraciones.length}</strong> exoneraciones vigentes para el beneficiario.</p>`,
+                            confirmButtonText: 'Aceptar'
+                        });
+
+                        // Add all to table
+                        exoneraciones.forEach(ex => addExoneracionToTable(ex));
+                        $('#modalSearchExoneracion').modal('hide');
+                    } else {
+                        showInfo('No se encontraron exoneraciones vigentes para este beneficiario');
+                    }
+                } else {
+                    showWarning(response.message || 'No se encontraron exoneraciones');
+                }
+            },
+            error: function(xhr) {
+                hideLoading();
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function addExoneracionToTable(exoneracion) {
+        // Check if already exists
+        const exists = exoneracionesData.some(e =>
+            e.numeroDocumento === exoneracion.numeroDocumento &&
+            e.nombreInstitucion === exoneracion.nombreInstitucion
+        );
+
+        if (!exists) {
+            exoneracionesData.push(exoneracion);
+            table.clear();
+            table.rows.add(exoneracionesData);
+            table.draw();
+
+            // Update UI
+            $('#badgeTotalExoneraciones').text(exoneracionesData.length);
+            $('#tableExoneracionesContainer').show();
+            $('#emptyStateExoneraciones').hide();
+        }
+    }
+
+    function viewDetails(numeroDocumento, nombreInstitucion) {
+        const exoneracion = exoneracionesData.find(e =>
+            e.numeroDocumento === numeroDocumento &&
+            e.nombreInstitucion === nombreInstitucion
+        );
+
+        if (!exoneracion) {
+            showError('No se encontró la exoneración');
+            return;
+        }
+
+        const estadoHtml = exoneracion.vigente
+            ? '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Vigente</span>'
+            : `<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Vencida</span>`;
+
+        const tiposDocumento = {
+            '01': 'Compras Autorizadas',
+            '02': 'Ventas Exentas de IVA',
+            '03': 'Otros'
+        };
+
+        const detailsHtml = `
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Número de Documento</label>
+                    <p class="fw-bold">${exoneracion.numeroDocumento}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Estado</label>
+                    <p>${estadoHtml}</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label text-muted">Institución Emisora</label>
+                    <p class="fw-bold">${exoneracion.nombreInstitucion}</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Tipo de Documento</label>
+                    <p>${tiposDocumento[exoneracion.tipoDocumento] || exoneracion.tipoDocumento}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Porcentaje de Exoneración</label>
+                    <p class="fw-bold text-primary fs-5">${parseFloat(exoneracion.porcentajeExoneracion).toFixed(2)}%</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Fecha de Emisión</label>
+                    <p>${formatDate(exoneracion.fechaEmision)}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Fecha de Vencimiento</label>
+                    <p>${exoneracion.fechaVencimiento ? formatDate(exoneracion.fechaVencimiento) : '<span class="text-muted">Sin vencimiento</span>'}</p>
+                </div>
+            </div>
+
+            ${exoneracion.identificacionBeneficiario ? `
+            <hr />
+            <h6 class="text-primary mb-3"><i class="fas fa-user me-2"></i>Información del Beneficiario</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Identificación</label>
+                    <p>${exoneracion.identificacionBeneficiario}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label text-muted">Nombre</label>
+                    <p>${exoneracion.nombreBeneficiario || '-'}</p>
+                </div>
+            </div>
+            ` : ''}
+
+            ${!exoneracion.vigente && exoneracion.razonNoVigente ? `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Razón de No Vigencia:</strong> ${exoneracion.razonNoVigente}
+            </div>
+            ` : ''}
+        `;
+
+        $('#exoneracionDetails').html(detailsHtml);
+        $('#modalDetailsExoneracion').modal('show');
+    }
+
+    function limpiarCache() {
+        confirmDialog('Esto limpiará la caché de exoneraciones en el servidor. ¿Desea continuar?', '¿Limpiar caché?', function() {
+            $.ajax({
+                url: '?handler=LimpiarCache',
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message || 'Caché limpiada exitosamente');
+                    } else {
+                        showError(response.message || 'Error al limpiar caché');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        if (exoneracionesData.length > 0) {
+            table.ajax.reload();
+        }
+    }
+
+    // AJAX error handler
+    function handleAjaxError(xhr) {
+        let errorMessage = 'Error al procesar la solicitud';
+
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+            errorMessage = xhr.responseJSON.message;
+        } else if (xhr.responseText) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.message || errorMessage;
+            } catch (e) {
+                errorMessage = xhr.responseText;
+            }
+        }
+
+        showError(errorMessage);
+    }
+</script>
+}

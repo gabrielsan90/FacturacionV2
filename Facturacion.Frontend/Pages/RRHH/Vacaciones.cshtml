@@ -1,0 +1,451 @@
+@page
+@model Facturacion.Frontend.Pages.RRHH.VacacionesModel
+@{
+    ViewData["Title"] = "Vacaciones";
+    ViewData["Breadcrumb"] = "Vacaciones";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-umbrella-beach"></i> Vacaciones</h2>
+            <p class="mb-0">Solicitud y aprobación de vacaciones</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Solicitar vacaciones">
+            <i class="fas fa-plus me-2"></i>Solicitar Vacaciones
+        </button>
+    </div>
+</div>
+
+<!-- Vacaciones Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Vacaciones</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalVacaciones">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableVacacionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando vacaciones...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableVacacionesContainer" style="display:none;">
+            <table id="tableVacaciones" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th>Días Hábiles</th>
+                        <th>Estado</th>
+                        <th style="width: 180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateVacaciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-umbrella-beach"></i>
+            </div>
+            <h3 class="empty-state-title">No hay solicitudes de vacaciones</h3>
+            <p class="empty-state-description">Comienza creando una solicitud</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Solicitud
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalVacacion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Solicitar Vacaciones</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formVacacion" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Vacacion_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Empleado <span class="text-danger">*</span></label>
+                        <select class="form-select" id="Vacacion_EmpleadoId" required></select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Inicio <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Vacacion_FechaInicio" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Vacacion_FechaFin" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Días Hábiles</label>
+                        <input type="number" class="form-control" id="Vacacion_DiasHabiles" readonly />
+                        <small class="text-muted">Se calculará automáticamente al seleccionar las fechas</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="Vacacion_Observaciones" rows="3" maxlength="1000"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadEmpleados();
+        setupDateCalculation();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableVacaciones', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableVacacionesLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalVacaciones').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableVacacionesContainer').show();
+                        $('#emptyStateVacaciones').hide();
+                    } else {
+                        $('#tableVacacionesContainer').hide();
+                        $('#emptyStateVacaciones').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableVacacionesLoader').hide();
+                    $('#tableVacacionesContainer').hide();
+                    $('#emptyStateVacaciones').show();
+                    $('#badgeTotalVacaciones').text('0');
+                }
+            },
+            columns: [
+                {
+                    data: 'empleado',
+                    render: function(data) {
+                        return data ? data.nombreCompleto : '-';
+                    }
+                },
+                {
+                    data: 'fechaInicio',
+                    render: function(data) {
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'fechaFin',
+                    render: function(data) {
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'diasHabiles',
+                    render: function(data) {
+                        return `<span class="badge bg-info">${data} días</span>`;
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'SOL': '<span class="badge bg-warning">Solicitada</span>',
+                            'APR': '<span class="badge bg-success">Aprobada</span>',
+                            'REC': '<span class="badge bg-danger">Rechazada</span>',
+                            'DIS': '<span class="badge bg-primary">Disfrutada</span>',
+                            'CAN': '<span class="badge bg-secondary">Cancelada</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data) {
+                        let buttons = '';
+                        if (data.estado === 'SOL') {
+                            buttons = `
+                                <button class="btn btn-sm btn-success" onclick="aprobar('${data.id}')" title="Aprobar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="rechazar('${data.id}')" title="Rechazar">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `;
+                        }
+                        buttons += `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data.id}')" title="Ver">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data.id}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                        return buttons;
+                    }
+                }
+            ],
+            order: [[1, 'desc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formVacacion').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupDateCalculation() {
+        $('#Vacacion_FechaInicio, #Vacacion_FechaFin').on('change', function() {
+            calculateDays();
+        });
+    }
+
+    function calculateDays() {
+        const inicio = new Date($('#Vacacion_FechaInicio').val());
+        const fin = new Date($('#Vacacion_FechaFin').val());
+
+        if (inicio && fin && fin >= inicio) {
+            const diffTime = Math.abs(fin - inicio);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            $('#Vacacion_DiasHabiles').val(diffDays);
+        } else {
+            $('#Vacacion_DiasHabiles').val(0);
+        }
+    }
+
+    function loadEmpleados() {
+        $.ajax({
+            url: '?handler=Empleados',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Vacacion_EmpleadoId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                const data = response.data || response;
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombreCompleto || item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formVacacion')[0].reset();
+        $('#formVacacion').removeClass('was-validated');
+        $('#Vacacion_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#modalTitle').text('Solicitar Vacaciones');
+        $('#modalVacacion').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    $('#Vacacion_Id').val(data.id);
+                    $('#Vacacion_EmpleadoId').val(data.empleadoId);
+                    $('#Vacacion_FechaInicio').val(data.fechaInicio.split('T')[0]);
+                    $('#Vacacion_FechaFin').val(data.fechaFin.split('T')[0]);
+                    $('#Vacacion_DiasHabiles').val(data.diasHabiles);
+                    $('#Vacacion_Observaciones').val(data.observaciones || '');
+
+                    $('#modalTitle').text('Ver Vacaciones');
+                    $('#formVacacion').removeClass('was-validated');
+                    $('#modalVacacion').modal('show');
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            }
+        });
+    }
+
+    function save() {
+        const vacacionData = {
+            id: $('#Vacacion_Id').val(),
+            empleadoId: $('#Vacacion_EmpleadoId').val(),
+            fechaInicio: $('#Vacacion_FechaInicio').val(),
+            fechaFin: $('#Vacacion_FechaFin').val(),
+            diasHabiles: parseInt($('#Vacacion_DiasHabiles').val()),
+            observaciones: $('#Vacacion_Observaciones').val() || null,
+            estado: 'SOL'
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(vacacionData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalVacacion').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function aprobar(id) {
+        Swal.fire({
+            title: '¿Aprobar esta solicitud?',
+            text: "Se aprobará la solicitud de vacaciones",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, aprobar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Aprobar&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess(response.message);
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function rechazar(id) {
+        Swal.fire({
+            title: '¿Rechazar esta solicitud?',
+            input: 'textarea',
+            inputLabel: 'Motivo del rechazo',
+            inputPlaceholder: 'Escriba el motivo del rechazo...',
+            showCancelButton: true,
+            confirmButtonText: 'Rechazar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Debe indicar el motivo del rechazo'
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Rechazar&id=' + id + '&motivo=' + encodeURIComponent(result.value),
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess(response.message);
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        $('#tableVacacionesLoader').show();
+        $('#tableVacacionesContainer').hide();
+        $('#emptyStateVacaciones').hide();
+        table.ajax.reload();
+    }
+</script>
+}

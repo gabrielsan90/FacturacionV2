@@ -1,0 +1,461 @@
+@page
+@model Facturacion.Frontend.Pages.Presupuestos.CentrosCostoModel
+@{
+    ViewData["Title"] = "Centros de Costo";
+    ViewData["Breadcrumb"] = "Centros de Costo";
+}
+
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-sitemap"></i> Centros de Costo</h2>
+            <p class="mb-0">Gestión de centros de costo y beneficio</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nuevo Centro
+        </button>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Tipo</label>
+                <select id="filterTipo" class="form-select" onchange="filterData()">
+                    <option value="">Todos</option>
+                    <option value="COS">Centro de Costo</option>
+                    <option value="BEN">Centro de Beneficio</option>
+                    <option value="AUX">Auxiliar</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Nivel</label>
+                <select id="filterNivel" class="form-select" onchange="filterData()">
+                    <option value="">Todos</option>
+                    <option value="1">Nivel 1</option>
+                    <option value="2">Nivel 2</option>
+                    <option value="3">Nivel 3</option>
+                    <option value="4">Nivel 4</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Estado</label>
+                <select id="filterEstado" class="form-select" onchange="filterData()">
+                    <option value="">Todos</option>
+                    <option value="true">Activos</option>
+                    <option value="false">Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-secondary w-100" onclick="clearFilters()">
+                    <i class="fas fa-eraser me-2"></i>Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Centros -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <i class="fas fa-table me-2 text-primary"></i>
+        <strong>Centros de Costo</strong>
+    </div>
+    <div class="card-body">
+        <table id="tblCentros" class="table table-striped table-hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Nivel</th>
+                    <th>Centro Padre</th>
+                    <th>Acepta Mov.</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar -->
+<div class="modal fade" id="modalCentro" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Nuevo Centro de Costo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCentro">
+                    <input type="hidden" id="centroId" value="">
+
+                    <!-- Identificación -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="codigo" required maxlength="20">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nombre" required maxlength="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo" required>
+                                <option value="COS">Centro de Costo</option>
+                                <option value="BEN">Centro de Beneficio</option>
+                                <option value="AUX">Auxiliar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Jerarquía -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Centro Padre</label>
+                            <select class="form-select" id="padreId">
+                                <option value="">Ninguno (Nivel raíz)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Sucursal</label>
+                            <select class="form-select" id="sucursalId">
+                                <option value="">Ninguna</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Departamento -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Departamento</label>
+                            <select class="form-select" id="departamentoId">
+                                <option value="">Ninguno</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" class="form-control" id="descripcion" maxlength="500">
+                        </div>
+                    </div>
+
+                    <!-- Configuración y Estado -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="form-check form-switch me-4">
+                                <input class="form-check-input" type="checkbox" id="aceptaMovimientos" checked>
+                                <label class="form-check-label" for="aceptaMovimientos">Acepta Movimientos</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="activo" checked>
+                                <label class="form-check-label" for="activo">Centro Activo</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveCentro()">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let table;
+        let centrosData = [];
+        let sucursalesData = [];
+        let departamentosData = [];
+
+        $(document).ready(function() {
+            initDataTable();
+            loadCombos();
+        });
+
+        function initDataTable() {
+            table = $('#tblCentros').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                },
+                ajax: {
+                    url: '?handler=Data',
+                    dataSrc: function(json) {
+                        centrosData = json;
+                        return json;
+                    }
+                },
+                columns: [
+                    { data: 'codigo' },
+                    { data: 'nombre' },
+                    {
+                        data: 'tipo',
+                        render: function(data) {
+                            const tipos = {
+                                'COS': '<span class="badge bg-primary">Centro Costo</span>',
+                                'BEN': '<span class="badge bg-success">Centro Beneficio</span>',
+                                'AUX': '<span class="badge bg-secondary">Auxiliar</span>'
+                            };
+                            return tipos[data] || data;
+                        }
+                    },
+                    {
+                        data: 'nivel',
+                        render: function(data) {
+                            const colores = ['bg-primary', 'bg-info', 'bg-warning', 'bg-secondary'];
+                            return `<span class="badge ${colores[data-1] || 'bg-dark'}">Nivel ${data}</span>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data) {
+                            return data.padre ? `${data.padre.codigo} - ${data.padre.nombre}` : '-';
+                        }
+                    },
+                    {
+                        data: 'aceptaMovimientos',
+                        render: function(data) {
+                            return data
+                                ? '<i class="fas fa-check text-success"></i>'
+                                : '<i class="fas fa-times text-muted"></i>';
+                        }
+                    },
+                    {
+                        data: 'activo',
+                        render: function(data) {
+                            return data
+                                ? '<span class="badge bg-success">Activo</span>'
+                                : '<span class="badge bg-secondary">Inactivo</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data) {
+                            return `
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="editCentro('${data.id}')" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="addSubcentro('${data.id}')" title="Agregar Sub-centro">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteCentro('${data.id}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                responsive: true
+            });
+        }
+
+        function loadCombos() {
+            // Cargar sucursales
+            $.get('?handler=Sucursales', function(data) {
+                sucursalesData = data.result || data;
+                let options = '<option value="">Ninguna</option>';
+                if (Array.isArray(sucursalesData)) {
+                    sucursalesData.forEach(s => {
+                        options += `<option value="${s.id}">${s.nombre}</option>`;
+                    });
+                }
+                $('#sucursalId').html(options);
+            });
+
+            // Cargar departamentos
+            $.get('?handler=Departamentos', function(data) {
+                departamentosData = data.result || data;
+                let options = '<option value="">Ninguno</option>';
+                if (Array.isArray(departamentosData)) {
+                    departamentosData.forEach(d => {
+                        options += `<option value="${d.id}">${d.nombre}</option>`;
+                    });
+                }
+                $('#departamentoId').html(options);
+            });
+        }
+
+        function updatePadreCombo(excludeId = null) {
+            let options = '<option value="">Ninguno (Nivel raíz)</option>';
+            centrosData.forEach(c => {
+                if (c.id !== excludeId) {
+                    options += `<option value="${c.id}">${c.codigo} - ${c.nombre}</option>`;
+                }
+            });
+            $('#padreId').html(options);
+        }
+
+        function filterData() {
+            const tipo = $('#filterTipo').val();
+            const nivel = $('#filterNivel').val();
+            const estado = $('#filterEstado').val();
+
+            table.columns(2).search(tipo ? tipo : '');
+            table.columns(3).search(nivel ? `Nivel ${nivel}` : '');
+
+            if (estado !== '') {
+                const estadoTexto = estado === 'true' ? 'Activo' : 'Inactivo';
+                table.columns(6).search(estadoTexto);
+            } else {
+                table.columns(6).search('');
+            }
+
+            table.draw();
+        }
+
+        function clearFilters() {
+            $('#filterTipo').val('');
+            $('#filterNivel').val('');
+            $('#filterEstado').val('');
+            table.search('').columns().search('').draw();
+        }
+
+        function openCreateModal() {
+            resetForm();
+            updatePadreCombo();
+            $('#modalTitle').text('Nuevo Centro de Costo');
+            $('#modalCentro').modal('show');
+        }
+
+        function resetForm() {
+            $('#centroId').val('');
+            $('#codigo').val('');
+            $('#nombre').val('');
+            $('#tipo').val('COS');
+            $('#padreId').val('');
+            $('#sucursalId').val('');
+            $('#departamentoId').val('');
+            $('#descripcion').val('');
+            $('#aceptaMovimientos').prop('checked', true);
+            $('#activo').prop('checked', true);
+        }
+
+        function editCentro(id) {
+            const centro = centrosData.find(c => c.id === id);
+            if (!centro) return;
+
+            updatePadreCombo(id);
+
+            $('#centroId').val(centro.id);
+            $('#codigo').val(centro.codigo);
+            $('#nombre').val(centro.nombre);
+            $('#tipo').val(centro.tipo);
+            $('#padreId').val(centro.padreId || '');
+            $('#sucursalId').val(centro.sucursalId || '');
+            $('#departamentoId').val(centro.departamentoId || '');
+            $('#descripcion').val(centro.descripcion || '');
+            $('#aceptaMovimientos').prop('checked', centro.aceptaMovimientos);
+            $('#activo').prop('checked', centro.activo);
+
+            $('#modalTitle').text('Editar Centro de Costo');
+            $('#modalCentro').modal('show');
+        }
+
+        function addSubcentro(parentId) {
+            const padre = centrosData.find(c => c.id === parentId);
+            if (!padre) return;
+
+            resetForm();
+            updatePadreCombo();
+            $('#padreId').val(parentId);
+
+            // Sugerir código basado en el padre
+            const hijosCount = centrosData.filter(c => c.padreId === parentId).length + 1;
+            $('#codigo').val(`${padre.codigo}-${hijosCount.toString().padStart(2, '0')}`);
+
+            $('#modalTitle').text('Nuevo Sub-Centro de Costo');
+            $('#modalCentro').modal('show');
+        }
+
+        function saveCentro() {
+            if (!$('#formCentro')[0].checkValidity()) {
+                $('#formCentro')[0].reportValidity();
+                return;
+            }
+
+            const centro = {
+                id: $('#centroId').val() || '00000000-0000-0000-0000-000000000000',
+                codigo: $('#codigo').val(),
+                nombre: $('#nombre').val(),
+                tipo: $('#tipo').val(),
+                padreId: $('#padreId').val() || null,
+                sucursalId: $('#sucursalId').val() || null,
+                departamentoId: $('#departamentoId').val() || null,
+                descripcion: $('#descripcion').val() || null,
+                aceptaMovimientos: $('#aceptaMovimientos').is(':checked'),
+                activo: $('#activo').is(':checked')
+            };
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(centro),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    $('#modalCentro').modal('hide');
+                    table.ajax.reload();
+                    Swal.fire('Éxito', 'El centro de costo ha sido guardado correctamente.', 'success');
+                },
+                error: function(xhr) {
+                    Swal.fire('Error', xhr.responseText || 'Error al guardar el centro de costo.', 'error');
+                }
+            });
+        }
+
+        function deleteCentro(id) {
+            const centro = centrosData.find(c => c.id === id);
+            if (!centro) return;
+
+            Swal.fire({
+                title: '¿Eliminar centro?',
+                html: `¿Está seguro que desea eliminar el centro <strong>${centro.nombre}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `?handler=Delete&id=${id}`,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            table.ajax.reload();
+                            Swal.fire('Eliminado', 'El centro de costo ha sido eliminado.', 'success');
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseText || 'Error al eliminar el centro de costo.', 'error');
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

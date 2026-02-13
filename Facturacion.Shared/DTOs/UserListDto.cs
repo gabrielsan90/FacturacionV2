@@ -10,6 +10,9 @@ public class UserListDto
     public bool EmailConfirmed { get; set; }
     public List<string> Roles { get; set; } = new();
     public List<EmpresaBasicDto> Empresas { get; set; } = new();
+    public bool IsLockedOut { get; set; }
+    public DateTimeOffset? LockoutEnd { get; set; }
+    public int AccessFailedCount { get; set; }
 }
 
 public class EmpresaBasicDto

@@ -1,0 +1,511 @@
+@page
+@model Facturacion.Frontend.Pages.RRHH.EmpleadosModel
+@{
+    ViewData["Title"] = "Empleados";
+    ViewData["Breadcrumb"] = "Empleados";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-users"></i> Empleados</h2>
+            <p class="mb-0">Gestión de empleados y colaboradores</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo empleado">
+            <i class="fas fa-plus me-2"></i>Nuevo Empleado
+        </button>
+    </div>
+</div>
+
+<!-- Empleados Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Empleados</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalEmpleados">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableEmpleadosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando empleados...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableEmpleadosContainer" style="display:none;">
+            <table id="tableEmpleados" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Cédula</th>
+                        <th>Departamento</th>
+                        <th>Puesto</th>
+                        <th>Fecha Ingreso</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateEmpleados" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="empty-state-title">No hay empleados registrados</h3>
+            <p class="empty-state-description">Comienza agregando tu primer empleado</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Empleado
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalEmpleado" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Empleado</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEmpleado" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Empleado_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <h6 class="text-primary mb-3"><i class="fas fa-id-card me-2"></i>Identificación</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Empleado_Codigo" maxlength="20" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tipo Identificación <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Empleado_TipoIdentificacion" required>
+                                <option value="01">Cédula Física</option>
+                                <option value="02">Cédula Jurídica</option>
+                                <option value="03">DIMEX</option>
+                                <option value="04">NITE</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Identificación <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Empleado_Identificacion" maxlength="20" required />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-user me-2"></i>Datos Personales</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Empleado_Nombre" maxlength="100" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Primer Apellido <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Empleado_PrimerApellido" maxlength="100" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Segundo Apellido</label>
+                            <input type="text" class="form-control" id="Empleado_SegundoApellido" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Nacimiento <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Empleado_FechaNacimiento" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Género</label>
+                            <select class="form-select" id="Empleado_Genero">
+                                <option value="">Seleccione...</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Estado Civil</label>
+                            <input type="text" class="form-control" id="Empleado_EstadoCivil" maxlength="50" />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-phone me-2"></i>Contacto</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="Empleado_Telefono" maxlength="20" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Celular</label>
+                            <input type="tel" class="form-control" id="Empleado_Celular" maxlength="20" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="Empleado_Email" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-briefcase me-2"></i>Datos Laborales</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Departamento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Empleado_DepartamentoId" required></select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Puesto</label>
+                            <select class="form-select" id="Empleado_PuestoId"></select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Ingreso <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Empleado_FechaIngreso" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Salario Base <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="Empleado_SalarioBase" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tipo Contrato <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Empleado_TipoContrato" required>
+                                <option value="IND">Indefinido</option>
+                                <option value="TMP">Temporal</option>
+                                <option value="SER">Servicios Profesionales</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Forma Pago <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Empleado_FormaPago" required>
+                                <option value="QUI">Quincenal</option>
+                                <option value="MEN">Mensual</option>
+                                <option value="SEM">Semanal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número Seguro Social</label>
+                            <input type="text" class="form-control" id="Empleado_NumeroSeguroSocial" maxlength="20" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="Empleado_AportaCCSS" checked />
+                                <label class="form-check-label" for="Empleado_AportaCCSS">
+                                    Aporta CCSS
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadDepartamentos();
+        loadPuestos();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableEmpleados', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableEmpleadosLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalEmpleados').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableEmpleadosContainer').show();
+                        $('#emptyStateEmpleados').hide();
+                    } else {
+                        $('#tableEmpleadosContainer').hide();
+                        $('#emptyStateEmpleados').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableEmpleadosLoader').hide();
+                    $('#tableEmpleadosContainer').hide();
+                    $('#emptyStateEmpleados').show();
+                    $('#badgeTotalEmpleados').text('0');
+                }
+            },
+            columns: [
+                { data: 'codigo' },
+                {
+                    data: null,
+                    render: function(data) {
+                        return `${data.nombre} ${data.primerApellido} ${data.segundoApellido || ''}`.trim();
+                    }
+                },
+                { data: 'identificacion' },
+                {
+                    data: 'departamento',
+                    render: function(data) {
+                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'puesto',
+                    render: function(data) {
+                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'fechaIngreso',
+                    render: function(data) {
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'ACT': '<span class="badge bg-success">Activo</span>',
+                            'INA': '<span class="badge bg-secondary">Inactivo</span>',
+                            'VAC': '<span class="badge bg-info">Vacaciones</span>',
+                            'INC': '<span class="badge bg-warning">Incapacidad</span>',
+                            'LIC': '<span class="badge bg-primary">Licencia</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[1, 'asc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formEmpleado').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function loadDepartamentos() {
+        $.ajax({
+            url: '?handler=Departamentos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Empleado_DepartamentoId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                const data = response.data || response;
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadPuestos() {
+        $.ajax({
+            url: '?handler=Puestos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                const select = $('#Empleado_PuestoId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                const data = response.data || response;
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formEmpleado')[0].reset();
+        $('#formEmpleado').removeClass('was-validated');
+        $('#Empleado_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Empleado_TipoIdentificacion').val('01');
+        $('#Empleado_TipoContrato').val('IND');
+        $('#Empleado_FormaPago').val('QUI');
+        $('#Empleado_AportaCCSS').prop('checked', true);
+        $('#modalTitle').text('Nuevo Empleado');
+        $('#modalEmpleado').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    $('#Empleado_Id').val(data.id);
+                    $('#Empleado_Codigo').val(data.codigo);
+                    $('#Empleado_TipoIdentificacion').val(data.tipoIdentificacion);
+                    $('#Empleado_Identificacion').val(data.identificacion);
+                    $('#Empleado_Nombre').val(data.nombre);
+                    $('#Empleado_PrimerApellido').val(data.primerApellido);
+                    $('#Empleado_SegundoApellido').val(data.segundoApellido || '');
+                    $('#Empleado_FechaNacimiento').val(data.fechaNacimiento.split('T')[0]);
+                    $('#Empleado_Genero').val(data.genero || '');
+                    $('#Empleado_EstadoCivil').val(data.estadoCivil || '');
+                    $('#Empleado_Telefono').val(data.telefono || '');
+                    $('#Empleado_Celular').val(data.celular || '');
+                    $('#Empleado_Email').val(data.email || '');
+                    $('#Empleado_DepartamentoId').val(data.departamentoId);
+                    $('#Empleado_PuestoId').val(data.puestoId || '');
+                    $('#Empleado_FechaIngreso').val(data.fechaIngreso.split('T')[0]);
+                    $('#Empleado_SalarioBase').val(data.salarioBase);
+                    $('#Empleado_TipoContrato').val(data.tipoContrato);
+                    $('#Empleado_FormaPago').val(data.formaPago);
+                    $('#Empleado_NumeroSeguroSocial').val(data.numeroSeguroSocial || '');
+                    $('#Empleado_AportaCCSS').prop('checked', data.aportaCCSS);
+
+                    $('#modalTitle').text('Editar Empleado');
+                    $('#formEmpleado').removeClass('was-validated');
+                    $('#modalEmpleado').modal('show');
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            }
+        });
+    }
+
+    function save() {
+        const empleadoData = {
+            id: $('#Empleado_Id').val(),
+            empresaId: empresaId,
+            codigo: $('#Empleado_Codigo').val(),
+            tipoIdentificacion: $('#Empleado_TipoIdentificacion').val(),
+            identificacion: $('#Empleado_Identificacion').val(),
+            nombre: $('#Empleado_Nombre').val(),
+            primerApellido: $('#Empleado_PrimerApellido').val(),
+            segundoApellido: $('#Empleado_SegundoApellido').val() || null,
+            fechaNacimiento: $('#Empleado_FechaNacimiento').val(),
+            genero: $('#Empleado_Genero').val() || null,
+            estadoCivil: $('#Empleado_EstadoCivil').val() || null,
+            telefono: $('#Empleado_Telefono').val() || null,
+            celular: $('#Empleado_Celular').val() || null,
+            email: $('#Empleado_Email').val() || null,
+            departamentoId: $('#Empleado_DepartamentoId').val(),
+            puestoId: $('#Empleado_PuestoId').val() || null,
+            fechaIngreso: $('#Empleado_FechaIngreso').val(),
+            salarioBase: parseFloat($('#Empleado_SalarioBase').val()),
+            tipoContrato: $('#Empleado_TipoContrato').val(),
+            formaPago: $('#Empleado_FormaPago').val(),
+            numeroSeguroSocial: $('#Empleado_NumeroSeguroSocial').val() || null,
+            aportaCCSS: $('#Empleado_AportaCCSS').is(':checked'),
+            estado: 'ACT'
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(empleadoData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalEmpleado').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function refrescarTabla() {
+        $('#tableEmpleadosLoader').show();
+        $('#tableEmpleadosContainer').hide();
+        $('#emptyStateEmpleados').hide();
+        table.ajax.reload();
+    }
+</script>
+}

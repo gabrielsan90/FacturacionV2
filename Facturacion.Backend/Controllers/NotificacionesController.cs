@@ -19,11 +19,16 @@ public class NotificacionesController : ControllerBase
 {
     private readonly INotificacionUnitOfWork _unitOfWork;
     private readonly DataContext _context;
+    private readonly ILogger<NotificacionesController> _logger;
 
-    public NotificacionesController(INotificacionUnitOfWork unitOfWork, DataContext context)
+    public NotificacionesController(
+        INotificacionUnitOfWork unitOfWork,
+        DataContext context,
+        ILogger<NotificacionesController> logger)
     {
         _unitOfWork = unitOfWork;
         _context = context;
+        _logger = logger;
     }
 
     /// <summary>
@@ -32,20 +37,43 @@ public class NotificacionesController : ControllerBase
     [HttpGet("usuario/{empresaId:guid}")]
     public async Task<IActionResult> GetByUsuarioAsync(Guid empresaId)
     {
-        // Verificar que el usuario tiene acceso a esta empresa
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
-        }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("GetByUsuarioAsync called for User: {UserId}, EmpresaId: {EmpresaId}",
+                userId, empresaId);
 
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+            // Verificar que el usuario tiene acceso a esta empresa
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("Access denied to EmpresaId: {EmpresaId} for user: {UserId}", empresaId, userId);
+                return Forbid();
+            }
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning("Unauthorized access attempt - no user ID");
+                return Unauthorized();
+            }
+
+            var action = await _unitOfWork.GetByUsuarioAsync(userId, empresaId);
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Retrieved {Count} notifications for user: {UserId}",
+                    (action.Result as IEnumerable<object>)?.Count() ?? 0, userId);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to retrieve notifications for user: {UserId}, error: {Error}",
+                    userId, action.Message);
+            }
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        }
+        catch (Exception ex)
         {
-            return Unauthorized();
+            _logger.LogError(ex, "Error retrieving notifications for EmpresaId: {EmpresaId}", empresaId);
+            return StatusCode(500, $"Error al obtener notificaciones: {ex.Message}");
         }
-
-        var action = await _unitOfWork.GetByUsuarioAsync(userId, empresaId);
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
     }
 
     /// <summary>
@@ -143,19 +171,41 @@ public class NotificacionesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateAsync([FromBody] CrearNotificacionDTO dto)
     {
-        if (!ModelState.IsValid)
+        try
         {
-            return BadRequest(ModelState);
-        }
+            _logger.LogInformation("CreateAsync called to create notification for User: {UserId}, EmpresaId: {EmpresaId}",
+                dto.UsuarioId, dto.EmpresaId);
 
-        // Verificar que el usuario tiene acceso a esta empresa
-        if (!await TieneAccesoEmpresaAsync(dto.EmpresaId))
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for notification creation");
+                return BadRequest(ModelState);
+            }
+
+            // Verificar que el usuario tiene acceso a esta empresa
+            if (!await TieneAccesoEmpresaAsync(dto.EmpresaId))
+            {
+                _logger.LogWarning("Access denied to create notification for EmpresaId: {EmpresaId}", dto.EmpresaId);
+                return Forbid();
+            }
+
+            var action = await _unitOfWork.CreateAsync(dto);
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Created notification successfully for user: {UserId}", dto.UsuarioId);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to create notification for user: {UserId}, error: {Error}",
+                    dto.UsuarioId, action.Message);
+            }
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        }
+        catch (Exception ex)
         {
-            return Forbid();
+            _logger.LogError(ex, "Error creating notification for user: {UserId}", dto.UsuarioId);
+            return StatusCode(500, $"Error al crear notificación: {ex.Message}");
         }
-
-        var action = await _unitOfWork.CreateAsync(dto);
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
     }
 
     /// <summary>
@@ -187,20 +237,43 @@ public class NotificacionesController : ControllerBase
     [HttpPut("marcar-todas-leidas/{empresaId:guid}")]
     public async Task<IActionResult> MarcarTodasComoLeidasAsync(Guid empresaId)
     {
-        // Verificar que el usuario tiene acceso a esta empresa
-        if (!await TieneAccesoEmpresaAsync(empresaId))
+        try
         {
-            return Forbid();
-        }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("MarcarTodasComoLeidasAsync called for User: {UserId}, EmpresaId: {EmpresaId}",
+                userId, empresaId);
 
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
+            // Verificar que el usuario tiene acceso a esta empresa
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                _logger.LogWarning("Access denied to mark all notifications as read for EmpresaId: {EmpresaId}, user: {UserId}",
+                    empresaId, userId);
+                return Forbid();
+            }
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning("Unauthorized access attempt - no user ID");
+                return Unauthorized();
+            }
+
+            var action = await _unitOfWork.MarcarTodasComoLeidasAsync(userId, empresaId);
+            if (action.WasSuccess)
+            {
+                _logger.LogInformation("Marked all notifications as read for user: {UserId}", userId);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to mark all notifications as read for user: {UserId}, error: {Error}",
+                    userId, action.Message);
+            }
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        }
+        catch (Exception ex)
         {
-            return Unauthorized();
+            _logger.LogError(ex, "Error marking all notifications as read for EmpresaId: {EmpresaId}", empresaId);
+            return StatusCode(500, $"Error al marcar notificaciones como leídas: {ex.Message}");
         }
-
-        var action = await _unitOfWork.MarcarTodasComoLeidasAsync(userId, empresaId);
-        return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
     }
 
     /// <summary>

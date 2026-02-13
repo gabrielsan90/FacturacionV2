@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml;
 
 namespace Facturacion.Backend.Controllers;
 
@@ -31,9 +31,6 @@ public class ActividadesEconomicasController : ControllerBase
         _actividadService = actividadService;
         _context = context;
         _logger = logger;
-
-        // Configure EPPlus license
-        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
     }
 
     /// <summary>
@@ -359,7 +356,7 @@ public class ActividadesEconomicasController : ControllerBase
 
             _logger.LogInformation("Actividad económica creada: {Codigo} - {Descripcion}", actividad.CodigoCIIU4, actividad.Descripcion);
 
-            return CreatedAtAction(nameof(GetByIdAsync), new { id = actividad.Id }, actividad);
+            return Ok(actividad);
         }
         catch (Exception ex)
         {
@@ -493,9 +490,10 @@ public class ActividadesEconomicasController : ControllerBase
 
             using var stream = new MemoryStream();
             await archivo.CopyToAsync(stream);
+            stream.Position = 0;
 
-            using var package = new ExcelPackage(stream);
-            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheets.FirstOrDefault();
 
             if (worksheet == null)
             {
@@ -503,8 +501,8 @@ public class ActividadesEconomicasController : ControllerBase
             }
 
             // Validar encabezados (asumiendo que están en la fila 1)
-            var headerCodigoCIIU4 = worksheet.Cells[1, 1].Value?.ToString();
-            var headerDescripcion = worksheet.Cells[1, 2].Value?.ToString();
+            var headerCodigoCIIU4 = worksheet.Cell(1, 1).GetString();
+            var headerDescripcion = worksheet.Cell(1, 2).GetString();
 
             if (string.IsNullOrWhiteSpace(headerCodigoCIIU4) || string.IsNullOrWhiteSpace(headerDescripcion))
             {
@@ -514,7 +512,7 @@ public class ActividadesEconomicasController : ControllerBase
                 });
             }
 
-            var rowCount = worksheet.Dimension?.Rows ?? 0;
+            var rowCount = worksheet.LastRowUsed()?.RowNumber() ?? 0;
 
             // Detectar duplicados dentro del Excel
             var codigosEnExcel = new Dictionary<string, int>(); // codigo -> primera fila donde aparece
@@ -523,7 +521,7 @@ public class ActividadesEconomicasController : ControllerBase
             // Primera pasada: detectar duplicados
             for (int row = 2; row <= rowCount; row++)
             {
-                var codigo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                var codigo = worksheet.Cell(row, 1).GetString()?.Trim();
                 if (!string.IsNullOrWhiteSpace(codigo))
                 {
                     if (codigosEnExcel.ContainsKey(codigo))
@@ -551,8 +549,8 @@ public class ActividadesEconomicasController : ControllerBase
             {
                 try
                 {
-                    var codigo = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
-                    var descripcion = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                    var codigo = worksheet.Cell(row, 1).GetString()?.Trim();
+                    var descripcion = worksheet.Cell(row, 2).GetString()?.Trim();
 
                     if (string.IsNullOrWhiteSpace(codigo) || string.IsNullOrWhiteSpace(descripcion))
                     {
@@ -648,33 +646,34 @@ public class ActividadesEconomicasController : ControllerBase
     {
         try
         {
-            using var package = new ExcelPackage();
-            var worksheet = package.Workbook.Worksheets.Add("Actividades Económicas");
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Actividades Económicas");
 
             // Encabezados
-            worksheet.Cells[1, 1].Value = "CodigoCIIU4";
-            worksheet.Cells[1, 2].Value = "Descripcion";
+            var headerCell1 = worksheet.Cell(1, 1);
+            headerCell1.Value = "CodigoCIIU4";
+            headerCell1.Style.Font.Bold = true;
+            headerCell1.Style.Fill.BackgroundColor = XLColor.LightBlue;
 
-            // Dar formato a los encabezados
-            using (var range = worksheet.Cells[1, 1, 1, 2])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
-            }
+            var headerCell2 = worksheet.Cell(1, 2);
+            headerCell2.Value = "Descripcion";
+            headerCell2.Style.Font.Bold = true;
+            headerCell2.Style.Fill.BackgroundColor = XLColor.LightBlue;
 
             // Agregar algunos ejemplos
-            worksheet.Cells[2, 1].Value = "620101";
-            worksheet.Cells[2, 2].Value = "Desarrollo de sistemas informáticos y suministro de software";
+            worksheet.Cell(2, 1).Value = "620101";
+            worksheet.Cell(2, 2).Value = "Desarrollo de sistemas informáticos y suministro de software";
 
-            worksheet.Cells[3, 1].Value = "620102";
-            worksheet.Cells[3, 2].Value = "Consultores en informática y gestión de instalaciones informáticas";
+            worksheet.Cell(3, 1).Value = "620102";
+            worksheet.Cell(3, 2).Value = "Consultores en informática y gestión de instalaciones informáticas";
 
             // Ajustar columnas
             worksheet.Column(1).Width = 15;
             worksheet.Column(2).Width = 80;
 
-            var fileBytes = package.GetAsByteArray();
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            var fileBytes = stream.ToArray();
 
             return File(fileBytes,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

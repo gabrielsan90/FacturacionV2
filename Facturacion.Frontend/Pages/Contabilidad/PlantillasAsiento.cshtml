@@ -1,0 +1,954 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.PlantillasAsientoModel
+@{
+    ViewData["Title"] = "Plantillas de Asientos";
+    ViewData["Breadcrumb"] = "Plantillas de Asientos";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-alt"></i> Plantillas de Asientos</h2>
+            <p class="mb-0">Gestión de plantillas para asientos recurrentes</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nueva Plantilla
+        </button>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select id="filtroEstado" class="form-select">
+                    <option value="todos">Todos</option>
+                    <option value="activos">Activos</option>
+                    <option value="inactivos">Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tipo de Asiento</label>
+                <select id="filtroTipo" class="form-select">
+                    <option value="todos">Todos</option>
+                    <option value="DIA">Diario</option>
+                    <option value="AJU">Ajuste</option>
+                    <option value="CIE">Cierre</option>
+                    <option value="APE">Apertura</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="applyFilters()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Plantillas de Asientos</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotalPlantillas">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tablePlantillasLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando plantillas...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tablePlantillasContainer" style="display: none;">
+            <table id="tablePlantillas" class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Tipo Asiento</th>
+                        <th class="text-center">Líneas</th>
+                        <th>Última Utilización</th>
+                        <th class="text-center">Estado</th>
+                        <th style="width: 220px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStatePlantillas" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <h3 class="empty-state-title">No hay plantillas registradas</h3>
+            <p class="empty-state-description">Crea plantillas de asientos para automatizar registros recurrentes</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Plantilla
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit Template -->
+<div class="modal fade" id="modalPlantilla" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-file-alt me-2 text-primary"></i>Nueva Plantilla de Asiento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPlantilla">
+                <div class="modal-body">
+                    <input type="hidden" id="Plantilla_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <!-- Header Information -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control text-uppercase" id="Plantilla_Codigo"
+                                   maxlength="20" required placeholder="Ej: RENT, SAL, UTIL" />
+                            <small class="text-muted">Código único corto</small>
+                            <div class="invalid-feedback">El código es obligatorio.</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Plantilla_Nombre"
+                                   maxlength="100" required placeholder="Ej: Pago de Alquiler Mensual" />
+                            <div class="invalid-feedback">El nombre es obligatorio.</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Plantilla_TipoAsiento" required>
+                                <option value="DIA">Diario</option>
+                                <option value="AJU">Ajuste</option>
+                                <option value="CIE">Cierre</option>
+                                <option value="APE">Apertura</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Estado</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="Plantilla_Activo" checked />
+                                <label class="form-check-label" for="Plantilla_Activo">Activo</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Concepto Template</label>
+                            <input type="text" class="form-control" id="Plantilla_ConceptoTemplate"
+                                   maxlength="200" placeholder="Texto que se usará como concepto al crear el asiento" />
+                            <small class="text-muted">Este texto se usará como concepto por defecto al usar la plantilla</small>
+                        </div>
+                    </div>
+
+                    <!-- Template Lines Section -->
+                    <div class="card border mb-3">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong><i class="fas fa-list me-2"></i>Líneas de la Plantilla</strong>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addLinea()">
+                                    <i class="fas fa-plus me-1"></i>Agregar Línea
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" id="tableLineas">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 25%;">Cuenta <span class="text-danger">*</span></th>
+                                            <th style="width: 20%;">Descripción</th>
+                                            <th style="width: 12%;">Tipo Monto <span class="text-danger">*</span></th>
+                                            <th style="width: 11%;" class="text-end">Debe</th>
+                                            <th style="width: 11%;" class="text-end">Haber</th>
+                                            <th style="width: 9%;">Naturaleza</th>
+                                            <th style="width: 9%;" class="text-end">%</th>
+                                            <th style="width: 3%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lineasContainer">
+                                        <!-- Dynamic rows will be added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Tipos de Monto:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>FIJO:</strong> El monto está predefinido (ingrese Debe o Haber)</li>
+                            <li><strong>VARIABLE:</strong> El monto se ingresará al usar la plantilla (seleccione Naturaleza: Debe/Haber)</li>
+                            <li><strong>PORCENTAJE:</strong> Se calculará como porcentaje del monto variable (ingrese % y Naturaleza)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardar">
+                        <i class="fas fa-save me-1"></i> Guardar Plantilla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Use Template -->
+<div class="modal fade" id="modalUsarPlantilla" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-magic me-2 text-success"></i>Usar Plantilla de Asiento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formUsarPlantilla">
+                <div class="modal-body">
+                    <input type="hidden" id="Usar_PlantillaId" />
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Plantilla:</strong> <span id="usarPlantillaNombre"></span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Período Contable <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Usar_PeriodoContableId" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var periodo in Model.Periodos)
+                                {
+                                    <option value="@periodo.Value">@periodo.Text</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback">El período es obligatorio.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Usar_Fecha" required />
+                            <div class="invalid-feedback">La fecha es obligatoria.</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Concepto <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Usar_Concepto"
+                                   maxlength="200" required />
+                            <div class="invalid-feedback">El concepto es obligatorio.</div>
+                        </div>
+                    </div>
+
+                    <div id="variableAmountContainer" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Monto Variable <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="Usar_MontoVariable"
+                                       value="0" min="0" step="0.01" />
+                                <small class="text-muted">Este monto se aplicará a las líneas con tipo VARIABLE y se usará para calcular porcentajes</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview of lines -->
+                    <div class="card border mb-0">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-eye me-2"></i>Vista Previa de Líneas</strong>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Cuenta</th>
+                                            <th>Descripción</th>
+                                            <th>Tipo</th>
+                                            <th class="text-end">Debe</th>
+                                            <th class="text-end">Haber</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="previewLineasContainer">
+                                        <!-- Preview lines will be shown here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-magic me-1"></i> Crear Asiento desde Plantilla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let lineaRowTemplate = 0;
+    let currentPlantillaData = null;
+
+    $(document).ready(function() {
+        // Set today's date
+        const today = new Date().toISOString().split('T')[0];
+        $('#Usar_Fecha').val(today);
+
+        loadDataTable();
+        setupFormSubmit();
+        setupUsarFormSubmit();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tablePlantillas', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tablePlantillasLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalPlantillas').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tablePlantillasContainer').show();
+                        $('#emptyStatePlantillas').hide();
+                    } else {
+                        $('#tablePlantillasContainer').hide();
+                        $('#emptyStatePlantillas').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tablePlantillasLoader').hide();
+                    $('#tablePlantillasContainer').hide();
+                    $('#emptyStatePlantillas').show();
+                    $('#badgeTotalPlantillas').text('0');
+                    console.error('Error loading plantillas:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'id', visible: false },
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'tipoAsiento',
+                    render: function(data) {
+                        const tipos = {
+                            'DIA': '<span class="badge bg-primary">Diario</span>',
+                            'AJU': '<span class="badge bg-warning">Ajuste</span>',
+                            'CIE': '<span class="badge bg-danger">Cierre</span>',
+                            'APE': '<span class="badge bg-success">Apertura</span>'
+                        };
+                        return tipos[data] || data;
+                    }
+                },
+                {
+                    data: 'numeroLineas',
+                    className: 'text-center',
+                    render: function(data) {
+                        return '<span class="badge bg-info">' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'ultimaUtilizacion',
+                    render: function(data) {
+                        return data ? formatDate(data) : '<span class="text-muted">Nunca</span>';
+                    }
+                },
+                {
+                    data: 'activo',
+                    className: 'text-center',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activo</span>'
+                            : '<span class="badge bg-secondary">Inactivo</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let buttons = `
+                            <button class="btn btn-sm btn-success" onclick="usarPlantilla('${row.id}')" title="Usar Plantilla">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="edit('${row.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        `;
+
+                        const toggleIcon = row.activo ? 'fa-toggle-on' : 'fa-toggle-off';
+                        const toggleColor = row.activo ? 'warning' : 'secondary';
+                        buttons += `
+                            <button class="btn btn-sm btn-${toggleColor}" onclick="toggleActivo('${row.id}')" title="Cambiar Estado">
+                                <i class="fas ${toggleIcon}"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${row.id}', '${row.codigo}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+
+                        return buttons;
+                    }
+                }
+            ],
+            order: [[1, 'asc']]
+        });
+    }
+
+    function applyFilters() {
+        table.ajax.reload();
+    }
+
+    function setupFormSubmit() {
+        $('#formPlantilla').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+
+        // Auto-uppercase codigo
+        $('#Plantilla_Codigo').on('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+
+    function setupUsarFormSubmit() {
+        $('#formUsarPlantilla').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                usarPlantillaSubmit();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+
+        // When variable amount changes, update preview
+        $('#Usar_MontoVariable').on('input', function() {
+            updatePreviewLineas();
+        });
+    }
+
+    function openCreateModal() {
+        $('#formPlantilla')[0].reset();
+        $('#formPlantilla').removeClass('was-validated');
+        $('#Plantilla_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Plantilla_TipoAsiento').val('DIA');
+        $('#Plantilla_Activo').prop('checked', true);
+
+        $('#lineasContainer').empty();
+        lineaRowTemplate = 0;
+
+        // Add two initial rows
+        addLinea();
+        addLinea();
+
+        $('#modalTitle').html('<i class="fas fa-file-alt me-2 text-primary"></i>Nueva Plantilla de Asiento');
+        $('#modalPlantilla').modal('show');
+    }
+
+    function addLinea() {
+        const rowId = `linea_${lineaRowTemplate++}`;
+        const row = `
+            <tr id="${rowId}" class="linea-row">
+                <td>
+                    <select class="form-select form-select-sm cuenta-select" data-row="${rowId}" required>
+                        <option value="">Seleccione cuenta...</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm descripcion-input" maxlength="200" />
+                </td>
+                <td>
+                    <select class="form-select form-select-sm tipo-monto-select" onchange="handleTipoMontoChange('${rowId}')">
+                        <option value="FIJO">FIJO</option>
+                        <option value="VARIABLE">VARIABLE</option>
+                        <option value="PORCENTAJE">PORCENTAJE</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end debe-input"
+                           value="0" min="0" step="0.01" />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end haber-input"
+                           value="0" min="0" step="0.01" />
+                </td>
+                <td>
+                    <select class="form-select form-select-sm naturaleza-select" disabled>
+                        <option value="">-</option>
+                        <option value="DEBE">DEBE</option>
+                        <option value="HABER">HABER</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end porcentaje-input"
+                           value="0" min="0" max="100" step="0.01" disabled />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeLinea('${rowId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#lineasContainer').append(row);
+
+        // Initialize Select2 for the new row
+        initSelect2ForCuenta(`#${rowId} .cuenta-select`);
+    }
+
+    function initSelect2ForCuenta(selector) {
+        $(selector).select2({
+            theme: 'bootstrap-5',
+            language: 'es',
+            width: '100%',
+            placeholder: 'Buscar cuenta...',
+            allowClear: true,
+            dropdownParent: $('#modalPlantilla'),
+            ajax: {
+                url: '?handler=Cuentas',
+                dataType: 'json',
+                delay: 250,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results || []
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2
+        });
+    }
+
+    function handleTipoMontoChange(rowId) {
+        const row = $(`#${rowId}`);
+        const tipoMonto = row.find('.tipo-monto-select').val();
+
+        const debeInput = row.find('.debe-input');
+        const haberInput = row.find('.haber-input');
+        const naturalezaSelect = row.find('.naturaleza-select');
+        const porcentajeInput = row.find('.porcentaje-input');
+
+        // Reset all
+        debeInput.prop('disabled', false).val(0);
+        haberInput.prop('disabled', false).val(0);
+        naturalezaSelect.prop('disabled', true).val('');
+        porcentajeInput.prop('disabled', true).val(0);
+
+        if (tipoMonto === 'VARIABLE') {
+            // Disable amount fields, enable naturaleza
+            debeInput.prop('disabled', true).val(0);
+            haberInput.prop('disabled', true).val(0);
+            naturalezaSelect.prop('disabled', false);
+        } else if (tipoMonto === 'PORCENTAJE') {
+            // Disable amount fields, enable naturaleza and percentage
+            debeInput.prop('disabled', true).val(0);
+            haberInput.prop('disabled', true).val(0);
+            naturalezaSelect.prop('disabled', false);
+            porcentajeInput.prop('disabled', false);
+        }
+        // FIJO: amount fields stay enabled (default state)
+    }
+
+    function removeLinea(rowId) {
+        $(`#${rowId}`).remove();
+    }
+
+    function collectLineas() {
+        const lineas = [];
+        let orden = 1;
+
+        $('.linea-row').each(function() {
+            const cuentaId = $(this).find('.cuenta-select').val();
+            const descripcion = $(this).find('.descripcion-input').val();
+            const tipoMonto = $(this).find('.tipo-monto-select').val();
+            const debe = parseFloat($(this).find('.debe-input').val()) || 0;
+            const haber = parseFloat($(this).find('.haber-input').val()) || 0;
+            const naturaleza = $(this).find('.naturaleza-select').val() || null;
+            const porcentaje = parseFloat($(this).find('.porcentaje-input').val()) || null;
+
+            if (cuentaId) {
+                lineas.push({
+                    cuentaContableId: cuentaId,
+                    descripcion: descripcion || null,
+                    tipoMonto: tipoMonto,
+                    montoDebeFijo: debe,
+                    montoHaberFijo: haber,
+                    naturalezaVariable: naturaleza,
+                    porcentaje: porcentaje,
+                    orden: orden++
+                });
+            }
+        });
+
+        return lineas;
+    }
+
+    function save() {
+        const lineas = collectLineas();
+
+        if (lineas.length === 0) {
+            showError('Debe agregar al menos una línea a la plantilla');
+            return;
+        }
+
+        const data = {
+            id: $('#Plantilla_Id').val() || '00000000-0000-0000-0000-000000000000',
+            codigo: $('#Plantilla_Codigo').val(),
+            nombre: $('#Plantilla_Nombre').val(),
+            tipoAsiento: $('#Plantilla_TipoAsiento').val(),
+            conceptoTemplate: $('#Plantilla_ConceptoTemplate').val() || null,
+            activo: $('#Plantilla_Activo').is(':checked'),
+            lineas: lineas
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalPlantilla').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar la plantilla');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const plantilla = response.data;
+
+                    $('#Plantilla_Id').val(plantilla.id);
+                    $('#Plantilla_Codigo').val(plantilla.codigo);
+                    $('#Plantilla_Nombre').val(plantilla.nombre);
+                    $('#Plantilla_TipoAsiento').val(plantilla.tipoAsiento);
+                    $('#Plantilla_ConceptoTemplate').val(plantilla.conceptoTemplate || '');
+                    $('#Plantilla_Activo').prop('checked', plantilla.activo);
+
+                    // Clear and rebuild lines
+                    $('#lineasContainer').empty();
+                    lineaRowTemplate = 0;
+
+                    if (plantilla.lineas && plantilla.lineas.length > 0) {
+                        plantilla.lineas.forEach(function(linea) {
+                            addLineaWithData(linea);
+                        });
+                    } else {
+                        addLinea();
+                        addLinea();
+                    }
+
+                    $('#formPlantilla').removeClass('was-validated');
+                    $('#modalTitle').html('<i class="fas fa-edit me-2 text-warning"></i>Editar Plantilla de Asiento');
+                    $('#modalPlantilla').modal('show');
+                } else {
+                    showError('Error al cargar la plantilla');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function addLineaWithData(linea) {
+        const rowId = `linea_${lineaRowTemplate++}`;
+        const row = `
+            <tr id="${rowId}" class="linea-row">
+                <td>
+                    <select class="form-select form-select-sm cuenta-select" data-row="${rowId}" required>
+                        <option value="${linea.cuentaContableId}" selected>${linea.cuentaCodigo || ''} - ${linea.cuentaNombre || 'Cargando...'}</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm descripcion-input"
+                           value="${linea.descripcion || ''}" maxlength="200" />
+                </td>
+                <td>
+                    <select class="form-select form-select-sm tipo-monto-select" onchange="handleTipoMontoChange('${rowId}')">
+                        <option value="FIJO" ${linea.tipoMonto === 'FIJO' ? 'selected' : ''}>FIJO</option>
+                        <option value="VARIABLE" ${linea.tipoMonto === 'VARIABLE' ? 'selected' : ''}>VARIABLE</option>
+                        <option value="PORCENTAJE" ${linea.tipoMonto === 'PORCENTAJE' ? 'selected' : ''}>PORCENTAJE</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end debe-input"
+                           value="${linea.montoDebeFijo}" min="0" step="0.01" />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end haber-input"
+                           value="${linea.montoHaberFijo}" min="0" step="0.01" />
+                </td>
+                <td>
+                    <select class="form-select form-select-sm naturaleza-select">
+                        <option value="">-</option>
+                        <option value="DEBE" ${linea.naturalezaVariable === 'DEBE' ? 'selected' : ''}>DEBE</option>
+                        <option value="HABER" ${linea.naturalezaVariable === 'HABER' ? 'selected' : ''}>HABER</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end porcentaje-input"
+                           value="${linea.porcentaje || 0}" min="0" max="100" step="0.01" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeLinea('${rowId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#lineasContainer').append(row);
+        initSelect2ForCuenta(`#${rowId} .cuenta-select`);
+
+        // Apply tipo monto logic
+        handleTipoMontoChange(rowId);
+    }
+
+    function usarPlantilla(id) {
+        // Load template details
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    currentPlantillaData = response.data;
+
+                    $('#Usar_PlantillaId').val(currentPlantillaData.id);
+                    $('#usarPlantillaNombre').text(`${currentPlantillaData.codigo} - ${currentPlantillaData.nombre}`);
+                    $('#Usar_Concepto').val(currentPlantillaData.conceptoTemplate || '');
+
+                    const today = new Date().toISOString().split('T')[0];
+                    $('#Usar_Fecha').val(today);
+
+                    // Check if template has variable or percentage lines
+                    const hasVariableLines = currentPlantillaData.lineas.some(l =>
+                        l.tipoMonto === 'VARIABLE' || l.tipoMonto === 'PORCENTAJE'
+                    );
+
+                    if (hasVariableLines) {
+                        $('#variableAmountContainer').show();
+                        $('#Usar_MontoVariable').val(0);
+                    } else {
+                        $('#variableAmountContainer').hide();
+                        $('#Usar_MontoVariable').val(0);
+                    }
+
+                    updatePreviewLineas();
+                    $('#formUsarPlantilla').removeClass('was-validated');
+                    $('#modalUsarPlantilla').modal('show');
+                } else {
+                    showError('Error al cargar la plantilla');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function updatePreviewLineas() {
+        if (!currentPlantillaData || !currentPlantillaData.lineas) return;
+
+        const montoVariable = parseFloat($('#Usar_MontoVariable').val()) || 0;
+        let html = '';
+
+        currentPlantillaData.lineas.forEach(function(linea) {
+            let debe = 0;
+            let haber = 0;
+            let tipoDisplay = linea.tipoMonto;
+
+            if (linea.tipoMonto === 'FIJO') {
+                debe = linea.montoDebeFijo;
+                haber = linea.montoHaberFijo;
+            } else if (linea.tipoMonto === 'VARIABLE') {
+                if (linea.naturalezaVariable === 'DEBE') {
+                    debe = montoVariable;
+                } else if (linea.naturalezaVariable === 'HABER') {
+                    haber = montoVariable;
+                }
+                tipoDisplay = `VARIABLE (${linea.naturalezaVariable})`;
+            } else if (linea.tipoMonto === 'PORCENTAJE') {
+                const calculado = montoVariable * (linea.porcentaje / 100);
+                if (linea.naturalezaVariable === 'DEBE') {
+                    debe = calculado;
+                } else if (linea.naturalezaVariable === 'HABER') {
+                    haber = calculado;
+                }
+                tipoDisplay = `${linea.porcentaje}% (${linea.naturalezaVariable})`;
+            }
+
+            html += `
+                <tr>
+                    <td>${linea.cuentaCodigo || ''} - ${linea.cuentaNombre || ''}</td>
+                    <td>${linea.descripcion || ''}</td>
+                    <td><span class="badge bg-secondary">${tipoDisplay}</span></td>
+                    <td class="text-end">${formatCurrency(debe)}</td>
+                    <td class="text-end">${formatCurrency(haber)}</td>
+                </tr>
+            `;
+        });
+
+        $('#previewLineasContainer').html(html);
+    }
+
+    function usarPlantillaSubmit() {
+        const data = {
+            plantillaId: $('#Usar_PlantillaId').val(),
+            periodoContableId: $('#Usar_PeriodoContableId').val(),
+            fecha: $('#Usar_Fecha').val(),
+            concepto: $('#Usar_Concepto').val(),
+            montoVariable: parseFloat($('#Usar_MontoVariable').val()) || 0
+        };
+
+        $.ajax({
+            url: '?handler=Usar',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#modalUsarPlantilla').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: response.message,
+                        confirmButtonText: 'Ver Asiento',
+                        showCancelButton: true,
+                        cancelButtonText: 'Cerrar',
+                        confirmButtonColor: '#667eea'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '/Contabilidad/AsientosContables';
+                        }
+                    });
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al usar la plantilla');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function toggleActivo(id) {
+        confirmDialog('¿Está seguro de cambiar el estado de esta plantilla?', '¿Cambiar Estado?', function() {
+            $.ajax({
+                url: '?handler=ToggleActivo&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al cambiar el estado');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function deleteRecord(id, codigo) {
+        confirmDelete(`¿Está seguro de eliminar la plantilla "${codigo}"? Esta acción no se puede deshacer.`, function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar la plantilla');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+</script>
+}

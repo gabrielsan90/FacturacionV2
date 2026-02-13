@@ -450,6 +450,29 @@ public class Documento
     public string? XmlRespuestaHacienda { get; set; }
 
     // ========================================
+    // ENVÍO DE CORREO ELECTRÓNICO AL RECEPTOR
+    // ========================================
+
+    /// <summary>
+    /// Indica si el correo electrónico fue enviado al receptor
+    /// </summary>
+    [Display(Name = "Correo Enviado")]
+    public bool CorreoEnviado { get; set; }
+
+    /// <summary>
+    /// Fecha en que se envió el correo al receptor
+    /// </summary>
+    [Display(Name = "Fecha Envío Correo")]
+    public DateTime? FechaEnvioCorreo { get; set; }
+
+    /// <summary>
+    /// Mensaje de resultado del envío del correo (éxito o error)
+    /// </summary>
+    [Display(Name = "Mensaje Envío Correo")]
+    [MaxLength(500, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? MensajeEnvioCorreo { get; set; }
+
+    // ========================================
     // CONTINGENCIA
     // ========================================
 
@@ -505,6 +528,16 @@ public class Documento
     public string? UsuarioModificacionId { get; set; }
 
     // ========================================
+    // INTEGRACIÓN CONTABLE
+    // ========================================
+
+    /// <summary>
+    /// Asiento contable generado por este documento (si aplica)
+    /// </summary>
+    [Display(Name = "Asiento Contable")]
+    public Guid? AsientoContableId { get; set; }
+
+    // ========================================
     // SOFT DELETE
     // ========================================
 
@@ -529,6 +562,7 @@ public class Documento
     public User? UsuarioCreacion { get; set; }
     public User? UsuarioModificacion { get; set; }
     public User? UsuarioEliminacion { get; set; }
+    public AsientoContable? AsientoContable { get; set; }
 
     /// <summary>
     /// Líneas de detalle del documento

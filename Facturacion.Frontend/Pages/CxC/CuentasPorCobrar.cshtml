@@ -1,0 +1,515 @@
+@page
+@model Facturacion.Frontend.Pages.CxC.CuentasPorCobrarModel
+@{
+    ViewData["Title"] = "Cuentas por Cobrar";
+    ViewData["Breadcrumb"] = "Cuentas por Cobrar";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Cuentas por Cobrar</h2>
+            <p class="mb-0">Gestión de cuentas por cobrar y aplicación de pagos</p>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-left-primary shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Pendiente
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalPendiente">₡0.00</div>
+                    </div>
+                    <div class="text-primary">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-left-danger shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Total Vencido
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalVencido">₡0.00</div>
+                    </div>
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-left-success shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Cobrado Este Mes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalCobradoMes">₡0.00</div>
+                    </div>
+                    <div class="text-success">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-filter me-2 text-primary"></i>
+                <strong>Filtros</strong>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                <i class="fas fa-redo me-1"></i>Limpiar Filtros
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Parcial">Pago Parcial</option>
+                    <option value="Pagado">Pagado</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Fecha Desde</label>
+                <input type="date" class="form-control" id="filtroFechaDesde" />
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Fecha Hasta</label>
+                <input type="date" class="form-control" id="filtroFechaHasta" />
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="filtroVencido" />
+                    <label class="form-check-label" for="filtroVencido">
+                        Solo Vencidos
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 text-end">
+                <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">
+                    <i class="fas fa-search me-1"></i>Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receivables Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Cuentas por Cobrar</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalCxC">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableCxCLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando cuentas por cobrar...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableCxCContainer" style="display:none;">
+            <table id="tableCxC" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Documento</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Vencimiento</th>
+                        <th>Monto Original</th>
+                        <th>Saldo</th>
+                        <th>Estado</th>
+                        <th style="width: 160px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateCxC" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <h3 class="empty-state-title">No hay cuentas por cobrar</h3>
+            <p class="empty-state-description">No se encontraron cuentas por cobrar con los filtros aplicados</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Apply Payment -->
+<div class="modal fade" id="modalAbonar" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Aplicar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAbonar" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Abono_CuentaPorCobrarId" />
+
+                    <!-- Document Info -->
+                    <div class="alert alert-info mb-3">
+                        <h6 class="mb-2"><strong>Documento:</strong> <span id="infoDocumento"></span></h6>
+                        <p class="mb-1"><strong>Cliente:</strong> <span id="infoCliente"></span></p>
+                        <p class="mb-1"><strong>Monto Original:</strong> <span id="infoMontoOriginal"></span></p>
+                        <p class="mb-0"><strong>Saldo Pendiente:</strong> <span id="infoSaldo" class="text-danger"></span></p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Monto a Abonar <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₡</span>
+                                <input type="number" class="form-control" id="Abono_Monto" step="0.01" min="0.01" required />
+                            </div>
+                            <small class="text-muted">Máximo: <span id="maxAbono">0.00</span></small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Pago <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Abono_FechaPago" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Método de Pago <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Abono_MetodoPago" required>
+                                <option value="">Seleccione...</option>
+                                <option value="1">Efectivo</option>
+                                <option value="2">Tarjeta</option>
+                                <option value="3">Cheque</option>
+                                <option value="4">Transferencia</option>
+                                <option value="5">Depósito</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Número de Referencia</label>
+                            <input type="text" class="form-control" id="Abono_NumeroReferencia" maxlength="100" placeholder="Número de cheque, comprobante, etc." />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Notas</label>
+                            <textarea class="form-control" id="Abono_Notas" rows="3" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> Aplicar Pago
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+
+    $(document).ready(function () {
+        loadDataTable();
+        setupFormSubmit();
+        loadSummary();
+        initializeDateFilters();
+    });
+
+    function initializeDateFilters() {
+        // Set default dates to current month
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        $('#filtroFechaDesde').val(firstDay.toISOString().split('T')[0]);
+        $('#filtroFechaHasta').val(lastDay.toISOString().split('T')[0]);
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tableCxC', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function (json) {
+                    // Hide loader
+                    $('#tableCxCLoader').hide();
+
+                    // Get data array
+                    const data = json.data || json || [];
+
+                    // Update badge count
+                    $('#badgeTotalCxC').text(data.length);
+
+                    // Show appropriate state
+                    if (data.length > 0) {
+                        $('#tableCxCContainer').show();
+                        $('#emptyStateCxC').hide();
+                    } else {
+                        $('#tableCxCContainer').hide();
+                        $('#emptyStateCxC').show();
+                    }
+
+                    return data;
+                },
+                error: function (xhr, error, code) {
+                    $('#tableCxCLoader').hide();
+                    $('#tableCxCContainer').hide();
+                    $('#emptyStateCxC').show();
+                    $('#badgeTotalCxC').text('0');
+                    console.error('Error loading cuentas por cobrar:', error);
+                }
+            },
+            columns: [
+                { data: 'numeroDocumento' },
+                { data: 'clienteNombre' },
+                {
+                    data: 'fechaEmision',
+                    render: function (data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'fechaVencimiento',
+                    render: function (data) {
+                        const today = new Date();
+                        const vencimiento = new Date(data);
+                        const isVencido = vencimiento < today;
+
+                        return isVencido
+                            ? '<span class="text-danger fw-bold">' + formatDate(data) + '</span>'
+                            : formatDate(data);
+                    }
+                },
+                {
+                    data: 'montoOriginal',
+                    render: function (data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'saldo',
+                    render: function (data) {
+                        return '<strong>' + formatCurrency(data) + '</strong>';
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function (data, type, row) {
+                        const today = new Date();
+                        const vencimiento = new Date(row.fechaVencimiento);
+                        const isVencido = vencimiento < today && data !== 'Pagado';
+
+                        if (data === 'Pagado') {
+                            return '<span class="badge bg-success">Pagado</span>';
+                        } else if (data === 'Parcial') {
+                            return isVencido
+                                ? '<span class="badge bg-warning text-dark">Parcial - Vencido</span>'
+                                : '<span class="badge bg-info">Pago Parcial</span>';
+                        } else {
+                            return isVencido
+                                ? '<span class="badge bg-danger">Vencido</span>'
+                                : '<span class="badge bg-primary">Pendiente</span>';
+                        }
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function (data, type, row) {
+                        const btnAbonar = row.estado !== 'Pagado'
+                            ? `<button class="btn btn-sm btn-success" onclick="openAbonarModal('${data}')" title="Aplicar Pago">
+                                <i class="fas fa-dollar-sign"></i>
+                               </button>`
+                            : '';
+
+                        return `
+                            ${btnAbonar}
+                            <a href="/CxC/EstadoCuenta?clienteId=${row.clienteId}" class="btn btn-sm btn-info" title="Estado de Cuenta">
+                                <i class="fas fa-file-alt"></i>
+                            </a>
+                        `;
+                    }
+                }
+            ],
+            order: [[2, 'desc']]
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formAbonar').on('submit', function (e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                aplicarPago();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+
+        // Validate amount on input
+        $('#Abono_Monto').on('input', function() {
+            const maxValue = parseFloat($('#maxAbono').text());
+            const currentValue = parseFloat($(this).val());
+
+            if (currentValue > maxValue) {
+                $(this).val(maxValue.toFixed(2));
+            }
+        });
+    }
+
+    function loadSummary() {
+        $.ajax({
+            url: '?handler=Summary',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (data) {
+                $('#totalPendiente').text(formatCurrency(data.totalPendiente || 0));
+                $('#totalVencido').text(formatCurrency(data.totalVencido || 0));
+                $('#totalCobradoMes').text(formatCurrency(data.totalCobradoMes || 0));
+            },
+            error: function (xhr) {
+                console.error('Error loading summary:', xhr);
+            }
+        });
+    }
+
+    function openAbonarModal(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (data) {
+                $('#Abono_CuentaPorCobrarId').val(data.id);
+                $('#infoDocumento').text(data.numeroDocumento);
+                $('#infoCliente').text(data.clienteNombre);
+                $('#infoMontoOriginal').text(formatCurrency(data.montoOriginal));
+                $('#infoSaldo').text(formatCurrency(data.saldo));
+                $('#maxAbono').text(data.saldo.toFixed(2));
+                $('#Abono_Monto').attr('max', data.saldo);
+                $('#Abono_Monto').val(data.saldo.toFixed(2));
+                $('#Abono_FechaPago').val(new Date().toISOString().split('T')[0]);
+                $('#Abono_NumeroReferencia').val('');
+                $('#Abono_Notas').val('');
+                $('#formAbonar').removeClass('was-validated');
+                $('#modalAbonar').modal('show');
+            },
+            error: function () {
+                showError('Error al cargar los detalles de la cuenta');
+            }
+        });
+    }
+
+    function aplicarPago() {
+        const abonoData = {
+            cuentaPorCobrarId: $('#Abono_CuentaPorCobrarId').val(),
+            monto: parseFloat($('#Abono_Monto').val()),
+            fechaPago: $('#Abono_FechaPago').val(),
+            metodoPago: parseInt($('#Abono_MetodoPago').val()),
+            numeroReferencia: $('#Abono_NumeroReferencia').val() || null,
+            notas: $('#Abono_Notas').val() || null
+        };
+
+        $.ajax({
+            url: '?handler=AplicarPago',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(abonoData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalAbonar').modal('hide');
+                    table.ajax.reload();
+                    loadSummary();
+                } else {
+                    showError(response.message);
+                }
+            },
+            error: function (xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function aplicarFiltros() {
+        table.ajax.reload();
+    }
+
+    function clearFilters() {
+        $('#filtroEstado').val('');
+        $('#filtroVencido').prop('checked', false);
+        initializeDateFilters();
+        table.ajax.reload();
+    }
+
+    function refrescarTabla() {
+        $('#tableCxCLoader').show();
+        $('#tableCxCContainer').hide();
+        $('#emptyStateCxC').hide();
+        table.ajax.reload();
+        loadSummary();
+    }
+
+    function exportarExcel() {
+        showWarning('Función de exportación en desarrollo');
+    }
+</script>
+}

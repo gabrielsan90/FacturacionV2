@@ -1,0 +1,842 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.AsientosContablesModel
+@{
+    ViewData["Title"] = "Asientos Contables";
+    ViewData["Breadcrumb"] = "Asientos Contables";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-book"></i> Asientos Contables</h2>
+            <p class="mb-0">Registro y consulta de asientos contables</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus me-2"></i>Nuevo Asiento
+        </button>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Período Contable</label>
+                <select id="filtroPeriodo" class="form-select">
+                    <option value="todos">Todos los períodos</option>
+                    @foreach (var periodo in Model.Periodos)
+                    {
+                        <option value="@periodo.Value">@periodo.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Estado</label>
+                <select id="filtroEstado" class="form-select">
+                    <option value="todos">Todos los estados</option>
+                    <option value="Borrador">Borrador</option>
+                    <option value="Aprobado">Aprobado</option>
+                    <option value="Anulado">Anulado</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary w-100" onclick="applyFilters()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Asientos Contables</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotalAsientos">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableAsientosLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando asientos contables...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableAsientosContainer" style="display: none;">
+            <table id="tableAsientos" class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Número</th>
+                        <th>Fecha</th>
+                        <th>Período</th>
+                        <th>Tipo</th>
+                        <th>Concepto</th>
+                        <th class="text-end">Total Debe</th>
+                        <th class="text-end">Total Haber</th>
+                        <th>Estado</th>
+                        <th style="width: 180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateAsientos" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <h3 class="empty-state-title">No hay asientos contables registrados</h3>
+            <p class="empty-state-description">Crea asientos contables para registrar las operaciones financieras</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Asiento
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit Asiento -->
+<div class="modal fade" id="modalAsiento" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-book me-2 text-primary"></i>Nuevo Asiento Contable
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAsiento">
+                <div class="modal-body">
+                    <input type="hidden" id="Asiento_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <!-- General Information -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Período Contable <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Asiento_PeriodoContableId" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var periodo in Model.Periodos)
+                                {
+                                    <option value="@periodo.Value">@periodo.Text</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback">El período es obligatorio.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Asiento_Fecha" required />
+                            <div class="invalid-feedback">La fecha es obligatoria.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Asiento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Asiento_TipoAsiento" required>
+                                <option value="DIA">Diario</option>
+                                <option value="AJU">Ajuste</option>
+                                <option value="CIE">Cierre</option>
+                                <option value="APE">Apertura</option>
+                            </select>
+                            <div class="invalid-feedback">El tipo es obligatorio.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Referencia</label>
+                            <input type="text" class="form-control" id="Asiento_Referencia" maxlength="50" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-9">
+                            <label class="form-label">Concepto <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="Asiento_Concepto" maxlength="200" required />
+                            <div class="invalid-feedback">El concepto es obligatorio.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="Asiento_Observaciones" rows="1" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Movements Section -->
+                    <div class="card border mb-3">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong><i class="fas fa-list me-2"></i>Movimientos Contables</strong>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addMovimiento()">
+                                    <i class="fas fa-plus me-1"></i>Agregar Línea
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" id="tableMovimientos">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 35%;">Cuenta Contable <span class="text-danger">*</span></th>
+                                            <th style="width: 25%;">Descripción</th>
+                                            <th style="width: 13%;" class="text-end">Debe</th>
+                                            <th style="width: 13%;" class="text-end">Haber</th>
+                                            <th style="width: 12%;">Tercero</th>
+                                            <th style="width: 2%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="movimientosContainer">
+                                        <!-- Dynamic rows will be added here -->
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="2" class="text-end"><strong>TOTALES:</strong></td>
+                                            <td class="text-end"><strong id="totalDebe">₡0.00</strong></td>
+                                            <td class="text-end"><strong id="totalHaber">₡0.00</strong></td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                        <tr id="rowDiferencia" style="display: none;">
+                                            <td colspan="2" class="text-end text-danger"><strong>DIFERENCIA:</strong></td>
+                                            <td colspan="2" class="text-end text-danger"><strong id="diferencia">₡0.00</strong></td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                        <tr id="rowCuadrado" style="display: none;">
+                                            <td colspan="6" class="text-center text-success">
+                                                <i class="fas fa-check-circle me-2"></i><strong>ASIENTO CUADRADO</strong>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>El asiento debe estar cuadrado (Debe = Haber) para poder guardarlo.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardar">
+                        <i class="fas fa-save me-1"></i> Guardar Borrador
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Details -->
+<div class="modal fade" id="modalDetalles" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2 text-info"></i>Detalles del Asiento Contable
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesContent">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let movimientoCounter = 0;
+
+    $(document).ready(function() {
+        // Set today's date
+        const today = new Date().toISOString().split('T')[0];
+        $('#Asiento_Fecha').val(today);
+
+        loadDataTable();
+        setupFormSubmit();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableAsientos', {
+            ajax: {
+                url: function() {
+                    const periodoId = $('#filtroPeriodo').val() || 'todos';
+                    const estado = $('#filtroEstado').val() || 'todos';
+                    return `?handler=Data&periodoId=${periodoId}&estado=${estado}`;
+                },
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableAsientosLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalAsientos').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableAsientosContainer').show();
+                        $('#emptyStateAsientos').hide();
+                    } else {
+                        $('#tableAsientosContainer').hide();
+                        $('#emptyStateAsientos').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableAsientosLoader').hide();
+                    $('#tableAsientosContainer').hide();
+                    $('#emptyStateAsientos').show();
+                    $('#badgeTotalAsientos').text('0');
+                    console.error('Error loading asientos:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'id', visible: false },
+                { data: 'numero' },
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                { data: 'periodoNombre' },
+                {
+                    data: 'tipoAsiento',
+                    render: function(data) {
+                        const tipos = {
+                            'DIA': '<span class="badge bg-primary">Diario</span>',
+                            'AJU': '<span class="badge bg-warning">Ajuste</span>',
+                            'CIE': '<span class="badge bg-danger">Cierre</span>',
+                            'APE': '<span class="badge bg-success">Apertura</span>'
+                        };
+                        return tipos[data] || data;
+                    }
+                },
+                {
+                    data: 'concepto',
+                    render: function(data) {
+                        return data.length > 50 ? data.substring(0, 50) + '...' : data;
+                    }
+                },
+                {
+                    data: 'totalDebe',
+                    className: 'text-end',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'totalHaber',
+                    className: 'text-end',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        const estados = {
+                            'Borrador': '<span class="badge bg-secondary">Borrador</span>',
+                            'Aprobado': '<span class="badge bg-success">Aprobado</span>',
+                            'Anulado': '<span class="badge bg-danger">Anulado</span>'
+                        };
+                        return estados[data] || data;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let buttons = `
+                            <button class="btn btn-sm btn-info" onclick="viewDetails('${row.id}')" title="Ver Detalles">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `;
+
+                        if (row.estado === 'Borrador') {
+                            buttons += `
+                                <button class="btn btn-sm btn-warning" onclick="edit('${row.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="aprobar('${row.id}')" title="Aprobar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${row.id}', '${row.numero}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        } else if (row.estado === 'Aprobado') {
+                            buttons += `
+                                <button class="btn btn-sm btn-danger" onclick="anular('${row.id}')" title="Anular">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            `;
+                        }
+
+                        return buttons;
+                    }
+                }
+            ],
+            order: [[1, 'desc']]
+        });
+    }
+
+    function applyFilters() {
+        table.ajax.reload();
+    }
+
+    function setupFormSubmit() {
+        $('#formAsiento').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formAsiento')[0].reset();
+        $('#formAsiento').removeClass('was-validated');
+        $('#Asiento_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Asiento_TipoAsiento').val('DIA');
+
+        const today = new Date().toISOString().split('T')[0];
+        $('#Asiento_Fecha').val(today);
+
+        $('#movimientosContainer').empty();
+        movimientoCounter = 0;
+
+        // Add two initial rows
+        addMovimiento();
+        addMovimiento();
+
+        updateTotals();
+        $('#modalTitle').html('<i class="fas fa-book me-2 text-primary"></i>Nuevo Asiento Contable');
+        $('#modalAsiento').modal('show');
+    }
+
+    let movimientoRowTemplate = 0;
+
+    function addMovimiento() {
+        const rowId = `mov_${movimientoRowTemplate++}`;
+        const row = `
+            <tr id="${rowId}" class="movimiento-row">
+                <td>
+                    <select class="form-select form-select-sm cuenta-select" data-row="${rowId}" required>
+                        <option value="">Seleccione cuenta...</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm descripcion-input" maxlength="200" />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end debe-input"
+                           value="0" min="0" step="0.01" onchange="updateTotals()" />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end haber-input"
+                           value="0" min="0" step="0.01" onchange="updateTotals()" />
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm tercero-input" maxlength="100" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeMovimiento('${rowId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#movimientosContainer').append(row);
+
+        // Initialize Select2 for the new row
+        initSelect2ForCuenta(`#${rowId} .cuenta-select`);
+
+        movimientoCounter++;
+    }
+
+    function initSelect2ForCuenta(selector) {
+        $(selector).select2({
+            theme: 'bootstrap-5',
+            language: 'es',
+            width: '100%',
+            placeholder: 'Buscar cuenta...',
+            allowClear: true,
+            dropdownParent: $('#modalAsiento'),
+            ajax: {
+                url: '?handler=Cuentas',
+                dataType: 'json',
+                delay: 250,
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results || []
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2
+        });
+    }
+
+    function removeMovimiento(rowId) {
+        $(`#${rowId}`).remove();
+        updateTotals();
+        movimientoCounter--;
+    }
+
+    function updateTotals() {
+        let totalDebe = 0;
+        let totalHaber = 0;
+
+        $('.movimiento-row').each(function() {
+            const debe = parseFloat($(this).find('.debe-input').val()) || 0;
+            const haber = parseFloat($(this).find('.haber-input').val()) || 0;
+            totalDebe += debe;
+            totalHaber += haber;
+        });
+
+        $('#totalDebe').text(formatCurrency(totalDebe));
+        $('#totalHaber').text(formatCurrency(totalHaber));
+
+        const diferencia = Math.abs(totalDebe - totalHaber);
+
+        if (diferencia === 0 && totalDebe > 0) {
+            $('#rowDiferencia').hide();
+            $('#rowCuadrado').show();
+            $('#btnGuardar').prop('disabled', false);
+        } else {
+            $('#diferencia').text(formatCurrency(diferencia));
+            $('#rowDiferencia').show();
+            $('#rowCuadrado').hide();
+
+            if (totalDebe === 0 && totalHaber === 0) {
+                $('#btnGuardar').prop('disabled', true);
+            } else {
+                $('#btnGuardar').prop('disabled', false);
+            }
+        }
+    }
+
+    function collectMovimientos() {
+        const movimientos = [];
+
+        $('.movimiento-row').each(function() {
+            const cuentaId = $(this).find('.cuenta-select').val();
+            const descripcion = $(this).find('.descripcion-input').val();
+            const debe = parseFloat($(this).find('.debe-input').val()) || 0;
+            const haber = parseFloat($(this).find('.haber-input').val()) || 0;
+            const tercero = $(this).find('.tercero-input').val();
+
+            if (cuentaId && (debe > 0 || haber > 0)) {
+                movimientos.push({
+                    cuentaContableId: cuentaId,
+                    descripcion: descripcion || null,
+                    debe: debe,
+                    haber: haber,
+                    tercero: tercero || null
+                });
+            }
+        });
+
+        return movimientos;
+    }
+
+    function save() {
+        const movimientos = collectMovimientos();
+
+        if (movimientos.length === 0) {
+            showError('Debe agregar al menos un movimiento con monto mayor a cero');
+            return;
+        }
+
+        const data = {
+            id: $('#Asiento_Id').val() || '00000000-0000-0000-0000-000000000000',
+            periodoContableId: $('#Asiento_PeriodoContableId').val(),
+            fecha: $('#Asiento_Fecha').val(),
+            tipoAsiento: $('#Asiento_TipoAsiento').val(),
+            concepto: $('#Asiento_Concepto').val(),
+            referencia: $('#Asiento_Referencia').val() || null,
+            observaciones: $('#Asiento_Observaciones').val() || null,
+            movimientos: movimientos
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalAsiento').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message || 'Error al guardar el asiento');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const asiento = response.data;
+
+                    $('#Asiento_Id').val(asiento.id);
+                    $('#Asiento_PeriodoContableId').val(asiento.periodoContableId);
+                    $('#Asiento_Fecha').val(asiento.fecha.split('T')[0]);
+                    $('#Asiento_TipoAsiento').val(asiento.tipoAsiento);
+                    $('#Asiento_Concepto').val(asiento.concepto);
+                    $('#Asiento_Referencia').val(asiento.referencia || '');
+                    $('#Asiento_Observaciones').val(asiento.observaciones || '');
+
+                    // Clear and rebuild movements
+                    $('#movimientosContainer').empty();
+                    movimientoRowTemplate = 0;
+
+                    if (asiento.movimientos && asiento.movimientos.length > 0) {
+                        asiento.movimientos.forEach(function(mov) {
+                            addMovimientoWithData(mov);
+                        });
+                    } else {
+                        addMovimiento();
+                        addMovimiento();
+                    }
+
+                    updateTotals();
+                    $('#formAsiento').removeClass('was-validated');
+                    $('#modalTitle').html('<i class="fas fa-edit me-2 text-warning"></i>Editar Asiento Contable');
+                    $('#modalAsiento').modal('show');
+                } else {
+                    showError('Error al cargar el asiento');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function addMovimientoWithData(movimiento) {
+        const rowId = `mov_${movimientoRowTemplate++}`;
+        const row = `
+            <tr id="${rowId}" class="movimiento-row">
+                <td>
+                    <select class="form-select form-select-sm cuenta-select" data-row="${rowId}" required>
+                        <option value="${movimiento.cuentaContableId}" selected>Cargando...</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm descripcion-input"
+                           value="${movimiento.descripcion || ''}" maxlength="200" />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end debe-input"
+                           value="${movimiento.debe}" min="0" step="0.01" onchange="updateTotals()" />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-end haber-input"
+                           value="${movimiento.haber}" min="0" step="0.01" onchange="updateTotals()" />
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm tercero-input"
+                           value="${movimiento.tercero || ''}" maxlength="100" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeMovimiento('${rowId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#movimientosContainer').append(row);
+        initSelect2ForCuenta(`#${rowId} .cuenta-select`);
+    }
+
+    function viewDetails(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const asiento = response.data;
+                    let html = `
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <strong>Fecha:</strong><br>${formatDate(asiento.fecha)}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Tipo:</strong><br>${asiento.tipoAsiento}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Concepto:</strong><br>${asiento.concepto}
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Cuenta</th>
+                                        <th>Descripción</th>
+                                        <th class="text-end">Debe</th>
+                                        <th class="text-end">Haber</th>
+                                        <th>Tercero</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    if (asiento.movimientos && asiento.movimientos.length > 0) {
+                        asiento.movimientos.forEach(function(mov) {
+                            html += `
+                                <tr>
+                                    <td>${mov.cuentaCodigo || ''} - ${mov.cuentaNombre || ''}</td>
+                                    <td>${mov.descripcion || ''}</td>
+                                    <td class="text-end">${formatCurrency(mov.debe)}</td>
+                                    <td class="text-end">${formatCurrency(mov.haber)}</td>
+                                    <td>${mov.tercero || ''}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    html += `
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="2" class="text-end"><strong>TOTALES:</strong></td>
+                                        <td class="text-end"><strong>${formatCurrency(asiento.totalDebe || 0)}</strong></td>
+                                        <td class="text-end"><strong>${formatCurrency(asiento.totalHaber || 0)}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    `;
+
+                    $('#detallesContent').html(html);
+                    $('#modalDetalles').modal('show');
+                } else {
+                    showError('Error al cargar los detalles');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function aprobar(id) {
+        confirmDialog('¿Está seguro de aprobar este asiento contable? Una vez aprobado no podrá ser modificado.', '¿Aprobar Asiento?', function() {
+            $.ajax({
+                url: '?handler=Aprobar&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al aprobar el asiento');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function anular(id) {
+        confirmDialog('¿Está seguro de anular este asiento contable?', '¿Anular Asiento?', function() {
+            $.ajax({
+                url: '?handler=Anular&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al anular el asiento');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function deleteRecord(id, numero) {
+        confirmDelete(`¿Está seguro de eliminar el asiento #${numero}? Solo se pueden eliminar asientos en estado Borrador.`, function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message || 'Error al eliminar el asiento');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+</script>
+}

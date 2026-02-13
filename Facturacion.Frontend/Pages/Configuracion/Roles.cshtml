@@ -1,0 +1,670 @@
+@page
+@model Facturacion.Frontend.Pages.Configuracion.RolesModel
+@{
+    ViewData["Title"] = "Gestión de Roles y Privilegios";
+    ViewData["Breadcrumb"] = "Roles";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-user-shield"></i> Gestión de Roles y Privilegios</h2>
+            <p class="mb-0">Configuración de roles y permisos por módulo</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nuevo rol">
+            <i class="fas fa-plus me-2"></i>Nuevo Rol
+        </button>
+    </div>
+</div>
+
+<!-- Roles Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Roles</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalRoles">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableRolesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando roles...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableRolesContainer" style="display:none;">
+            <table id="tableRoles" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Tipo</th>
+                        <th>Privilegios</th>
+                        <th>Estado</th>
+                        <th style="width: 140px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateRoles" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h3 class="empty-state-title">No hay roles registrados</h3>
+            <p class="empty-state-description">Comienza agregando tu primer rol personalizado</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primer Rol
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Create/Edit Role -->
+<div class="modal fade" id="modalRol" tabindex="-1" aria-labelledby="modalRolLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalRolLabel">
+                    <i class="fas fa-user-shield"></i> <span id="modalTitle">Nuevo Rol</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formRol">
+                <div class="modal-body">
+                    <input type="hidden" id="Rol_Id" />
+
+                    <div class="mb-3">
+                        <label for="Rol_Nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Rol_Nombre" maxlength="100" required />
+                        <div class="invalid-feedback">El nombre es obligatorio.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Rol_Descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="Rol_Descripcion" rows="3" maxlength="500"></textarea>
+                        <small class="form-text text-muted">Máximo 500 caracteres.</small>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Rol_Activo" checked />
+                        <label class="form-check-label" for="Rol_Activo">
+                            Activo
+                        </label>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btnSave">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Manage Privileges -->
+<div class="modal fade" id="modalPrivilegios" tabindex="-1" aria-labelledby="modalPrivilegiosLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalPrivilegiosLabel">
+                    <i class="fas fa-key"></i> Gestionar Privilegios: <span id="rolNombrePrivilegios"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="Privilegios_RolId" />
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Seleccione los privilegios que desea asignar a este rol. Los privilegios están agrupados por módulo.
+                </div>
+
+                <div class="accordion" id="accordionPrivilegios">
+                    <!-- Se llenará dinámicamente con JavaScript -->
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSavePrivilegios">
+                    <i class="fas fa-save"></i> Guardar Privilegios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Delete Confirmation -->
+<div class="modal fade" id="modalDeleteRol" tabindex="-1" aria-labelledby="modalDeleteRolLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalDeleteRolLabel">
+                    <i class="fas fa-trash"></i> Eliminar Rol
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea eliminar el rol <strong id="deleteRolNombre"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    @Html.AntiForgeryToken()
+
+    <script>
+        let table;
+        let currentRolId = null;
+        let isEditMode = false;
+        let modulosPrivilegios = [];
+        let currentRolPrivilegios = [];
+
+        $(document).ready(function () {
+            initializeDataTable();
+            loadModulosPrivilegios();
+            initializeFormHandlers();
+        });
+
+        function initializeDataTable() {
+            table = $('#tableRoles').DataTable({
+                ajax: {
+                    url: '/Roles?handler=Data',
+                    type: 'GET',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataSrc: function(json) {
+                        $('#tableRolesLoader').hide();
+                        const rawData = json.data || json || [];
+
+                        // Normalize property names to camelCase (backend returns PascalCase)
+                        // Rol extends IdentityRole which has 'Name' property, so check for both
+                        const data = rawData.map(item => ({
+                            id: item.id || item.Id,
+                            nombre: item.nombre || item.Nombre || item.name || item.Name || 'Sin nombre',
+                            descripcion: item.descripcion || item.Descripcion || '',
+                            esSistema: item.esSistema ?? item.EsSistema ?? false,
+                            activo: item.activo ?? item.Activo ?? true,
+                            cantidadPrivilegios: item.cantidadPrivilegios || item.CantidadPrivilegios || 0,
+                            fechaCreacion: item.fechaCreacion || item.FechaCreacion
+                        }));
+
+                        $('#badgeTotalRoles').text(data.length);
+                        if (data.length > 0) {
+                            $('#tableRolesContainer').show();
+                            $('#emptyStateRoles').hide();
+                        } else {
+                            $('#tableRolesContainer').hide();
+                            $('#emptyStateRoles').show();
+                        }
+                        return data;
+                    },
+                    error: function(xhr, error, code) {
+                        $('#tableRolesLoader').hide();
+                        $('#tableRolesContainer').hide();
+                        $('#emptyStateRoles').show();
+                        $('#badgeTotalRoles').text('0');
+                        console.error('Error loading roles:', error);
+                    }
+                },
+                columns: [
+                    { data: 'nombre' },
+                    {
+                        data: 'descripcion',
+                        render: function (data) {
+                            return data || '<span class="text-muted">N/A</span>';
+                        }
+                    },
+                    {
+                        data: 'esSistema',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-primary"><i class="fas fa-shield-alt"></i> Sistema</span>'
+                                : '<span class="badge bg-secondary"><i class="fas fa-user-cog"></i> Personalizado</span>';
+                        }
+                    },
+                    {
+                        data: 'cantidadPrivilegios',
+                        render: function (data) {
+                            return `<span class="badge bg-info">${data} privilegio(s)</span>`;
+                        }
+                    },
+                    {
+                        data: 'activo',
+                        render: function (data) {
+                            return data
+                                ? '<span class="badge bg-success"><i class="fas fa-check"></i> Activo</span>'
+                                : '<span class="badge bg-warning"><i class="fas fa-times"></i> Inactivo</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            const isSystemRole = row.esSistema;
+
+                            let buttons = `
+                                <button class="btn btn-sm btn-info" onclick="openPrivilegiosModal('${row.id}', '${row.nombre}')" title="Gestionar Privilegios">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                            `;
+
+                            if (!isSystemRole) {
+                                buttons += `
+                                    <button class="btn btn-sm btn-warning" onclick="openEditModal('${row.id}')" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="openDeleteModal('${row.id}', '${row.nombre}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                `;
+                            } else {
+                                buttons += `
+                                    <button class="btn btn-sm btn-secondary" disabled title="Los roles del sistema no se pueden editar">
+                                        <i class="fas fa-lock"></i>
+                                    </button>
+                                `;
+                            }
+
+                            return buttons;
+                        }
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                responsive: true,
+                order: [[0, 'asc']]
+            });
+        }
+
+        function loadModulosPrivilegios() {
+            $.ajax({
+                url: '?handler=Privilegios',
+                type: 'GET',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (data) {
+                    modulosPrivilegios = data;
+                },
+                error: function (xhr) {
+                    console.error('Error al cargar privilegios:', xhr);
+                    Swal.fire('Error', 'No se pudieron cargar los privilegios disponibles.', 'error');
+                }
+            });
+        }
+
+        function initializeFormHandlers() {
+            $('#formRol').on('submit', function (e) {
+                e.preventDefault();
+
+                if (!validateForm()) {
+                    return;
+                }
+
+                saveRol();
+            });
+
+            $('#btnConfirmDelete').on('click', function () {
+                deleteRol(currentRolId);
+            });
+
+            $('#btnSavePrivilegios').on('click', function () {
+                savePrivilegios();
+            });
+        }
+
+        function validateForm() {
+            const form = document.getElementById('formRol');
+            form.classList.add('was-validated');
+
+            const nombre = $('#Rol_Nombre').val();
+
+            if (!nombre) {
+                Swal.fire('Error', 'El nombre del rol es obligatorio.', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        function openCreateModal() {
+            isEditMode = false;
+            currentRolId = null;
+
+            $('#modalTitle').text('Nuevo Rol');
+            $('#formRol')[0].reset();
+            $('#formRol').removeClass('was-validated');
+            $('#Rol_Id').val('');
+            $('#Rol_Activo').prop('checked', true);
+
+            $('#modalRol').modal('show');
+        }
+
+        function openEditModal(id) {
+            isEditMode = true;
+            currentRolId = id;
+
+            $('#modalTitle').text('Editar Rol');
+            $('#formRol')[0].reset();
+            $('#formRol').removeClass('was-validated');
+
+            $.ajax({
+                url: '?handler=Details&id=' + id,
+                type: 'GET',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        const rol = response.data;
+                        $('#Rol_Id').val(rol.id);
+                        $('#Rol_Nombre').val(rol.nombre);
+                        $('#Rol_Descripcion').val(rol.descripcion || '');
+                        $('#Rol_Activo').prop('checked', rol.activo);
+
+                        $('#modalRol').modal('show');
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudo cargar la información del rol.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error al cargar rol:', xhr);
+                    Swal.fire('Error', 'No se pudo cargar la información del rol.', 'error');
+                }
+            });
+        }
+
+        function saveRol() {
+            const rol = {
+                id: $('#Rol_Id').val() || null,
+                nombre: $('#Rol_Nombre').val(),
+                descripcion: $('#Rol_Descripcion').val() || null,
+                activo: $('#Rol_Activo').is(':checked')
+            };
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val(),
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify(rol),
+                success: function (response) {
+                    if (response.success) {
+                        $('#modalRol').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire('Error', response.message || 'Error al guardar el rol.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error al guardar rol:', xhr);
+                    let errorMessage = 'Error al guardar el rol.';
+
+                    if (xhr.responseText) {
+                        try {
+                            errorMessage = xhr.responseText;
+                        } catch (e) {
+                            console.error('Error parsing response:', e);
+                        }
+                    }
+
+                    Swal.fire('Error', errorMessage, 'error');
+                }
+            });
+        }
+
+        function openDeleteModal(id, nombre) {
+            currentRolId = id;
+            $('#deleteRolNombre').text(nombre);
+            $('#modalDeleteRol').modal('show');
+        }
+
+        function deleteRol(id) {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        $('#modalDeleteRol').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire('Error', response.message || 'Error al eliminar el rol.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error al eliminar rol:', xhr);
+                    let errorMessage = 'Error al eliminar el rol.';
+
+                    if (xhr.responseText) {
+                        errorMessage = xhr.responseText;
+                    }
+
+                    Swal.fire('Error', errorMessage, 'error');
+                }
+            });
+        }
+
+        function openPrivilegiosModal(rolId, rolNombre) {
+            currentRolId = rolId;
+            $('#Privilegios_RolId').val(rolId);
+            $('#rolNombrePrivilegios').text(rolNombre);
+
+            // Cargar privilegios actuales del rol
+            loadRolPrivilegios(rolId);
+        }
+
+        function loadRolPrivilegios(rolId) {
+            $.ajax({
+                url: '?handler=RolPrivilegios&id=' + rolId,
+                type: 'GET',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (privilegioIds) {
+                    currentRolPrivilegios = privilegioIds;
+                    renderPrivilegiosAccordion();
+                    $('#modalPrivilegios').modal('show');
+                },
+                error: function (xhr) {
+                    console.error('Error al cargar privilegios del rol:', xhr);
+                    Swal.fire('Error', 'No se pudieron cargar los privilegios del rol.', 'error');
+                }
+            });
+        }
+
+        function renderPrivilegiosAccordion() {
+            const accordion = $('#accordionPrivilegios');
+            accordion.empty();
+
+            modulosPrivilegios.forEach((modulo, index) => {
+                const collapseId = `collapse${modulo.moduloId}`;
+                const headingId = `heading${modulo.moduloId}`;
+
+                let privilegiosHtml = '';
+                const accionesLabels = {
+                    1: 'Crear',
+                    2: 'Ver',
+                    3: 'Editar',
+                    4: 'Eliminar'
+                };
+
+                modulo.privilegios.forEach(privilegio => {
+                    const isChecked = currentRolPrivilegios.includes(privilegio.id) ? 'checked' : '';
+                    const accionLabel = accionesLabels[privilegio.accion] || privilegio.nombre;
+
+                    privilegiosHtml += `
+                        <div class="col-md-3 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input privilegio-checkbox"
+                                       type="checkbox"
+                                       value="${privilegio.id}"
+                                       id="privilegio_${privilegio.id}"
+                                       data-modulo="${modulo.moduloId}"
+                                       ${isChecked} />
+                                <label class="form-check-label" for="privilegio_${privilegio.id}">
+                                    ${accionLabel}
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const accordionItem = `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="${headingId}">
+                            <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#${collapseId}"
+                                    aria-expanded="${index === 0 ? 'true' : 'false'}" aria-controls="${collapseId}">
+                                ${modulo.icono ? `<i class="${modulo.icono} me-2"></i>` : ''}
+                                ${modulo.nombreModulo}
+                            </button>
+                        </h2>
+                        <div id="${collapseId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}"
+                             aria-labelledby="${headingId}" data-bs-parent="#accordionPrivilegios">
+                            <div class="accordion-body">
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            onclick="toggleModuloPrivilegios(${modulo.moduloId}, true)">
+                                        <i class="fas fa-check-square"></i> Seleccionar Todos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                                            onclick="toggleModuloPrivilegios(${modulo.moduloId}, false)">
+                                        <i class="fas fa-times"></i> Deseleccionar Todos
+                                    </button>
+                                </div>
+                                <div class="row">
+                                    ${privilegiosHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                accordion.append(accordionItem);
+            });
+        }
+
+        function toggleModuloPrivilegios(moduloId, select) {
+            $(`.privilegio-checkbox[data-modulo="${moduloId}"]`).prop('checked', select);
+        }
+
+        function savePrivilegios() {
+            const rolId = $('#Privilegios_RolId').val();
+
+            const selectedPrivilegios = [];
+            $('.privilegio-checkbox:checked').each(function () {
+                selectedPrivilegios.push(parseInt($(this).val()));
+            });
+
+            const data = {
+                rolId: rolId,
+                privilegioIds: selectedPrivilegios
+            };
+
+            $.ajax({
+                url: '?handler=SavePrivilegios&id=' + rolId,
+                type: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val(),
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify(data),
+                success: function (response) {
+                    if (response.success) {
+                        $('#modalPrivilegios').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        table.ajax.reload();
+                    } else {
+                        Swal.fire('Error', response.message || 'Error al guardar los privilegios.', 'error');
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error al guardar privilegios:', xhr);
+                    let errorMessage = 'Error al guardar los privilegios.';
+
+                    if (xhr.responseText) {
+                        try {
+                            errorMessage = xhr.responseText;
+                        } catch (e) {
+                            console.error('Error parsing response:', e);
+                        }
+                    }
+
+                    Swal.fire('Error', errorMessage, 'error');
+                }
+            });
+        }
+
+        function refrescarTabla() {
+            $('#tableRolesLoader').show();
+            $('#tableRolesContainer').hide();
+            $('#emptyStateRoles').hide();
+            table.ajax.reload();
+        }
+
+        function exportarExcel() {
+            Swal.fire('Info', 'Función de exportación en desarrollo', 'info');
+        }
+
+    </script>
+}

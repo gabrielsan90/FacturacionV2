@@ -1,0 +1,254 @@
+@page
+@model Facturacion.Frontend.Pages.Reportes.ReporteProductosModel
+@{
+    ViewData["Title"] = "Reporte: Productos";
+    ViewData["Breadcrumb"] = "Reporte: Productos";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-boxes me-2"></i>Reporte: Productos
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Categoría</label>
+                <select class="form-select" id="categoriaId">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="estado">
+                    <option value="">Todos</option>
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Stock Bajo</label>
+                <select class="form-select" id="stockBajo">
+                    <option value="">Todos</option>
+                    <option value="true">Solo Stock Bajo</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary me-2" onclick="filtrar()">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+                <button class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-1"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Total Productos</h6>
+                                <h4 class="mb-0" id="totalProductos">0</h4>
+                            </div>
+                            <i class="fas fa-box fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Activos</h6>
+                                <h4 class="mb-0" id="totalActivos">0</h4>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Stock Bajo</h6>
+                                <h4 class="mb-0" id="totalStockBajo">0</h4>
+                            </div>
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Valor Inventario</h6>
+                                <h4 class="mb-0" id="valorInventario">₡0.00</h4>
+                            </div>
+                            <i class="fas fa-dollar-sign fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="mb-3">
+            <button class="btn btn-success btn-sm" onclick="exportarExcel()">
+                <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="exportarPDF()">
+                <i class="fas fa-file-pdf me-1"></i> Exportar a PDF
+            </button>
+        </div>
+
+        <!-- DataTable -->
+        <table id="tableReporte" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Precio Venta</th>
+                    <th>Stock Actual</th>
+                    <th>Stock Mínimo</th>
+                    <th>Valor Stock</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        cargarCategorias();
+        loadDataTable();
+        cargarResumen();
+    });
+
+    function cargarCategorias() {
+        $.ajax({
+            url: '?handler=Categorias',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#categoriaId');
+                select.empty().append('<option value="">Todas</option>');
+                data.forEach(cat => {
+                    select.append(`<option value="${cat.id}">${cat.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadDataTable() {
+        const categoriaId = $('#categoriaId').val();
+        const estado = $('#estado').val();
+        const stockBajo = $('#stockBajo').val();
+
+        table = initDataTable('#tableReporte', {
+            ajax: {
+                url: `?handler=Data&categoriaId=${categoriaId}&estado=${estado}&stockBajo=${stockBajo}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' },
+                {
+                    data: 'categoria',
+                    render: function(data) {
+                        return data ? data.nombre : '-';
+                    }
+                },
+                {
+                    data: 'precioVenta',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                { data: 'stockActual' },
+                { data: 'stockMinimo' },
+                {
+                    data: 'valorStock',
+                    render: function(data) {
+                        return formatCurrency(data);
+                    }
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activo</span>'
+                            : '<span class="badge bg-secondary">Inactivo</span>';
+                    }
+                }
+            ],
+            order: [[1, 'asc']],
+            buttons: ['excel', 'pdf']
+        });
+    }
+
+    function filtrar() {
+        if (table) {
+            table.destroy();
+        }
+        loadDataTable();
+        cargarResumen();
+    }
+
+    function limpiarFiltros() {
+        $('#categoriaId').val('');
+        $('#estado').val('');
+        $('#stockBajo').val('');
+        filtrar();
+    }
+
+    function cargarResumen() {
+        const categoriaId = $('#categoriaId').val();
+        const estado = $('#estado').val();
+        const stockBajo = $('#stockBajo').val();
+
+        $.ajax({
+            url: `?handler=Resumen&categoriaId=${categoriaId}&estado=${estado}&stockBajo=${stockBajo}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                $('#totalProductos').text(data.totalProductos);
+                $('#totalActivos').text(data.totalActivos);
+                $('#totalStockBajo').text(data.totalStockBajo);
+                $('#valorInventario').text(formatCurrency(data.valorInventario));
+            }
+        });
+    }
+
+    function exportarExcel() {
+        table.button('.buttons-excel').trigger();
+    }
+
+    function exportarPDF() {
+        table.button('.buttons-pdf').trigger();
+    }
+</script>
+}

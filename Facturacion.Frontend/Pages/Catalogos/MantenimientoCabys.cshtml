@@ -1,0 +1,182 @@
+﻿@page
+@model Facturacion.Frontend.Pages.Catalogos.MantenimientoCabysModel
+@{
+    ViewData["Title"] = "Mantenimiento CABYS";
+    ViewData["Breadcrumb"] = "Mantenimiento CABYS";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-tools me-2"></i>Mantenimiento de CÃ³digos CABYS
+        </h5>
+        <div>
+            <button class="btn btn-success btn-sm me-2" onclick="importarCabys()">
+                <i class="fas fa-file-import me-1"></i> Importar CatÃ¡logo
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openBuscarModal()">
+                <i class="fas fa-search me-1"></i> Buscar CABYS
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            CABYS (CÃ³digo de Bienes y Servicios) es un catÃ¡logo oficial del Ministerio de Hacienda de Costa Rica.
+            Todos los productos y servicios deben tener un cÃ³digo CABYS de 13 dÃ­gitos.
+        </div>
+
+        <table id="tableCabys" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>CÃ³digo CABYS</th>
+                    <th>DescripciÃ³n</th>
+                    <th>CategorÃ­a</th>
+                    <th>Impuesto Sugerido</th>
+                    <th style="width: 100px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Buscar CABYS -->
+<div class="modal fade" id="modalBuscarCabys" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Buscar CÃ³digo CABYS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="searchCabysText" placeholder="Buscar por cÃ³digo o descripciÃ³n..." />
+                    <button class="btn btn-primary" onclick="buscarCabys()">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+
+                <div id="resultadosBusqueda"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+
+    $(document).ready(function() {
+        loadDataTable();
+    });
+
+    function loadDataTable() {
+        table = initDataTable('#tableCabys', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'descripcion' },
+                { data: 'categoria' },
+                { data: 'impuestoSugerido' },
+                {
+                    data: 'codigo',
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="verDetalle('${data}')" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'asc']]
+        });
+    }
+
+    function openBuscarModal() {
+        $('#searchCabysText').val('');
+        $('#resultadosBusqueda').html('');
+        $('#modalBuscarCabys').modal('show');
+    }
+
+    function buscarCabys() {
+        const searchText = $('#searchCabysText').val();
+        if (!searchText || searchText.length < 3) {
+            showError('Ingrese al menos 3 caracteres para buscar');
+            return;
+        }
+
+        $.ajax({
+            url: `?handler=Buscar&termino=${searchText}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                if (data.length === 0) {
+                    $('#resultadosBusqueda').html('<div class="alert alert-warning">No se encontraron resultados</div>');
+                } else {
+                    let html = '<div class="list-group">';
+                    data.forEach(item => {
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">${item.codigo}</h6>
+                                    <small class="text-muted">${item.impuestoSugerido || ''}</small>
+                                </div>
+                                <p class="mb-1">${item.descripcion}</p>
+                                <small>${item.categoria || ''}</small>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    $('#resultadosBusqueda').html(html);
+                }
+            },
+            error: function() {
+                showError('Error al buscar cÃ³digos CABYS');
+            }
+        });
+    }
+
+    function importarCabys() {
+        showError('No disponible en backend');
+    }
+
+    function verDetalle(codigo) {
+        $.ajax({
+            url: `?handler=Detalle&codigo=${codigo}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                Swal.fire({
+                    title: `CABYS: ${data.codigo}`,
+                    html: `
+                        <div class="text-start">
+                            <p><strong>DescripciÃ³n:</strong> ${data.descripcion}</p>
+                            <p><strong>CategorÃ­a:</strong> ${data.categoria || '-'}</p>
+                            <p><strong>Impuesto Sugerido:</strong> ${data.impuestoSugerido || '-'}</p>
+                        </div>
+                    `,
+                    icon: 'info'
+                });
+            },
+            error: function() {
+                showError('Error al cargar el detalle');
+            }
+        });
+    }
+</script>
+}
+

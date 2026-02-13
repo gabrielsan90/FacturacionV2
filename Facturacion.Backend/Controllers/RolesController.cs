@@ -38,11 +38,14 @@ public class RolesController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Getting roles list. RequestedBy: {UserId}",
+                User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             var roles = await _context.Roles
                 .Select(r => new RolDto
                 {
                     Id = r.Id,
-                    Nombre = r.Nombre,
+                    Nombre = r.Nombre ?? r.Name ?? "",
                     Descripcion = r.Descripcion,
                     EsSistema = r.EsSistema,
                     Activo = r.Activo,
@@ -52,11 +55,14 @@ public class RolesController : ControllerBase
                 .OrderBy(r => r.Nombre)
                 .ToListAsync();
 
+            _logger.LogInformation("Successfully retrieved {RoleCount} roles", roles.Count);
+
             return Ok(roles);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener los roles");
+            _logger.LogError(ex, "Error getting roles list. RequestedBy: {UserId}",
+                User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al obtener los roles.");
         }
     }
@@ -69,12 +75,15 @@ public class RolesController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Getting role details. RoleId: {RoleId}, RequestedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             var rol = await _context.Roles
                 .Where(r => r.Id == id)
                 .Select(r => new RolDto
                 {
                     Id = r.Id,
-                    Nombre = r.Nombre,
+                    Nombre = r.Nombre ?? r.Name ?? "",
                     Descripcion = r.Descripcion,
                     EsSistema = r.EsSistema,
                     Activo = r.Activo,
@@ -85,14 +94,19 @@ public class RolesController : ControllerBase
 
             if (rol == null)
             {
+                _logger.LogWarning("Role not found. RoleId: {RoleId}", id);
                 return NotFound("Rol no encontrado.");
             }
+
+            _logger.LogInformation("Successfully retrieved role. RoleId: {RoleId}, Name: {RoleName}, Privileges: {PrivilegeCount}",
+                id, rol.Nombre, rol.CantidadPrivilegios);
 
             return Ok(rol);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener el rol {RolId}", id);
+            _logger.LogError(ex, "Error getting role details. RoleId: {RoleId}, RequestedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al obtener el rol.");
         }
     }
@@ -105,8 +119,12 @@ public class RolesController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Creating new role. Name: {RoleName}, CreatedBy: {UserId}",
+                model.Nombre, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state when creating role. Name: {RoleName}", model.Nombre);
                 return BadRequest(ModelState);
             }
 
@@ -116,6 +134,7 @@ public class RolesController : ControllerBase
 
             if (existingRol != null)
             {
+                _logger.LogWarning("Attempted to create role with existing name. Name: {RoleName}", model.Nombre);
                 return BadRequest("Ya existe un rol con este nombre.");
             }
 
@@ -137,14 +156,15 @@ public class RolesController : ControllerBase
             _context.Roles.Add(rol);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Rol creado: {RolId} - {RolNombre} por usuario {UserId}",
-                rol.Id, rol.Nombre, currentUserId);
+            _logger.LogInformation("Role created successfully. RoleId: {RolId}, Name: {RolNombre}, Active: {Activo}, CreatedBy: {UserId}",
+                rol.Id, rol.Nombre, rol.Activo, currentUserId);
 
-            return CreatedAtAction(nameof(GetAsync), new { id = rol.Id }, new { id = rol.Id, nombre = rol.Nombre });
+            return Ok(new { id = rol.Id, nombre = rol.Nombre });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al crear el rol");
+            _logger.LogError(ex, "Error creating role. Name: {RoleName}, CreatedBy: {UserId}",
+                model.Nombre, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al crear el rol.");
         }
     }
@@ -157,25 +177,32 @@ public class RolesController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Updating role. RoleId: {RoleId}, UpdatedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state when updating role. RoleId: {RoleId}", id);
                 return BadRequest(ModelState);
             }
 
             if (id != model.Id)
             {
+                _logger.LogWarning("ID mismatch when updating role. URL ID: {UrlId}, Model ID: {ModelId}", id, model.Id);
                 return BadRequest("El ID de la URL no coincide con el ID del rol.");
             }
 
             var rol = await _context.Roles.FindAsync(id);
             if (rol == null)
             {
+                _logger.LogWarning("Role not found for update. RoleId: {RoleId}", id);
                 return NotFound("Rol no encontrado.");
             }
 
             // Verificar si es un rol del sistema
             if (rol.EsSistema)
             {
+                _logger.LogWarning("Attempted to edit system role. RoleId: {RoleId}, Name: {RoleName}", id, rol.Nombre);
                 return BadRequest("No se pueden editar los roles del sistema.");
             }
 
@@ -198,14 +225,15 @@ public class RolesController : ControllerBase
             await _context.SaveChangesAsync();
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("Rol actualizado: {RolId} - {RolNombre} por usuario {UserId}",
-                rol.Id, rol.Nombre, currentUserId);
+            _logger.LogInformation("Role updated successfully. RoleId: {RolId}, Name: {RolNombre}, Active: {Activo}, UpdatedBy: {UserId}",
+                rol.Id, rol.Nombre, rol.Activo, currentUserId);
 
             return Ok(new { id = rol.Id, nombre = rol.Nombre });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar el rol {RolId}", id);
+            _logger.LogError(ex, "Error updating role. RoleId: {RolId}, UpdatedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al actualizar el rol.");
         }
     }
@@ -218,15 +246,20 @@ public class RolesController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Deleting role. RoleId: {RoleId}, DeletedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             var rol = await _context.Roles.FindAsync(id);
             if (rol == null)
             {
+                _logger.LogWarning("Role not found for deletion. RoleId: {RoleId}", id);
                 return NotFound("Rol no encontrado.");
             }
 
             // Verificar si es un rol del sistema
             if (rol.EsSistema)
             {
+                _logger.LogWarning("Attempted to delete system role. RoleId: {RoleId}, Name: {RoleName}", id, rol.Nombre);
                 return BadRequest("No se pueden eliminar los roles del sistema.");
             }
 
@@ -237,6 +270,8 @@ public class RolesController : ControllerBase
 
             if (usersInRole > 0)
             {
+                _logger.LogWarning("Cannot delete role with assigned users. RoleId: {RoleId}, UserCount: {UserCount}",
+                    id, usersInRole);
                 return BadRequest($"No se puede eliminar el rol porque tiene {usersInRole} usuario(s) asignado(s).");
             }
 
@@ -248,20 +283,23 @@ public class RolesController : ControllerBase
             if (rolePrivilegios.Any())
             {
                 _context.RolesPrivilegios.RemoveRange(rolePrivilegios);
+                _logger.LogDebug("Removed {PrivilegeCount} privileges associated with role {RoleId}",
+                    rolePrivilegios.Count, id);
             }
 
             _context.Roles.Remove(rol);
             await _context.SaveChangesAsync();
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("Rol eliminado: {RolId} - {RolNombre} por usuario {UserId}",
+            _logger.LogInformation("Role deleted successfully. RoleId: {RolId}, Name: {RolNombre}, DeletedBy: {UserId}",
                 id, rol.Nombre, currentUserId);
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al eliminar el rol {RolId}", id);
+            _logger.LogError(ex, "Error deleting role. RoleId: {RolId}, DeletedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al eliminar el rol.");
         }
     }
@@ -302,19 +340,25 @@ public class RolesController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Updating role privileges. RoleId: {RoleId}, NewPrivilegeCount: {PrivilegeCount}, UpdatedBy: {UserId}",
+                id, model.PrivilegioIds?.Count ?? 0, User.FindFirstValue(ClaimTypes.NameIdentifier));
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("Invalid model state when updating role privileges. RoleId: {RoleId}", id);
                 return BadRequest(ModelState);
             }
 
             if (id != model.RolId)
             {
+                _logger.LogWarning("ID mismatch when updating role privileges. URL ID: {UrlId}, Model ID: {ModelId}", id, model.RolId);
                 return BadRequest("El ID de la URL no coincide con el ID del rol.");
             }
 
             var rol = await _context.Roles.FindAsync(id);
             if (rol == null)
             {
+                _logger.LogWarning("Role not found when updating privileges. RoleId: {RoleId}", id);
                 return NotFound("Rol no encontrado.");
             }
 
@@ -357,14 +401,15 @@ public class RolesController : ControllerBase
             await _context.SaveChangesAsync();
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("Privilegios actualizados para rol {RolId} por usuario {UserId}. Total privilegios: {Count}",
-                id, currentUserId, model.PrivilegioIds?.Count ?? 0);
+            _logger.LogInformation("Role privileges updated successfully. RoleId: {RolId}, NewPrivilegeCount: {Count}, UpdatedBy: {UserId}",
+                id, model.PrivilegioIds?.Count ?? 0, currentUserId);
 
             return Ok(new { message = "Privilegios actualizados exitosamente.", cantidadPrivilegios = model.PrivilegioIds?.Count ?? 0 });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar privilegios del rol {RolId}", id);
+            _logger.LogError(ex, "Error updating role privileges. RoleId: {RolId}, UpdatedBy: {UserId}",
+                id, User.FindFirstValue(ClaimTypes.NameIdentifier));
             return StatusCode(500, "Error interno del servidor al actualizar los privilegios del rol.");
         }
     }

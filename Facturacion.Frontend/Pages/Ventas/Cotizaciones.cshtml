@@ -1,0 +1,988 @@
+@page
+@model Facturacion.Frontend.Pages.Ventas.CotizacionesModel
+@{
+    ViewData["Title"] = "Cotizaciones";
+    ViewData["Breadcrumb"] = "Cotizaciones";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Cotizaciones</h2>
+            <p class="mb-0">Gestión de cotizaciones y propuestas de venta</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nueva cotización">
+            <i class="fas fa-plus me-2"></i>Nueva Cotización
+        </button>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card shadow-custom mb-3">
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Filtrar por Estado</label>
+                <select class="form-select" id="filtroEstado" onchange="aplicarFiltro()">
+                    <option value="TODAS">Todas</option>
+                    <option value="BOR">Borrador</option>
+                    <option value="ENV">Enviada</option>
+                    <option value="APR">Aprobada</option>
+                    <option value="REC">Rechazada</option>
+                    <option value="CON">Convertida</option>
+                    <option value="VEN">Vencida</option>
+                </select>
+            </div>
+            <div class="col-md-9 text-end">
+                <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                    <i class="fas fa-file-excel me-2"></i>Exportar
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                    <i class="fas fa-sync-alt me-2"></i>Refrescar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cotizaciones Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Cotizaciones</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalCotizaciones">0</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableCotizacionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando cotizaciones...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableCotizacionesContainer" style="display:none;">
+            <table id="tableCotizaciones" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Vencimiento</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th style="width: 180px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateCotizaciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <h3 class="empty-state-title">No hay cotizaciones registradas</h3>
+            <p class="empty-state-description">Comienza creando tu primera cotización</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Cotización
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalCotizacion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nueva Cotización</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCotizacion" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Cotizacion_Id" value="00000000-0000-0000-0000-000000000000" />
+                    <input type="hidden" id="Cotizacion_EmpresaId" value="@Model.EmpresaId" />
+
+                    <!-- Header Information -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cotizacion_ClienteId" required>
+                                <option value="">Seleccione un cliente...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un cliente.</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Cotizacion_Fecha" required />
+                            <div class="invalid-feedback">La fecha es obligatoria.</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Vencimiento <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Cotizacion_FechaVencimiento" required />
+                            <div class="invalid-feedback">La fecha de vencimiento es obligatoria.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Condiciones de Pago</label>
+                            <input type="text" class="form-control" id="Cotizacion_CondicionesPago" maxlength="100" placeholder="Ej: Contado, 30 días, etc." />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Notas</label>
+                            <textarea class="form-control" id="Cotizacion_Notas" rows="2" maxlength="500" placeholder="Observaciones adicionales"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Line Items Section -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0"><i class="fas fa-list me-2"></i>Detalles de la Cotización</h6>
+                        <button type="button" class="btn btn-sm btn-success" onclick="agregarDetalle()">
+                            <i class="fas fa-plus me-1"></i>Agregar Producto
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered" id="tableDetalles">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 35%;">Producto</th>
+                                    <th style="width: 12%;">Cantidad</th>
+                                    <th style="width: 15%;">Precio Unit.</th>
+                                    <th style="width: 12%;">Descuento %</th>
+                                    <th style="width: 15%;">Subtotal</th>
+                                    <th style="width: 11%;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detallesBody">
+                                <!-- Rows added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty state for details -->
+                    <div id="emptyDetalles" class="text-center py-4 text-muted">
+                        <i class="fas fa-box-open fa-3x mb-3"></i>
+                        <p>No hay productos agregados. Haga clic en "Agregar Producto" para comenzar.</p>
+                    </div>
+
+                    <hr />
+
+                    <!-- Totals Section -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Space for notes or additional info -->
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-end"><strong>Subtotal:</strong></td>
+                                    <td class="text-end" style="width: 150px;" id="displaySubtotal">₡0.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end"><strong>Descuento Total:</strong></td>
+                                    <td class="text-end" id="displayDescuento">₡0.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end"><strong>Impuestos (13%):</strong></td>
+                                    <td class="text-end" id="displayImpuestos">₡0.00</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td class="text-end"><strong>TOTAL:</strong></td>
+                                    <td class="text-end"><strong id="displayTotal">₡0.00</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Cotización
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Cotización (Read-only) -->
+<div class="modal fade" id="modalVerCotizacion" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-eye me-2"></i>Ver Cotización</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="verCotizacionBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let detalleCounter = 0;
+    let productosData = [];
+    let clientesData = [];
+
+    $(document).ready(function () {
+        loadDataTable();
+        setupFormSubmit();
+        loadClientes();
+        loadProductos();
+        setDefaultDates();
+    });
+
+    function setDefaultDates() {
+        const today = new Date().toISOString().split('T')[0];
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const vencimiento = nextMonth.toISOString().split('T')[0];
+
+        $('#Cotizacion_Fecha').val(today);
+        $('#Cotizacion_FechaVencimiento').val(vencimiento);
+    }
+
+    function loadDataTable() {
+        const estadoFiltro = $('#filtroEstado').val() || 'TODAS';
+
+        table = $('#tableCotizaciones').DataTable({
+            ajax: {
+                url: '?handler=Data&estado=' + estadoFiltro,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'numero' },
+                {
+                    data: 'fecha',
+                    render: function (data) {
+                        if (!data) return '';
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'cliente',
+                    render: function (data) {
+                        return data ? data.nombre : '';
+                    }
+                },
+                {
+                    data: 'fechaVencimiento',
+                    render: function (data) {
+                        if (!data) return '';
+                        const fecha = new Date(data);
+                        const hoy = new Date();
+                        const diferencia = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+
+                        let clase = '';
+                        if (diferencia < 0) clase = 'text-danger';
+                        else if (diferencia <= 7) clase = 'text-warning';
+
+                        return `<span class="${clase}">${fecha.toLocaleDateString('es-CR')}</span>`;
+                    }
+                },
+                {
+                    data: 'total',
+                    render: function (data) {
+                        return '₡' + parseFloat(data || 0).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function (data) {
+                        const estados = {
+                            'BOR': { text: 'Borrador', class: 'secondary' },
+                            'ENV': { text: 'Enviada', class: 'info' },
+                            'APR': { text: 'Aprobada', class: 'success' },
+                            'REC': { text: 'Rechazada', class: 'danger' },
+                            'CON': { text: 'Convertida', class: 'primary' },
+                            'VEN': { text: 'Vencida', class: 'dark' }
+                        };
+                        const estado = estados[data] || { text: data, class: 'secondary' };
+                        return `<span class="badge bg-${estado.class}">${estado.text}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function (data, type, row) {
+                        let buttons = `<button class="btn btn-sm btn-info" onclick="ver('${row.id}')" title="Ver">
+                            <i class="fa fa-eye"></i>
+                        </button> `;
+
+                        // Edit button - only for drafts
+                        if (row.estado === 'BOR') {
+                            buttons += `<button class="btn btn-sm btn-warning" onclick="edit('${row.id}')" title="Editar">
+                                <i class="fa fa-edit"></i>
+                            </button> `;
+                        }
+
+                        // Send button - for drafts
+                        if (row.estado === 'BOR') {
+                            buttons += `<button class="btn btn-sm btn-primary" onclick="enviar('${row.id}')" title="Enviar">
+                                <i class="fa fa-paper-plane"></i>
+                            </button> `;
+                        }
+
+                        // Approve/Reject buttons - for sent quotations
+                        if (row.estado === 'ENV') {
+                            buttons += `<button class="btn btn-sm btn-success" onclick="aprobar('${row.id}')" title="Aprobar">
+                                <i class="fa fa-check"></i>
+                            </button> `;
+                            buttons += `<button class="btn btn-sm btn-danger" onclick="rechazar('${row.id}')" title="Rechazar">
+                                <i class="fa fa-times"></i>
+                            </button> `;
+                        }
+
+                        // Convert button - for approved quotations
+                        if (row.estado === 'APR') {
+                            buttons += `<button class="btn btn-sm btn-success" onclick="convertir('${row.id}')" title="Convertir a Factura">
+                                <i class="fa fa-file-invoice"></i>
+                            </button> `;
+                        }
+
+                        // Delete button - only for drafts and rejected
+                        if (row.estado === 'BOR' || row.estado === 'REC') {
+                            buttons += `<button class="btn btn-sm btn-danger" onclick="deleteRecord('${row.id}')" title="Eliminar">
+                                <i class="fa fa-trash"></i>
+                            </button>`;
+                        }
+
+                        return buttons;
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            responsive: true,
+            order: [[1, 'desc']],
+            pageLength: 25,
+            drawCallback: function (settings) {
+                var api = this.api();
+                var recordsTotal = api.page.info().recordsTotal;
+
+                $('#badgeTotalCotizaciones').text(recordsTotal);
+                $('#tableCotizacionesLoader').hide();
+
+                if (recordsTotal === 0) {
+                    $('#tableCotizacionesContainer').hide();
+                    $('#emptyStateCotizaciones').show();
+                } else {
+                    $('#tableCotizacionesContainer').show();
+                    $('#emptyStateCotizaciones').hide();
+                }
+            }
+        });
+    }
+
+    function aplicarFiltro() {
+        table.destroy();
+        loadDataTable();
+    }
+
+    function loadClientes() {
+        $.ajax({
+            url: '?handler=Clientes',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (data) {
+                clientesData = data;
+                const select = $('#Cotizacion_ClienteId');
+                select.empty().append('<option value="">Seleccione un cliente...</option>');
+
+                if (data && data.length > 0) {
+                    data.forEach(function (cliente) {
+                        select.append(`<option value="${cliente.id}">${cliente.nombre}</option>`);
+                    });
+                }
+            }
+        });
+    }
+
+    function loadProductos() {
+        $.ajax({
+            url: '?handler=Productos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (data) {
+                productosData = data;
+            }
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formCotizacion').on('submit', function (e) {
+            e.preventDefault();
+            save();
+        });
+    }
+
+    function openCreateModal() {
+        $('#formCotizacion')[0].reset();
+        $('#Cotizacion_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Cotizacion_EmpresaId').val('@Model.EmpresaId');
+        $('#modalTitle').text('Nueva Cotización');
+        $('#detallesBody').empty();
+        detalleCounter = 0;
+        toggleEmptyDetalles();
+        calcularTotales();
+        setDefaultDates();
+        $('#modalCotizacion').modal('show');
+    }
+
+    function ver(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                if (response.success) {
+                    mostrarCotizacion(response.data);
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            }
+        });
+    }
+
+    function mostrarCotizacion(data) {
+        let html = `
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6>Número: <strong>${data.numero || 'N/A'}</strong></h6>
+                    <p><strong>Cliente:</strong> ${data.cliente?.nombre || 'N/A'}</p>
+                    <p><strong>Fecha:</strong> ${data.fecha ? new Date(data.fecha).toLocaleDateString('es-CR') : 'N/A'}</p>
+                    <p><strong>Vencimiento:</strong> ${data.fechaVencimiento ? new Date(data.fechaVencimiento).toLocaleDateString('es-CR') : 'N/A'}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Condiciones de Pago:</strong> ${data.condicionesPago || 'N/A'}</p>
+                    <p><strong>Notas:</strong> ${data.notas || 'N/A'}</p>
+                    <p><strong>Estado:</strong> <span class="badge bg-info">${data.estadoDescripcion || data.estado}</span></p>
+                </div>
+            </div>
+            <hr />
+            <h6>Detalles</h6>
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unit.</th>
+                        <th>Descuento</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        if (data.detalles && data.detalles.length > 0) {
+            data.detalles.forEach(function (detalle) {
+                html += `<tr>
+                    <td>${detalle.producto?.nombre || 'N/A'}</td>
+                    <td>${detalle.cantidad}</td>
+                    <td>₡${parseFloat(detalle.precioUnitario || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</td>
+                    <td>${detalle.descuento || 0}%</td>
+                    <td>₡${parseFloat(detalle.subtotal || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</td>
+                </tr>`;
+            });
+        } else {
+            html += '<tr><td colspan="5" class="text-center">No hay detalles</td></tr>';
+        }
+
+        html += `</tbody>
+            </table>
+            <div class="text-end mt-3">
+                <h5>Total: <strong>₡${parseFloat(data.total || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</strong></h5>
+            </div>`;
+
+        $('#verCotizacionBody').html(html);
+        $('#modalVerCotizacion').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                if (response.success) {
+                    const data = response.data;
+                    $('#Cotizacion_Id').val(data.id);
+                    $('#Cotizacion_EmpresaId').val(data.empresaId);
+                    $('#Cotizacion_ClienteId').val(data.clienteId);
+                    $('#Cotizacion_Fecha').val(data.fecha ? data.fecha.split('T')[0] : '');
+                    $('#Cotizacion_FechaVencimiento').val(data.fechaVencimiento ? data.fechaVencimiento.split('T')[0] : '');
+                    $('#Cotizacion_CondicionesPago').val(data.condicionesPago || '');
+                    $('#Cotizacion_Notas').val(data.notas || '');
+
+                    // Load details
+                    $('#detallesBody').empty();
+                    detalleCounter = 0;
+
+                    if (data.detalles && data.detalles.length > 0) {
+                        data.detalles.forEach(function (detalle) {
+                            agregarDetalleConDatos(detalle);
+                        });
+                    }
+
+                    toggleEmptyDetalles();
+                    calcularTotales();
+
+                    $('#modalTitle').text('Editar Cotización');
+                    $('#modalCotizacion').modal('show');
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            }
+        });
+    }
+
+    function agregarDetalle() {
+        const id = detalleCounter++;
+        const html = `
+            <tr id="detalle_${id}">
+                <td>
+                    <select class="form-select form-select-sm producto-select" data-id="${id}" required>
+                        <option value="">Seleccione...</option>
+                        ${productosData.map(p => `<option value="${p.id}" data-precio="${p.precioVenta || 0}">${p.nombre}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm cantidad-input" data-id="${id}"
+                           min="0.001" step="0.001" value="1" required />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm precio-input" data-id="${id}"
+                           min="0" step="0.01" value="0" required />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm descuento-input" data-id="${id}"
+                           min="0" max="100" step="0.01" value="0" />
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm subtotal-display" data-id="${id}"
+                           readonly value="₡0.00" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="eliminarDetalle(${id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#detallesBody').append(html);
+        toggleEmptyDetalles();
+
+        // Attach event handlers
+        $(`select.producto-select[data-id="${id}"]`).on('change', function () {
+            const precio = $(this).find(':selected').data('precio') || 0;
+            $(`input.precio-input[data-id="${id}"]`).val(precio);
+            calcularSubtotal(id);
+        });
+
+        $(`input.cantidad-input[data-id="${id}"], input.precio-input[data-id="${id}"], input.descuento-input[data-id="${id}"]`)
+            .on('input', function () {
+                calcularSubtotal(id);
+            });
+    }
+
+    function agregarDetalleConDatos(detalle) {
+        const id = detalleCounter++;
+        const html = `
+            <tr id="detalle_${id}">
+                <td>
+                    <select class="form-select form-select-sm producto-select" data-id="${id}" required>
+                        <option value="">Seleccione...</option>
+                        ${productosData.map(p => `<option value="${p.id}" data-precio="${p.precioVenta || 0}" ${p.id === detalle.productoId ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm cantidad-input" data-id="${id}"
+                           min="0.001" step="0.001" value="${detalle.cantidad || 1}" required />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm precio-input" data-id="${id}"
+                           min="0" step="0.01" value="${detalle.precioUnitario || 0}" required />
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm descuento-input" data-id="${id}"
+                           min="0" max="100" step="0.01" value="${detalle.descuento || 0}" />
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm subtotal-display" data-id="${id}"
+                           readonly value="₡0.00" />
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="eliminarDetalle(${id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        $('#detallesBody').append(html);
+
+        // Attach event handlers
+        $(`select.producto-select[data-id="${id}"]`).on('change', function () {
+            const precio = $(this).find(':selected').data('precio') || 0;
+            $(`input.precio-input[data-id="${id}"]`).val(precio);
+            calcularSubtotal(id);
+        });
+
+        $(`input.cantidad-input[data-id="${id}"], input.precio-input[data-id="${id}"], input.descuento-input[data-id="${id}"]`)
+            .on('input', function () {
+                calcularSubtotal(id);
+            });
+
+        calcularSubtotal(id);
+    }
+
+    function eliminarDetalle(id) {
+        $(`#detalle_${id}`).remove();
+        toggleEmptyDetalles();
+        calcularTotales();
+    }
+
+    function toggleEmptyDetalles() {
+        if ($('#detallesBody tr').length === 0) {
+            $('#emptyDetalles').show();
+            $('#tableDetalles').hide();
+        } else {
+            $('#emptyDetalles').hide();
+            $('#tableDetalles').show();
+        }
+    }
+
+    function calcularSubtotal(id) {
+        const cantidad = parseFloat($(`input.cantidad-input[data-id="${id}"]`).val()) || 0;
+        const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
+        const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
+
+        const subtotalBruto = cantidad * precio;
+        const montoDescuento = subtotalBruto * (descuento / 100);
+        const subtotal = subtotalBruto - montoDescuento;
+
+        $(`input.subtotal-display[data-id="${id}"]`).val('₡' + subtotal.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+        calcularTotales();
+    }
+
+    function calcularTotales() {
+        let subtotal = 0;
+        let descuentoTotal = 0;
+
+        $('#detallesBody tr').each(function () {
+            const id = $(this).find('.cantidad-input').data('id');
+            const cantidad = parseFloat($(`input.cantidad-input[data-id="${id}"]`).val()) || 0;
+            const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
+            const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
+
+            const subtotalBruto = cantidad * precio;
+            const montoDescuento = subtotalBruto * (descuento / 100);
+
+            subtotal += subtotalBruto;
+            descuentoTotal += montoDescuento;
+        });
+
+        const subtotalNeto = subtotal - descuentoTotal;
+        const impuestos = subtotalNeto * 0.13; // 13% IVA
+        const total = subtotalNeto + impuestos;
+
+        $('#displaySubtotal').text('₡' + subtotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displayDescuento').text('₡' + descuentoTotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displayImpuestos').text('₡' + impuestos.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displayTotal').text('₡' + total.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+    }
+
+    function save() {
+        // Validate form
+        if (!$('#formCotizacion')[0].checkValidity()) {
+            $('#formCotizacion')[0].reportValidity();
+            return;
+        }
+
+        // Validate details
+        if ($('#detallesBody tr').length === 0) {
+            Swal.fire('Error', 'Debe agregar al menos un producto', 'error');
+            return;
+        }
+
+        // Build detalles array
+        const detalles = [];
+        $('#detallesBody tr').each(function () {
+            const id = $(this).find('.cantidad-input').data('id');
+            const productoId = $(`select.producto-select[data-id="${id}"]`).val();
+            const cantidad = parseFloat($(`input.cantidad-input[data-id="${id}"]`).val()) || 0;
+            const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
+            const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
+
+            if (!productoId) {
+                Swal.fire('Error', 'Todos los productos deben estar seleccionados', 'error');
+                return false;
+            }
+
+            const subtotalBruto = cantidad * precio;
+            const montoDescuento = subtotalBruto * (descuento / 100);
+            const subtotal = subtotalBruto - montoDescuento;
+
+            detalles.push({
+                productoId: productoId,
+                cantidad: cantidad,
+                precioUnitario: precio,
+                descuento: descuento,
+                subtotal: subtotal
+            });
+        });
+
+        if (detalles.length === 0) {
+            return;
+        }
+
+        // Calculate totals
+        let subtotal = 0;
+        let descuentoTotal = 0;
+        detalles.forEach(d => {
+            subtotal += d.cantidad * d.precioUnitario;
+            descuentoTotal += (d.cantidad * d.precioUnitario) * (d.descuento / 100);
+        });
+        const subtotalNeto = subtotal - descuentoTotal;
+        const impuestos = subtotalNeto * 0.13;
+        const total = subtotalNeto + impuestos;
+
+        const cotizacion = {
+            id: $('#Cotizacion_Id').val(),
+            empresaId: $('#Cotizacion_EmpresaId').val(),
+            clienteId: $('#Cotizacion_ClienteId').val(),
+            fecha: $('#Cotizacion_Fecha').val(),
+            fechaVencimiento: $('#Cotizacion_FechaVencimiento').val(),
+            condicionesPago: $('#Cotizacion_CondicionesPago').val(),
+            notas: $('#Cotizacion_Notas').val(),
+            subtotal: subtotal,
+            descuentoTotal: descuentoTotal,
+            impuestos: impuestos,
+            total: total,
+            estado: 'BOR', // Always save as draft
+            detalles: detalles
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(cotizacion),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                if (response.success) {
+                    Swal.fire('Éxito', response.message, 'success');
+                    $('#modalCotizacion').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            },
+            error: function () {
+                Swal.fire('Error', 'Ocurrió un error al procesar la solicitud', 'error');
+            }
+        });
+    }
+
+    function enviar(id) {
+        Swal.fire({
+            title: '¿Enviar cotización?',
+            text: "Se marcará como enviada al cliente",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, enviar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Enviar&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire('Enviada', response.message, 'success');
+                            table.ajax.reload();
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function aprobar(id) {
+        Swal.fire({
+            title: '¿Aprobar cotización?',
+            text: "Esta cotización será marcada como aprobada",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, aprobar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Aprobar&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire('Aprobada', response.message, 'success');
+                            table.ajax.reload();
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function rechazar(id) {
+        Swal.fire({
+            title: '¿Rechazar cotización?',
+            text: "Esta cotización será marcada como rechazada",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, rechazar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Rechazar&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire('Rechazada', response.message, 'info');
+                            table.ajax.reload();
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function convertir(id) {
+        Swal.fire({
+            title: '¿Convertir a factura?',
+            text: "Se creará una factura electrónica basada en esta cotización",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, convertir',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Convertir&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Convertida',
+                                text: response.message,
+                                icon: 'success',
+                                confirmButtonText: 'Ver Factura'
+                            }).then(() => {
+                                // Optionally redirect to invoice page
+                                table.ajax.reload();
+                            });
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function deleteRecord(id) {
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: "Esta acción no se puede revertir",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Delete&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire('Eliminada', response.message, 'success');
+                            table.ajax.reload();
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function refrescarTabla() {
+        table.ajax.reload();
+    }
+
+    function exportarExcel() {
+        Swal.fire('Exportar', 'Funcionalidad de exportación en desarrollo', 'info');
+    }
+</script>
+}

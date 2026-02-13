@@ -1,0 +1,548 @@
+@page
+@model Facturacion.Frontend.Pages.Configuracion.TerminalesModel
+@{
+    ViewData["Title"] = "Terminales";
+    ViewData["Breadcrumb"] = "Terminales";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-desktop"></i> Terminales</h2>
+            <p class="mb-0">Gestión de terminales de punto de venta por sucursal</p>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-building"></i> Seleccione Sucursal <span class="text-danger">*</span></label>
+                <select class="form-select" id="selectSucursal">
+                    <option value="">-- Seleccione una sucursal --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <button class="btn btn-primary" id="btnNuevoTerminal" onclick="openCreateModal()" disabled>
+                    <i class="fas fa-plus me-1"></i> Nueva Terminal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-cash-register me-2"></i>Gestión de Terminales
+        </h5>
+        <span class="badge bg-primary" id="badgeTotalTerminales">0 terminales</span>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableTerminalesLoader" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando terminales...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableTerminalesContainer" style="display: none;">
+            <table id="tableTerminales" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Consecutivos</th>
+                        <th>Estado</th>
+                        <th style="width: 120px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateTerminales" class="text-center py-5">
+            <i class="fas fa-desktop fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Seleccione una sucursal para ver sus terminales</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalTerminal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-desktop me-2 text-primary"></i>Nueva Terminal
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formTerminal">
+                <div class="modal-body">
+                    <input type="hidden" id="Terminal_Id" value="0" />
+                    <input type="hidden" id="Terminal_SucursalId" />
+
+                    <h6 class="mb-3 text-primary"><i class="fas fa-info-circle"></i> Información General</h6>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Código <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="Terminal_Codigo" maxlength="10" required />
+                                <small class="text-muted">Código único (5 dígitos: 00001)</small>
+                                <div class="invalid-feedback">El código es obligatorio.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="Terminal_Nombre" maxlength="200" required />
+                                <div class="invalid-feedback">El nombre es obligatorio.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="mb-3 text-primary"><i class="fas fa-file-invoice"></i> Autorización de Hacienda</h6>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Formato Clave Numeración:</strong> 506-DDMMYY-############-#####-##########
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                                <select class="form-select" id="Terminal_TipoDocumento" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="01">01 - Factura Electrónica (FE)</option>
+                                    <option value="02">02 - Nota de Débito (ND)</option>
+                                    <option value="03">03 - Nota de Crédito (NC)</option>
+                                    <option value="04">04 - Tiquete Electrónico (TE)</option>
+                                    <option value="05">05 - CCE</option>
+                                    <option value="06">06 - CPCE</option>
+                                    <option value="07">07 - RCE</option>
+                                    <option value="08">08 - FEC</option>
+                                    <option value="09">09 - FEE</option>
+                                </select>
+                                <div class="invalid-feedback">Seleccione un tipo de documento.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Clave Numeración <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="Terminal_ClaveNumeracion" maxlength="50" required />
+                                <small class="text-muted">Clave asignada por Hacienda</small>
+                                <div class="invalid-feedback">La clave de numeración es obligatoria.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Número Inicial <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="Terminal_NumeroInicio" min="1" required />
+                                <small class="text-muted">Primer número</small>
+                                <div class="invalid-feedback">Requerido y mayor a 0.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Número Final <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="Terminal_NumeroFin" min="1" required />
+                                <small class="text-muted">Último número</small>
+                                <div class="invalid-feedback">Debe ser mayor al inicial.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Consecutivo Actual <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="Terminal_NumeroActual" min="0" required />
+                                <small class="text-muted">Número actual</small>
+                                <div class="invalid-feedback">Requerido.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="warningRango" class="alert alert-warning d-none" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> El consecutivo está cerca del límite (más del 90% utilizado).
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h6 class="mb-3 text-primary"><i class="fas fa-cog"></i> Estado</h6>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="Terminal_Activo" checked />
+                        <label class="form-check-label" for="Terminal_Activo">
+                            Terminal Activo
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let sucursales = [];
+    let selectedSucursalId = null;
+    let selectedSucursalNombre = '';
+
+    const tiposDocumento = {
+        '01': '01 - FE',
+        '02': '02 - ND',
+        '03': '03 - NC',
+        '04': '04 - TE',
+        '05': '05 - CCE',
+        '06': '06 - CPCE',
+        '07': '07 - RCE',
+        '08': '08 - FEC',
+        '09': '09 - FEE'
+    };
+
+    $(document).ready(function() {
+        loadSucursales();
+        setupFormSubmit();
+        setupSucursalChange();
+        setupRangeValidation();
+    });
+
+    function setupFormSubmit() {
+        $('#formTerminal').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity() && validateRanges()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupSucursalChange() {
+        $('#selectSucursal').on('change', function() {
+            const sucursalId = $(this).val();
+            if (sucursalId) {
+                selectedSucursalId = sucursalId;
+                const sucursal = sucursales.find(s => s.id === sucursalId);
+                selectedSucursalNombre = sucursal ? sucursal.nombre : '';
+                $('#btnNuevoTerminal').prop('disabled', false);
+                loadDataTable(sucursalId);
+            } else {
+                selectedSucursalId = null;
+                selectedSucursalNombre = '';
+                $('#btnNuevoTerminal').prop('disabled', true);
+                showEmptyState();
+                if (table) {
+                    table.clear().draw();
+                }
+            }
+        });
+    }
+
+    function setupRangeValidation() {
+        $('#Terminal_NumeroInicio, #Terminal_NumeroFin, #Terminal_NumeroActual').on('input', function() {
+            validateConsecutiveRange();
+        });
+    }
+
+    function loadSucursales() {
+        $.ajax({
+            url: '?handler=Sucursales',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    sucursales = response.data;
+                    const select = $('#selectSucursal');
+                    select.empty().append('<option value="">-- Seleccione una sucursal --</option>');
+                    response.data.forEach(item => {
+                        select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                    });
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function loadDataTable(sucursalId) {
+        showLoading();
+
+        if (table) {
+            table.destroy();
+        }
+
+        table = initDataTable('#tableTerminales', {
+            ajax: {
+                url: `?handler=Data&sucursalId=${sucursalId}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    updateBadge(json.data.length);
+                    showTable();
+                    return json.data;
+                }
+            },
+            columns: [
+                { data: 'id', visible: false },
+                {
+                    data: 'codigo',
+                    defaultContent: '-'
+                },
+                {
+                    data: 'nombre',
+                    defaultContent: '-'
+                },
+                {
+                    data: 'consecutivos',
+                    render: function(data) {
+                        if (!data || data.length === 0) {
+                            return '<span class="text-muted">Sin consecutivos</span>';
+                        }
+                        return `<span class="badge bg-info">${data.length} consecutivo(s)</span>`;
+                    },
+                    defaultContent: '<span class="text-muted">-</span>'
+                },
+                {
+                    data: 'activo',
+                    render: function(data) {
+                        return data
+                            ? '<span class="badge bg-success">Activo</span>'
+                            : '<span class="badge bg-secondary">Inactivo</span>';
+                    },
+                    defaultContent: '<span class="badge bg-secondary">-</span>'
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}', '${row.nombre}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[1, 'asc']]
+        });
+    }
+
+    function openCreateModal() {
+        if (!selectedSucursalId) {
+            showWarning('Debe seleccionar una sucursal primero.');
+            return;
+        }
+
+        $('#formTerminal')[0].reset();
+        $('#formTerminal').removeClass('was-validated');
+        $('#Terminal_Id').val('0');
+        $('#Terminal_SucursalId').val(selectedSucursalId);
+        $('#Terminal_Activo').prop('checked', true);
+        $('#warningRango').addClass('d-none');
+        $('#modalTitle').html(`<i class="fas fa-desktop me-2 text-primary"></i>Nueva Terminal - ${selectedSucursalNombre}`);
+        $('#modalTerminal').modal('show');
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    const data = response.data;
+                    const sucursal = sucursales.find(s => s.id === data.sucursalId);
+                    const sucursalNombre = sucursal ? sucursal.nombre : '';
+
+                    $('#Terminal_Id').val(data.id);
+                    $('#Terminal_SucursalId').val(data.sucursalId);
+                    $('#Terminal_Codigo').val(data.codigo);
+                    $('#Terminal_Nombre').val(data.nombre);
+                    $('#Terminal_TipoDocumento').val(data.tipoDocumento);
+                    $('#Terminal_ClaveNumeracion').val(data.claveNumeracionConsecutiva);
+                    $('#Terminal_NumeroInicio').val(data.numeroInicio);
+                    $('#Terminal_NumeroFin').val(data.numeroFin);
+                    $('#Terminal_NumeroActual').val(data.numeroConsecutivoActual);
+                    $('#Terminal_Activo').prop('checked', data.activo);
+
+                    validateConsecutiveRange();
+
+                    $('#modalTitle').html(`<i class="fas fa-desktop me-2 text-primary"></i>Editar Terminal - ${sucursalNombre}`);
+                    $('#formTerminal').removeClass('was-validated');
+                    $('#modalTerminal').modal('show');
+                } else {
+                    showError(response.message || 'Error al cargar el terminal');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function validateRanges() {
+        const numeroInicio = parseInt($('#Terminal_NumeroInicio').val());
+        const numeroFin = parseInt($('#Terminal_NumeroFin').val());
+        const numeroActual = parseInt($('#Terminal_NumeroActual').val());
+
+        if (numeroInicio <= 0) {
+            showError('El número de inicio debe ser mayor a 0.');
+            return false;
+        }
+
+        if (numeroFin <= numeroInicio) {
+            showError('El número final debe ser mayor al inicial.');
+            return false;
+        }
+
+        if (numeroActual < numeroInicio || numeroActual > numeroFin) {
+            showError('El consecutivo actual debe estar entre el número inicial y final.');
+            return false;
+        }
+
+        return true;
+    }
+
+    function validateConsecutiveRange() {
+        const numeroInicio = parseInt($('#Terminal_NumeroInicio').val()) || 0;
+        const numeroFin = parseInt($('#Terminal_NumeroFin').val()) || 0;
+        const numeroActual = parseInt($('#Terminal_NumeroActual').val()) || 0;
+
+        if (numeroInicio > 0 && numeroFin > numeroInicio) {
+            const total = numeroFin - numeroInicio;
+            const usado = numeroActual - numeroInicio;
+            const porcentaje = (usado / total) * 100;
+
+            if (porcentaje > 90) {
+                $('#warningRango').removeClass('d-none');
+            } else {
+                $('#warningRango').addClass('d-none');
+            }
+        }
+    }
+
+    function save() {
+        const id = $('#Terminal_Id').val();
+
+        const data = {
+            id: id === '0' ? '00000000-0000-0000-0000-000000000000' : id,
+            sucursalId: $('#Terminal_SucursalId').val(),
+            codigo: $('#Terminal_Codigo').val(),
+            nombre: $('#Terminal_Nombre').val(),
+            tipoDocumento: $('#Terminal_TipoDocumento').val(),
+            claveNumeracionConsecutiva: $('#Terminal_ClaveNumeracion').val(),
+            numeroInicio: parseInt($('#Terminal_NumeroInicio').val()),
+            numeroFin: parseInt($('#Terminal_NumeroFin').val()),
+            numeroConsecutivoActual: parseInt($('#Terminal_NumeroActual').val()),
+            activo: $('#Terminal_Activo').is(':checked')
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            data: JSON.stringify(data),
+            contentType: 'application/json',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalTerminal').modal('hide');
+                    if (table) {
+                        table.ajax.reload();
+                    }
+                } else {
+                    showError(response.message || 'Error al guardar el terminal');
+                }
+            },
+            error: function(xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteRecord(id, nombre) {
+        confirmDelete(`¿Está seguro de eliminar el terminal "${nombre}"?`, function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        if (table) {
+                            table.ajax.reload();
+                        }
+                    } else {
+                        showError(response.message || 'Error al eliminar el terminal');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function showLoading() {
+        $('#tableTerminalesLoader').show();
+        $('#tableTerminalesContainer').hide();
+        $('#emptyStateTerminales').hide();
+    }
+
+    function showTable() {
+        $('#tableTerminalesLoader').hide();
+        $('#tableTerminalesContainer').show();
+        $('#emptyStateTerminales').hide();
+    }
+
+    function showEmptyState() {
+        $('#tableTerminalesLoader').hide();
+        $('#tableTerminalesContainer').hide();
+        $('#emptyStateTerminales').show();
+        updateBadge(0);
+    }
+
+    function updateBadge(count) {
+        const text = count === 1 ? '1 terminal' : `${count} terminales`;
+        $('#badgeTotalTerminales').text(text);
+    }
+</script>
+}

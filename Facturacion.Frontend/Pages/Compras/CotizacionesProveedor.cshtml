@@ -1,0 +1,768 @@
+@page
+@model Facturacion.Frontend.Pages.Compras.CotizacionesProveedorModel
+@{
+    ViewData["Title"] = "Cotizaciones de Proveedores";
+    ViewData["Breadcrumb"] = "Cotizaciones de Proveedores";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Cotizaciones de Proveedores</h2>
+            <p class="mb-0">Comparación y gestión de cotizaciones de compra</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Solicitar nueva cotización">
+            <i class="fas fa-plus me-2"></i>Solicitar Cotización
+        </button>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="filterEstado">
+                    <option value="">Todos</option>
+                    <option value="ENV">Enviada</option>
+                    <option value="REC">Recibida</option>
+                    <option value="APR">Aprobada</option>
+                    <option value="REJ">Rechazada</option>
+                    <option value="VEN">Vencida</option>
+                    <option value="SEL">Seleccionada</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Requisición</label>
+                <select class="form-select" id="filterRequisicion">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cotizaciones Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Cotizaciones</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalCotizaciones">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="compararCotizaciones()" title="Comparar cotizaciones">
+                <i class="fas fa-balance-scale"></i> Comparar
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableCotizacionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando cotizaciones...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableCotizacionesContainer" style="display:none;">
+            <table id="tableCotizaciones" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" />
+                        </th>
+                        <th>Número</th>
+                        <th>Requisición</th>
+                        <th>Proveedor</th>
+                        <th>Fecha Solicitud</th>
+                        <th>Monto Total</th>
+                        <th>Estado</th>
+                        <th style="width: 150px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateCotizaciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <h3 class="empty-state-title">No hay cotizaciones registradas</h3>
+            <p class="empty-state-description">Comienza solicitando tu primera cotización</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Solicitar Primera Cotización
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create -->
+<div class="modal fade" id="modalCotizacion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Solicitar Cotización a Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCotizacion" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Cotizacion_Id" value="00000000-0000-0000-0000-000000000000" />
+
+                    <!-- Información General -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Requisición <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cotizacion_RequisicionId" required onchange="cargarRequisicion()">
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una requisición.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Proveedor <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cotizacion_ProveedorId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione un proveedor.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Solicitud</label>
+                            <input type="date" class="form-control" id="Cotizacion_FechaSolicitud" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Vencimiento</label>
+                            <input type="date" class="form-control" id="Cotizacion_FechaVencimiento" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Moneda</label>
+                            <select class="form-select" id="Cotizacion_Moneda">
+                                <option value="CRC">CRC - Colón</option>
+                                <option value="USD">USD - Dólar</option>
+                                <option value="EUR">EUR - Euro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="Cotizacion_Observaciones" rows="2" maxlength="1000"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-list me-2"></i>Productos a Cotizar</h6>
+
+                    <!-- Información de Requisición -->
+                    <div id="infoRequisicion" class="alert alert-info" style="display: none;">
+                        <strong>Requisición:</strong>
+                        <span id="infoReqNumero"></span> -
+                        <strong>Solicitante:</strong>
+                        <span id="infoReqSolicitante"></span>
+                    </div>
+
+                    <!-- Tabla de Detalles -->
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered" id="tableDetalles">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50%;">Producto</th>
+                                    <th style="width: 20%;">Cantidad</th>
+                                    <th style="width: 30%;">Precio Est.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detallesBody">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">
+                                        <i>Seleccione una requisición</i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i> Enviar Solicitud
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Registrar Respuesta -->
+<div class="modal fade" id="modalRegistrarRespuesta" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Registrar Respuesta de Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formRespuesta" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Respuesta_CotizacionId" />
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha Respuesta</label>
+                            <input type="date" class="form-control" id="Respuesta_FechaRespuesta" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Referencia Proveedor</label>
+                            <input type="text" class="form-control" id="Respuesta_ReferenciaProveedor" maxlength="50" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tipo Cambio</label>
+                            <input type="number" step="0.0001" class="form-control" id="Respuesta_TipoCambio" value="1.00" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Tiempo Entrega (Días)</label>
+                            <input type="number" class="form-control" id="Respuesta_TiempoEntregaDias" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Validez (Días)</label>
+                            <input type="number" class="form-control" id="Respuesta_ValidezDias" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Condiciones de Pago</label>
+                            <input type="text" class="form-control" id="Respuesta_CondicionesPago" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3">Precios Cotizados</h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered" id="tableRespuestaDetalles">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="respuestaDetallesBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-8"></div>
+                        <div class="col-md-4">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-end"><strong>Subtotal:</strong></td>
+                                    <td class="text-end" id="labelRespuestaSubtotal">₡0.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end"><strong>Impuestos:</strong></td>
+                                    <td class="text-end" id="labelRespuestaImpuestos">₡0.00</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td class="text-end"><strong>TOTAL:</strong></td>
+                                    <td class="text-end"><strong id="labelRespuestaTotal">₡0.00</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i> Guardar Respuesta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Comparar -->
+<div class="modal fade" id="modalComparar" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-balance-scale me-2"></i>Comparación de Cotizaciones</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCompararBody">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+    let detalles = [];
+    let requisicionActual = null;
+    let cotizacionesSeleccionadas = [];
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadRequisicionesAprobadas();
+        loadProveedores();
+        setDefaultDate();
+    });
+
+    function setDefaultDate() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#Cotizacion_FechaSolicitud').val(today);
+        $('#Respuesta_FechaRespuesta').val(today);
+
+        const vencimiento = new Date();
+        vencimiento.setDate(vencimiento.getDate() + 15);
+        $('#Cotizacion_FechaVencimiento').val(vencimiento.toISOString().split('T')[0]);
+    }
+
+    function loadDataTable() {
+        table = $('#tableCotizaciones').DataTable({
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(d) {
+                    const estado = $('#filterEstado').val();
+                    const requisicion = $('#filterRequisicion').val();
+                    if (estado) d.estado = estado;
+                    if (requisicion) d.requisicionId = requisicion;
+                },
+                dataSrc: function(json) {
+                    $('#tableCotizacionesLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalCotizaciones').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableCotizacionesContainer').show();
+                        $('#emptyStateCotizaciones').hide();
+                    } else {
+                        $('#tableCotizacionesContainer').hide();
+                        $('#emptyStateCotizaciones').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableCotizacionesLoader').hide();
+                    $('#tableCotizacionesContainer').hide();
+                    $('#emptyStateCotizaciones').show();
+                    $('#badgeTotalCotizaciones').text('0');
+                    console.error('Error loading cotizaciones:', error);
+                }
+            },
+            columns: [
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data) {
+                        return `<input type="checkbox" class="cotizacion-checkbox" value="${data}" onchange="updateSelection()" />`;
+                    }
+                },
+                { data: 'numero' },
+                {
+                    data: 'requisicion',
+                    render: function(data) {
+                        return data ? data.numero : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'proveedor',
+                    render: function(data) {
+                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'fechaSolicitud',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'montoTotal',
+                    render: function(data, type, row) {
+                        return data ? formatCurrency(data, row.moneda || 'CRC') : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        return getBadgeEstado(data);
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let buttons = `
+                            <button class="btn btn-sm btn-info" onclick="verDetalle('${data}')" title="Ver detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `;
+
+                        if (row.estado === 'ENV') {
+                            buttons += `
+                                <button class="btn btn-sm btn-success" onclick="registrarRespuesta('${data}')" title="Registrar respuesta">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            `;
+                        }
+
+                        if (row.estado === 'REC' && !row.seleccionada) {
+                            buttons += `
+                                <button class="btn btn-sm btn-primary" onclick="seleccionar('${data}')" title="Seleccionar">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            `;
+                        }
+
+                        return buttons;
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            responsive: true,
+            order: [[4, 'desc']],
+            pageLength: 25
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formCotizacion').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                save();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+
+        $('#formRespuesta').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                guardarRespuesta();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function loadRequisicionesAprobadas() {
+        $.ajax({
+            url: '?handler=RequisicionesAprobadas',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const selectForm = $('#Cotizacion_RequisicionId');
+                const selectFilter = $('#filterRequisicion');
+
+                selectForm.empty().append('<option value="">Seleccione...</option>');
+                selectFilter.empty().append('<option value="">Todas</option>');
+
+                data.forEach(item => {
+                    selectForm.append(`<option value="${item.id}">${item.numero}</option>`);
+                    selectFilter.append(`<option value="${item.id}">${item.numero}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadProveedores() {
+        $.ajax({
+            url: '?handler=Proveedores',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                const select = $('#Cotizacion_ProveedorId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function cargarRequisicion() {
+        const reqId = $('#Cotizacion_RequisicionId').val();
+        if (!reqId) {
+            $('#infoRequisicion').hide();
+            detalles = [];
+            renderDetalles();
+            return;
+        }
+
+        $.ajax({
+            url: '?handler=RequisicionDetails&id=' + reqId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    requisicionActual = response.data;
+                    $('#infoReqNumero').text(requisicionActual.numero);
+                    $('#infoReqSolicitante').text(requisicionActual.solicitante ? requisicionActual.solicitante.fullName || requisicionActual.solicitante.email : '-');
+                    $('#infoRequisicion').show();
+
+                    detalles = [];
+                    if (requisicionActual.detalles && requisicionActual.detalles.length > 0) {
+                        requisicionActual.detalles.forEach(detalle => {
+                            detalles.push({
+                                requisicionDetalleId: detalle.id,
+                                productoId: detalle.productoId,
+                                productoNombre: detalle.producto ? detalle.producto.nombre : 'Producto',
+                                cantidad: detalle.cantidad,
+                                precioEstimado: detalle.precioEstimado
+                            });
+                        });
+                    }
+
+                    renderDetalles();
+                } else {
+                    showError(response.message);
+                }
+            }
+        });
+    }
+
+    function renderDetalles() {
+        const tbody = $('#detallesBody');
+        tbody.empty();
+
+        if (detalles.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="3" class="text-center text-muted">
+                        <i>Seleccione una requisición</i>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        const moneda = $('#Cotizacion_Moneda').val() || 'CRC';
+
+        detalles.forEach(detalle => {
+            tbody.append(`
+                <tr>
+                    <td>${detalle.productoNombre}</td>
+                    <td class="text-end">${detalle.cantidad.toFixed(3)}</td>
+                    <td class="text-end">${formatCurrency(detalle.precioEstimado, moneda)}</td>
+                </tr>
+            `);
+        });
+    }
+
+    function openCreateModal() {
+        $('#formCotizacion')[0].reset();
+        $('#formCotizacion').removeClass('was-validated');
+        $('#Cotizacion_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Cotizacion_Moneda').val('CRC');
+        $('#infoRequisicion').hide();
+        detalles = [];
+        requisicionActual = null;
+        renderDetalles();
+        setDefaultDate();
+        $('#modalCotizacion').modal('show');
+    }
+
+    function save() {
+        const cotizacionData = {
+            id: '00000000-0000-0000-0000-000000000000',
+            empresaId: empresaId,
+            requisicionId: $('#Cotizacion_RequisicionId').val(),
+            proveedorId: $('#Cotizacion_ProveedorId').val(),
+            fechaSolicitud: $('#Cotizacion_FechaSolicitud').val() + 'T00:00:00',
+            fechaVencimiento: $('#Cotizacion_FechaVencimiento').val() ? $('#Cotizacion_FechaVencimiento').val() + 'T00:00:00' : null,
+            moneda: $('#Cotizacion_Moneda').val() || 'CRC',
+            observaciones: $('#Cotizacion_Observaciones').val() || null,
+            estado: 'ENV'
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(cotizacionData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalCotizacion').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            }
+        });
+    }
+
+    function registrarRespuesta(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    const cot = response.data;
+                    $('#Respuesta_CotizacionId').val(cot.id);
+
+                    // Load detalles for response
+                    const tbody = $('#respuestaDetallesBody');
+                    tbody.empty();
+
+                    if (cot.requisicion && cot.requisicion.detalles) {
+                        cot.requisicion.detalles.forEach((detalle, index) => {
+                            tbody.append(`
+                                <tr>
+                                    <td>${detalle.producto ? detalle.producto.nombre : '-'}</td>
+                                    <td class="text-end">${detalle.cantidad.toFixed(3)}</td>
+                                    <td>
+                                        <input type="number" step="0.00001" class="form-control form-control-sm text-end"
+                                               id="precio_${index}" data-index="${index}"
+                                               onchange="calcularTotalesRespuesta()" />
+                                    </td>
+                                    <td class="text-end" id="subtotal_${index}">₡0.00</td>
+                                </tr>
+                            `);
+                        });
+                    }
+
+                    setDefaultDate();
+                    $('#modalRegistrarRespuesta').modal('show');
+                } else {
+                    showError(response.message);
+                }
+            }
+        });
+    }
+
+    function calcularTotalesRespuesta() {
+        let subtotal = 0;
+        $('#respuestaDetallesBody tr').each(function(index) {
+            const precio = parseFloat($(`#precio_${index}`).val()) || 0;
+            const cantidad = parseFloat($(this).find('td:eq(1)').text());
+            const lineaSubtotal = precio * cantidad;
+            subtotal += lineaSubtotal;
+            $(`#subtotal_${index}`).text(formatCurrency(lineaSubtotal, 'CRC'));
+        });
+
+        const impuestos = subtotal * 0.13;
+        const total = subtotal + impuestos;
+
+        $('#labelRespuestaSubtotal').text(formatCurrency(subtotal, 'CRC'));
+        $('#labelRespuestaImpuestos').text(formatCurrency(impuestos, 'CRC'));
+        $('#labelRespuestaTotal').text(formatCurrency(total, 'CRC'));
+    }
+
+    function guardarRespuesta() {
+        showSuccess('Funcionalidad de guardar respuesta pendiente de implementación en el backend');
+        $('#modalRegistrarRespuesta').modal('hide');
+    }
+
+    function verDetalle(id) {
+        showInfo('Funcionalidad de ver detalle en desarrollo');
+    }
+
+    function seleccionar(id) {
+        confirmDialog('¿Desea seleccionar esta cotización para generar la orden de compra?', '¿Seleccionar cotización?', function() {
+            showSuccess('Funcionalidad de selección pendiente de implementación en el backend');
+        });
+    }
+
+    function toggleSelectAll(checkbox) {
+        $('.cotizacion-checkbox').prop('checked', checkbox.checked);
+        updateSelection();
+    }
+
+    function updateSelection() {
+        cotizacionesSeleccionadas = [];
+        $('.cotizacion-checkbox:checked').each(function() {
+            cotizacionesSeleccionadas.push($(this).val());
+        });
+    }
+
+    function compararCotizaciones() {
+        if (cotizacionesSeleccionadas.length < 2) {
+            showError('Seleccione al menos 2 cotizaciones para comparar');
+            return;
+        }
+        showInfo('Funcionalidad de comparación en desarrollo');
+    }
+
+    function aplicarFiltros() {
+        $('#tableCotizacionesLoader').show();
+        $('#tableCotizacionesContainer').hide();
+        $('#emptyStateCotizaciones').hide();
+        table.ajax.reload();
+    }
+
+    function refrescarTabla() {
+        $('#tableCotizacionesLoader').show();
+        $('#tableCotizacionesContainer').hide();
+        $('#emptyStateCotizaciones').hide();
+        table.ajax.reload();
+    }
+
+    function getBadgeEstado(estado) {
+        const badges = {
+            'ENV': '<span class="badge bg-primary">Enviada</span>',
+            'REC': '<span class="badge bg-success">Recibida</span>',
+            'APR': '<span class="badge bg-info">Aprobada</span>',
+            'REJ': '<span class="badge bg-danger">Rechazada</span>',
+            'VEN': '<span class="badge bg-warning text-dark">Vencida</span>',
+            'SEL': '<span class="badge bg-dark">Seleccionada</span>'
+        };
+        return badges[estado] || `<span class="badge bg-secondary">${estado}</span>`;
+    }
+</script>
+}

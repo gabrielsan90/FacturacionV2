@@ -1,0 +1,861 @@
+@page
+@model Facturacion.Frontend.Pages.Compras.RequisicionesModel
+@{
+    ViewData["Title"] = "Requisiciones de Compra";
+    ViewData["Breadcrumb"] = "Requisiciones de Compra";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-clipboard-list"></i> Requisiciones de Compra</h2>
+            <p class="mb-0">Gestión de solicitudes internas de compra</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()" aria-label="Crear nueva requisición">
+            <i class="fas fa-plus me-2"></i>Nueva Requisición
+        </button>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="filterEstado">
+                    <option value="">Todos</option>
+                    <option value="BOR">Borrador</option>
+                    <option value="ENV">Enviada</option>
+                    <option value="APR">Aprobada</option>
+                    <option value="REC">Rechazada</option>
+                    <option value="COT">En Cotización</option>
+                    <option value="OC">Con OC</option>
+                    <option value="ANU">Anulada</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Prioridad</label>
+                <select class="form-select" id="filterPrioridad">
+                    <option value="">Todas</option>
+                    <option value="URG">Urgente</option>
+                    <option value="ALT">Alta</option>
+                    <option value="MED">Media</option>
+                    <option value="BAJ">Baja</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Requisiciones Table Card -->
+<div class="card shadow-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Listado de Requisiciones</strong>
+            <span class="badge bg-secondary ms-2" id="badgeTotalRequisiciones">0</span>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar tabla">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableRequisicionesLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando requisiciones...</p>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" id="tableRequisicionesContainer" style="display:none;">
+            <table id="tableRequisiciones" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Fecha</th>
+                        <th>Solicitante</th>
+                        <th>Prioridad</th>
+                        <th>Monto Estimado</th>
+                        <th>Estado</th>
+                        <th style="width: 150px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyStateRequisiciones" class="empty-state" style="display:none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <h3 class="empty-state-title">No hay requisiciones registradas</h3>
+            <p class="empty-state-description">Comienza agregando tu primera requisición de compra</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Primera Requisición
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalRequisicion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nueva Requisición</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formRequisicion" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="Requisicion_Id" value="00000000-0000-0000-0000-000000000000" />
+                    <input type="hidden" id="Requisicion_Estado" value="BOR" />
+
+                    <!-- Información General -->
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Número</label>
+                            <input type="text" class="form-control" id="Requisicion_Numero" readonly placeholder="Autogenerado" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Requisicion_Fecha" required />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Requisicion_Prioridad" required>
+                                <option value="BAJ">Baja</option>
+                                <option value="MED" selected>Media</option>
+                                <option value="ALT">Alta</option>
+                                <option value="URG">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="Requisicion_FechaRequerida" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Sucursal</label>
+                            <select class="form-select" id="Requisicion_SucursalId">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Departamento</label>
+                            <select class="form-select" id="Requisicion_DepartamentoId">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Moneda</label>
+                            <select class="form-select" id="Requisicion_Moneda">
+                                <option value="CRC">CRC - Colón</option>
+                                <option value="USD">USD - Dólar</option>
+                                <option value="EUR">EUR - Euro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Justificación</label>
+                            <textarea class="form-control" id="Requisicion_Justificacion" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="text-primary mb-3"><i class="fas fa-list me-2"></i>Detalles de la Requisición</h6>
+
+                    <!-- Agregar Producto -->
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Producto</label>
+                            <select class="form-select" id="DetalleProductoId">
+                                <option value="">Seleccione un producto...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" step="0.001" class="form-control" id="DetalleCantidad" value="1" min="0.001" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Precio Est.</label>
+                            <input type="number" step="0.01" class="form-control" id="DetallePrecioEstimado" value="0" min="0" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Total</label>
+                            <input type="number" step="0.01" class="form-control" id="DetalleTotal" value="0" readonly />
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="button" class="btn btn-success w-100" onclick="agregarDetalle()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Detalles -->
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered" id="tableDetalles">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 45%;">Producto</th>
+                                    <th style="width: 15%;">Cantidad</th>
+                                    <th style="width: 15%;">Precio Est.</th>
+                                    <th style="width: 15%;">Total</th>
+                                    <th style="width: 10%;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detallesBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">
+                                        <i>No hay productos agregados</i>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totales -->
+                    <div class="row mt-3">
+                        <div class="col-md-8"></div>
+                        <div class="col-md-4">
+                            <table class="table table-sm">
+                                <tr class="table-primary">
+                                    <td class="text-end"><strong>MONTO ESTIMADO:</strong></td>
+                                    <td class="text-end"><strong id="labelMontoEstimado">₡0.00</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Detalle -->
+<div class="modal fade" id="modalVerDetalle" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-eye me-2"></i>Detalle de Requisición</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalVerDetalleBody">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    const empresaId = '@Model.EmpresaId';
+    let detalles = [];
+    let productos = [];
+    let sucursales = [];
+    let departamentos = [];
+
+    $(document).ready(function() {
+        loadDataTable();
+        setupFormSubmit();
+        loadProductos();
+        loadSucursales();
+        loadDepartamentos();
+        setDefaultDate();
+        setupCalculations();
+    });
+
+    function setDefaultDate() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#Requisicion_Fecha').val(today);
+        $('#Requisicion_FechaRequerida').val(today);
+    }
+
+    function setupCalculations() {
+        $('#DetalleCantidad, #DetallePrecioEstimado').on('input', function() {
+            const cantidad = parseFloat($('#DetalleCantidad').val()) || 0;
+            const precio = parseFloat($('#DetallePrecioEstimado').val()) || 0;
+            $('#DetalleTotal').val((cantidad * precio).toFixed(2));
+        });
+    }
+
+    function loadDataTable() {
+        table = $('#tableRequisiciones').DataTable({
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                data: function(d) {
+                    const estado = $('#filterEstado').val();
+                    const prioridad = $('#filterPrioridad').val();
+                    if (estado) d.estado = estado;
+                    if (prioridad) d.prioridad = prioridad;
+                },
+                dataSrc: function(json) {
+                    $('#tableRequisicionesLoader').hide();
+                    const data = json.data || json || [];
+                    $('#badgeTotalRequisiciones').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableRequisicionesContainer').show();
+                        $('#emptyStateRequisiciones').hide();
+                    } else {
+                        $('#tableRequisicionesContainer').hide();
+                        $('#emptyStateRequisiciones').show();
+                    }
+
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableRequisicionesLoader').hide();
+                    $('#tableRequisicionesContainer').hide();
+                    $('#emptyStateRequisiciones').show();
+                    $('#badgeTotalRequisiciones').text('0');
+                    console.error('Error loading requisiciones:', error);
+                }
+            },
+            columns: [
+                { data: 'numero' },
+                {
+                    data: 'fecha',
+                    render: function(data) {
+                        return formatDate(data);
+                    }
+                },
+                {
+                    data: 'solicitante',
+                    render: function(data) {
+                        return data ? data.fullName || data.email : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'prioridad',
+                    render: function(data) {
+                        return getBadgePrioridad(data);
+                    }
+                },
+                {
+                    data: 'montoEstimado',
+                    render: function(data, type, row) {
+                        return formatCurrency(data, row.moneda || 'CRC');
+                    }
+                },
+                {
+                    data: 'estado',
+                    render: function(data) {
+                        return getBadgeEstado(data);
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let buttons = `
+                            <button class="btn btn-sm btn-info" onclick="verDetalle('${data}')" title="Ver detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        `;
+
+                        if (row.estado === 'BOR') {
+                            buttons += `
+                                <button class="btn btn-sm btn-warning" onclick="edit('${data}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="enviar('${data}')" title="Enviar">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+
+                        if (row.estado === 'ENV') {
+                            buttons += `
+                                <button class="btn btn-sm btn-primary" onclick="aprobar('${data}')" title="Aprobar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            `;
+                        }
+
+                        return buttons;
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            responsive: true,
+            order: [[1, 'desc']],
+            pageLength: 25
+        });
+    }
+
+    function setupFormSubmit() {
+        $('#formRequisicion').on('submit', function(e) {
+            e.preventDefault();
+            if (this.checkValidity() && detalles.length > 0) {
+                save();
+            } else {
+                if (detalles.length === 0) {
+                    showError('Debe agregar al menos un producto a la requisición');
+                }
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function loadProductos() {
+        $.ajax({
+            url: '?handler=Productos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                productos = data;
+                const select = $('#DetalleProductoId');
+                select.empty().append('<option value="">Seleccione un producto...</option>');
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre} - ${item.codigo || ''}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadSucursales() {
+        $.ajax({
+            url: '?handler=Sucursales',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                sucursales = data;
+                const select = $('#Requisicion_SucursalId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadDepartamentos() {
+        $.ajax({
+            url: '?handler=Departamentos',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                departamentos = data;
+                const select = $('#Requisicion_DepartamentoId');
+                select.empty().append('<option value="">Seleccione...</option>');
+                data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formRequisicion')[0].reset();
+        $('#formRequisicion').removeClass('was-validated');
+        $('#Requisicion_Id').val('00000000-0000-0000-0000-000000000000');
+        $('#Requisicion_Estado').val('BOR');
+        $('#Requisicion_Moneda').val('CRC');
+        $('#Requisicion_Prioridad').val('MED');
+        detalles = [];
+        renderDetalles();
+        setDefaultDate();
+        $('#modalTitle').text('Nueva Requisición');
+        $('#modalRequisicion').modal('show');
+    }
+
+    function agregarDetalle() {
+        const productoId = $('#DetalleProductoId').val();
+        const cantidad = parseFloat($('#DetalleCantidad').val()) || 0;
+        const precioEstimado = parseFloat($('#DetallePrecioEstimado').val()) || 0;
+
+        if (!productoId) {
+            showError('Seleccione un producto');
+            return;
+        }
+
+        if (cantidad <= 0) {
+            showError('La cantidad debe ser mayor a cero');
+            return;
+        }
+
+        const producto = productos.find(p => p.id === productoId);
+        if (!producto) {
+            showError('Producto no encontrado');
+            return;
+        }
+
+        const total = cantidad * precioEstimado;
+
+        const detalle = {
+            id: '00000000-0000-0000-0000-000000000000',
+            productoId: productoId,
+            productoNombre: producto.nombre,
+            cantidad: cantidad,
+            precioEstimado: precioEstimado,
+            total: total,
+            numeroLinea: detalles.length + 1
+        };
+
+        detalles.push(detalle);
+        renderDetalles();
+
+        $('#DetalleProductoId').val('');
+        $('#DetalleCantidad').val(1);
+        $('#DetallePrecioEstimado').val(0);
+        $('#DetalleTotal').val(0);
+    }
+
+    function removeDetalle(index) {
+        detalles.splice(index, 1);
+        renderDetalles();
+    }
+
+    function renderDetalles() {
+        const tbody = $('#detallesBody');
+        tbody.empty();
+
+        if (detalles.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="5" class="text-center text-muted">
+                        <i>No hay productos agregados</i>
+                    </td>
+                </tr>
+            `);
+            actualizarTotales();
+            return;
+        }
+
+        const moneda = $('#Requisicion_Moneda').val() || 'CRC';
+
+        detalles.forEach((detalle, index) => {
+            tbody.append(`
+                <tr>
+                    <td>${detalle.productoNombre}</td>
+                    <td class="text-end">${detalle.cantidad.toFixed(3)}</td>
+                    <td class="text-end">${formatCurrency(detalle.precioEstimado, moneda)}</td>
+                    <td class="text-end">${formatCurrency(detalle.total, moneda)}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeDetalle(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+        });
+
+        actualizarTotales();
+    }
+
+    function actualizarTotales() {
+        let montoEstimado = 0;
+
+        detalles.forEach(detalle => {
+            montoEstimado += detalle.total;
+        });
+
+        const moneda = $('#Requisicion_Moneda').val() || 'CRC';
+        $('#labelMontoEstimado').text(formatCurrency(montoEstimado, moneda));
+    }
+
+    function verDetalle(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    const req = response.data;
+                    let html = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Número:</strong> ${req.numero}</p>
+                                <p><strong>Fecha:</strong> ${formatDate(req.fecha)}</p>
+                                <p><strong>Solicitante:</strong> ${req.solicitante ? req.solicitante.fullName || req.solicitante.email : '-'}</p>
+                                <p><strong>Prioridad:</strong> ${getBadgePrioridad(req.prioridad)}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Estado:</strong> ${getBadgeEstado(req.estado)}</p>
+                                <p><strong>Fecha Requerida:</strong> ${formatDate(req.fechaRequerida)}</p>
+                                <p><strong>Monto Estimado:</strong> ${formatCurrency(req.montoEstimado, req.moneda)}</p>
+                                <p><strong>Justificación:</strong> ${req.justificacion || '-'}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Detalles:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Est.</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    if (req.detalles && req.detalles.length > 0) {
+                        req.detalles.forEach(detalle => {
+                            html += `
+                                <tr>
+                                    <td>${detalle.producto ? detalle.producto.nombre : '-'}</td>
+                                    <td class="text-end">${detalle.cantidad.toFixed(3)}</td>
+                                    <td class="text-end">${formatCurrency(detalle.precioEstimado, req.moneda)}</td>
+                                    <td class="text-end">${formatCurrency(detalle.total, req.moneda)}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html += '<tr><td colspan="4" class="text-center">No hay detalles</td></tr>';
+                    }
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    $('#modalVerDetalleBody').html(html);
+                    $('#modalVerDetalle').modal('show');
+                } else {
+                    showError(response.message);
+                }
+            }
+        });
+    }
+
+    function edit(id) {
+        $.ajax({
+            url: '?handler=Details&id=' + id,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    const req = response.data;
+                    $('#Requisicion_Id').val(req.id);
+                    $('#Requisicion_Numero').val(req.numero);
+                    $('#Requisicion_Fecha').val(req.fecha.split('T')[0]);
+                    $('#Requisicion_FechaRequerida').val(req.fechaRequerida.split('T')[0]);
+                    $('#Requisicion_Prioridad').val(req.prioridad);
+                    $('#Requisicion_SucursalId').val(req.sucursalId || '');
+                    $('#Requisicion_DepartamentoId').val(req.departamentoId || '');
+                    $('#Requisicion_Moneda').val(req.moneda || 'CRC');
+                    $('#Requisicion_Justificacion').val(req.justificacion || '');
+                    $('#Requisicion_Estado').val(req.estado);
+
+                    detalles = [];
+                    if (req.detalles && req.detalles.length > 0) {
+                        req.detalles.forEach(detalle => {
+                            detalles.push({
+                                id: detalle.id,
+                                productoId: detalle.productoId,
+                                productoNombre: detalle.producto ? detalle.producto.nombre : 'Producto',
+                                cantidad: detalle.cantidad,
+                                precioEstimado: detalle.precioEstimado,
+                                total: detalle.total,
+                                numeroLinea: detalle.numeroLinea
+                            });
+                        });
+                    }
+
+                    renderDetalles();
+                    $('#modalTitle').text('Editar Requisición');
+                    $('#formRequisicion').removeClass('was-validated');
+                    $('#modalRequisicion').modal('show');
+                } else {
+                    showError(response.message);
+                }
+            }
+        });
+    }
+
+    function save() {
+        let montoEstimado = 0;
+        detalles.forEach(detalle => {
+            montoEstimado += detalle.total;
+        });
+
+        const reqData = {
+            id: $('#Requisicion_Id').val() === '00000000-0000-0000-0000-000000000000' ? '00000000-0000-0000-0000-000000000000' : $('#Requisicion_Id').val(),
+            empresaId: empresaId,
+            fecha: $('#Requisicion_Fecha').val() + 'T00:00:00',
+            fechaRequerida: $('#Requisicion_FechaRequerida').val() + 'T00:00:00',
+            prioridad: $('#Requisicion_Prioridad').val(),
+            sucursalId: $('#Requisicion_SucursalId').val() || null,
+            departamentoId: $('#Requisicion_DepartamentoId').val() || null,
+            moneda: $('#Requisicion_Moneda').val() || 'CRC',
+            justificacion: $('#Requisicion_Justificacion').val() || null,
+            montoEstimado: montoEstimado,
+            estado: $('#Requisicion_Estado').val() || 'BOR',
+            detalles: detalles
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(reqData),
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    $('#modalRequisicion').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    showError(response.message);
+                }
+            }
+        });
+    }
+
+    function enviar(id) {
+        confirmDialog('¿Está seguro de enviar esta requisición para aprobación?', '¿Enviar requisición?', function() {
+            $.ajax({
+                url: '?handler=Enviar&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                }
+            });
+        });
+    }
+
+    function aprobar(id) {
+        confirmDialog('¿Está seguro de aprobar esta requisición?', '¿Aprobar requisición?', function() {
+            $.ajax({
+                url: '?handler=Aprobar&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                }
+            });
+        });
+    }
+
+    function deleteRecord(id) {
+        confirmDelete('Esta acción no se puede revertir', function() {
+            $.ajax({
+                url: '?handler=Delete&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                }
+            });
+        });
+    }
+
+    function aplicarFiltros() {
+        $('#tableRequisicionesLoader').show();
+        $('#tableRequisicionesContainer').hide();
+        $('#emptyStateRequisiciones').hide();
+        table.ajax.reload();
+    }
+
+    function refrescarTabla() {
+        $('#tableRequisicionesLoader').show();
+        $('#tableRequisicionesContainer').hide();
+        $('#emptyStateRequisiciones').hide();
+        table.ajax.reload();
+    }
+
+    function getBadgeEstado(estado) {
+        const badges = {
+            'BOR': '<span class="badge bg-secondary">Borrador</span>',
+            'ENV': '<span class="badge bg-warning text-dark">Enviada</span>',
+            'APR': '<span class="badge bg-success">Aprobada</span>',
+            'REC': '<span class="badge bg-danger">Rechazada</span>',
+            'COT': '<span class="badge bg-info">En Cotización</span>',
+            'OC': '<span class="badge bg-primary">Con OC</span>',
+            'ANU': '<span class="badge bg-dark">Anulada</span>'
+        };
+        return badges[estado] || `<span class="badge bg-secondary">${estado}</span>`;
+    }
+
+    function getBadgePrioridad(prioridad) {
+        const badges = {
+            'URG': '<span class="badge bg-danger">Urgente</span>',
+            'ALT': '<span class="badge bg-warning text-dark">Alta</span>',
+            'MED': '<span class="badge bg-info">Media</span>',
+            'BAJ': '<span class="badge bg-secondary">Baja</span>'
+        };
+        return badges[prioridad] || `<span class="badge bg-secondary">${prioridad}</span>`;
+    }
+</script>
+}

@@ -1,0 +1,715 @@
+@page
+@model Facturacion.Frontend.Pages.Bancos.ReglasConciliacionModel
+@{
+    ViewData["Title"] = "Reglas de Conciliación";
+    ViewData["Breadcrumb"] = "Reglas de Conciliación";
+}
+
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-magic"></i> Reglas de Conciliación</h2>
+            <p class="mb-0">Configuración de reglas para conciliación automática de transacciones bancarias</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="aplicarReglas()">
+                <i class="fas fa-play-circle me-2"></i>Aplicar Reglas Ahora
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Nueva Regla
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Reglas -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <i class="fas fa-table me-2 text-primary"></i>
+        <strong>Reglas de Conciliación</strong>
+    </div>
+    <div class="card-body">
+        <table id="tblReglas" class="table table-striped table-hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Prioridad</th>
+                    <th>Cuenta Bancaria</th>
+                    <th>Criterios Activos</th>
+                    <th>Auto Conciliar</th>
+                    <th>Confianza Mínima</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Crear/Editar -->
+<div class="modal fade" id="modalRegla" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Nueva Regla de Conciliación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formRegla">
+                    <input type="hidden" id="reglaId" value="">
+
+                    <!-- Información Básica -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Información Básica</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="nombre" required maxlength="100">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="prioridad" required min="1" max="999" value="100">
+                                    <small class="form-text text-muted">Menor valor = mayor prioridad</small>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Cuenta Bancaria</label>
+                                    <select class="form-select select2" id="cuentaBancariaId">
+                                        <option value="">Todas las cuentas</option>
+                                    </select>
+                                    <small class="form-text text-muted">Vacío aplica a todas las cuentas</small>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-9">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" id="descripcion" rows="2" maxlength="500"></textarea>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-center">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="activa" checked>
+                                        <label class="form-check-label" for="activa">Regla Activa</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Criterios de Matching -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <i class="fas fa-filter me-2"></i>
+                            <strong>Criterios de Matching</strong>
+                        </div>
+                        <div class="card-body">
+                            <!-- Monto -->
+                            <div class="border rounded p-3 mb-3">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="compararMonto" checked>
+                                    <label class="form-check-label" for="compararMonto">
+                                        <strong>Comparar Monto</strong>
+                                    </label>
+                                </div>
+                                <div id="criteriosMonto" class="ms-4">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tolerancia Absoluta</label>
+                                            <input type="number" class="form-control" id="toleranciaMonto" step="0.01" min="0" value="0">
+                                            <small class="form-text text-muted">Diferencia máxima permitida en moneda (ej: comisiones)</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tolerancia Porcentual (%)</label>
+                                            <input type="number" class="form-control" id="toleranciaPorcentaje" step="0.01" min="0" max="100">
+                                            <small class="form-text text-muted">Porcentaje de diferencia permitida (ej: tipo de cambio)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fecha -->
+                            <div class="border rounded p-3 mb-3">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="compararFecha" checked>
+                                    <label class="form-check-label" for="compararFecha">
+                                        <strong>Comparar Fecha</strong>
+                                    </label>
+                                </div>
+                                <div id="criteriosFecha" class="ms-4">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tolerancia en Días</label>
+                                            <input type="number" class="form-control" id="toleranciaFechaDias" min="0" max="30" value="3">
+                                            <small class="form-text text-muted">Días de diferencia permitidos (ej: cheques en tránsito)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Referencia -->
+                            <div class="border rounded p-3 mb-3">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="compararReferencia">
+                                    <label class="form-check-label" for="compararReferencia">
+                                        <strong>Comparar Referencia</strong>
+                                    </label>
+                                </div>
+                                <div id="criteriosReferencia" class="ms-4" style="display:none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label class="form-label">Patrón de Referencia (Regex)</label>
+                                            <input type="text" class="form-control" id="patronReferencia" maxlength="200">
+                                            <small class="form-text text-muted">Expresión regular para extraer/comparar referencia (ej: REF\d{6})</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="border rounded p-3">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="compararDescripcion">
+                                    <label class="form-check-label" for="compararDescripcion">
+                                        <strong>Comparar Descripción</strong>
+                                    </label>
+                                </div>
+                                <div id="criteriosDescripcion" class="ms-4" style="display:none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label class="form-label">Palabras Clave (separadas por coma)</label>
+                                            <input type="text" class="form-control" id="palabrasClaveDescripcion" maxlength="500">
+                                            <small class="form-text text-muted">Palabras que debe contener la descripción (ej: PAGO, FACTURA, TRANSFERENCIA)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones Automáticas -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <i class="fas fa-cogs me-2"></i>
+                            <strong>Acciones Automáticas</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="autoConciliar">
+                                        <label class="form-check-label" for="autoConciliar">
+                                            <strong>Auto Conciliar</strong>
+                                        </label>
+                                    </div>
+                                    <div id="opcionesAutoConciliar" style="display:none;">
+                                        <label class="form-label">Confianza Mínima (%)</label>
+                                        <div class="input-group">
+                                            <input type="range" class="form-range" id="confianzaMinimaRange" min="0" max="100" value="95" step="5">
+                                            <input type="number" class="form-control" id="confianzaMinima" min="0" max="100" value="95" style="width: 80px;">
+                                        </div>
+                                        <small class="form-text text-muted">Solo concilia automáticamente si la confianza es igual o superior a este valor</small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="crearMovimientoFaltante">
+                                        <label class="form-check-label" for="crearMovimientoFaltante">
+                                            <strong>Crear Movimiento Faltante</strong>
+                                        </label>
+                                    </div>
+                                    <div id="opcionesMovimientoFaltante" style="display:none;">
+                                        <div class="mb-2">
+                                            <label class="form-label">Tipo de Movimiento</label>
+                                            <select class="form-select" id="tipoMovimientoDefault">
+                                                <option value="">Seleccione...</option>
+                                                <option value="DEP">Depósito</option>
+                                                <option value="RET">Retiro</option>
+                                                <option value="COM">Comisión</option>
+                                                <option value="INT">Interés</option>
+                                                <option value="OTR">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="form-label">Cuenta Contable Default</label>
+                                            <select class="form-select select2" id="cuentaContableDefaultId">
+                                                <option value="">Seleccione...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveRegla()">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let table;
+        let reglasData = [];
+        let cuentasData = [];
+        let cuentasContablesData = [];
+
+        $(document).ready(function() {
+            initDataTable();
+            loadCombos();
+            setupEventHandlers();
+        });
+
+        function initDataTable() {
+            table = $('#tblReglas').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                },
+                ajax: {
+                    url: '?handler=Data',
+                    dataSrc: function(json) {
+                        reglasData = json;
+                        return json;
+                    }
+                },
+                columns: [
+                    { data: 'nombre' },
+                    {
+                        data: 'prioridad',
+                        render: function(data) {
+                            return `<span class="badge bg-secondary">${data}</span>`;
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data) {
+                            if (data.cuentaBancaria) {
+                                return data.cuentaBancaria.nombre;
+                            } else if (data.cuentaBancariaId) {
+                                const cuenta = cuentasData.find(c => c.id === data.cuentaBancariaId);
+                                return cuenta ? cuenta.nombre : 'Cuenta específica';
+                            }
+                            return '<span class="badge bg-info">Todas</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data) {
+                            let criterios = [];
+                            if (data.compararMonto) criterios.push('<span class="badge bg-primary me-1">Monto</span>');
+                            if (data.compararFecha) criterios.push('<span class="badge bg-primary me-1">Fecha</span>');
+                            if (data.compararReferencia) criterios.push('<span class="badge bg-primary me-1">Referencia</span>');
+                            if (data.compararDescripcion) criterios.push('<span class="badge bg-primary me-1">Descripción</span>');
+                            return criterios.length > 0 ? criterios.join('') : '<span class="text-muted">Ninguno</span>';
+                        }
+                    },
+                    {
+                        data: 'autoConciliar',
+                        render: function(data) {
+                            return data
+                                ? '<span class="badge bg-success"><i class="fas fa-check"></i> Sí</span>'
+                                : '<span class="badge bg-secondary"><i class="fas fa-times"></i> No</span>';
+                        }
+                    },
+                    {
+                        data: 'confianzaMinima',
+                        render: function(data, type, row) {
+                            if (row.autoConciliar) {
+                                return `<span class="badge bg-info">${data}%</span>`;
+                            }
+                            return '<span class="text-muted">N/A</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data) {
+                            const checked = data.activa ? 'checked' : '';
+                            return `
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" ${checked}
+                                           onchange="toggleRegla('${data.id}')"
+                                           title="${data.activa ? 'Desactivar' : 'Activar'}">
+                                </div>
+                            `;
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data) {
+                            return `
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" onclick="viewRegla('${data.id}')" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="editRegla('${data.id}')" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteRegla('${data.id}')" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ],
+                order: [[1, 'asc']], // Ordenar por prioridad
+                responsive: true
+            });
+        }
+
+        function loadCombos() {
+            // Cargar cuentas bancarias
+            $.get('?handler=CuentasBancarias', function(data) {
+                cuentasData = data;
+                let options = '<option value="">Todas las cuentas</option>';
+                data.forEach(c => {
+                    options += `<option value="${c.id}">${c.nombre} (${c.numeroCuenta})</option>`;
+                });
+                $('#cuentaBancariaId').html(options);
+            });
+
+            // Cargar cuentas contables
+            $.get('?handler=CuentasContables', function(data) {
+                cuentasContablesData = data;
+                let options = '<option value="">Seleccione...</option>';
+                if (Array.isArray(data)) {
+                    data.forEach(c => {
+                        options += `<option value="${c.id}">${c.codigo} - ${c.nombre}</option>`;
+                    });
+                }
+                $('#cuentaContableDefaultId').html(options);
+            });
+        }
+
+        function setupEventHandlers() {
+            // Toggle criterios visibility
+            $('#compararReferencia').change(function() {
+                $('#criteriosReferencia').toggle(this.checked);
+            });
+
+            $('#compararDescripcion').change(function() {
+                $('#criteriosDescripcion').toggle(this.checked);
+            });
+
+            // Toggle auto conciliar options
+            $('#autoConciliar').change(function() {
+                $('#opcionesAutoConciliar').toggle(this.checked);
+            });
+
+            // Toggle crear movimiento options
+            $('#crearMovimientoFaltante').change(function() {
+                $('#opcionesMovimientoFaltante').toggle(this.checked);
+            });
+
+            // Sincronizar confianza mínima
+            $('#confianzaMinimaRange').on('input', function() {
+                $('#confianzaMinima').val($(this).val());
+            });
+
+            $('#confianzaMinima').on('input', function() {
+                $('#confianzaMinimaRange').val($(this).val());
+            });
+        }
+
+        function openCreateModal() {
+            resetForm();
+            $('#modalTitle').text('Nueva Regla de Conciliación');
+            $('#modalRegla').modal('show');
+        }
+
+        function resetForm() {
+            $('#reglaId').val('');
+            $('#nombre').val('');
+            $('#descripcion').val('');
+            $('#prioridad').val('100');
+            $('#activa').prop('checked', true);
+            $('#cuentaBancariaId').val('');
+
+            // Criterios
+            $('#compararMonto').prop('checked', true);
+            $('#toleranciaMonto').val('0');
+            $('#toleranciaPorcentaje').val('');
+
+            $('#compararFecha').prop('checked', true);
+            $('#toleranciaFechaDias').val('3');
+
+            $('#compararReferencia').prop('checked', false);
+            $('#patronReferencia').val('');
+            $('#criteriosReferencia').hide();
+
+            $('#compararDescripcion').prop('checked', false);
+            $('#palabrasClaveDescripcion').val('');
+            $('#criteriosDescripcion').hide();
+
+            // Acciones
+            $('#autoConciliar').prop('checked', false);
+            $('#confianzaMinima').val('95');
+            $('#confianzaMinimaRange').val('95');
+            $('#opcionesAutoConciliar').hide();
+
+            $('#crearMovimientoFaltante').prop('checked', false);
+            $('#tipoMovimientoDefault').val('');
+            $('#cuentaContableDefaultId').val('');
+            $('#opcionesMovimientoFaltante').hide();
+        }
+
+        function editRegla(id) {
+            $.get('?handler=ById&id=' + id, function(response) {
+                if (response.success && response.data) {
+                    const regla = response.data;
+
+                    $('#reglaId').val(regla.id);
+                    $('#nombre').val(regla.nombre);
+                    $('#descripcion').val(regla.descripcion || '');
+                    $('#prioridad').val(regla.prioridad);
+                    $('#activa').prop('checked', regla.activa);
+                    $('#cuentaBancariaId').val(regla.cuentaBancariaId || '');
+
+                    // Criterios
+                    $('#compararMonto').prop('checked', regla.compararMonto);
+                    $('#toleranciaMonto').val(regla.toleranciaMonto);
+                    $('#toleranciaPorcentaje').val(regla.toleranciaPorcentaje || '');
+
+                    $('#compararFecha').prop('checked', regla.compararFecha);
+                    $('#toleranciaFechaDias').val(regla.toleranciaFechaDias);
+
+                    $('#compararReferencia').prop('checked', regla.compararReferencia);
+                    $('#patronReferencia').val(regla.patronReferencia || '');
+                    $('#criteriosReferencia').toggle(regla.compararReferencia);
+
+                    $('#compararDescripcion').prop('checked', regla.compararDescripcion);
+                    $('#palabrasClaveDescripcion').val(regla.palabrasClaveDescripcion || '');
+                    $('#criteriosDescripcion').toggle(regla.compararDescripcion);
+
+                    // Acciones
+                    $('#autoConciliar').prop('checked', regla.autoConciliar);
+                    $('#confianzaMinima').val(regla.confianzaMinima);
+                    $('#confianzaMinimaRange').val(regla.confianzaMinima);
+                    $('#opcionesAutoConciliar').toggle(regla.autoConciliar);
+
+                    $('#crearMovimientoFaltante').prop('checked', regla.crearMovimientoFaltante);
+                    $('#tipoMovimientoDefault').val(regla.tipoMovimientoDefault || '');
+                    $('#cuentaContableDefaultId').val(regla.cuentaContableDefaultId || '');
+                    $('#opcionesMovimientoFaltante').toggle(regla.crearMovimientoFaltante);
+
+                    $('#modalTitle').text('Editar Regla de Conciliación');
+                    $('#modalRegla').modal('show');
+                } else {
+                    Swal.fire('Error', 'No se pudo cargar la regla', 'error');
+                }
+            });
+        }
+
+        function viewRegla(id) {
+            const regla = reglasData.find(r => r.id === id);
+            if (!regla) return;
+
+            let html = `
+                <div class="text-start">
+                    <h6><strong>Información General</strong></h6>
+                    <p><strong>Nombre:</strong> ${regla.nombre}</p>
+                    <p><strong>Descripción:</strong> ${regla.descripcion || 'N/A'}</p>
+                    <p><strong>Prioridad:</strong> ${regla.prioridad}</p>
+                    <p><strong>Estado:</strong> ${regla.activa ? '<span class="badge bg-success">Activa</span>' : '<span class="badge bg-secondary">Inactiva</span>'}</p>
+
+                    <hr>
+
+                    <h6><strong>Criterios de Matching</strong></h6>
+                    <ul>
+                        ${regla.compararMonto ? `<li><strong>Monto:</strong> Tolerancia ${regla.toleranciaMonto} ${regla.toleranciaPorcentaje ? `+ ${regla.toleranciaPorcentaje}%` : ''}</li>` : ''}
+                        ${regla.compararFecha ? `<li><strong>Fecha:</strong> ±${regla.toleranciaFechaDias} días</li>` : ''}
+                        ${regla.compararReferencia ? `<li><strong>Referencia:</strong> Patrón: ${regla.patronReferencia}</li>` : ''}
+                        ${regla.compararDescripcion ? `<li><strong>Descripción:</strong> ${regla.palabrasClaveDescripcion}</li>` : ''}
+                    </ul>
+
+                    <hr>
+
+                    <h6><strong>Acciones Automáticas</strong></h6>
+                    <p><strong>Auto Conciliar:</strong> ${regla.autoConciliar ? `Sí (Confianza mínima: ${regla.confianzaMinima}%)` : 'No'}</p>
+                    <p><strong>Crear Movimiento Faltante:</strong> ${regla.crearMovimientoFaltante ? 'Sí' : 'No'}</p>
+                </div>
+            `;
+
+            Swal.fire({
+                title: 'Detalles de la Regla',
+                html: html,
+                icon: 'info',
+                width: '600px',
+                confirmButtonText: 'Cerrar'
+            });
+        }
+
+        function saveRegla() {
+            if (!$('#formRegla')[0].checkValidity()) {
+                $('#formRegla')[0].reportValidity();
+                return;
+            }
+
+            const regla = {
+                id: $('#reglaId').val() || '00000000-0000-0000-0000-000000000000',
+                nombre: $('#nombre').val(),
+                descripcion: $('#descripcion').val() || null,
+                prioridad: parseInt($('#prioridad').val()),
+                activa: $('#activa').is(':checked'),
+                cuentaBancariaId: $('#cuentaBancariaId').val() || null,
+
+                // Criterios
+                compararMonto: $('#compararMonto').is(':checked'),
+                toleranciaMonto: parseFloat($('#toleranciaMonto').val()) || 0,
+                toleranciaPorcentaje: $('#toleranciaPorcentaje').val() ? parseFloat($('#toleranciaPorcentaje').val()) : null,
+
+                compararFecha: $('#compararFecha').is(':checked'),
+                toleranciaFechaDias: parseInt($('#toleranciaFechaDias').val()) || 3,
+
+                compararReferencia: $('#compararReferencia').is(':checked'),
+                patronReferencia: $('#patronReferencia').val() || null,
+
+                compararDescripcion: $('#compararDescripcion').is(':checked'),
+                palabrasClaveDescripcion: $('#palabrasClaveDescripcion').val() || null,
+
+                // Acciones
+                autoConciliar: $('#autoConciliar').is(':checked'),
+                confianzaMinima: parseFloat($('#confianzaMinima').val()) || 95,
+
+                crearMovimientoFaltante: $('#crearMovimientoFaltante').is(':checked'),
+                tipoMovimientoDefault: $('#tipoMovimientoDefault').val() || null,
+                cuentaContableDefaultId: $('#cuentaContableDefaultId').val() || null
+            };
+
+            $.ajax({
+                url: '?handler=Save',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(regla),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#modalRegla').modal('hide');
+                        table.ajax.reload();
+                        Swal.fire('Éxito', response.message, 'success');
+                    } else {
+                        Swal.fire('Error', response.message || 'Error al guardar la regla', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire('Error', xhr.responseText || 'Error al guardar la regla', 'error');
+                }
+            });
+        }
+
+        function toggleRegla(id) {
+            $.ajax({
+                url: `?handler=Toggle&id=${id}`,
+                type: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        table.ajax.reload(null, false); // Mantener página actual
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: response.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire('Error', xhr.responseText || 'Error al cambiar el estado', 'error');
+                    table.ajax.reload(null, false);
+                }
+            });
+        }
+
+        function deleteRegla(id) {
+            const regla = reglasData.find(r => r.id === id);
+            if (!regla) return;
+
+            Swal.fire({
+                title: '¿Eliminar regla?',
+                html: `¿Está seguro que desea eliminar la regla <strong>${regla.nombre}</strong>?<br><small>Esta acción no se puede deshacer.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `?handler=Delete&id=${id}`,
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                table.ajax.reload();
+                                Swal.fire('Eliminada', response.message, 'success');
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', xhr.responseText || 'Error al eliminar la regla', 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function aplicarReglas() {
+            Swal.fire({
+                title: '¿Aplicar reglas de conciliación?',
+                html: 'Se intentarán conciliar todas las transacciones pendientes usando las reglas activas.<br><small>Este proceso puede tomar varios minutos.</small>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, aplicar',
+                cancelButtonText: 'Cancelar',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return $.ajax({
+                        url: '?handler=Aplicar',
+                        type: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    }).then(response => {
+                        if (!response.success) {
+                            throw new Error(response.message || 'Error al aplicar las reglas');
+                        }
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage(`Error: ${error.message || error.responseText || 'Error desconocido'}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    Swal.fire({
+                        title: 'Reglas aplicadas',
+                        html: result.value.message,
+                        icon: 'success'
+                    });
+                }
+            });
+        }
+    </script>
+}

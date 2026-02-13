@@ -192,9 +192,21 @@ public class DocumentoEnvioBackgroundService : BackgroundService
 
             try
             {
+                // Calcular tiempo en proceso
+                var tiempoEnProceso = documento.FechaEnvioHacienda.HasValue
+                    ? FechaCostaRicaHelper.Ahora - documento.FechaEnvioHacienda.Value
+                    : TimeSpan.Zero;
+
                 // Consultar estado en Hacienda
-                _logger.LogDebug("Consultando estado en Hacienda para documento {Clave} (ID: {DocumentoId})",
-                    documento.Clave, documento.Id);
+                _logger.LogInformation(
+                    "Consultando estado en Hacienda para documento {Clave} (ID: {DocumentoId}). " +
+                    "FechaEnvio: {FechaEnvio}, TiempoEnProceso: {TiempoMinutos} minutos, " +
+                    "FechaRespuesta: {FechaRespuesta}",
+                    documento.Clave,
+                    documento.Id,
+                    documento.FechaEnvioHacienda,
+                    tiempoEnProceso.TotalMinutes,
+                    documento.FechaRespuestaHacienda);
 
                 var estado = await documentoService.ConsultarEstadoAsync(documento.Id);
 
@@ -241,6 +253,14 @@ public class DocumentoEnvioBackgroundService : BackgroundService
 
                                 await CrearNotificacionEstadoAsync(notificacionService, documento,
                                     TipoNotificacion.DocumentoAceptado, "success", "fa-check-circle");
+
+                                // ENVÍO AUTOMÁTICO DE CORREO AL RECEPTOR (SOLO EN PRODUCCIÓN)
+                                if (documento.Ambiente == Shared.Enums.Ambiente.Produccion && !documento.CorreoEnviado)
+                                {
+                                    _logger.LogInformation("Iniciando envío automático de correo para documento {Clave} en producción",
+                                        documento.Clave);
+                                    await EnviarCorreoAutomaticoAsync(scope, documento);
+                                }
                             }
                             break;
 
@@ -305,10 +325,32 @@ public class DocumentoEnvioBackgroundService : BackgroundService
                         documento.Clave);
                 }
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex,
+                    "Error HTTP al consultar documento {Clave} (ID: {DocumentoId}): {Message}. " +
+                    "Posible problema de conectividad con Hacienda",
+                    documento.Clave, documento.Id, ex.Message);
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex,
+                    "Timeout al consultar documento {Clave} (ID: {DocumentoId}). " +
+                    "Hacienda no respondió a tiempo",
+                    documento.Clave, documento.Id);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("token") || ex.Message.Contains("credentials"))
+            {
+                _logger.LogError(ex,
+                    "Error de autenticación al consultar documento {Clave} (ID: {DocumentoId}): {Message}. " +
+                    "Verifique las credenciales de Hacienda de la empresa",
+                    documento.Clave, documento.Id, ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error consultando estado del documento {Clave} (ID: {DocumentoId})",
-                    documento.Clave, documento.Id);
+                _logger.LogError(ex,
+                    "Error inesperado al consultar documento {Clave} (ID: {DocumentoId}): {Message}",
+                    documento.Clave, documento.Id, ex.Message);
             }
         }
     }
@@ -467,6 +509,70 @@ public class DocumentoEnvioBackgroundService : BackgroundService
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Envía automáticamente el correo electrónico al receptor cuando un documento es aceptado en producción
+    /// </summary>
+    private async Task EnviarCorreoAutomaticoAsync(IServiceScope scope, Documento documento)
+    {
+        try
+        {
+            var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            _logger.LogInformation("Enviando correo automático para documento {Clave} (ID: {DocumentoId})",
+                documento.Clave, documento.Id);
+
+            // Enviar el documento electrónico por correo
+            var resultado = await emailService.EnviarDocumentoElectronicoAsync(
+                documento.Id,
+                emailsAdicionales: null,
+                mensaje: "Este documento ha sido aceptado por el Ministerio de Hacienda de Costa Rica.");
+
+            if (resultado.WasSuccess && resultado.Result != null)
+            {
+                // Actualizar documento con información del envío exitoso
+                documento.CorreoEnviado = true;
+                documento.FechaEnvioCorreo = FechaCostaRicaHelper.Ahora;
+                documento.MensajeEnvioCorreo = resultado.Result.Mensaje;
+
+                _logger.LogInformation("Correo enviado exitosamente para documento {Clave} a {Count} destinatarios",
+                    documento.Clave, resultado.Result.EmailsEnviados?.Count ?? 0);
+            }
+            else
+            {
+                // Registrar el intento fallido
+                documento.CorreoEnviado = false;
+                documento.FechaEnvioCorreo = FechaCostaRicaHelper.Ahora;
+                documento.MensajeEnvioCorreo = $"Error: {resultado.Message}";
+
+                _logger.LogWarning("Error al enviar correo automático para documento {Clave}: {Mensaje}",
+                    documento.Clave, resultado.Message);
+            }
+
+            // Guardar cambios en la base de datos
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error enviando correo automático para documento {Clave} (ID: {DocumentoId})",
+                documento.Clave, documento.Id);
+
+            // Intentar registrar el error en la base de datos
+            try
+            {
+                var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+                documento.CorreoEnviado = false;
+                documento.FechaEnvioCorreo = FechaCostaRicaHelper.Ahora;
+                documento.MensajeEnvioCorreo = $"Excepción: {ex.Message}";
+                await context.SaveChangesAsync();
+            }
+            catch (Exception saveEx)
+            {
+                _logger.LogError(saveEx, "Error guardando estado de envío de correo para documento {DocumentoId}", documento.Id);
+            }
         }
     }
 }

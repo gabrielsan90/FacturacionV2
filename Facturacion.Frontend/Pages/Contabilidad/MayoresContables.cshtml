@@ -1,0 +1,696 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.MayoresContablesModel
+@{
+    ViewData["Title"] = "Mayores Contables";
+    ViewData["Breadcrumb"] = "Mayores Contables";
+}
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div>
+        <h2><i class="fas fa-book"></i> Mayores Contables (Libro Mayor)</h2>
+        <p class="mb-0">Consulta de saldos y movimientos por cuenta contable</p>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros de Consulta</strong>
+    </div>
+    <div class="card-body">
+        <form id="formFiltros">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Período Contable <small>(Opcional)</small></label>
+                    <select class="form-select" id="filtroPeriodo" onchange="aplicarPeriodo()">
+                        <option value="">-- Selección manual --</option>
+                    </select>
+                    <div class="form-text">Selecciona un período o ingresa fechas manualmente</div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Desde <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="fechaDesde" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Hasta <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="fechaHasta" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Cuenta Contable <small>(Opcional)</small></label>
+                    <select class="form-select" id="filtroCuenta">
+                        <option value="">-- Todas las cuentas --</option>
+                    </select>
+                    <div class="form-text">Filtra por cuenta específica o deja vacío para todas</div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="button" class="btn btn-primary" onclick="generarReporte()">
+                            <i class="fas fa-play me-2"></i>Generar
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                            <i class="fas fa-eraser"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div id="summaryCards" style="display: none;">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Total Débitos</h6>
+                            <h3 class="mb-0 fw-bold" id="cardTotalDebitos">₡0.00</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-plus-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 bg-gradient-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Total Créditos</h6>
+                            <h3 class="mb-0 fw-bold" id="cardTotalCreditos">₡0.00</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-minus-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-white-50">Saldo Total</h6>
+                            <h3 class="mb-0 fw-bold" id="cardSaldoTotal">₡0.00</h3>
+                        </div>
+                        <div class="bg-white bg-opacity-25 p-3 rounded">
+                            <i class="fas fa-balance-scale fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Results -->
+<div id="reportContainer" style="display: none;">
+    <div class="card shadow-custom">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-table me-2 text-primary"></i>
+                <strong>Libro Mayor</strong>
+                <span class="badge bg-secondary ms-2" id="badgeCuentas">0</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-success" onclick="exportarExcel()" title="Exportar a Excel">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </button>
+                <button type="button" class="btn btn-info" onclick="imprimirReporte()" title="Imprimir">
+                    <i class="fas fa-print me-1"></i>Imprimir
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="tableMayores" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th>Cuenta</th>
+                            <th class="text-end">Saldo Anterior</th>
+                            <th class="text-end">Débitos</th>
+                            <th class="text-end">Créditos</th>
+                            <th class="text-end">Saldo Final</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableMayoresBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="emptyState" class="card shadow-custom">
+    <div class="card-body py-5">
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <h3 class="empty-state-title">Generar Reporte de Mayores Contables</h3>
+            <p class="empty-state-description">Selecciona un rango de fechas y opcionalmente una cuenta específica, luego presiona "Generar" para visualizar el libro mayor</p>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="loadingState" style="display: none;">
+    <div class="card shadow-custom">
+        <div class="card-body py-5">
+            <div class="text-center">
+                <div class="spinner-modern mx-auto mb-3"></div>
+                <h5 class="text-muted">Generando reporte...</h5>
+                <p class="text-muted">Por favor espere mientras se procesan los datos contables</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    let reporteActual = null;
+    let fechasActuales = { fechaDesde: null, fechaHasta: null };
+
+    $(document).ready(function() {
+        inicializarFechasDefecto();
+        cargarPeriodos();
+        cargarCuentas();
+    });
+
+    function inicializarFechasDefecto() {
+        const hoy = new Date();
+        const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+        $('#fechaDesde').val(formatDateInput(primerDia));
+        $('#fechaHasta').val(formatDateInput(hoy));
+    }
+
+    function formatDateInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    async function cargarPeriodos() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Periodos',
+                type: 'GET',
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+            });
+
+            const select = $('#filtroPeriodo');
+            select.find('option:not(:first)').remove();
+
+            if (response && response.length > 0) {
+                response.forEach(periodo => {
+                    select.append(`<option value="${periodo.id}" data-inicio="${periodo.fechaInicio}" data-fin="${periodo.fechaFin}">${periodo.nombre}</option>`);
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar períodos:', error);
+        }
+    }
+
+    async function cargarCuentas() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Cuentas',
+                type: 'GET',
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+            });
+
+            const select = $('#filtroCuenta');
+            select.find('option:not(:first)').remove();
+
+            if (response && response.length > 0) {
+                response.forEach(cuenta => {
+                    select.append(`<option value="${cuenta.id}">${cuenta.text}</option>`);
+                });
+
+                // Inicializar Select2
+                $('#filtroCuenta').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '-- Todas las cuentas --',
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar cuentas:', error);
+        }
+    }
+
+    function aplicarPeriodo() {
+        const selected = $('#filtroPeriodo option:selected');
+        if (selected.val()) {
+            const fechaInicio = selected.data('inicio').split('T')[0];
+            const fechaFin = selected.data('fin').split('T')[0];
+            $('#fechaDesde').val(fechaInicio);
+            $('#fechaHasta').val(fechaFin);
+        }
+    }
+
+    function limpiarFiltros() {
+        $('#filtroPeriodo').val('');
+        $('#filtroCuenta').val('').trigger('change');
+        inicializarFechasDefecto();
+    }
+
+    async function generarReporte() {
+        const fechaDesde = $('#fechaDesde').val();
+        const fechaHasta = $('#fechaHasta').val();
+
+        if (!fechaDesde || !fechaHasta) {
+            Swal.fire('Atención', 'Debe seleccionar un rango de fechas', 'warning');
+            return;
+        }
+
+        if (new Date(fechaDesde) > new Date(fechaHasta)) {
+            Swal.fire('Atención', 'La fecha desde no puede ser mayor a la fecha hasta', 'warning');
+            return;
+        }
+
+        mostrarCargando(true);
+
+        const cuentaId = $('#filtroCuenta').val();
+        const filtro = {
+            fechaDesde: fechaDesde,
+            fechaHasta: fechaHasta,
+            cuentaId: cuentaId || null
+        };
+
+        fechasActuales = { fechaDesde, fechaHasta, cuentaId };
+
+        try {
+            const response = await $.ajax({
+                url: '?handler=Generar',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(filtro),
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+            });
+
+            if (response.success && response.data) {
+                reporteActual = response.data;
+                mostrarReporte(response.data);
+            } else {
+                Swal.fire('Error', 'No se pudo generar el reporte', 'error');
+                mostrarCargando(false);
+                $('#emptyState').show();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Ocurrió un error al generar el reporte', 'error');
+            mostrarCargando(false);
+            $('#emptyState').show();
+        }
+    }
+
+    function mostrarCargando(mostrar) {
+        if (mostrar) {
+            $('#emptyState').hide();
+            $('#reportContainer').hide();
+            $('#summaryCards').hide();
+            $('#loadingState').show();
+        } else {
+            $('#loadingState').hide();
+        }
+    }
+
+    function mostrarReporte(data) {
+        mostrarCargando(false);
+        $('#emptyState').hide();
+        $('#summaryCards').show();
+        $('#reportContainer').show();
+
+        // Actualizar cards de resumen
+        $('#cardTotalDebitos').text(formatCurrency(data.totalDebitos));
+        $('#cardTotalCreditos').text(formatCurrency(data.totalCreditos));
+        $('#cardSaldoTotal').text(formatCurrency(data.saldoTotal));
+
+        // Actualizar badge
+        $('#badgeCuentas').text(`${data.mayores?.length || 0} cuenta(s)`);
+
+        // Renderizar tabla
+        renderizarTablaMayores(data.mayores || []);
+    }
+
+    function renderizarTablaMayores(mayores) {
+        const tbody = $('#tableMayoresBody');
+        tbody.empty();
+
+        if (mayores.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p class="mb-0">No hay movimientos en el período seleccionado</p>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        mayores.forEach((mayor, index) => {
+            const rowId = `mayor_${index}`;
+            const detailRowId = `detail_${index}`;
+            const hasMovimientos = mayor.movimientos && mayor.movimientos.length > 0;
+
+            tbody.append(`
+                <tr id="${rowId}" class="cursor-pointer ${hasMovimientos ? 'expandable-row' : ''}" ${hasMovimientos ? `onclick="toggleDetalle('${detailRowId}', '${mayor.cuentaId}')"` : ''}>
+                    <td class="text-center">
+                        ${hasMovimientos ? `<i class="fas fa-chevron-right expand-icon" id="icon_${detailRowId}"></i>` : ''}
+                    </td>
+                    <td>
+                        <strong>${mayor.cuentaCodigo}</strong>
+                        <div class="text-muted small">${mayor.cuentaNombre}</div>
+                    </td>
+                    <td class="text-end">${formatCurrency(mayor.saldoAnterior)}</td>
+                    <td class="text-end text-primary fw-bold">${formatCurrency(mayor.totalDebe)}</td>
+                    <td class="text-end text-danger fw-bold">${formatCurrency(mayor.totalHaber)}</td>
+                    <td class="text-end fw-bold ${mayor.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">
+                        ${formatCurrency(mayor.saldoFinal)}
+                    </td>
+                </tr>
+                ${hasMovimientos ? `
+                <tr id="${detailRowId}" class="detail-row" style="display: none;">
+                    <td colspan="6" class="p-0">
+                        <div class="detail-content bg-light p-3">
+                            <div id="movimientos_${index}">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                ` : ''}
+            `);
+        });
+    }
+
+    async function toggleDetalle(detailRowId, cuentaId) {
+        const row = $(`#${detailRowId}`);
+        const icon = $(`#icon_${detailRowId}`);
+        const index = detailRowId.split('_')[1];
+        const movimientosContainer = $(`#movimientos_${index}`);
+
+        if (row.is(':visible')) {
+            row.hide();
+            icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+        } else {
+            row.show();
+            icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+
+            // Verificar si ya se cargaron los movimientos
+            if (movimientosContainer.data('loaded')) {
+                return;
+            }
+
+            // Cargar movimientos
+            try {
+                const response = await $.ajax({
+                    url: `?handler=Movimientos&cuentaId=${cuentaId}&fechaDesde=${fechasActuales.fechaDesde}&fechaHasta=${fechasActuales.fechaHasta}`,
+                    type: 'GET',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() }
+                });
+
+                if (response.success && response.data) {
+                    renderizarMovimientos(movimientosContainer, response.data);
+                    movimientosContainer.data('loaded', true);
+                } else {
+                    movimientosContainer.html('<p class="text-danger text-center py-3">Error al cargar movimientos</p>');
+                }
+            } catch (error) {
+                console.error('Error al cargar movimientos:', error);
+                movimientosContainer.html('<p class="text-danger text-center py-3">Error al cargar movimientos</p>');
+            }
+        }
+    }
+
+    function renderizarMovimientos(container, movimientos) {
+        if (!movimientos || movimientos.length === 0) {
+            container.html('<p class="text-muted text-center py-3">No hay movimientos para esta cuenta</p>');
+            return;
+        }
+
+        let html = `
+            <table class="table table-sm table-striped mb-0">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Asiento #</th>
+                        <th>Concepto</th>
+                        <th>Referencia</th>
+                        <th class="text-end">Debe</th>
+                        <th class="text-end">Haber</th>
+                        <th class="text-end">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        movimientos.forEach(mov => {
+            html += `
+                <tr>
+                    <td>${formatDate(mov.fecha)}</td>
+                    <td><span class="badge bg-secondary">${mov.asientoNumero}</span></td>
+                    <td>${mov.concepto || '-'}</td>
+                    <td>${mov.referencia || '-'}</td>
+                    <td class="text-end ${mov.debe > 0 ? 'text-primary' : ''}">${mov.debe > 0 ? formatCurrency(mov.debe) : '-'}</td>
+                    <td class="text-end ${mov.haber > 0 ? 'text-danger' : ''}">${mov.haber > 0 ? formatCurrency(mov.haber) : '-'}</td>
+                    <td class="text-end fw-bold">${formatCurrency(mov.saldoAcumulado)}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        container.html(html);
+    }
+
+    async function exportarExcel() {
+        if (!reporteActual) {
+            Swal.fire('Atención', 'Primero debe generar un reporte', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Exportando...',
+            text: 'Generando archivo Excel',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const filtro = {
+                fechaDesde: fechasActuales.fechaDesde,
+                fechaHasta: fechasActuales.fechaHasta,
+                cuentaId: fechasActuales.cuentaId || null
+            };
+
+            const response = await fetch('?handler=ExportarExcel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                body: JSON.stringify(filtro)
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Mayores_Contables_${fechasActuales.fechaDesde}_${fechasActuales.fechaHasta}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Excel exportado',
+                    text: 'El archivo se ha descargado correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Error', 'No se pudo exportar a Excel', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Ocurrió un error al exportar', 'error');
+        }
+    }
+
+    function imprimirReporte() {
+        if (!reporteActual) {
+            Swal.fire('Atención', 'Primero debe generar un reporte', 'warning');
+            return;
+        }
+
+        window.print();
+    }
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('es-CR', {
+            style: 'currency',
+            currency: 'CRC',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-CR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+</script>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .bg-gradient-danger {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .expandable-row {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .expandable-row:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+
+    .expand-icon {
+        transition: transform 0.2s;
+        color: #6c757d;
+    }
+
+    .detail-row td {
+        border-top: none !important;
+    }
+
+    .detail-content {
+        border-left: 3px solid #0d6efd;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .spinner-modern {
+        width: 3rem;
+        height: 3rem;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        color: #ccc;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.5rem;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state-description {
+        color: #6c757d;
+        font-size: 1rem;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    @@media print {
+        .page-header,
+        .card-header .btn-group,
+        #formFiltros,
+        .expand-icon,
+        .navbar,
+        .sidebar,
+        footer {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        #summaryCards .card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .detail-row {
+            display: table-row !important;
+        }
+
+        body {
+            font-size: 10pt;
+        }
+    }
+</style>
+}

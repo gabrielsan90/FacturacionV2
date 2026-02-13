@@ -1,0 +1,296 @@
+@page
+@model Facturacion.Frontend.Pages.Seguridad.PrivilegiosModel
+@{
+    ViewData["Title"] = "Privilegios del Sistema";
+    ViewData["Breadcrumb"] = "Seguridad > Privilegios";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h2><i class="fas fa-shield-alt"></i> Privilegios del Sistema</h2>
+            <p class="mb-0">Referencia de todos los privilegios disponibles en el sistema (Solo lectura)</p>
+        </div>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info mb-4" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Vista de Referencia:</strong> Esta página muestra todos los privilegios disponibles en el sistema.
+    Para asignar privilegios a roles, utilice la página de <a href="/Seguridad/Roles" class="alert-link">Gestión de Roles</a>.
+</div>
+
+<!-- Filter Card -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <strong><i class="fas fa-filter me-2"></i>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Módulo</label>
+                <select class="form-select" id="filtroModulo">
+                    <option value="">Todos los módulos</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Acción</label>
+                <select class="form-select" id="filtroAccion">
+                    <option value="">Todas las acciones</option>
+                    <option value="Crear">Crear</option>
+                    <option value="Leer">Leer</option>
+                    <option value="Actualizar">Actualizar</option>
+                    <option value="Eliminar">Eliminar</option>
+                    <option value="Exportar">Exportar</option>
+                    <option value="Aprobar">Aprobar</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Card -->
+<div class="card shadow-custom">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Listado de Privilegios</strong>
+                <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Loading State -->
+        <div id="tableLoader" class="text-center py-5">
+            <div class="spinner-modern mx-auto"></div>
+            <p class="text-muted mt-3">Cargando privilegios...</p>
+        </div>
+
+        <!-- Table Container -->
+        <div id="tableContainer" style="display: none;">
+            <table id="tablePrivilegios" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Módulo</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="empty-state-title">No hay privilegios registrados</h3>
+            <p class="empty-state-description">No se encontraron privilegios en el sistema</p>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Card -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow-custom">
+            <div class="card-header">
+                <strong><i class="fas fa-chart-pie me-2"></i>Resumen de Privilegios por Módulo</strong>
+            </div>
+            <div class="card-body">
+                <div id="privilegiosStats" class="row">
+                    <!-- Statistics will be loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let table;
+    let allPrivilegios = [];
+    let modulos = [];
+
+    $(document).ready(function() {
+        loadModulos();
+        loadDataTable();
+    });
+
+    async function loadModulos() {
+        try {
+            const response = await $.ajax({
+                url: '?handler=Modulos',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+            modulos = response || [];
+
+            $('#filtroModulo').empty().append('<option value="">Todos los módulos</option>');
+            modulos.forEach(modulo => {
+                $('#filtroModulo').append(
+                    `<option value="${modulo.id}">${modulo.nombre}</option>`
+                );
+            });
+        } catch (error) {
+            console.error('Error loading modulos:', error);
+        }
+    }
+
+    function loadDataTable() {
+        table = initDataTable('#tablePrivilegios', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                dataSrc: function(json) {
+                    $('#tableLoader').hide();
+                    const data = json.data || json || [];
+                    allPrivilegios = data;
+                    $('#badgeTotal').text(data.length);
+
+                    if (data.length > 0) {
+                        $('#tableContainer').show();
+                        $('#emptyState').hide();
+                        updateStatistics(data);
+                    } else {
+                        $('#tableContainer').hide();
+                        $('#emptyState').show();
+                    }
+                    return data;
+                },
+                error: function(xhr, error, code) {
+                    $('#tableLoader').hide();
+                    $('#tableContainer').hide();
+                    $('#emptyState').show();
+                    $('#badgeTotal').text('0');
+                    console.error('Error loading privilegios:', error);
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'id' },
+                {
+                    data: 'modulo.nombre',
+                    render: function(data) {
+                        return data || '<span class="text-muted">Sin módulo</span>';
+                    }
+                },
+                { data: 'nombre' },
+                {
+                    data: 'descripcion',
+                    render: function(data) {
+                        return data || '<span class="text-muted">-</span>';
+                    }
+                },
+                {
+                    data: 'accion',
+                    render: function(data) {
+                        const badges = {
+                            'Crear': '<span class="badge bg-success">Crear</span>',
+                            'Leer': '<span class="badge bg-info">Leer</span>',
+                            'Actualizar': '<span class="badge bg-warning">Actualizar</span>',
+                            'Eliminar': '<span class="badge bg-danger">Eliminar</span>',
+                            'Exportar': '<span class="badge bg-primary">Exportar</span>',
+                            'Aprobar': '<span class="badge bg-secondary">Aprobar</span>'
+                        };
+                        return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
+                    }
+                }
+            ],
+            order: [[1, 'asc'], [0, 'asc']]
+        });
+    }
+
+    function aplicarFiltros() {
+        const moduloId = $('#filtroModulo').val();
+        const accion = $('#filtroAccion').val();
+
+        table.columns(1).search(moduloId ? moduloId : '', false, false);
+        table.columns(4).search(accion ? accion : '', false, false);
+        table.draw();
+
+        // Update statistics with filtered data
+        const filteredData = table.rows({ search: 'applied' }).data().toArray();
+        updateStatistics(filteredData);
+    }
+
+    function updateStatistics(data) {
+        // Group by module
+        const byModule = {};
+        data.forEach(priv => {
+            const moduleName = priv.modulo?.nombre || 'Sin Módulo';
+            if (!byModule[moduleName]) {
+                byModule[moduleName] = 0;
+            }
+            byModule[moduleName]++;
+        });
+
+        // Display statistics
+        $('#privilegiosStats').empty();
+        const moduleNames = Object.keys(byModule).sort();
+        const colors = ['primary', 'success', 'info', 'warning', 'danger', 'secondary'];
+
+        moduleNames.forEach((moduleName, index) => {
+            const count = byModule[moduleName];
+            const colorClass = colors[index % colors.length];
+
+            $('#privilegiosStats').append(`
+                <div class="col-md-3 mb-3">
+                    <div class="card border-${colorClass}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">${moduleName}</h6>
+                                    <h3 class="mb-0 text-${colorClass}">${count}</h3>
+                                </div>
+                                <div class="text-${colorClass} fs-2">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+
+        // Total
+        $('#privilegiosStats').append(`
+            <div class="col-md-3 mb-3">
+                <div class="card border-dark">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Total</h6>
+                                <h3 class="mb-0 text-dark">${data.length}</h3>
+                            </div>
+                            <div class="text-dark fs-2">
+                                <i class="fas fa-list"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+</script>
+}
