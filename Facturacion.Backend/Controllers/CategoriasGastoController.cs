@@ -28,7 +28,7 @@ public class CategoriasGastoController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todas las categorías de gasto
+    /// Obtiene todas las categorías de gasto (sin filtrar por empresa - legacy)
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAllAsync([FromQuery] bool includeInactive = false)
@@ -36,8 +36,6 @@ public class CategoriasGastoController : ControllerBase
         try
         {
             var categorias = await _unitOfWork.CategoriaGastoRepository.GetAllAsync(includeInactive);
-            _logger.LogInformation("Se obtuvieron {Count} categorías de gasto (incluir inactivas: {IncludeInactive})",
-                categorias.Count(), includeInactive);
             return Ok(categorias);
         }
         catch (Exception ex)
@@ -48,7 +46,43 @@ public class CategoriasGastoController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene solo las categorías activas
+    /// Obtiene las categorías de gasto de una empresa
+    /// </summary>
+    [HttpGet("empresa/{empresaId:guid}")]
+    public async Task<IActionResult> GetByEmpresaAsync(Guid empresaId, [FromQuery] bool includeInactive = false)
+    {
+        try
+        {
+            var categorias = await _unitOfWork.CategoriaGastoRepository.GetByEmpresaAsync(empresaId, includeInactive);
+            return Ok(categorias);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener categorías de gasto para empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener categorías de gasto.");
+        }
+    }
+
+    /// <summary>
+    /// Obtiene solo las categorías activas de una empresa
+    /// </summary>
+    [HttpGet("activas/empresa/{empresaId:guid}")]
+    public async Task<IActionResult> GetActivasByEmpresaAsync(Guid empresaId)
+    {
+        try
+        {
+            var categorias = await _unitOfWork.CategoriaGastoRepository.GetActivasByEmpresaAsync(empresaId);
+            return Ok(categorias);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener categorías activas para empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener categorías de gasto activas.");
+        }
+    }
+
+    /// <summary>
+    /// Obtiene solo las categorías activas (legacy)
     /// </summary>
     [HttpGet("activas")]
     public async Task<IActionResult> GetActivasAsync()
@@ -56,7 +90,6 @@ public class CategoriasGastoController : ControllerBase
         try
         {
             var categorias = await _unitOfWork.CategoriaGastoRepository.GetActivasAsync();
-            _logger.LogInformation("Se obtuvieron {Count} categorías de gasto activas", categorias.Count());
             return Ok(categorias);
         }
         catch (Exception ex)
@@ -78,7 +111,6 @@ public class CategoriasGastoController : ControllerBase
 
             if (categoria == null)
             {
-                _logger.LogWarning("Categoría de gasto {CategoriaGastoId} no encontrada", id);
                 return NotFound("La categoría de gasto no existe.");
             }
 
@@ -101,22 +133,20 @@ public class CategoriasGastoController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Intento de crear categoría de gasto con datos inválidos");
                 return BadRequest(ModelState);
             }
 
-            // Verificar que no exista otra categoría con el mismo nombre
-            var existente = await _unitOfWork.CategoriaGastoRepository.GetByNombreAsync(categoria.Nombre);
+            // Verificar que no exista otra categoría con el mismo nombre en la misma empresa
+            var existente = await _unitOfWork.CategoriaGastoRepository.GetByNombreYEmpresaAsync(categoria.Nombre, categoria.EmpresaId);
             if (existente != null)
             {
-                _logger.LogWarning("Intento de crear categoría de gasto duplicada con nombre {Nombre}", categoria.Nombre);
-                return BadRequest("Ya existe una categoría con este nombre.");
+                return BadRequest("Ya existe una categoría con este nombre en la empresa.");
             }
 
             var nuevaCategoria = await _unitOfWork.CategoriaGastoRepository.AddAsync(categoria);
 
-            _logger.LogInformation("Categoría de gasto {CategoriaGastoId} creada exitosamente con nombre {Nombre}",
-                nuevaCategoria.Id, categoria.Nombre);
+            _logger.LogInformation("Categoría de gasto creada: {Id} - {Nombre} para empresa {EmpresaId}",
+                nuevaCategoria.Id, categoria.Nombre, categoria.EmpresaId);
 
             return Ok(nuevaCategoria);
         }
@@ -137,36 +167,30 @@ public class CategoriasGastoController : ControllerBase
         {
             if (id != categoria.Id)
             {
-                _logger.LogWarning("Intento de actualizar categoría de gasto con ID inconsistente. URL: {UrlId}, Body: {BodyId}",
-                    id, categoria.Id);
                 return BadRequest("El ID de la URL no coincide con el ID de la categoría.");
             }
 
             if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Intento de actualizar categoría de gasto {CategoriaGastoId} con datos inválidos", id);
                 return BadRequest(ModelState);
             }
 
             var existente = await _unitOfWork.CategoriaGastoRepository.GetAsync(id);
             if (existente == null)
             {
-                _logger.LogWarning("Intento de actualizar categoría de gasto inexistente {CategoriaGastoId}", id);
                 return NotFound("La categoría de gasto no existe.");
             }
 
-            // Verificar que no exista otra categoría con el mismo nombre
-            var duplicado = await _unitOfWork.CategoriaGastoRepository.GetByNombreAsync(categoria.Nombre);
+            // Verificar que no exista otra categoría con el mismo nombre en la misma empresa
+            var duplicado = await _unitOfWork.CategoriaGastoRepository.GetByNombreYEmpresaAsync(categoria.Nombre, categoria.EmpresaId);
             if (duplicado != null && duplicado.Id != id)
             {
-                _logger.LogWarning("Intento de actualizar categoría de gasto {CategoriaGastoId} con nombre duplicado {Nombre}",
-                    id, categoria.Nombre);
-                return BadRequest("Ya existe otra categoría con este nombre.");
+                return BadRequest("Ya existe otra categoría con este nombre en la empresa.");
             }
 
             await _unitOfWork.CategoriaGastoRepository.UpdateAsync(categoria);
 
-            _logger.LogInformation("Categoría de gasto {CategoriaGastoId} actualizada exitosamente", id);
+            _logger.LogInformation("Categoría de gasto actualizada: {Id}", id);
 
             return Ok(categoria);
         }
@@ -188,21 +212,17 @@ public class CategoriasGastoController : ControllerBase
             var categoria = await _unitOfWork.CategoriaGastoRepository.GetAsync(id);
             if (categoria == null)
             {
-                _logger.LogWarning("Intento de eliminar categoría de gasto inexistente {CategoriaGastoId}", id);
                 return NotFound("La categoría de gasto no existe.");
             }
 
-            // Verificar si tiene gastos asociados
             if (categoria.Gastos != null && categoria.Gastos.Any(g => !g.IsDeleted))
             {
-                _logger.LogWarning("Intento de eliminar categoría de gasto {CategoriaGastoId} con {Count} gastos asociados",
-                    id, categoria.Gastos.Count(g => !g.IsDeleted));
                 return BadRequest("No se puede desactivar una categoría que tiene gastos asociados.");
             }
 
             await _unitOfWork.CategoriaGastoRepository.DeleteAsync(id);
 
-            _logger.LogInformation("Categoría de gasto {CategoriaGastoId} eliminada exitosamente", id);
+            _logger.LogInformation("Categoría de gasto desactivada: {Id}", id);
 
             return NoContent();
         }
@@ -210,6 +230,82 @@ public class CategoriasGastoController : ControllerBase
         {
             _logger.LogError(ex, "Error al eliminar categoría de gasto {CategoriaGastoId}", id);
             return StatusCode(500, "Error interno al desactivar la categoría.");
+        }
+    }
+
+    /// <summary>
+    /// Crea un catálogo genérico de categorías de gasto para una empresa
+    /// Solo crea las que no existen aún (por nombre) en esa empresa
+    /// </summary>
+    [HttpPost("catalogo-generico/{empresaId:guid}")]
+    public async Task<IActionResult> CrearCatalogoGenericoAsync(Guid empresaId)
+    {
+        try
+        {
+            var categoriasGenericas = new List<(string nombre, string descripcion)>
+            {
+                ("Alquiler", "Alquiler de oficina, bodega o local comercial"),
+                ("Servicios Públicos", "Agua, electricidad, internet, teléfono"),
+                ("Salarios y Planilla", "Sueldos, cargas sociales, aguinaldos, vacaciones"),
+                ("Suministros de Oficina", "Papelería, tinta, materiales de oficina"),
+                ("Transporte y Combustible", "Gasolina, peajes, mantenimiento vehicular"),
+                ("Alimentación", "Comidas de trabajo, viáticos de alimentación"),
+                ("Seguros", "Pólizas de seguros empresariales, INS, riesgos del trabajo"),
+                ("Impuestos y Tasas", "Impuestos municipales, patentes, timbres fiscales"),
+                ("Mantenimiento y Reparaciones", "Reparaciones de equipo, edificio, vehículos"),
+                ("Publicidad y Marketing", "Anuncios, redes sociales, material promocional"),
+                ("Servicios Profesionales", "Contabilidad, asesoría legal, consultoría"),
+                ("Tecnología", "Software, licencias, hosting, dominios, soporte técnico"),
+                ("Viáticos y Hospedaje", "Gastos de viaje, hospedaje, transporte aéreo"),
+                ("Capacitación", "Cursos, seminarios, certificaciones del personal"),
+                ("Equipo y Herramientas", "Compra de equipo menor, herramientas de trabajo"),
+                ("Limpieza y Aseo", "Productos y servicios de limpieza"),
+                ("Gastos Bancarios", "Comisiones bancarias, transferencias, chequeras"),
+                ("Depreciación", "Depreciación de activos fijos"),
+                ("Donaciones", "Donaciones deducibles"),
+                ("Otros Gastos", "Gastos varios no clasificados")
+            };
+
+            int creadas = 0;
+            int existentes = 0;
+
+            foreach (var (nombre, descripcion) in categoriasGenericas)
+            {
+                var existe = await _unitOfWork.CategoriaGastoRepository.GetByNombreYEmpresaAsync(nombre, empresaId);
+                if (existe != null)
+                {
+                    existentes++;
+                    continue;
+                }
+
+                await _unitOfWork.CategoriaGastoRepository.AddAsync(new CategoriaGasto
+                {
+                    EmpresaId = empresaId,
+                    Nombre = nombre,
+                    Descripcion = descripcion,
+                    Activa = true
+                });
+                creadas++;
+            }
+
+            _logger.LogInformation("Catálogo genérico creado para empresa {EmpresaId}: {Creadas} nuevas, {Existentes} ya existían",
+                empresaId, creadas, existentes);
+
+            return Ok(new
+            {
+                success = true,
+                message = creadas > 0
+                    ? $"Se crearon {creadas} categorías genéricas" + (existentes > 0 ? $" ({existentes} ya existían)" : "")
+                    : "Todas las categorías genéricas ya existen",
+                creadas,
+                existentes,
+                total = creadas + existentes
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear catálogo genérico para empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al crear el catálogo genérico.");
         }
     }
 

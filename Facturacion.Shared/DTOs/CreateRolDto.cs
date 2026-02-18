@@ -13,6 +13,9 @@ public class CreateRolDto
     [Display(Name = "Descripción")]
     public string? Descripcion { get; set; }
 
+    [Display(Name = "Empresa")]
+    public Guid? EmpresaId { get; set; }
+
     [Display(Name = "Activo")]
     public bool Activo { get; set; } = true;
 }

@@ -18,7 +18,8 @@ public interface IDocumentoRepository
         DocumentoTipo? tipoDocumento = null,
         DateTime? fechaInicio = null,
         DateTime? fechaFin = null,
-        Ambiente? ambiente = null);
+        Ambiente? ambiente = null,
+        bool? esDocumentoRecibido = null);
     Task<IEnumerable<Documento>> GetBySucursalAsync(Guid sucursalId);
     Task<IEnumerable<Documento>> GetByTerminalAsync(Guid terminalId);
     Task<IEnumerable<Documento>> GetByClienteAsync(Guid clienteId);

@@ -35,7 +35,6 @@ public class MayoresContablesModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -77,7 +76,6 @@ public class MayoresContablesModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -126,7 +124,6 @@ public class MayoresContablesModel : PageModel
             }
 
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -174,7 +171,6 @@ public class MayoresContablesModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -208,7 +204,6 @@ public class MayoresContablesModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -366,26 +361,18 @@ public class MayoresContablesModel : PageModel
         }
     }
 
-    private HttpClient? CreateApiClient()
+    private HttpClient CreateApiClient()
     {
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 
-        // Try to get token from claims first (standard approach)
         var token = User.FindFirst("Token")?.Value;
-
-        // Fallback to cookie if not in claims
-        if (string.IsNullOrEmpty(token))
-        {
-            Request.Cookies.TryGetValue("authToken", out token);
-        }
-
         if (!string.IsNullOrEmpty(token))
         {
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            return client;
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        return null;
+        return client;
     }
 
     private Guid? GetEmpresaId()

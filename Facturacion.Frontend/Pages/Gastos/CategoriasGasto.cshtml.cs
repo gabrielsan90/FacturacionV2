@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Facturacion.Shared.Entities;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
@@ -17,6 +18,8 @@ public class CategoriasGastoModel : PageModel
     [BindProperty]
     public CategoriaGasto CategoriaGasto { get; set; } = new();
 
+    public string EmpresaId { get; set; } = "";
+
     public CategoriasGastoModel(IHttpClientFactory httpClientFactory, ILogger<CategoriasGastoModel> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -30,41 +33,54 @@ public class CategoriasGastoModel : PageModel
 
     public void OnGet()
     {
-        // Page initialization
+        EmpresaId = User.FindFirstValue("EmpresaId") ?? "";
+    }
+
+    private HttpClient CreateAuthenticatedClient()
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        return client;
     }
 
     /// <summary>
-    /// Handler for DataTable - Load all categorias de gasto
+    /// Handler for DataTable - Load categorias de gasto por empresa
     /// </summary>
     public async Task<IActionResult> OnGetDataAsync()
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            // Get JWT token from user claims
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
+            var empresaId = User.FindFirstValue("EmpresaId");
+            if (string.IsNullOrEmpty(empresaId))
             {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                return new JsonResult(new { data = new List<object>() });
             }
 
-            // Call API with includeInactive=true to show all categories
-            var response = await client.GetAsync("/api/CategoriasGasto?includeInactive=true");
+            var client = CreateAuthenticatedClient();
+            var response = await client.GetAsync($"/api/CategoriasGasto/empresa/{empresaId}?includeInactive=true");
 
             if (response.IsSuccessStatusCode)
             {
-                var categorias = await response.Content.ReadFromJsonAsync<List<CategoriaGasto>>(_jsonOptions);
-                return new JsonResult(new { data = categorias ?? new List<CategoriaGasto>() });
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load categorías de gasto. Status: {StatusCode}", response.StatusCode);
-            return new JsonResult(new { data = new List<CategoriaGasto>() });
+            return new JsonResult(new { data = new List<object>() });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading categorías de gasto");
-            return new JsonResult(new { data = new List<CategoriaGasto>() });
+            return new JsonResult(new { data = new List<object>() });
         }
     }
 
@@ -75,14 +91,7 @@ public class CategoriasGastoModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateAuthenticatedClient();
             var response = await client.GetAsync($"/api/CategoriasGasto/{id}");
 
             if (response.IsSuccessStatusCode)
@@ -92,7 +101,6 @@ public class CategoriasGastoModel : PageModel
             }
 
             var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Categoría de gasto not found with ID: {Id}. Error: {Error}", id, error);
             return new JsonResult(new { success = false, message = error });
         }
         catch (Exception ex)
@@ -109,7 +117,15 @@ public class CategoriasGastoModel : PageModel
     {
         try
         {
-            // Validate model
+            var empresaId = User.FindFirstValue("EmpresaId");
+            if (string.IsNullOrEmpty(empresaId))
+            {
+                return new JsonResult(new { success = false, message = "Empresa no identificada" });
+            }
+
+            // Asegurar que la categoría tenga el EmpresaId correcto
+            categoriaData.EmpresaId = Guid.Parse(empresaId);
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState
@@ -123,13 +139,7 @@ public class CategoriasGastoModel : PageModel
                 return new JsonResult(new { success = false, message = "Datos inválidos", errors });
             }
 
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
+            var client = CreateAuthenticatedClient();
 
             var json = JsonSerializer.Serialize(categoriaData, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -148,9 +158,6 @@ public class CategoriasGastoModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Categoría de gasto {Action} successfully. ID: {Id}",
-                    isNew ? "created" : "updated", categoriaData.Id);
-
                 return new JsonResult(new
                 {
                     success = true,
@@ -159,9 +166,6 @@ public class CategoriasGastoModel : PageModel
             }
 
             var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to save categoría de gasto. Status: {StatusCode}, Error: {Error}",
-                response.StatusCode, error);
-
             return new JsonResult(new { success = false, message = error });
         }
         catch (Exception ex)
@@ -178,24 +182,15 @@ public class CategoriasGastoModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateAuthenticatedClient();
             var response = await client.DeleteAsync($"/api/CategoriasGasto/{id}");
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Categoría de gasto deleted successfully. ID: {Id}", id);
                 return new JsonResult(new { success = true, message = "Categoría de gasto desactivada exitosamente" });
             }
 
             var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to delete categoría de gasto with ID: {Id}. Error: {Error}", id, error);
             return new JsonResult(new { success = false, message = error });
         }
         catch (Exception ex)
@@ -206,20 +201,46 @@ public class CategoriasGastoModel : PageModel
     }
 
     /// <summary>
-    /// Handler to download Excel template for expense categories
+    /// Handler para crear catálogo genérico de categorías
+    /// </summary>
+    public async Task<IActionResult> OnPostCatalogoGenericoAsync()
+    {
+        try
+        {
+            var empresaId = User.FindFirstValue("EmpresaId");
+            if (string.IsNullOrEmpty(empresaId))
+            {
+                return new JsonResult(new { success = false, message = "Empresa no identificada" });
+            }
+
+            var client = CreateAuthenticatedClient();
+            var content = new StringContent("", Encoding.UTF8, "application/json");
+            var response = await client.PostAsync($"/api/CategoriasGasto/catalogo-generico/{empresaId}", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<object>(_jsonOptions);
+                return new JsonResult(result);
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating catálogo genérico");
+            return new JsonResult(new { success = false, message = "Error al crear el catálogo genérico" });
+        }
+    }
+
+    /// <summary>
+    /// Handler to download Excel template
     /// </summary>
     public async Task<IActionResult> OnGetPlantillaAsync()
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateAuthenticatedClient();
             var response = await client.GetAsync("/api/categoriasgasto/plantilla");
 
             if (response.IsSuccessStatusCode)
@@ -228,7 +249,6 @@ public class CategoriasGastoModel : PageModel
                 return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "PlantillaCategoriasGasto.xlsx");
             }
 
-            _logger.LogWarning("Failed to download template. Status: {StatusCode}", response.StatusCode);
             return BadRequest("Error al descargar la plantilla");
         }
         catch (Exception ex)
@@ -250,13 +270,7 @@ public class CategoriasGastoModel : PageModel
                 return new JsonResult(new { success = false, message = "No se seleccionó ningún archivo" });
             }
 
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
+            var client = CreateAuthenticatedClient();
 
             using var content = new MultipartFormDataContent();
             using var fileStream = file.OpenReadStream();
@@ -273,7 +287,6 @@ public class CategoriasGastoModel : PageModel
             }
 
             var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to import. Status: {StatusCode}, Error: {Error}", response.StatusCode, error);
             return new JsonResult(new { success = false, message = error });
         }
         catch (Exception ex)

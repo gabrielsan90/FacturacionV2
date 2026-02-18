@@ -671,7 +671,7 @@ public class CatalogosController : ControllerBase
                 {
                     u.Id,
                     u.Codigo,
-                    nombre = u.Descripcion
+                    u.Descripcion
                 })
                 .ToListAsync();
 
@@ -866,8 +866,8 @@ public class CatalogosController : ControllerBase
                 {
                     i.Id,
                     i.Codigo,
-                    descripcion = i.Descripcion,
-                    tarifa = i.Porcentaje
+                    i.Descripcion,
+                    i.Porcentaje
                 })
                 .ToListAsync();
 

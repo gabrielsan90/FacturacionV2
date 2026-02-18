@@ -1,7 +1,9 @@
+using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Facturacion.Backend.Controllers;
 
@@ -15,14 +17,20 @@ namespace Facturacion.Backend.Controllers;
 public class DocumentosRecibidosController : ControllerBase
 {
     private readonly IDocumentoRecepcionService _recepcionService;
+    private readonly IEmailReaderService _emailReaderService;
     private readonly ILogger<DocumentosRecibidosController> _logger;
+    private readonly DataContext _context;
 
     public DocumentosRecibidosController(
         IDocumentoRecepcionService recepcionService,
-        ILogger<DocumentosRecibidosController> logger)
+        IEmailReaderService emailReaderService,
+        ILogger<DocumentosRecibidosController> logger,
+        DataContext context)
     {
         _recepcionService = recepcionService;
+        _emailReaderService = emailReaderService;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
@@ -125,9 +133,10 @@ public class DocumentosRecibidosController : ControllerBase
     {
         try
         {
-            var documento = await _recepcionService.BuscarDocumentoPorClaveAsync(
-                (await _recepcionService.ObtenerDocumentosRecibidosAsync(Guid.Empty))
-                    .FirstOrDefault(d => d.Id == id)?.Clave ?? "");
+            var documento = await _context.Documentos
+                .Include(d => d.Proveedor)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == id && d.EsDocumentoRecibido && !d.IsDeleted);
 
             if (documento == null)
             {
@@ -261,6 +270,35 @@ public class DocumentosRecibidosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al buscar documento por clave");
+            return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Lee correos no leídos vía IMAP y procesa XMLs adjuntos
+    /// POST /api/documentosrecibidos/leer-correos/{empresaId}
+    /// </summary>
+    [HttpPost("leer-correos/{empresaId}")]
+    public async Task<IActionResult> LeerCorreos(Guid empresaId)
+    {
+        try
+        {
+            _logger.LogInformation("Iniciando lectura de correos IMAP para empresa {EmpresaId}", empresaId);
+
+            var resultado = await _emailReaderService.LeerCorreosAsync(empresaId);
+
+            if (resultado.Exitoso)
+            {
+                return Ok(resultado);
+            }
+            else
+            {
+                return BadRequest(resultado);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al leer correos para empresa {EmpresaId}", empresaId);
             return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
         }
     }

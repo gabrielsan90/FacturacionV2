@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Facturacion.Frontend.Pages.Ventas;
 
@@ -62,14 +63,27 @@ public class CotizacionesModel : PageModel
             var content = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(content);
 
-            // API returns ActionResponse<T> with result property
-            if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            // API may return array directly or wrapped in ActionResponse<T>
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
             {
-                return new JsonResult(new { data = resultElement });
+                dataJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            {
+                dataJson = resultElement.GetRawText();
+            }
+            else
+            {
+                dataJson = content;
             }
 
-            // Fallback: try to use the whole response as data
-            return new JsonResult(new { data = doc.RootElement });
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{dataJson}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
         return new JsonResult(new { data = new List<object>() });
@@ -94,11 +108,26 @@ public class CotizacionesModel : PageModel
             var content = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(content);
 
-            if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array || doc.RootElement.ValueKind == JsonValueKind.Object && !doc.RootElement.TryGetProperty("result", out _))
             {
-                return new JsonResult(new { success = true, data = resultElement });
+                dataJson = content;
             }
-            return new JsonResult(new { success = true, data = doc.RootElement });
+            else if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            {
+                dataJson = resultElement.GetRawText();
+            }
+            else
+            {
+                dataJson = content;
+            }
+
+            return new ContentResult
+            {
+                Content = $"{{\"success\":true,\"data\":{dataJson}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
         return new JsonResult(new { success = false, message = "Cotización no encontrada" });
@@ -174,7 +203,58 @@ public class CotizacionesModel : PageModel
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        var json = JsonSerializer.Serialize(cotizacionData);
+        var empresaId = User.FindFirstValue("EmpresaId") ?? "";
+
+        // Transform JS payload to match Cotizacion entity structure
+        var obj = JsonNode.Parse(JsonSerializer.Serialize(cotizacionData))!.AsObject();
+
+        // Fix estado: JS sends 'BOR' but backend expects EstadoCotizacion enum name
+        obj.Remove("estado");
+        obj["estado"] = "Borrador";
+
+        // Map 'fecha' → 'fechaEmision' (entity field name)
+        if (obj.ContainsKey("fecha"))
+        {
+            obj["fechaEmision"] = obj["fecha"]!.DeepClone();
+            obj.Remove("fecha");
+        }
+
+        // Map 'descuentoTotal' → 'totalDescuentos'
+        if (obj.ContainsKey("descuentoTotal"))
+        {
+            obj["totalDescuentos"] = obj["descuentoTotal"]!.DeepClone();
+            obj.Remove("descuentoTotal");
+        }
+
+        // Map 'impuestos' → 'totalImpuestos'
+        if (obj.ContainsKey("impuestos"))
+        {
+            obj["totalImpuestos"] = obj["impuestos"]!.DeepClone();
+            obj.Remove("impuestos");
+        }
+
+        // Set required defaults if missing
+        if (!obj.ContainsKey("numero") || string.IsNullOrEmpty(obj["numero"]?.ToString()))
+            obj["numero"] = "PENDIENTE"; // Controller generates the real number
+
+        if (!obj.ContainsKey("condicionVenta") || string.IsNullOrEmpty(obj["condicionVenta"]?.ToString()))
+            obj["condicionVenta"] = "01"; // Default: Contado
+
+        if (!obj.ContainsKey("medioPago") || string.IsNullOrEmpty(obj["medioPago"]?.ToString()))
+            obj["medioPago"] = "01"; // Default: Efectivo
+
+        if (!obj.ContainsKey("moneda"))
+            obj["moneda"] = "CRC";
+
+        // Fetch default sucursal/terminal if missing
+        if (!obj.ContainsKey("sucursalId") || obj["sucursalId"]?.ToString() == "00000000-0000-0000-0000-000000000000")
+        {
+            var sucTerminal = await ObtenerSucursalTerminalDefaultAsync(client, empresaId);
+            obj["sucursalId"] = sucTerminal.sucursalId;
+            obj["terminalId"] = sucTerminal.terminalId;
+        }
+
+        var json = obj.ToJsonString();
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
@@ -332,5 +412,58 @@ public class CotizacionesModel : PageModel
 
         var error = await response.Content.ReadAsStringAsync();
         return new JsonResult(new { success = false, message = error });
+    }
+
+    /// <summary>
+    /// Obtiene la sucursal y terminal por defecto de la empresa
+    /// </summary>
+    private async Task<(string sucursalId, string terminalId)> ObtenerSucursalTerminalDefaultAsync(HttpClient client, string empresaId)
+    {
+        try
+        {
+            var response = await client.GetAsync($"/api/sucursales/empresa/{empresaId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+                var sucursales = doc.RootElement;
+
+                // If wrapped in ActionResponse
+                if (sucursales.ValueKind == JsonValueKind.Object && sucursales.TryGetProperty("result", out var result))
+                    sucursales = result;
+
+                if (sucursales.ValueKind == JsonValueKind.Array && sucursales.GetArrayLength() > 0)
+                {
+                    var primera = sucursales[0];
+                    var sucId = primera.GetProperty("id").GetString() ?? "";
+
+                    // Get first terminal of this sucursal
+                    var termResponse = await client.GetAsync($"/api/terminales/sucursal/{sucId}");
+                    if (termResponse.IsSuccessStatusCode)
+                    {
+                        var termContent = await termResponse.Content.ReadAsStringAsync();
+                        using var termDoc = JsonDocument.Parse(termContent);
+                        var terminales = termDoc.RootElement;
+
+                        if (terminales.ValueKind == JsonValueKind.Object && terminales.TryGetProperty("result", out var termResult))
+                            terminales = termResult;
+
+                        if (terminales.ValueKind == JsonValueKind.Array && terminales.GetArrayLength() > 0)
+                        {
+                            var termId = terminales[0].GetProperty("id").GetString() ?? "";
+                            return (sucId, termId);
+                        }
+                    }
+
+                    return (sucId, Guid.Empty.ToString());
+                }
+            }
+        }
+        catch
+        {
+            // Fallback to empty GUIDs
+        }
+
+        return (Guid.Empty.ToString(), Guid.Empty.ToString());
     }
 }

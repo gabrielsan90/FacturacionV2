@@ -160,6 +160,32 @@ public class Empresa
     [Display(Name = "Enviar XML Adjunto")]
     public bool SmtpEnviarXML { get; set; } = true;
 
+    // ========================================
+    // CONFIGURACIÓN IMAP / LECTURA DE CORREO
+    // ========================================
+
+    [Display(Name = "Servidor IMAP")]
+    [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? ServidorIMAP { get; set; }
+
+    [Display(Name = "Puerto IMAP")]
+    public int? PuertoIMAP { get; set; }
+
+    [Display(Name = "Usuario IMAP")]
+    [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? UsuarioIMAP { get; set; }
+
+    [Display(Name = "Clave IMAP")]
+    [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? ClaveIMAP { get; set; }
+
+    [Display(Name = "Habilitar SSL (IMAP)")]
+    public bool ImapEnableSsl { get; set; } = true;
+
+    [Display(Name = "Carpeta IMAP")]
+    [MaxLength(100, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    public string? CarpetaIMAP { get; set; }
+
     [Display(Name = "Activa")]
     public bool Activa { get; set; }
 

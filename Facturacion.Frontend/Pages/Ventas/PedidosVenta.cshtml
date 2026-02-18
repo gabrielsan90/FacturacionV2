@@ -230,11 +230,14 @@
     function loadDataTable() {
         table = initDataTable('#tablePedidosVenta', {
             ajax: {
-                url: function() {
-                    const estado = $('#filtroEstado').val();
-                    return `?handler=Data${estado ? '&estado=' + estado : ''}`;
-                },
+                url: '?handler=Data',
                 type: 'GET',
+                data: function(d) {
+                    const estado = $('#filtroEstado').val();
+                    if (estado && estado !== 'TODAS') {
+                        d.estado = estado;
+                    }
+                },
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },

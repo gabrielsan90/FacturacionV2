@@ -220,21 +220,32 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="MapeoCuentaContableId" class="form-label">
-                            <i class="fas fa-file-invoice me-1"></i>Cuenta Contable <span class="text-danger">*</span>
-                        </label>
-                        <select class="form-select" id="MapeoCuentaContableId" name="CuentaContableId" required>
-                            <option value="">Seleccione una cuenta contable</option>
-                        </select>
-                        <div class="form-text">Solo se muestran cuentas que aceptan movimientos</div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="MapeoCuentaContableId" class="form-label">
+                                <i class="fas fa-file-invoice me-1"></i>Cuenta Contable <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="MapeoCuentaContableId" name="CuentaContableId" required>
+                                <option value="">Seleccione una cuenta contable</option>
+                            </select>
+                            <div class="form-text">Solo se muestran cuentas que aceptan movimientos</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="MapeoTipoMovimiento" class="form-label">
+                                <i class="fas fa-exchange-alt me-1"></i>Tipo Movimiento <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="MapeoTipoMovimiento" name="TipoMovimiento" required>
+                                <option value="D">D - Debe</option>
+                                <option value="H">H - Haber</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="MapeoDescripcion" class="form-label">
-                            <i class="fas fa-comment me-1"></i>Descripción (Opcional)
+                            <i class="fas fa-comment me-1"></i>Descripcion (Opcional)
                         </label>
-                        <textarea class="form-control" id="MapeoDescripcion" name="DescripcionOperacion" rows="2" placeholder="Descripción adicional sobre este mapeo"></textarea>
+                        <textarea class="form-control" id="MapeoDescripcion" name="Descripcion" rows="2" placeholder="Descripcion adicional sobre este mapeo"></textarea>
                     </div>
 
                     <div class="form-check">
@@ -419,7 +430,8 @@
 
                         $('#MapeoId').val(mapeo.id);
                         $('#MapeoModulo').val(mapeo.modulo);
-                        $('#MapeoDescripcion').val(mapeo.descripcionOperacion || '');
+                        $('#MapeoTipoMovimiento').val(mapeo.tipoMovimiento || 'D');
+                        $('#MapeoDescripcion').val(mapeo.descripcion || mapeo.descripcionOperacion || '');
                         $('#MapeoActivo').prop('checked', mapeo.activo);
                         $('#modalMapeoTitle').html('<i class="fas fa-edit me-2"></i>Editar Mapeo de Cuenta');
 
@@ -441,11 +453,14 @@
 
         function saveMapeo() {
             const mapeoId = $('#MapeoId').val();
+            const tipoOperacion = $('#MapeoTipoOperacion').val();
             const mapeo = {
                 id: mapeoId || '00000000-0000-0000-0000-000000000000',
                 modulo: $('#MapeoModulo').val(),
-                tipoOperacion: $('#MapeoTipoOperacion').val(),
-                descripcionOperacion: $('#MapeoDescripcion').val(),
+                tipoOperacion: tipoOperacion,
+                conceptoContable: tipoOperacion,
+                tipoMovimiento: $('#MapeoTipoMovimiento').val() || 'D',
+                descripcion: $('#MapeoDescripcion').val() || null,
                 cuentaContableId: $('#MapeoCuentaContableId').val(),
                 activo: $('#MapeoActivo').is(':checked')
             };

@@ -18,6 +18,12 @@ public class RolDto
     [Display(Name = "Es Sistema")]
     public bool EsSistema { get; set; }
 
+    [Display(Name = "Empresa")]
+    public Guid? EmpresaId { get; set; }
+
+    [Display(Name = "Empresa")]
+    public string? EmpresaNombre { get; set; }
+
     [Display(Name = "Activo")]
     public bool Activo { get; set; }
 

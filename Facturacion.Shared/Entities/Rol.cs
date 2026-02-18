@@ -17,6 +17,9 @@ public class Rol : IdentityRole
     [Display(Name = "Es Sistema")]
     public bool EsSistema { get; set; }
 
+    [Display(Name = "Empresa")]
+    public Guid? EmpresaId { get; set; }
+
     [Display(Name = "Activo")]
     public bool Activo { get; set; }
 
@@ -27,6 +30,7 @@ public class Rol : IdentityRole
     public string? UsuarioCreacionId { get; set; }
 
     // Navegación
+    public Empresa? Empresa { get; set; }
     public User? UsuarioCreacion { get; set; }
     public ICollection<RolPrivilegio>? RolesPrivilegios { get; set; } = new List<RolPrivilegio>();
 }

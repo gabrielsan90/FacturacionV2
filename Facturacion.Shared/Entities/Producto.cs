@@ -46,6 +46,9 @@ public class Producto
     [Display(Name = "Costo")]
     public decimal? Costo { get; set; }
 
+    [Display(Name = "Moneda")]
+    public TipoMoneda Moneda { get; set; } = TipoMoneda.CRC;
+
     [Display(Name = "Impuesto")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public int ImpuestoId { get; set; }

@@ -1,0 +1,547 @@
+@page
+@model Facturacion.Frontend.Pages.DocumentosElectronicos.DocumentosRecibidosModel
+@{
+    ViewData["Title"] = "Documentos Recibidos";
+    ViewData["Breadcrumb"] = "Documentos Recibidos";
+}
+
+<form method="post">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2><i class="fas fa-file-import"></i> Documentos Recibidos</h2>
+                <p class="mb-0">Recepci&oacute;n de documentos electr&oacute;nicos de proveedores (XML)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secci&oacute;n 1: Carga Manual de XML -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-upload"></i> Carga Manual de XML</h5>
+        </div>
+        <div class="card-body">
+            <div id="dropZone" class="border border-2 border-dashed rounded p-5 text-center mb-3"
+                 style="cursor: pointer; border-color: #6c757d !important; transition: all 0.3s;">
+                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Arrastre archivos XML aqu&iacute;</h5>
+                <p class="text-muted mb-2">o haga clic para seleccionar</p>
+                <input type="file" id="fileInput" multiple accept=".xml" style="display: none;" />
+                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-folder-open me-1"></i> Seleccionar Archivos
+                </button>
+            </div>
+
+            <!-- Preview de archivos seleccionados -->
+            <div id="filePreview" class="d-none">
+                <h6><i class="fas fa-list me-1"></i> Archivos seleccionados:</h6>
+                <ul id="fileList" class="list-group mb-3"></ul>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success" id="btnProcesar" onclick="procesarArchivos()">
+                        <i class="fas fa-cogs me-1"></i> Procesar
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="limpiarArchivos()">
+                        <i class="fas fa-times me-1"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secci&oacute;n 2: Configuraci&oacute;n IMAP (colapsable) -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#imapConfig">
+            <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-envelope"></i> Configuraci&oacute;n Correo IMAP</span>
+                <i class="fas fa-chevron-down"></i>
+            </h5>
+        </div>
+        <div class="collapse" id="imapConfig">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Servidor IMAP <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="imapServidor" placeholder="imap.gmail.com" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Puerto <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="imapPuerto" value="993" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">SSL</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="imapSsl" checked />
+                            <label class="form-check-label" for="imapSsl">Habilitar SSL</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Usuario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="imapUsuario" placeholder="correo@@empresa.com" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Contrase&ntilde;a <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="imapClave" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Carpeta</label>
+                        <input type="text" class="form-control" id="imapCarpeta" value="INBOX" placeholder="INBOX" />
+                    </div>
+                </div>
+                <hr />
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-primary" onclick="guardarConfigImap()">
+                        <i class="fas fa-save me-1"></i> Guardar Configuraci&oacute;n
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="probarConexionImap()">
+                        <i class="fas fa-plug me-1"></i> Probar Conexi&oacute;n
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnRevisarCorreo" onclick="leerCorreos()">
+                        <i class="fas fa-envelope-open-text me-1"></i> Revisar Correo Ahora
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secci&oacute;n 3: Panel Resultados -->
+    <div class="card shadow mb-4 d-none" id="panelResultados">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-clipboard-check"></i> Resultados del Procesamiento</h5>
+        </div>
+        <div class="card-body">
+            <!-- Badges resumen -->
+            <div class="d-flex gap-3 mb-3 flex-wrap" id="resultadosBadges">
+                <span class="badge bg-primary fs-6" id="badgeTotal">Total: 0</span>
+                <span class="badge bg-success fs-6" id="badgeExitosos">Exitosos: 0</span>
+                <span class="badge bg-danger fs-6" id="badgeErrores">Errores: 0</span>
+            </div>
+            <!-- Lista de resultados individuales -->
+            <div id="resultadosLista"></div>
+        </div>
+    </div>
+
+    <!-- Secci&oacute;n 4: DataTable de Documentos Recibidos -->
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Documentos Recibidos</h5>
+            <button type="button" class="btn btn-sm btn-outline-light" onclick="recargarTabla()">
+                <i class="fas fa-sync-alt me-1"></i> Actualizar
+            </button>
+        </div>
+        <div class="card-body">
+            <table id="tableDocRecibidos" class="table table-hover" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Clave</th>
+                        <th>Emisor</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th style="width: 80px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let selectedFiles = [];
+    let dataTable;
+    const empresaId = '@Model.EmpresaId';
+
+    // ==========================================
+    // INICIALIZACION
+    // ==========================================
+    $(document).ready(function () {
+        initTable();
+        cargarConfigImap();
+        setupDragDrop();
+    });
+
+    function getToken() {
+        return $('input[name="__RequestVerificationToken"]').val();
+    }
+
+    function initTable() {
+        dataTable = initDataTable('#tableDocRecibidos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                dataSrc: 'data'
+            },
+            columns: [
+                {
+                    data: 'fechaEmision',
+                    render: function (data) {
+                        if (!data) return '';
+                        return new Date(data).toLocaleDateString('es-CR');
+                    }
+                },
+                {
+                    data: 'tipoDocumentoNombre',
+                    render: function (data) {
+                        return data || '';
+                    }
+                },
+                {
+                    data: 'clave',
+                    render: function (data) {
+                        if (!data) return '';
+                        return '<span title="' + data + '">' + data.substring(0, 20) + '...</span>';
+                    }
+                },
+                {
+                    data: 'emisorNombre',
+                    render: function (data) {
+                        return data || 'Desconocido';
+                    }
+                },
+                {
+                    data: 'totalVenta',
+                    render: function (data) {
+                        if (data == null) return '';
+                        return parseFloat(data).toLocaleString('es-CR', { style: 'currency', currency: 'CRC' });
+                    },
+                    className: 'text-end'
+                },
+                {
+                    data: 'estado',
+                    render: function (data) {
+                        if (!data) return '';
+                        var badgeClass = 'bg-secondary';
+                        var label = data;
+                        if (data === 'Recibido' || data === 'Aceptado') badgeClass = 'bg-success';
+                        else if (data === 'Rechazado') badgeClass = 'bg-danger';
+                        else if (data === 'Pendiente') badgeClass = 'bg-warning text-dark';
+                        return '<span class="badge ' + badgeClass + '">' + label + '</span>';
+                    }
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    render: function (data) {
+                        return '<a href="/DocumentosElectronicos/DocumentoDetalle?id=' + data + '" class="btn btn-sm btn-outline-primary" title="Ver detalle">' +
+                               '<i class="fas fa-eye"></i></a>';
+                    }
+                }
+            ],
+            order: [[0, 'desc']]
+        });
+    }
+
+    function recargarTabla() {
+        if (dataTable) {
+            dataTable.ajax.reload();
+        }
+    }
+
+    // ==========================================
+    // DRAG & DROP
+    // ==========================================
+    function setupDragDrop() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#0d6efd';
+            dropZone.style.backgroundColor = '#f0f7ff';
+        });
+
+        dropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#6c757d';
+            dropZone.style.backgroundColor = '';
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#6c757d';
+            dropZone.style.backgroundColor = '';
+            handleFiles(e.dataTransfer.files);
+        });
+
+        dropZone.addEventListener('click', function (e) {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'I') {
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener('change', function () {
+            handleFiles(this.files);
+        });
+    }
+
+    function handleFiles(files) {
+        selectedFiles = [];
+        for (let i = 0; i < files.length; i++) {
+            if (files[i].name.toLowerCase().endsWith('.xml')) {
+                selectedFiles.push(files[i]);
+            }
+        }
+
+        if (selectedFiles.length === 0) {
+            showWarning('No se seleccionaron archivos XML validos.');
+            return;
+        }
+
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+        selectedFiles.forEach(function (file, index) {
+            var li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = '<span><i class="fas fa-file-code text-primary me-2"></i>' + file.name + '</span>' +
+                           '<span class="badge bg-secondary">' + (file.size / 1024).toFixed(1) + ' KB</span>';
+            fileList.appendChild(li);
+        });
+
+        document.getElementById('filePreview').classList.remove('d-none');
+    }
+
+    function limpiarArchivos() {
+        selectedFiles = [];
+        document.getElementById('fileInput').value = '';
+        document.getElementById('filePreview').classList.add('d-none');
+        document.getElementById('fileList').innerHTML = '';
+    }
+
+    // ==========================================
+    // PROCESAR ARCHIVOS XML
+    // ==========================================
+    function procesarArchivos() {
+        if (selectedFiles.length === 0) {
+            showWarning('No hay archivos seleccionados.');
+            return;
+        }
+
+        var btn = document.getElementById('btnProcesar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Procesando...';
+
+        var formData = new FormData();
+        selectedFiles.forEach(function (file) {
+            formData.append('archivos', file);
+        });
+
+        $.ajax({
+            url: '?handler=SubirXml',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                "RequestVerificationToken": getToken()
+            },
+            success: function (response) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-cogs me-1"></i> Procesar';
+
+                if (response.success) {
+                    mostrarResultados(response.resultados, response.totalProcesados, response.totalErrores);
+                    limpiarArchivos();
+                    recargarTabla();
+                } else {
+                    showError(response.message || 'Error al procesar archivos.');
+                }
+            },
+            error: function (xhr) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-cogs me-1"></i> Procesar';
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    // ==========================================
+    // RESULTADOS
+    // ==========================================
+    function mostrarResultados(resultados, exitosos, errores) {
+        var panel = document.getElementById('panelResultados');
+        panel.classList.remove('d-none');
+
+        document.getElementById('badgeTotal').textContent = 'Total: ' + resultados.length;
+        document.getElementById('badgeExitosos').textContent = 'Exitosos: ' + exitosos;
+        document.getElementById('badgeErrores').textContent = 'Errores: ' + errores;
+
+        var lista = document.getElementById('resultadosLista');
+        lista.innerHTML = '';
+
+        resultados.forEach(function (r) {
+            var alertClass = r.exitoso ? 'alert-success' : 'alert-danger';
+            var icon = r.exitoso ? 'fa-check-circle' : 'fa-times-circle';
+            var detalle = r.exitoso && r.emisorNombre
+                ? ' | Emisor: ' + r.emisorNombre + (r.totalVenta ? ' | Monto: ' + parseFloat(r.totalVenta).toLocaleString('es-CR', { style: 'currency', currency: 'CRC' }) : '')
+                : '';
+
+            var div = document.createElement('div');
+            div.className = 'alert ' + alertClass + ' py-2 mb-2';
+            div.innerHTML = '<i class="fas ' + icon + ' me-2"></i><strong>' + (r.archivo || 'XML') + ':</strong> ' + r.mensaje + detalle;
+            lista.appendChild(div);
+        });
+    }
+
+    function mostrarResultadosCorreo(data) {
+        var panel = document.getElementById('panelResultados');
+        panel.classList.remove('d-none');
+
+        var total = data.totalXmlEncontrados || 0;
+        var exitosos = data.totalProcesados || 0;
+        var errores = data.totalErrores || 0;
+
+        document.getElementById('badgeTotal').textContent = 'XMLs encontrados: ' + total;
+        document.getElementById('badgeExitosos').textContent = 'Procesados: ' + exitosos;
+        document.getElementById('badgeErrores').textContent = 'Errores: ' + errores;
+
+        var lista = document.getElementById('resultadosLista');
+        lista.innerHTML = '';
+
+        // Mensaje general
+        var divMsg = document.createElement('div');
+        divMsg.className = 'alert alert-info py-2 mb-2';
+        divMsg.innerHTML = '<i class="fas fa-envelope me-2"></i>' + (data.mensaje || '');
+        lista.appendChild(divMsg);
+
+        if (data.resultados && data.resultados.length > 0) {
+            data.resultados.forEach(function (r) {
+                var alertClass = r.exitoso ? 'alert-success' : 'alert-danger';
+                var icon = r.exitoso ? 'fa-check-circle' : 'fa-times-circle';
+                var detalle = r.exitoso && r.emisorNombre
+                    ? ' | Emisor: ' + r.emisorNombre + (r.totalVenta ? ' | Monto: ' + parseFloat(r.totalVenta).toLocaleString('es-CR', { style: 'currency', currency: 'CRC' }) : '')
+                    : '';
+
+                var div = document.createElement('div');
+                div.className = 'alert ' + alertClass + ' py-2 mb-2';
+                div.innerHTML = '<i class="fas ' + icon + ' me-2"></i>' + r.mensaje + detalle;
+                lista.appendChild(div);
+            });
+        }
+    }
+
+    // ==========================================
+    // CONFIGURACION IMAP
+    // ==========================================
+    function cargarConfigImap() {
+        $.ajax({
+            url: '?handler=ConfigImap',
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": getToken()
+            },
+            success: function (response) {
+                if (response.success && response.data) {
+                    var d = response.data;
+                    $('#imapServidor').val(d.servidorIMAP || '');
+                    $('#imapPuerto').val(d.puertoIMAP || 993);
+                    $('#imapUsuario').val(d.usuarioIMAP || '');
+                    $('#imapClave').val(d.claveIMAP || '');
+                    $('#imapSsl').prop('checked', d.imapEnableSsl !== false);
+                    $('#imapCarpeta').val(d.carpetaIMAP || 'INBOX');
+                }
+            },
+            error: function () {
+                // Config may not exist yet, that's ok
+            }
+        });
+    }
+
+    function guardarConfigImap() {
+        var config = {
+            servidorIMAP: $('#imapServidor').val(),
+            puertoIMAP: parseInt($('#imapPuerto').val()) || 993,
+            usuarioIMAP: $('#imapUsuario').val(),
+            claveIMAP: $('#imapClave').val(),
+            imapEnableSsl: $('#imapSsl').is(':checked'),
+            carpetaIMAP: $('#imapCarpeta').val() || 'INBOX'
+        };
+
+        $.ajax({
+            url: '?handler=GuardarImap',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(config),
+            headers: {
+                "RequestVerificationToken": getToken()
+            },
+            success: function (response) {
+                if (response.success) {
+                    showSuccess(response.message || 'Configuracion guardada exitosamente');
+                } else {
+                    showError(response.message || 'Error al guardar.');
+                }
+            },
+            error: function () {
+                showError('Error al guardar la configuracion');
+            }
+        });
+    }
+
+    function probarConexionImap() {
+        Swal.fire({
+            title: 'Probando conexion...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: '?handler=ProbarImap',
+            type: 'POST',
+            headers: {
+                "RequestVerificationToken": getToken()
+            },
+            success: function (response) {
+                Swal.close();
+                if (response.success) {
+                    showSuccess(response.message);
+                } else {
+                    showError('Error de conexion: ' + (response.message || ''));
+                }
+            },
+            error: function () {
+                Swal.close();
+                showError('Error al probar la conexion');
+            }
+        });
+    }
+
+    function leerCorreos() {
+        var btn = document.getElementById('btnRevisarCorreo');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Leyendo correos...';
+
+        $.ajax({
+            url: '?handler=LeerCorreos',
+            type: 'POST',
+            headers: {
+                "RequestVerificationToken": getToken()
+            },
+            success: function (response) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-envelope-open-text me-1"></i> Revisar Correo Ahora';
+
+                if (response.exitoso) {
+                    mostrarResultadosCorreo(response);
+                    recargarTabla();
+                    showSuccess(response.mensaje || 'Correos procesados.');
+                } else {
+                    showError(response.mensaje || response.message || 'Error al leer correos.');
+                }
+            },
+            error: function () {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-envelope-open-text me-1"></i> Revisar Correo Ahora';
+                showError('Error al leer correos');
+            }
+        });
+    }
+</script>
+}

@@ -31,23 +31,34 @@ public class RolesController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todos los roles disponibles con información de privilegios
+    /// Obtiene roles: si se pasa empresaId, retorna roles de sistema + roles personalizados de esa empresa.
+    /// Sin empresaId, retorna todos los roles (solo para SuperUser).
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAsync()
+    public async Task<IActionResult> GetAsync([FromQuery] Guid? empresaId)
     {
         try
         {
-            _logger.LogInformation("Getting roles list. RequestedBy: {UserId}",
-                User.FindFirstValue(ClaimTypes.NameIdentifier));
+            _logger.LogInformation("Getting roles list. EmpresaId: {EmpresaId}, RequestedBy: {UserId}",
+                empresaId, User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-            var roles = await _context.Roles
+            var query = _context.Roles.AsQueryable();
+
+            if (empresaId.HasValue)
+            {
+                // Roles de sistema (EmpresaId == null) + roles personalizados de esta empresa
+                query = query.Where(r => r.EsSistema || r.EmpresaId == empresaId.Value);
+            }
+
+            var roles = await query
                 .Select(r => new RolDto
                 {
                     Id = r.Id,
                     Nombre = r.Nombre ?? r.Name ?? "",
                     Descripcion = r.Descripcion,
                     EsSistema = r.EsSistema,
+                    EmpresaId = r.EmpresaId,
+                    EmpresaNombre = r.Empresa != null ? r.Empresa.NombreComercial : null,
                     Activo = r.Activo,
                     CantidadPrivilegios = r.RolesPrivilegios!.Count,
                     FechaCreacion = r.FechaCreacion
@@ -86,6 +97,8 @@ public class RolesController : ControllerBase
                     Nombre = r.Nombre ?? r.Name ?? "",
                     Descripcion = r.Descripcion,
                     EsSistema = r.EsSistema,
+                    EmpresaId = r.EmpresaId,
+                    EmpresaNombre = r.Empresa != null ? r.Empresa.NombreComercial : null,
                     Activo = r.Activo,
                     CantidadPrivilegios = r.RolesPrivilegios!.Count,
                     FechaCreacion = r.FechaCreacion
@@ -128,14 +141,25 @@ public class RolesController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            // Verificar si el nombre ya existe
+            // No permitir que un rol personalizado use el mismo nombre que un rol de sistema
+            var systemRolConflict = await _context.Roles
+                .AnyAsync(r => r.EsSistema && r.Nombre.ToLower() == model.Nombre.ToLower());
+
+            if (systemRolConflict)
+            {
+                return BadRequest("El nombre coincide con un rol del sistema.");
+            }
+
+            // Verificar nombre único dentro de la misma empresa
             var existingRol = await _context.Roles
-                .FirstOrDefaultAsync(r => r.Nombre.ToLower() == model.Nombre.ToLower());
+                .FirstOrDefaultAsync(r => r.Nombre.ToLower() == model.Nombre.ToLower()
+                    && r.EmpresaId == model.EmpresaId);
 
             if (existingRol != null)
             {
-                _logger.LogWarning("Attempted to create role with existing name. Name: {RoleName}", model.Nombre);
-                return BadRequest("Ya existe un rol con este nombre.");
+                _logger.LogWarning("Attempted to create role with existing name. Name: {RoleName}, EmpresaId: {EmpresaId}",
+                    model.Nombre, model.EmpresaId);
+                return BadRequest("Ya existe un rol con este nombre para esta empresa.");
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -143,10 +167,12 @@ public class RolesController : ControllerBase
             var rol = new Rol
             {
                 Id = Guid.NewGuid().ToString(),
+                Name = model.Nombre,
                 Nombre = model.Nombre,
                 NormalizedName = model.Nombre.ToUpper(),
                 Descripcion = model.Descripcion,
                 EsSistema = false, // Los roles creados manualmente nunca son del sistema
+                EmpresaId = model.EmpresaId,
                 Activo = model.Activo,
                 FechaCreacion = FechaCostaRicaHelper.Ahora,
                 UsuarioCreacionId = currentUserId,
@@ -206,13 +232,23 @@ public class RolesController : ControllerBase
                 return BadRequest("No se pueden editar los roles del sistema.");
             }
 
-            // Verificar nombre único (excepto el actual)
+            // No permitir que un rol personalizado use el mismo nombre que un rol de sistema
+            var systemRolConflict = await _context.Roles
+                .AnyAsync(r => r.EsSistema && r.Nombre.ToLower() == model.Nombre.ToLower() && r.Id != id);
+
+            if (systemRolConflict)
+            {
+                return BadRequest("El nombre coincide con un rol del sistema.");
+            }
+
+            // Verificar nombre único dentro de la misma empresa (excepto el actual)
             var existingRol = await _context.Roles
-                .FirstOrDefaultAsync(r => r.Nombre.ToLower() == model.Nombre.ToLower() && r.Id != id);
+                .FirstOrDefaultAsync(r => r.Nombre.ToLower() == model.Nombre.ToLower()
+                    && r.EmpresaId == rol.EmpresaId && r.Id != id);
 
             if (existingRol != null)
             {
-                return BadRequest("Ya existe un rol con este nombre.");
+                return BadRequest("Ya existe un rol con este nombre para esta empresa.");
             }
 
             // Actualizar propiedades

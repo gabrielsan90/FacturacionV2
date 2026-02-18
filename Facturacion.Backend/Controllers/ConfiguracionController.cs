@@ -1,5 +1,6 @@
 using Facturacion.Backend.UnitsOfWork.Interfaces;
 using Facturacion.Backend.Helpers;
+using Facturacion.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MailKit.Net.Smtp;
@@ -15,15 +16,18 @@ public class ConfiguracionController : ControllerBase
 {
     private readonly IEmpresaUnitOfWork _empresaUnitOfWork;
     private readonly IUserHelper _userHelper;
+    private readonly IEmailReaderService _emailReaderService;
     private readonly ILogger<ConfiguracionController> _logger;
 
     public ConfiguracionController(
         IEmpresaUnitOfWork empresaUnitOfWork,
         IUserHelper userHelper,
+        IEmailReaderService emailReaderService,
         ILogger<ConfiguracionController> logger)
     {
         _empresaUnitOfWork = empresaUnitOfWork;
         _userHelper = userHelper;
+        _emailReaderService = emailReaderService;
         _logger = logger;
     }
 
@@ -226,6 +230,116 @@ public class ConfiguracionController : ControllerBase
             return Ok(new { success = false, message = ex.Message });
         }
     }
+
+    // ========================================
+    // IMAP CONFIGURATION ENDPOINTS
+    // ========================================
+
+    /// <summary>
+    /// Obtiene la configuración IMAP de una empresa
+    /// </summary>
+    [HttpGet("imap/{empresaId:guid}")]
+    public async Task<IActionResult> GetConfiguracionImapAsync(Guid empresaId)
+    {
+        try
+        {
+            var empresa = await _empresaUnitOfWork.EmpresaRepository.GetAsync(empresaId);
+            if (empresa == null || !empresa.WasSuccess || empresa.Result == null)
+            {
+                return NotFound("Empresa no encontrada");
+            }
+
+            var emp = empresa.Result;
+            return Ok(new
+            {
+                servidorIMAP = emp.ServidorIMAP,
+                puertoIMAP = emp.PuertoIMAP ?? 993,
+                usuarioIMAP = emp.UsuarioIMAP,
+                claveIMAP = string.IsNullOrEmpty(emp.ClaveIMAP) ? "" : "********",
+                imapEnableSsl = emp.ImapEnableSsl,
+                carpetaIMAP = emp.CarpetaIMAP ?? "INBOX"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener configuración IMAP");
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Guarda la configuración IMAP de una empresa
+    /// </summary>
+    [HttpPut("imap/{empresaId:guid}")]
+    public async Task<IActionResult> GuardarConfiguracionImapAsync(Guid empresaId, [FromBody] ConfiguracionImapDTO config)
+    {
+        try
+        {
+            var empresaResult = await _empresaUnitOfWork.EmpresaRepository.GetAsync(empresaId);
+            if (empresaResult == null || !empresaResult.WasSuccess || empresaResult.Result == null)
+            {
+                return NotFound("Empresa no encontrada");
+            }
+
+            var empresa = empresaResult.Result;
+
+            empresa.ServidorIMAP = config.ServidorIMAP;
+            empresa.PuertoIMAP = config.PuertoIMAP;
+            empresa.UsuarioIMAP = config.UsuarioIMAP;
+
+            if (!string.IsNullOrEmpty(config.ClaveIMAP) && config.ClaveIMAP != "********")
+            {
+                empresa.ClaveIMAP = config.ClaveIMAP;
+            }
+
+            empresa.ImapEnableSsl = config.ImapEnableSsl;
+            empresa.CarpetaIMAP = config.CarpetaIMAP;
+
+            var updateResult = await _empresaUnitOfWork.EmpresaRepository.UpdateAsync(empresa);
+            if (!updateResult.WasSuccess)
+            {
+                return BadRequest(updateResult.Message);
+            }
+
+            return Ok(new { success = true, message = "Configuración IMAP guardada exitosamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al guardar configuración IMAP");
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Prueba la conexión IMAP
+    /// </summary>
+    [HttpPost("imap/{empresaId:guid}/probar")]
+    public async Task<IActionResult> ProbarConexionImapAsync(Guid empresaId)
+    {
+        try
+        {
+            var resultado = await _emailReaderService.ProbarConexionImapAsync(empresaId);
+            return Ok(new { success = resultado.WasSuccess, message = resultado.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al probar conexión IMAP");
+            return Ok(new { success = false, message = ex.Message });
+        }
+    }
+}
+
+/// <summary>
+/// DTO para configuración IMAP
+/// </summary>
+public class ConfiguracionImapDTO
+{
+    public string? ServidorIMAP { get; set; }
+    public int PuertoIMAP { get; set; } = 993;
+    public string? UsuarioIMAP { get; set; }
+    public string? ClaveIMAP { get; set; }
+    public bool ImapEnableSsl { get; set; } = true;
+    public string? CarpetaIMAP { get; set; } = "INBOX";
 }
 
 /// <summary>

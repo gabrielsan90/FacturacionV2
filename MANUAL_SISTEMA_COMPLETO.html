@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Completo - ERPFactu Sistema de Facturacion Electronica</title>
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --success: #198754;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #0dcaf0;
+            --dark: #212529;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --border: #dee2e6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: var(--light);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a237e, #0d47a1, #1565c0);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .header .version { background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px; margin-top: 10px; font-size: 0.9em; }
+
+        /* Table of Contents */
+        .toc {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .toc h2 { color: var(--primary); margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: var(--light);
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .toc-item:hover { background: #e3f2fd; border-left-color: var(--primary); }
+
+        .toc-number {
+            background: var(--primary);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px 25px;
+            color: white;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .section-body { padding: 25px; }
+
+        .bg-primary-header { background: linear-gradient(135deg, #1565c0, #1976d2); }
+        .bg-success-header { background: linear-gradient(135deg, #2e7d32, #43a047); }
+        .bg-warning-header { background: linear-gradient(135deg, #e65100, #f57c00); }
+        .bg-danger-header { background: linear-gradient(135deg, #c62828, #e53935); }
+        .bg-info-header { background: linear-gradient(135deg, #00838f, #0097a7); }
+        .bg-dark-header { background: linear-gradient(135deg, #37474f, #546e7a); }
+        .bg-purple-header { background: linear-gradient(135deg, #6a1b9a, #8e24aa); }
+        .bg-teal-header { background: linear-gradient(135deg, #00695c, #00897b); }
+        .bg-indigo-header { background: linear-gradient(135deg, #283593, #3949ab); }
+        .bg-brown-header { background: linear-gradient(135deg, #4e342e, #6d4c41); }
+        .bg-pink-header { background: linear-gradient(135deg, #ad1457, #d81b60); }
+        .bg-cyan-header { background: linear-gradient(135deg, #006064, #00838f); }
+
+        /* Steps */
+        .step {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .step-number {
+            background: var(--primary);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content { flex: 1; }
+        .step-content h4 { color: var(--primary); margin-bottom: 5px; }
+
+        /* Dependency Box */
+        .dependency-box {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .dependency-box h4 { color: #e65100; margin-bottom: 8px; }
+        .dependency-box .dep-arrow { color: #e65100; font-weight: bold; }
+
+        /* Route Box */
+        .route-box {
+            background: #e8eaf6;
+            border: 1px solid #9fa8da;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-family: 'Consolas', monospace;
+            font-size: 0.95em;
+        }
+
+        /* Example Box */
+        .example-box {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .example-box h4 { color: #2e7d32; margin-bottom: 8px; }
+
+        /* Warning Box */
+        .warning-box {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .warning-box h4 { color: #f57f17; margin-bottom: 8px; }
+
+        /* Info Box */
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .info-box h4 { color: #1565c0; margin-bottom: 8px; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th { background: #e3f2fd; color: #1565c0; font-weight: 600; }
+        tr:nth-child(even) { background: #fafafa; }
+        tr:hover { background: #f0f7ff; }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .badge-primary { background: var(--primary); }
+        .badge-success { background: var(--success); }
+        .badge-warning { background: var(--warning); color: var(--dark); }
+        .badge-danger { background: var(--danger); }
+        .badge-info { background: var(--info); color: var(--dark); }
+        .badge-dark { background: var(--dark); }
+        .badge-gray { background: var(--gray); }
+
+        /* Flow diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .flow-item {
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .flow-arrow { font-size: 1.2em; color: var(--gray); }
+
+        /* Roles */
+        .roles-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .role-tag {
+            background: #e8eaf6;
+            color: #283593;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        /* Sub-sections */
+        .subsection {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .subsection h3 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #ccc;
+        }
+
+        /* Checklist */
+        .checklist { list-style: none; padding: 0; }
+        .checklist li {
+            padding: 8px 0 8px 30px;
+            position: relative;
+            border-bottom: 1px dotted #e0e0e0;
+        }
+        .checklist li::before {
+            content: "\2610";
+            position: absolute;
+            left: 5px;
+            color: var(--primary);
+            font-size: 1.1em;
+        }
+
+        /* Workflow states */
+        .workflow-states {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .ws { padding: 5px 12px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
+        .ws-bor { background: #e0e0e0; }
+        .ws-rev { background: #fff9c4; }
+        .ws-apr { background: #bbdefb; }
+        .ws-vig { background: #c8e6c9; }
+        .ws-cer { background: #424242; color: white; }
+
+        /* Print styles */
+        @media print {
+            .header { background: #1565c0 !important; -webkit-print-color-adjust: exact; }
+            .section { page-break-inside: avoid; }
+            body { background: white; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8em; }
+            .toc-grid { grid-template-columns: 1fr; }
+            .flow { flex-direction: column; align-items: flex-start; }
+        }
+
+        hr.divider { border: none; border-top: 2px dashed #ccc; margin: 25px 0; }
+    </style>
+</head>
+<body>
+
+<!-- =============== HEADER =============== -->
+<div class="header">
+    <h1>Manual Completo del Sistema ERPFactu</h1>
+    <p>Sistema de Facturacion Electronica para Costa Rica v4.4</p>
+    <div class="version">Version 2.0 &bull; .NET 9.0 &bull; Febrero 2026</div>
+</div>
+
+<div class="container">
+
+<!-- =============== TABLE OF CONTENTS =============== -->
+<div class="toc">
+    <h2>Tabla de Contenidos</h2>
+    <div class="toc-grid">
+        <a href="#fase0" class="toc-item"><span class="toc-number">0</span> Acceso Inicial al Sistema</a>
+        <a href="#fase1" class="toc-item"><span class="toc-number">1</span> Configuracion de Empresa</a>
+        <a href="#fase2" class="toc-item"><span class="toc-number">2</span> Estructura Organizacional</a>
+        <a href="#fase3" class="toc-item"><span class="toc-number">3</span> Catalogos de Hacienda</a>
+        <a href="#fase4" class="toc-item"><span class="toc-number">4</span> Maestros: Clientes y Proveedores</a>
+        <a href="#fase5" class="toc-item"><span class="toc-number">5</span> Maestros: Productos y Categorias</a>
+        <a href="#fase6" class="toc-item"><span class="toc-number">6</span> Recursos Humanos</a>
+        <a href="#fase7" class="toc-item"><span class="toc-number">7</span> Bancos y Cuentas Bancarias</a>
+        <a href="#fase8" class="toc-item"><span class="toc-number">8</span> Inventario y Bodegas</a>
+        <a href="#fase9" class="toc-item"><span class="toc-number">9</span> Contabilidad</a>
+        <a href="#fase10" class="toc-item"><span class="toc-number">10</span> Presupuestos</a>
+        <a href="#fase11" class="toc-item"><span class="toc-number">11</span> Facturacion Electronica</a>
+        <a href="#fase12" class="toc-item"><span class="toc-number">12</span> Ventas: Cotizaciones y Pedidos</a>
+        <a href="#fase13" class="toc-item"><span class="toc-number">13</span> Compras: Requisiciones a Recepciones</a>
+        <a href="#fase14" class="toc-item"><span class="toc-number">14</span> Cuentas por Cobrar y Pagar</a>
+        <a href="#fase15" class="toc-item"><span class="toc-number">15</span> Gastos y Activos Fijos</a>
+        <a href="#fase16" class="toc-item"><span class="toc-number">16</span> Aprobaciones y Workflows</a>
+        <a href="#fase17" class="toc-item"><span class="toc-number">17</span> Reportes</a>
+        <a href="#fase18" class="toc-item"><span class="toc-number">18</span> Seguridad y Auditoria</a>
+        <a href="#mapa" class="toc-item"><span class="toc-number">M</span> Mapa de Dependencias</a>
+        <a href="#roles" class="toc-item"><span class="toc-number">R</span> Roles y Permisos</a>
+    </div>
+</div>
+
+<!-- =============== MAPA DE DEPENDENCIAS =============== -->
+<div class="section" id="mapa">
+    <div class="section-header bg-dark-header">Mapa General de Dependencias</div>
+    <div class="section-body">
+        <p>El siguiente diagrama muestra el <strong>orden obligatorio</strong> en que se deben configurar los modulos. Las flechas indican "se necesita antes de".</p>
+
+        <div class="info-box">
+            <h4>Regla de Oro</h4>
+            <p>Siempre configure de arriba hacia abajo. <strong>No puede crear un registro hijo sin antes haber creado su registro padre.</strong></p>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th>Fase</th><th>Modulo</th><th>Depende de</th><th>Ruta en el Sistema</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><span class="badge badge-danger">0</span></td><td><strong>Login</strong></td><td>Ninguno</td><td>/Auth/Login</td></tr>
+                <tr><td><span class="badge badge-danger">1</span></td><td><strong>Empresa</strong></td><td>Login (SuperUser)</td><td>Configuracion &gt; Empresas</td></tr>
+                <tr><td><span class="badge badge-danger">1</span></td><td><strong>Sucursales</strong></td><td>Empresa</td><td>Configuracion &gt; Sucursales</td></tr>
+                <tr><td><span class="badge badge-danger">1</span></td><td><strong>Terminales</strong></td><td>Sucursal</td><td>Configuracion &gt; Terminales</td></tr>
+                <tr><td><span class="badge badge-warning">2</span></td><td><strong>Departamentos</strong></td><td>Empresa</td><td>RRHH &gt; Departamentos</td></tr>
+                <tr><td><span class="badge badge-warning">2</span></td><td><strong>Puestos</strong></td><td>Empresa + Departamento</td><td>RRHH &gt; Puestos</td></tr>
+                <tr><td><span class="badge badge-warning">2</span></td><td><strong>Bancos</strong></td><td>Empresa</td><td>Bancos &gt; Catalogo de Bancos</td></tr>
+                <tr><td><span class="badge badge-info">3</span></td><td><strong>Empleados</strong></td><td>Departamento + Puesto + Banco</td><td>RRHH &gt; Empleados</td></tr>
+                <tr><td><span class="badge badge-info">3</span></td><td><strong>Cuentas Bancarias</strong></td><td>Banco + Sucursal</td><td>Bancos &gt; Cuentas Bancarias</td></tr>
+                <tr><td><span class="badge badge-info">3</span></td><td><strong>Categorias Producto</strong></td><td>Empresa</td><td>Catalogo &gt; Categorias</td></tr>
+                <tr><td><span class="badge badge-info">3</span></td><td><strong>Bodegas</strong></td><td>Empresa + Sucursal</td><td>Inventario &gt; Bodegas</td></tr>
+                <tr><td><span class="badge badge-success">4</span></td><td><strong>Clientes</strong></td><td>Empresa</td><td>Catalogo &gt; Clientes</td></tr>
+                <tr><td><span class="badge badge-success">4</span></td><td><strong>Proveedores</strong></td><td>Empresa</td><td>Catalogo &gt; Proveedores</td></tr>
+                <tr><td><span class="badge badge-success">4</span></td><td><strong>Productos</strong></td><td>Categoria + UnidadMedida + Impuesto + CABYS</td><td>Catalogo &gt; Productos</td></tr>
+                <tr><td><span class="badge badge-primary">5</span></td><td><strong>Plan de Cuentas</strong></td><td>Empresa</td><td>Contabilidad &gt; Plan de Cuentas</td></tr>
+                <tr><td><span class="badge badge-primary">5</span></td><td><strong>Periodos Contables</strong></td><td>Empresa</td><td>Contabilidad &gt; Periodos Contables</td></tr>
+                <tr><td><span class="badge badge-primary">5</span></td><td><strong>Centros de Costo</strong></td><td>Empresa</td><td>Presupuestos &gt; Centros de Costo</td></tr>
+                <tr><td><span class="badge badge-dark">6</span></td><td><strong>Presupuestos</strong></td><td>Centros de Costo + Plan de Cuentas</td><td>Presupuestos &gt; Presupuestos</td></tr>
+                <tr><td><span class="badge badge-dark">6</span></td><td><strong>Facturacion</strong></td><td>Cliente + Producto + Sucursal + Terminal</td><td>Facturacion &gt; Nueva Factura</td></tr>
+                <tr><td><span class="badge badge-dark">6</span></td><td><strong>Ordenes de Compra</strong></td><td>Proveedor + Producto + Bodega</td><td>Compras &gt; Ordenes de Compra</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- =============== FASE 0: LOGIN =============== -->
+<div class="section" id="fase0">
+    <div class="section-header bg-danger-header">Fase 0: Acceso Inicial al Sistema</div>
+    <div class="section-body">
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h4>Abrir el navegador e ingresar a la URL del sistema</h4>
+                <div class="route-box">https://[su-dominio]/Auth/Login</div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h4>Iniciar sesion con las credenciales de administrador por defecto</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Correo</td><td><code>admin@facturacion.com</code></td></tr>
+                    <tr><td>Contrasena</td><td><code>Admin123!</code></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h4>Importante: Cambiar la contrasena</h4>
+            <p>Despues del primer login, cambie inmediatamente la contrasena del administrador por razones de seguridad.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h4>El Dashboard principal se mostrara con el resumen general del sistema</h4>
+                <p>El usuario <strong>SuperUser</strong> tiene acceso a todos los modulos del sistema.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 1: EMPRESA =============== -->
+<div class="section" id="fase1">
+    <div class="section-header bg-danger-header">Fase 1: Configuracion de Empresa (Obligatorio Primero)</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Dependencias previas: Ninguna</h4>
+            <p>La empresa es el <strong>registro raiz</strong> del sistema. TODO lo demas depende de la empresa.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>1.1 Crear la Empresa</h3>
+            <div class="route-box">Menu: Sistema &gt; Empresas &gt; Boton "Nueva Empresa"</div>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Completar datos de identificacion</h4>
+                    <table>
+                        <tr><th>Campo</th><th>Ejemplo</th><th>Requerido</th></tr>
+                        <tr><td>Tipo Identificacion</td><td>Cedula Juridica</td><td>Si</td></tr>
+                        <tr><td>Numero Identificacion</td><td>3101234567</td><td>Si</td></tr>
+                        <tr><td>Razon Social</td><td>Soluciones Tecnologicas S.A.</td><td>Si</td></tr>
+                        <tr><td>Nombre Comercial</td><td>SolTech</td><td>No</td></tr>
+                        <tr><td>Actividad Economica</td><td>620100 - Actividades de programacion informatica</td><td>Si</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Configurar ubicacion</h4>
+                    <p>Seleccione Provincia &gt; Canton &gt; Distrito &gt; Barrio. Agregue direccion exacta (Otras Senas).</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Subir Certificado Digital (Llave Criptografica)</h4>
+                    <p>Archivo <code>.p12</code> o <code>.pfx</code> emitido por el BCCR o entidad autorizada. Requerido para firmar facturas electronicas.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Configurar credenciales ATV (Hacienda)</h4>
+                    <table>
+                        <tr><th>Campo</th><th>Descripcion</th></tr>
+                        <tr><td>Usuario ATV</td><td>Usuario proporcionado por Hacienda</td></tr>
+                        <tr><td>Contrasena ATV</td><td>Contrasena de la cuenta ATV</td></tr>
+                        <tr><td>PIN Certificado</td><td>PIN del certificado digital</td></tr>
+                        <tr><td>Ambiente</td><td>Pruebas (stag) / Produccion (prod)</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>1.2 Crear Sucursales</h3>
+            <div class="route-box">Menu: Sistema &gt; Sucursales &gt; Boton "Nueva Sucursal"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empresa</h4>
+                <p class="dep-arrow">Empresa &rarr; Sucursal</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear sucursal principal</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Codigo</td><td>001</td></tr>
+                    <tr><td>Nombre</td><td>Casa Matriz</td></tr>
+                    <tr><td>Provincia</td><td>San Jose</td></tr>
+                    <tr><td>Canton</td><td>Central</td></tr>
+                    <tr><td>Distrito</td><td>Carmen</td></tr>
+                    <tr><td>Telefono</td><td>2222-3333</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>1.3 Crear Terminales (Puntos de Venta)</h3>
+            <div class="route-box">Menu: Sistema &gt; Terminales &gt; Boton "Nuevo Terminal"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Sucursal</h4>
+                <p class="dep-arrow">Empresa &rarr; Sucursal &rarr; Terminal</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear terminal de facturacion</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Sucursal</td><td>001 - Casa Matriz</td></tr>
+                    <tr><td>Codigo</td><td>00001</td></tr>
+                    <tr><td>Nombre</td><td>Terminal Principal</td></tr>
+                    <tr><td>Activo</td><td>Si</td></tr>
+                </table>
+            </div>
+
+            <div class="info-box">
+                <h4>Nota sobre consecutivos</h4>
+                <p>Cada terminal maneja sus propios consecutivos de facturacion. El formato de Hacienda requiere: <code>SUC-TERM-TIPO-CONSECUTIVO</code> (ej: 001-00001-01-00000001).</p>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>1.4 Configurar Correo Electronico</h3>
+            <div class="route-box">Menu: Sistema &gt; Configuracion de Correo</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Configuracion SMTP para Gmail</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Servidor SMTP</td><td>smtp.gmail.com</td></tr>
+                    <tr><td>Puerto</td><td>587</td></tr>
+                    <tr><td>Usar SSL</td><td>Si</td></tr>
+                    <tr><td>Usuario</td><td>facturacion@suempresa.com</td></tr>
+                    <tr><td>Contrasena</td><td>(contrasena de aplicacion)</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 2: ESTRUCTURA ORGANIZACIONAL =============== -->
+<div class="section" id="fase2">
+    <div class="section-header bg-warning-header">Fase 2: Estructura Organizacional</div>
+    <div class="section-body">
+        <div class="subsection">
+            <h3>2.1 Crear Usuarios del Sistema</h3>
+            <div class="route-box">Menu: Sistema &gt; Seguridad &gt; Usuarios &gt; Boton "Nuevo Usuario"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear usuario contador</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Nombre</td><td>Maria Rodriguez</td></tr>
+                    <tr><td>Correo</td><td>maria@suempresa.com</td></tr>
+                    <tr><td>Contrasena</td><td>Maria2026!</td></tr>
+                    <tr><td>Rol</td><td>Contador</td></tr>
+                    <tr><td>Empresa asignada</td><td>Soluciones Tecnologicas S.A.</td></tr>
+                </table>
+            </div>
+
+            <div class="info-box">
+                <h4>Roles disponibles</h4>
+                <table>
+                    <tr><th>Rol</th><th>Acceso</th></tr>
+                    <tr><td><span class="badge badge-danger">SuperUser</span></td><td>Acceso total a todo el sistema y todas las empresas</td></tr>
+                    <tr><td><span class="badge badge-primary">Administrador de Empresa</span></td><td>Acceso total dentro de su empresa asignada</td></tr>
+                    <tr><td><span class="badge badge-success">Contador</span></td><td>Contabilidad, bancos, reportes, compras, CxC, CxP, activos, presupuestos</td></tr>
+                    <tr><td><span class="badge badge-info">Facturador</span></td><td>Crear y emitir facturas electronicas, CxC</td></tr>
+                    <tr><td><span class="badge badge-warning">Vendedor</span></td><td>Cotizaciones, pedidos de venta, CxC</td></tr>
+                    <tr><td><span class="badge badge-dark">Inventarista</span></td><td>Stock, movimientos, ajustes, traspasos</td></tr>
+                    <tr><td><span class="badge badge-gray">Consultor</span></td><td>Solo lectura en todos los modulos</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 3: CATALOGOS =============== -->
+<div class="section" id="fase3">
+    <div class="section-header bg-info-header">Fase 3: Catalogos de Hacienda (Precargados)</div>
+    <div class="section-body">
+        <div class="info-box">
+            <h4>Catalogos precargados automaticamente</h4>
+            <p>Los siguientes catalogos vienen precargados en la base de datos y <strong>no necesitan configuracion manual</strong>. Son datos oficiales del Ministerio de Hacienda de Costa Rica.</p>
+        </div>
+
+        <div class="route-box">Menu: Catalogo &gt; Catalogos Hacienda</div>
+
+        <table>
+            <thead><tr><th>Catalogo</th><th>Pagina</th><th>Descripcion</th><th>Ejemplos</th></tr></thead>
+            <tbody>
+                <tr><td>Tipos de Identificacion</td><td>Tipos de Identificacion</td><td>Tipos de cedula</td><td>01-Fisica, 02-Juridica, 03-DIMEX, 04-NITE</td></tr>
+                <tr><td>Unidades de Medida</td><td>Unidades de Medida</td><td>UoM para productos</td><td>Unid, Kg, m, Lt, Hr, Sp (Servicio Profesional)</td></tr>
+                <tr><td>Impuestos</td><td>Impuestos</td><td>Tipos de impuesto</td><td>01-IVA, 02-ISC, 03-Unico Combustibles</td></tr>
+                <tr><td>Tarifas IVA</td><td>Codigos Tarifas IVA</td><td>Porcentajes de IVA</td><td>08-General 13%, 01-Tarifa 0%, 02-Tarifa 1%, 03-Tarifa 2%, 06-Tarifa 4%</td></tr>
+                <tr><td>Condiciones de Venta</td><td>Condiciones de Venta</td><td>Terminos de pago</td><td>01-Contado, 02-Credito, 03-Consignacion</td></tr>
+                <tr><td>Medios de Pago</td><td>Formas de Pago</td><td>Como se paga</td><td>01-Efectivo, 02-Tarjeta, 03-Cheque, 04-Transferencia, 05-Recaudado terceros, 99-Otros</td></tr>
+                <tr><td>Tipos de Documento</td><td>Tipos de Documentos</td><td>Tipos de comprobante</td><td>01-FE, 02-ND, 03-NC, 04-TE, 08-FEC, 09-FEE</td></tr>
+                <tr><td>CABYS</td><td>Codigos CABYS</td><td>Clasificacion bienes/servicios</td><td>Codigo de 13 digitos asignado a cada producto/servicio</td></tr>
+                <tr><td>Actividades Economicas</td><td>Actividades Economicas</td><td>CIIU v4</td><td>620100-Programacion informatica, 461001-Venta al por mayor</td></tr>
+                <tr><td>Provincias/Cantones/Distritos</td><td>(Integrado en formularios)</td><td>Division territorial CR</td><td>1-San Jose, 2-Alajuela, etc.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="warning-box">
+            <h4>Codigo CABYS Obligatorio desde v4.4</h4>
+            <p>Desde la version 4.4 de Hacienda, <strong>todo producto debe tener un codigo CABYS asignado</strong> para poder facturarse electronicamente. Verifique que sus productos tengan este codigo antes de emitir facturas.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 4: CLIENTES Y PROVEEDORES =============== -->
+<div class="section" id="fase4">
+    <div class="section-header bg-success-header">Fase 4: Maestros - Clientes y Proveedores</div>
+    <div class="section-body">
+
+        <div class="subsection">
+            <h3>4.1 Crear Clientes</h3>
+            <div class="route-box">Menu: Catalogo &gt; Clientes &gt; Boton "Nuevo Cliente"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empresa</h4>
+                <p class="dep-arrow">Empresa &rarr; Cliente</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear cliente persona juridica</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Tipo Identificacion</td><td>Cedula Juridica</td></tr>
+                    <tr><td>Numero Identificacion</td><td>3101567890</td></tr>
+                    <tr><td>Nombre / Razon Social</td><td>Distribuidora Nacional S.A.</td></tr>
+                    <tr><td>Nombre Comercial</td><td>DisNacional</td></tr>
+                    <tr><td>Correo Electronico</td><td>facturas@disnacional.co.cr</td></tr>
+                    <tr><td>Telefono</td><td>2233-4455</td></tr>
+                    <tr><td>Provincia</td><td>San Jose</td></tr>
+                    <tr><td>Actividad Economica</td><td>461001</td></tr>
+                    <tr><td>Condicion de Venta</td><td>Credito (30 dias)</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>4.2 Crear Proveedores</h3>
+            <div class="route-box">Menu: Catalogo &gt; Proveedores &gt; Boton "Nuevo Proveedor"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empresa</h4>
+                <p class="dep-arrow">Empresa &rarr; Proveedor</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear proveedor de suministros</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Tipo Identificacion</td><td>Cedula Juridica</td></tr>
+                    <tr><td>Numero Identificacion</td><td>3102345678</td></tr>
+                    <tr><td>Nombre</td><td>Suministros Oficina CR S.A.</td></tr>
+                    <tr><td>Correo</td><td>ventas@sumioficina.co.cr</td></tr>
+                    <tr><td>Contacto</td><td>Carlos Ramirez</td></tr>
+                    <tr><td>Plazo de Pago</td><td>30 dias</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 5: PRODUCTOS =============== -->
+<div class="section" id="fase5">
+    <div class="section-header bg-success-header">Fase 5: Maestros - Productos y Categorias</div>
+    <div class="section-body">
+
+        <div class="subsection">
+            <h3>5.1 Crear Categorias de Productos</h3>
+            <div class="route-box">Menu: Catalogo &gt; Categorias &gt; Boton "Nueva Categoria"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empresa</h4>
+                <p class="dep-arrow">Empresa &rarr; Categoria &rarr; Producto</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Categorias tipicas</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th></tr>
+                    <tr><td>SERV</td><td>Servicios Profesionales</td></tr>
+                    <tr><td>PROD</td><td>Productos Fisicos</td></tr>
+                    <tr><td>LIC</td><td>Licencias de Software</td></tr>
+                    <tr><td>MANT</td><td>Mantenimiento</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>5.2 Crear Productos / Servicios</h3>
+            <div class="route-box">Menu: Catalogo &gt; Productos &gt; Boton "Nuevo Producto"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Categoria + Unidad de Medida + Impuesto + CABYS</h4>
+                <p class="dep-arrow">Categoria &rarr; Producto &larr; UnidadMedida + Impuesto + CABYS</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear servicio de consultoria</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Codigo</td><td>SERV-001</td></tr>
+                    <tr><td>Nombre</td><td>Hora de Consultoria Informatica</td></tr>
+                    <tr><td>Categoria</td><td>Servicios Profesionales</td></tr>
+                    <tr><td>Tipo</td><td>Servicio</td></tr>
+                    <tr><td>Unidad de Medida</td><td>Hr (Hora)</td></tr>
+                    <tr><td>Precio Unitario</td><td>25,000.00</td></tr>
+                    <tr><td>Impuesto</td><td>IVA</td></tr>
+                    <tr><td>Tarifa IVA</td><td>13% (General)</td></tr>
+                    <tr><td>Codigo CABYS</td><td>8314001000000 (Servicios de consultoria en TI)</td></tr>
+                    <tr><td>Controlar Inventario</td><td>No (es servicio)</td></tr>
+                </table>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear producto fisico con inventario</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Codigo</td><td>PROD-001</td></tr>
+                    <tr><td>Nombre</td><td>Teclado Mecanico USB</td></tr>
+                    <tr><td>Categoria</td><td>Productos Fisicos</td></tr>
+                    <tr><td>Tipo</td><td>Producto</td></tr>
+                    <tr><td>Unidad de Medida</td><td>Unid (Unidad)</td></tr>
+                    <tr><td>Precio Unitario</td><td>35,000.00</td></tr>
+                    <tr><td>Costo</td><td>18,000.00</td></tr>
+                    <tr><td>Impuesto</td><td>IVA</td></tr>
+                    <tr><td>Tarifa IVA</td><td>13%</td></tr>
+                    <tr><td>Codigo CABYS</td><td>2621901000100</td></tr>
+                    <tr><td>Controlar Inventario</td><td>Si</td></tr>
+                    <tr><td>Stock Minimo</td><td>5</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 6: RRHH =============== -->
+<div class="section" id="fase6">
+    <div class="section-header bg-purple-header">Fase 6: Recursos Humanos</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Cadena completa de dependencias</h4>
+            <div class="flow">
+                <span class="flow-item">Empresa</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Departamento</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Puesto</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Empleado</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Vacaciones / Incapacidades / Planilla</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>6.1 Crear Departamentos</h3>
+            <div class="route-box">Menu: RRHH &gt; Departamentos &gt; Boton "Nuevo Departamento"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Departamentos tipicos</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th><th>Departamento Padre</th></tr>
+                    <tr><td>GER</td><td>Gerencia General</td><td>(Ninguno - raiz)</td></tr>
+                    <tr><td>FIN</td><td>Finanzas y Contabilidad</td><td>Gerencia General</td></tr>
+                    <tr><td>TI</td><td>Tecnologia de Informacion</td><td>Gerencia General</td></tr>
+                    <tr><td>VEN</td><td>Ventas</td><td>Gerencia General</td></tr>
+                    <tr><td>BOD</td><td>Bodega y Logistica</td><td>Gerencia General</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>6.2 Crear Puestos</h3>
+            <div class="route-box">Menu: RRHH &gt; Puestos &gt; Boton "Nuevo Puesto"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Departamento</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Puestos del departamento TI</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th><th>Departamento</th><th>Salario Base</th></tr>
+                    <tr><td>TI-GER</td><td>Gerente de TI</td><td>Tecnologia</td><td>1,800,000</td></tr>
+                    <tr><td>TI-DEV</td><td>Desarrollador Senior</td><td>Tecnologia</td><td>1,200,000</td></tr>
+                    <tr><td>TI-SUP</td><td>Soporte Tecnico</td><td>Tecnologia</td><td>650,000</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>6.3 Crear Empleados</h3>
+            <div class="route-box">Menu: RRHH &gt; Empleados &gt; Boton "Nuevo Empleado"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Departamento + Puesto + Banco (para pago de planilla)</h4>
+                <p class="dep-arrow">Departamento + Puesto + Banco &rarr; Empleado</p>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Registrar empleado</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Tipo Identificacion</td><td>Cedula Fisica</td></tr>
+                    <tr><td>Identificacion</td><td>104560789</td></tr>
+                    <tr><td>Nombre</td><td>Juan Carlos Mora Vargas</td></tr>
+                    <tr><td>Departamento</td><td>Tecnologia de Informacion</td></tr>
+                    <tr><td>Puesto</td><td>Desarrollador Senior</td></tr>
+                    <tr><td>Fecha Ingreso</td><td>01/03/2026</td></tr>
+                    <tr><td>Salario Base</td><td>1,200,000.00</td></tr>
+                    <tr><td>Banco para Pago</td><td>Banco Nacional</td></tr>
+                    <tr><td>Cuenta Bancaria</td><td>CR12345678901234567890</td></tr>
+                    <tr><td>Jefe Directo</td><td>(Gerente de TI)</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>6.4 Vacaciones e Incapacidades</h3>
+            <div class="route-box">Menu: RRHH &gt; Vacaciones | RRHH &gt; Incapacidades</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empleado registrado</h4>
+            </div>
+
+            <p>Una vez creado el empleado, puede registrar solicitudes de vacaciones y periodos de incapacidad.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>6.5 Planillas (Nomina)</h3>
+            <div class="route-box">Menu: RRHH &gt; Planillas</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empleados registrados con salario y datos bancarios</h4>
+            </div>
+
+            <p>El modulo de planillas permite generar la nomina quincenal o mensual con deducciones de CCSS, impuestos, etc.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 7: BANCOS =============== -->
+<div class="section" id="fase7">
+    <div class="section-header bg-teal-header">Fase 7: Bancos y Cuentas Bancarias</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Cadena de dependencias</h4>
+            <div class="flow">
+                <span class="flow-item">Empresa</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Banco</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Cuenta Bancaria</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Movimientos / Extractos / Conciliaciones</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>7.1 Crear Bancos</h3>
+            <div class="route-box">Menu: Bancos &gt; Catalogo de Bancos &gt; Boton "Nuevo Banco"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Bancos tipicos de Costa Rica</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th><th>Tipo</th></tr>
+                    <tr><td>BNCR</td><td>Banco Nacional de Costa Rica</td><td>Estatal</td></tr>
+                    <tr><td>BCR</td><td>Banco de Costa Rica</td><td>Estatal</td></tr>
+                    <tr><td>BAC</td><td>BAC Credomatic</td><td>Privado</td></tr>
+                    <tr><td>SCOT</td><td>Scotiabank</td><td>Privado</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>7.2 Crear Cuentas Bancarias</h3>
+            <div class="route-box">Menu: Bancos &gt; Cuentas Bancarias &gt; Boton "Nueva Cuenta"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Banco + Sucursal</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Crear cuenta corriente en colones</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Banco</td><td>Banco Nacional de Costa Rica</td></tr>
+                    <tr><td>Numero de Cuenta</td><td>100-02-123-456789-0</td></tr>
+                    <tr><td>IBAN</td><td>CR12015112345678901234</td></tr>
+                    <tr><td>Tipo</td><td>Corriente</td></tr>
+                    <tr><td>Moneda</td><td>CRC (Colones)</td></tr>
+                    <tr><td>Sucursal</td><td>Casa Matriz</td></tr>
+                    <tr><td>Saldo Inicial</td><td>5,000,000.00</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>7.3 Movimientos, Extractos y Conciliaciones</h3>
+            <div class="route-box">Menu: Bancos &gt; Movimientos | Extractos | Conciliaciones</div>
+            <p>Una vez creada la cuenta bancaria, puede registrar movimientos (depositos, retiros, transferencias), cargar extractos bancarios y realizar conciliaciones.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 8: INVENTARIO =============== -->
+<div class="section" id="fase8">
+    <div class="section-header bg-indigo-header">Fase 8: Inventario y Bodegas</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Cadena de dependencias</h4>
+            <div class="flow">
+                <span class="flow-item">Sucursal</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Bodega</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Inventario (Producto + Bodega)</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>8.1 Crear Bodegas</h3>
+            <div class="route-box">Menu: Inventario &gt; Bodegas &gt; Boton "Nueva Bodega"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Empresa + Sucursal</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Bodegas</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th><th>Sucursal</th><th>Tipo</th></tr>
+                    <tr><td>BOD-01</td><td>Bodega Principal</td><td>Casa Matriz</td><td>Almacen</td></tr>
+                    <tr><td>BOD-02</td><td>Bodega Transito</td><td>Casa Matriz</td><td>Transito</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>8.2 Stock, Movimientos, Kardex</h3>
+            <div class="route-box">Menu: Inventario &gt; Stock Actual | Movimientos | Kardex</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Productos + Bodegas creados</h4>
+            </div>
+
+            <table>
+                <tr><th>Pagina</th><th>Funcion</th></tr>
+                <tr><td>Stock Actual</td><td>Ver existencias actuales por producto y bodega</td></tr>
+                <tr><td>Movimientos</td><td>Registrar entradas, salidas, ajustes de inventario</td></tr>
+                <tr><td>Kardex</td><td>Libro de movimientos historicos por producto</td></tr>
+                <tr><td>Traspasos</td><td>Transferir stock entre bodegas</td></tr>
+                <tr><td>Ajustes</td><td>Ajustar cantidades por conteo fisico</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 9: CONTABILIDAD =============== -->
+<div class="section" id="fase9">
+    <div class="section-header bg-primary-header">Fase 9: Contabilidad</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Cadena de dependencias</h4>
+            <div class="flow">
+                <span class="flow-item">Empresa</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Plan de Cuentas</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Periodos Contables</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Asientos Contables</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>9.1 Crear Plan de Cuentas</h3>
+            <div class="route-box">Menu: Contabilidad &gt; Plan de Cuentas &gt; Boton "Nueva Cuenta"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Estructura basica del plan de cuentas</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th><th>Tipo</th><th>Naturaleza</th><th>Nivel</th></tr>
+                    <tr><td>1</td><td>Activos</td><td>Activo</td><td>Deudora</td><td>1 (Grupo)</td></tr>
+                    <tr><td>1.1</td><td>Activo Circulante</td><td>Activo</td><td>Deudora</td><td>2</td></tr>
+                    <tr><td>1.1.01</td><td>Caja y Bancos</td><td>Activo</td><td>Deudora</td><td>3</td></tr>
+                    <tr><td>1.1.01.001</td><td>Caja General</td><td>Activo</td><td>Deudora</td><td>4 (Movimiento)</td></tr>
+                    <tr><td>2</td><td>Pasivos</td><td>Pasivo</td><td>Acreedora</td><td>1</td></tr>
+                    <tr><td>3</td><td>Patrimonio</td><td>Capital</td><td>Acreedora</td><td>1</td></tr>
+                    <tr><td>4</td><td>Ingresos</td><td>Ingreso</td><td>Acreedora</td><td>1</td></tr>
+                    <tr><td>5</td><td>Gastos</td><td>Gasto</td><td>Deudora</td><td>1</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>9.2 Generar Periodos Contables</h3>
+            <div class="route-box">Menu: Contabilidad &gt; Periodos Contables &gt; Boton "Generar Ano"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Generar periodos para 2026</h4>
+                <p>Ingrese el ano <strong>2026</strong> y haga clic en "Generar 12 Periodos". El sistema creara automaticamente:</p>
+                <p>Enero 2026, Febrero 2026, ..., Diciembre 2026 &mdash; todos en estado <span class="badge badge-success">Abierto</span></p>
+            </div>
+
+            <div class="warning-box">
+                <h4>Cerrar periodos es irreversible</h4>
+                <p>Al cerrar un periodo contable, no se podran registrar ni modificar transacciones en ese periodo.</p>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>9.3 Asientos Contables</h3>
+            <div class="route-box">Menu: Contabilidad &gt; Asientos Contables</div>
+            <p>Los asientos se generan automaticamente al emitir facturas, o se pueden crear manualmente. Cada asiento debe cuadrar (Debitos = Creditos).</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 10: PRESUPUESTOS =============== -->
+<div class="section" id="fase10">
+    <div class="section-header bg-brown-header">Fase 10: Presupuestos</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Cadena de dependencias</h4>
+            <div class="flow">
+                <span class="flow-item">Empresa</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Centros de Costo</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Plan de Cuentas</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Presupuestos + Lineas</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Ejecucion Presupuestal</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>10.1 Crear Centros de Costo</h3>
+            <div class="route-box">Menu: Presupuestos &gt; Centros de Costo &gt; Boton "Nuevo Centro"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Centros de costo por departamento</h4>
+                <table>
+                    <tr><th>Codigo</th><th>Nombre</th><th>Tipo</th></tr>
+                    <tr><td>CC-ADM</td><td>Administracion</td><td>Costo</td></tr>
+                    <tr><td>CC-VEN</td><td>Ventas</td><td>Costo</td></tr>
+                    <tr><td>CC-TI</td><td>Tecnologia</td><td>Costo</td></tr>
+                    <tr><td>CC-PRD</td><td>Produccion</td><td>Costo</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>10.2 Crear Presupuesto</h3>
+            <div class="route-box">Menu: Presupuestos &gt; Presupuestos &gt; Boton "Nuevo Presupuesto"</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Presupuesto anual 2026</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Codigo</td><td>PRES-2026</td></tr>
+                    <tr><td>Nombre</td><td>Presupuesto General 2026</td></tr>
+                    <tr><td>Ano Fiscal</td><td>2026</td></tr>
+                    <tr><td>Tipo</td><td>Anual</td></tr>
+                    <tr><td>Estado inicial</td><td><span class="badge badge-gray">Borrador</span></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>10.3 Agregar Lineas de Presupuesto</h3>
+            <p>Haga clic en el boton <strong>"Ver Lineas"</strong> del presupuesto, luego <strong>"Agregar Linea"</strong>.</p>
+
+            <div class="example-box">
+                <h4>Ejemplo: Linea de presupuesto para servicios publicos</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Cuenta Contable</td><td>5.1.03.001 - Servicios Publicos</td></tr>
+                    <tr><td>Centro de Costo</td><td>CC-ADM (Administracion)</td></tr>
+                    <tr><td>Monto Anual</td><td>6,000,000 (usar boton "Dividir / 12")</td></tr>
+                    <tr><td>Resultado</td><td>500,000 por mes x 12 meses</td></tr>
+                </table>
+            </div>
+
+            <div class="info-box">
+                <h4>Distribucion uniforme</h4>
+                <p>Ingrese el monto anual y haga clic en <strong>"Dividir / 12"</strong>. El sistema distribuye automaticamente entre los 12 meses, ajustando el residuo en diciembre.</p>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>10.4 Flujo de Aprobacion del Presupuesto</h3>
+            <div class="workflow-states">
+                <span class="ws ws-bor">Borrador (BOR)</span><span class="flow-arrow">&rarr;</span>
+                <span class="ws ws-rev">En Revision (REV)</span><span class="flow-arrow">&rarr;</span>
+                <span class="ws ws-apr">Aprobado (APR)</span><span class="flow-arrow">&rarr;</span>
+                <span class="ws ws-vig">Vigente (VIG)</span><span class="flow-arrow">&rarr;</span>
+                <span class="ws ws-cer">Cerrado (CER)</span>
+            </div>
+
+            <table>
+                <tr><th>Estado</th><th>Se puede editar</th><th>Se puede eliminar</th><th>Transiciones permitidas</th></tr>
+                <tr><td><span class="badge badge-gray">BOR</span></td><td>Si</td><td>Si</td><td>&rarr; REV</td></tr>
+                <tr><td><span class="badge badge-warning">REV</span></td><td>No</td><td>No</td><td>&rarr; APR o &larr; BOR</td></tr>
+                <tr><td><span class="badge badge-info">APR</span></td><td>No</td><td>No</td><td>&rarr; VIG o &larr; REV</td></tr>
+                <tr><td><span class="badge badge-success">VIG</span></td><td>No</td><td>No</td><td>&rarr; CER</td></tr>
+                <tr><td><span class="badge badge-dark">CER</span></td><td>No</td><td>No</td><td>(Final)</td></tr>
+            </table>
+        </div>
+
+        <div class="subsection">
+            <h3>10.5 Ejecucion Presupuestal</h3>
+            <div class="route-box">Menu: Presupuestos &gt; Ejecucion Presupuestal</div>
+            <p>Dashboard que muestra en tiempo real cuanto del presupuesto se ha ejecutado (gastado), cuanto queda disponible, y alertas por colores:</p>
+            <table>
+                <tr><th>Color</th><th>Rango</th><th>Significado</th></tr>
+                <tr><td style="background:#c8e6c9;">Verde</td><td>&lt; 75%</td><td>Ejecucion normal</td></tr>
+                <tr><td style="background:#fff9c4;">Amarillo</td><td>75% - 90%</td><td>Atencion: acercandose al limite</td></tr>
+                <tr><td style="background:#ffcdd2;">Rojo</td><td>&gt; 90%</td><td>Alerta: presupuesto casi agotado</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 11: FACTURACION =============== -->
+<div class="section" id="fase11">
+    <div class="section-header bg-danger-header">Fase 11: Facturacion Electronica</div>
+    <div class="section-body">
+
+        <div class="dependency-box">
+            <h4>Todo lo necesario antes de facturar</h4>
+            <div class="flow">
+                <span class="flow-item">Empresa configurada</span><span class="flow-arrow">+</span>
+                <span class="flow-item">Sucursal</span><span class="flow-arrow">+</span>
+                <span class="flow-item">Terminal</span><span class="flow-arrow">+</span>
+                <span class="flow-item">Cliente</span><span class="flow-arrow">+</span>
+                <span class="flow-item">Producto con CABYS</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>11.1 Crear Factura Electronica</h3>
+            <div class="route-box">Menu: Facturacion &gt; Nueva Factura</div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Factura de venta de servicios</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Tipo de Documento</td><td>01 - Factura Electronica (FE)</td></tr>
+                    <tr><td>Sucursal</td><td>001 - Casa Matriz</td></tr>
+                    <tr><td>Terminal</td><td>00001 - Terminal Principal</td></tr>
+                    <tr><td>Cliente</td><td>Distribuidora Nacional S.A.</td></tr>
+                    <tr><td>Condicion de Venta</td><td>01 - Contado</td></tr>
+                    <tr><td>Medio de Pago</td><td>04 - Transferencia Bancaria</td></tr>
+                    <tr><td>Moneda</td><td>CRC (Colones)</td></tr>
+                </table>
+
+                <p style="margin-top:10px;"><strong>Detalle (lineas):</strong></p>
+                <table>
+                    <tr><th>Producto</th><th>Cantidad</th><th>Precio Unit.</th><th>IVA 13%</th><th>Total</th></tr>
+                    <tr><td>Hora Consultoria</td><td>10</td><td>25,000</td><td>32,500</td><td>282,500</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>11.2 Tipos de Documentos Electronicos</h3>
+            <table>
+                <tr><th>Codigo</th><th>Tipo</th><th>Uso</th></tr>
+                <tr><td>01</td><td>Factura Electronica (FE)</td><td>Venta a contribuyentes (con cedula)</td></tr>
+                <tr><td>04</td><td>Tiquete Electronico (TE)</td><td>Venta a consumidor final</td></tr>
+                <tr><td>02</td><td>Nota de Debito (ND)</td><td>Aumentar monto de factura emitida</td></tr>
+                <tr><td>03</td><td>Nota de Credito (NC)</td><td>Anular o disminuir factura emitida</td></tr>
+                <tr><td>08</td><td>Factura de Compra (FEC)</td><td>Compra a proveedores no emisores</td></tr>
+                <tr><td>09</td><td>Factura de Exportacion (FEE)</td><td>Venta de exportacion</td></tr>
+            </table>
+        </div>
+
+        <div class="subsection">
+            <h3>11.3 Flujo de una Factura</h3>
+            <div class="flow">
+                <span class="flow-item">Crear documento</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Agregar lineas</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Firmar digitalmente</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Enviar a Hacienda</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">Recibir respuesta</span>
+            </div>
+
+            <table>
+                <tr><th>Estado Hacienda</th><th>Significado</th></tr>
+                <tr><td><span class="badge badge-success">Aceptado</span></td><td>Hacienda acepto el documento</td></tr>
+                <tr><td><span class="badge badge-danger">Rechazado</span></td><td>Error en datos, debe corregir y reenviar</td></tr>
+                <tr><td><span class="badge badge-warning">En Proceso</span></td><td>Hacienda aun no ha respondido</td></tr>
+            </table>
+        </div>
+
+        <div class="subsection">
+            <h3>11.4 Documentos Recibidos y Mensajes Receptor</h3>
+            <div class="route-box">Menu: Facturacion &gt; Documentos Recibidos | Mensajes Receptor</div>
+            <p>Gestione los documentos recibidos de sus proveedores. Puede aceptar, aceptar parcialmente o rechazar documentos, enviando el mensaje receptor correspondiente a Hacienda.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 12: VENTAS =============== -->
+<div class="section" id="fase12">
+    <div class="section-header bg-success-header">Fase 12: Ventas - Cotizaciones y Pedidos</div>
+    <div class="section-body">
+
+        <div class="subsection">
+            <h3>12.1 Crear Cotizacion de Venta</h3>
+            <div class="route-box">Menu: Ventas &gt; Cotizaciones &gt; Boton "Nueva Cotizacion"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Cliente + Producto + Sucursal</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Cotizacion de equipos de computo</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Cliente</td><td>Distribuidora Nacional S.A.</td></tr>
+                    <tr><td>Sucursal</td><td>Casa Matriz</td></tr>
+                    <tr><td>Vigencia</td><td>30 dias</td></tr>
+                    <tr><td>Linea 1</td><td>10x Teclado Mecanico @ 35,000 = 350,000</td></tr>
+                    <tr><td>Linea 2</td><td>10x Mouse Inalambrico @ 15,000 = 150,000</td></tr>
+                    <tr><td>Subtotal</td><td>500,000</td></tr>
+                    <tr><td>IVA 13%</td><td>65,000</td></tr>
+                    <tr><td>Total</td><td>565,000</td></tr>
+                </table>
+            </div>
+
+            <p>La cotizacion puede convertirse en pedido de venta y luego en factura electronica.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 13: COMPRAS =============== -->
+<div class="section" id="fase13">
+    <div class="section-header bg-warning-header">Fase 13: Compras - Requisicion hasta Recepcion</div>
+    <div class="section-body">
+
+        <div class="subsection">
+            <h3>Flujo completo de compras</h3>
+            <div class="flow">
+                <span class="flow-item">1. Requisicion</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">2. Cotizacion Proveedor</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">3. Orden de Compra</span><span class="flow-arrow">&rarr;</span>
+                <span class="flow-item">4. Recepcion</span>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>13.1 Crear Requisicion</h3>
+            <div class="route-box">Menu: Compras &gt; Requisiciones &gt; Boton "Nueva Requisicion"</div>
+            <div class="dependency-box">
+                <h4>Depende de: Empleado + Departamento + Productos</h4>
+            </div>
+            <p>Un empleado solicita la compra de productos o servicios. La requisicion pasa por un proceso de aprobacion.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>13.2 Solicitar Cotizaciones a Proveedores</h3>
+            <div class="route-box">Menu: Compras &gt; Cotizaciones Proveedor</div>
+            <p>Envie la requisicion aprobada a uno o varios proveedores para obtener cotizaciones comparativas.</p>
+        </div>
+
+        <div class="subsection">
+            <h3>13.3 Crear Orden de Compra</h3>
+            <div class="route-box">Menu: Compras &gt; Ordenes de Compra &gt; Boton "Nueva Orden"</div>
+
+            <div class="dependency-box">
+                <h4>Depende de: Proveedor + Productos + Bodega destino</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Orden de compra de suministros</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Proveedor</td><td>Suministros Oficina CR S.A.</td></tr>
+                    <tr><td>Bodega Destino</td><td>BOD-01 Bodega Principal</td></tr>
+                    <tr><td>Condicion de Pago</td><td>30 dias</td></tr>
+                    <tr><td>Linea 1</td><td>100x Resma Papel A4 @ 3,500 = 350,000</td></tr>
+                    <tr><td>Linea 2</td><td>50x Boligrafo Azul @ 500 = 25,000</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>13.4 Recepcion de Compra</h3>
+            <div class="route-box">Menu: Compras &gt; Recepciones de Compra</div>
+            <p>Al recibir la mercaderia, registre la recepcion contra la orden de compra. El inventario se actualiza automaticamente.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 14: CxC y CxP =============== -->
+<div class="section" id="fase14">
+    <div class="section-header bg-pink-header">Fase 14: Cuentas por Cobrar y Pagar</div>
+    <div class="section-body">
+        <div class="subsection">
+            <h3>14.1 Cuentas por Cobrar</h3>
+            <div class="route-box">Menu: Cuentas por Cobrar &gt; CxC | Estado de Cuenta</div>
+            <p>Las cuentas por cobrar se generan automaticamente al emitir facturas a credito. El modulo permite:</p>
+            <ul class="checklist">
+                <li>Ver el saldo pendiente por cliente</li>
+                <li>Consultar antigüedad de saldos (30, 60, 90+ dias)</li>
+                <li>Registrar abonos y pagos</li>
+                <li>Generar estado de cuenta por cliente</li>
+            </ul>
+        </div>
+
+        <div class="subsection">
+            <h3>14.2 Cuentas por Pagar</h3>
+            <div class="route-box">Menu: Cuentas por Pagar &gt; CxP | Estado de Cuenta Proveedor</div>
+            <p>Las cuentas por pagar se generan al registrar facturas de compra. Funcionalidad similar a CxC pero desde la perspectiva del pago a proveedores.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 15: GASTOS Y ACTIVOS =============== -->
+<div class="section" id="fase15">
+    <div class="section-header bg-dark-header">Fase 15: Gastos y Activos Fijos</div>
+    <div class="section-body">
+        <div class="subsection">
+            <h3>15.1 Registro de Gastos</h3>
+            <div class="route-box">Menu: Facturacion &gt; Gastos | Categorias de Gastos</div>
+
+            <div class="dependency-box">
+                <h4>Primero cree las categorias de gastos, luego registre los gastos</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Categorias de gastos</h4>
+                <table>
+                    <tr><th>Categoria</th><th>Ejemplos</th></tr>
+                    <tr><td>Servicios Publicos</td><td>Electricidad, Agua, Internet, Telefono</td></tr>
+                    <tr><td>Alquiler</td><td>Alquiler de oficina, bodega</td></tr>
+                    <tr><td>Suministros</td><td>Papeleria, limpieza, cafeteria</td></tr>
+                    <tr><td>Transporte</td><td>Combustible, peajes, parqueo</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>15.2 Activos Fijos</h3>
+            <div class="route-box">Menu: Activos Fijos &gt; Categorias de Activos &gt; Activos Fijos &gt; Depreciaciones</div>
+
+            <div class="dependency-box">
+                <h4>Orden: Categoria de Activo &rarr; Activo Fijo &rarr; Depreciacion</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Registrar un equipo de computo</h4>
+                <table>
+                    <tr><th>Campo</th><th>Valor</th></tr>
+                    <tr><td>Categoria</td><td>Equipo de Computo</td></tr>
+                    <tr><td>Codigo</td><td>AF-PC-001</td></tr>
+                    <tr><td>Descripcion</td><td>Laptop Dell Latitude 5540</td></tr>
+                    <tr><td>Fecha Adquisicion</td><td>15/01/2026</td></tr>
+                    <tr><td>Valor Adquisicion</td><td>850,000.00</td></tr>
+                    <tr><td>Vida Util (anos)</td><td>5</td></tr>
+                    <tr><td>Metodo Depreciacion</td><td>Linea Recta</td></tr>
+                    <tr><td>Depreciacion Mensual</td><td>14,166.67</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 16: APROBACIONES =============== -->
+<div class="section" id="fase16">
+    <div class="section-header bg-cyan-header">Fase 16: Aprobaciones y Workflows</div>
+    <div class="section-body">
+        <div class="subsection">
+            <h3>16.1 Configurar Workflows</h3>
+            <div class="route-box">Menu: Aprobaciones &gt; Tipos de Workflow &gt; Niveles de Aprobacion</div>
+
+            <div class="dependency-box">
+                <h4>Orden: Tipo de Workflow &rarr; Niveles de Aprobacion &rarr; Solicitudes</h4>
+            </div>
+
+            <div class="example-box">
+                <h4>Ejemplo: Workflow de aprobacion de ordenes de compra</h4>
+                <table>
+                    <tr><th>Nivel</th><th>Aprobador</th><th>Monto Maximo</th></tr>
+                    <tr><td>1</td><td>Jefe de Departamento</td><td>Hasta 500,000</td></tr>
+                    <tr><td>2</td><td>Gerente Financiero</td><td>Hasta 5,000,000</td></tr>
+                    <tr><td>3</td><td>Gerente General</td><td>Sin limite</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>16.2 Gestionar Solicitudes</h3>
+            <div class="route-box">Menu: Aprobaciones &gt; Mis Solicitudes | Pendientes de Aprobar</div>
+            <p>Los usuarios crean solicitudes que se enrutan automaticamente al aprobador correcto segun el nivel y monto.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 17: REPORTES =============== -->
+<div class="section" id="fase17">
+    <div class="section-header bg-primary-header">Fase 17: Reportes</div>
+    <div class="section-body">
+        <div class="route-box">Menu: Reportes &gt; (Seleccionar reporte)</div>
+
+        <table>
+            <thead><tr><th>Reporte</th><th>Descripcion</th><th>Filtros</th></tr></thead>
+            <tbody>
+                <tr><td>Reporte de Ventas</td><td>Ventas por periodo, cliente, producto</td><td>Fecha desde/hasta, cliente, producto</td></tr>
+                <tr><td>Documentos Emitidos</td><td>Todos los documentos electronicos emitidos</td><td>Tipo, estado, fecha, cliente</td></tr>
+                <tr><td>Documentos Recibidos</td><td>Facturas de proveedores recibidas</td><td>Fecha, proveedor, estado</td></tr>
+                <tr><td>Reporte de Productos</td><td>Movimientos y ventas por producto</td><td>Producto, categoria, periodo</td></tr>
+                <tr><td>Reporte de Gastos</td><td>Gastos por categoria y periodo</td><td>Categoria, fecha, centro de costo</td></tr>
+            </tbody>
+        </table>
+
+        <div class="info-box">
+            <h4>Exportacion</h4>
+            <p>Todos los reportes pueden exportarse a <strong>Excel (.xlsx)</strong> y <strong>PDF</strong>.</p>
+        </div>
+    </div>
+</div>
+
+<!-- =============== FASE 18: SEGURIDAD =============== -->
+<div class="section" id="fase18">
+    <div class="section-header bg-danger-header">Fase 18: Seguridad y Auditoria</div>
+    <div class="section-body">
+        <div class="route-box">Menu: Sistema &gt; Seguridad</div>
+
+        <table>
+            <thead><tr><th>Pagina</th><th>Funcion</th></tr></thead>
+            <tbody>
+                <tr><td>Usuarios</td><td>Crear, editar, desactivar usuarios. Asignar roles y empresas.</td></tr>
+                <tr><td>Roles</td><td>Gestionar roles del sistema y sus permisos.</td></tr>
+                <tr><td>Privilegios</td><td>Configurar permisos granulares por modulo.</td></tr>
+                <tr><td>Auditoria de Accesos</td><td>Revisar quien accedio, cuando, y que acciones realizo.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="warning-box">
+            <h4>Politicas de seguridad</h4>
+            <ul>
+                <li>Contrasena minima: 6 caracteres</li>
+                <li>Bloqueo despues de 5 intentos fallidos (15 minutos)</li>
+                <li>Sesion expira tras periodo de inactividad</li>
+                <li>Todas las comunicaciones son cifradas (HTTPS)</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- =============== ROLES Y PERMISOS =============== -->
+<div class="section" id="roles">
+    <div class="section-header bg-dark-header">Referencia Rapida: Roles y Acceso por Modulo</div>
+    <div class="section-body">
+        <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Modulo</th>
+                    <th><span class="badge badge-danger">Super</span></th>
+                    <th><span class="badge badge-primary">Admin</span></th>
+                    <th><span class="badge badge-success">Contador</span></th>
+                    <th><span class="badge badge-info">Facturador</span></th>
+                    <th><span class="badge badge-warning">Vendedor</span></th>
+                    <th><span class="badge badge-dark">Inventarista</span></th>
+                    <th><span class="badge badge-gray">Consultor</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Configuracion / Sistema</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                <tr><td>Facturacion</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>Ventas</td><td>Si</td><td>Si</td><td>-</td><td>Si</td><td>Si</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>Compras</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>Inventario</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>Si</td><td>Solo ver</td></tr>
+                <tr><td>Contabilidad</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>Bancos</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>CxC</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>CxP</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>RRHH</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                <tr><td>Activos Fijos</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>Presupuestos</td><td>Si</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>Solo ver</td></tr>
+                <tr><td>Aprobaciones</td><td>Si</td><td>Si</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                <tr><td>Reportes</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td><td>Si</td></tr>
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+
+<!-- =============== CHECKLIST FINAL =============== -->
+<div class="section">
+    <div class="section-header bg-success-header">Checklist de Configuracion Inicial Completa</div>
+    <div class="section-body">
+        <p>Siga esta lista en orden para tener el sistema 100% funcional:</p>
+
+        <ul class="checklist">
+            <li><strong>Fase 0:</strong> Login con admin@facturacion.com / Admin123!</li>
+            <li><strong>Fase 1a:</strong> Crear Empresa con datos fiscales y certificado digital</li>
+            <li><strong>Fase 1b:</strong> Crear al menos 1 Sucursal</li>
+            <li><strong>Fase 1c:</strong> Crear al menos 1 Terminal en la sucursal</li>
+            <li><strong>Fase 1d:</strong> Configurar correo SMTP para envio de facturas</li>
+            <li><strong>Fase 2:</strong> Crear usuarios adicionales y asignar roles</li>
+            <li><strong>Fase 3:</strong> Verificar que los catalogos de Hacienda estan cargados</li>
+            <li><strong>Fase 4a:</strong> Crear Categorias de Productos</li>
+            <li><strong>Fase 4b:</strong> Crear Clientes principales</li>
+            <li><strong>Fase 4c:</strong> Crear Proveedores principales</li>
+            <li><strong>Fase 4d:</strong> Crear Productos/Servicios con codigos CABYS</li>
+            <li><strong>Fase 5a:</strong> Crear Departamentos</li>
+            <li><strong>Fase 5b:</strong> Crear Puestos de trabajo</li>
+            <li><strong>Fase 5c:</strong> Crear catalogo de Bancos</li>
+            <li><strong>Fase 5d:</strong> Crear Empleados</li>
+            <li><strong>Fase 5e:</strong> Crear Cuentas Bancarias de la empresa</li>
+            <li><strong>Fase 6a:</strong> Crear Bodegas</li>
+            <li><strong>Fase 6b:</strong> Registrar inventario inicial</li>
+            <li><strong>Fase 7a:</strong> Crear Plan de Cuentas contables</li>
+            <li><strong>Fase 7b:</strong> Generar Periodos Contables del ano</li>
+            <li><strong>Fase 7c:</strong> Crear Centros de Costo</li>
+            <li><strong>Fase 8:</strong> Crear Presupuestos con lineas mensuales</li>
+            <li><strong>Fase 9:</strong> Emitir primera factura de prueba (ambiente Pruebas)</li>
+            <li><strong>Fase 10:</strong> Verificar respuesta de Hacienda = Aceptado</li>
+            <li><strong>Fase 11:</strong> Cambiar a ambiente Produccion cuando todo funcione</li>
+        </ul>
+    </div>
+</div>
+
+<!-- =============== FOOTER =============== -->
+<div style="text-align:center; padding:30px; color:var(--gray); font-size:0.9em;">
+    <hr class="divider">
+    <p><strong>ERPFactu</strong> - Sistema de Facturacion Electronica v4.4 para Costa Rica</p>
+    <p>Manual generado: Febrero 2026 | Framework: .NET 9.0 | Base de Datos: SQL Server</p>
+    <p>Credenciales por defecto: admin@facturacion.com / Admin123!</p>
+</div>
+
+</div><!-- end container -->
+</body>
+</html>

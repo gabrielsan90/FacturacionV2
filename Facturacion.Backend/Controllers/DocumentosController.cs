@@ -58,6 +58,7 @@ public class DocumentosController : ControllerBase
         [FromQuery] DateTime? fechaInicio,
         [FromQuery] DateTime? fechaFin,
         [FromQuery] Ambiente? ambiente,
+        [FromQuery] bool? esDocumentoRecibido,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 25)
     {
@@ -81,7 +82,8 @@ public class DocumentosController : ControllerBase
                 tipoDocumento,
                 fechaInicio,
                 fechaFin,
-                ambiente);
+                ambiente,
+                esDocumentoRecibido);
 
             return Ok(new
             {

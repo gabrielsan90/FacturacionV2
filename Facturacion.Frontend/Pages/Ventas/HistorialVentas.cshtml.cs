@@ -72,11 +72,11 @@ public class HistorialVentasModel : PageModel
             // API returns ActionResponse<T> with result property
             if (doc.RootElement.TryGetProperty("result", out var resultElement))
             {
-                return new JsonResult(new { data = resultElement });
+                var resultJson = resultElement.GetRawText();
+                return new ContentResult { Content = $"{{\"data\":{resultJson}}}", ContentType = "application/json", StatusCode = 200 };
             }
 
-            // Fallback: try to use the whole response as data
-            return new JsonResult(new { data = doc.RootElement });
+            return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
         }
 
         return new JsonResult(new { data = new List<object>() });
@@ -114,13 +114,12 @@ public class HistorialVentasModel : PageModel
         if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(content);
-
-            if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            return new ContentResult
             {
-                return new JsonResult(new { success = true, data = resultElement });
-            }
-            return new JsonResult(new { success = true, data = doc.RootElement });
+                Content = $"{{\"success\":true,\"data\":{content}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
         return new JsonResult(new { success = false, message = "Error al obtener resumen" });

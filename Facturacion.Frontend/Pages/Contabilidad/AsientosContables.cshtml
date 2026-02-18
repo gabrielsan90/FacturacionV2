@@ -274,12 +274,12 @@
     function loadDataTable() {
         table = initDataTable('#tableAsientos', {
             ajax: {
-                url: function() {
-                    const periodoId = $('#filtroPeriodo').val() || 'todos';
-                    const estado = $('#filtroEstado').val() || 'todos';
-                    return `?handler=Data&periodoId=${periodoId}&estado=${estado}`;
-                },
+                url: '?handler=Data',
                 type: 'GET',
+                data: function(d) {
+                    d.periodoId = $('#filtroPeriodo').val() || 'todos';
+                    d.estado = $('#filtroEstado').val() || 'todos';
+                },
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },

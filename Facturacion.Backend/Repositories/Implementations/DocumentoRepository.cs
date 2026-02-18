@@ -76,7 +76,8 @@ public class DocumentoRepository : IDocumentoRepository
         DocumentoTipo? tipoDocumento = null,
         DateTime? fechaInicio = null,
         DateTime? fechaFin = null,
-        Ambiente? ambiente = null)
+        Ambiente? ambiente = null,
+        bool? esDocumentoRecibido = null)
     {
         var query = _context.Documentos
             .Include(d => d.Sucursal)
@@ -84,6 +85,9 @@ public class DocumentoRepository : IDocumentoRepository
             .Include(d => d.Cliente)
             .Include(d => d.Proveedor)
             .Where(d => d.EmpresaId == empresaId && !d.IsDeleted);
+
+        if (esDocumentoRecibido.HasValue)
+            query = query.Where(d => d.EsDocumentoRecibido == esDocumentoRecibido.Value);
 
         if (sucursalId.HasValue)
             query = query.Where(d => d.SucursalId == sucursalId.Value);

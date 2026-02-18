@@ -32,7 +32,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -66,7 +65,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var response = await client.GetAsync($"api/cuentasintegracion/{id}");
 
@@ -91,7 +89,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -146,7 +143,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -179,7 +175,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -211,7 +206,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var response = await client.DeleteAsync($"api/cuentasintegracion/{id}");
 
@@ -235,7 +229,6 @@ public class CuentasIntegracionModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -264,26 +257,18 @@ public class CuentasIntegracionModel : PageModel
         }
     }
 
-    private HttpClient? CreateApiClient()
+    private HttpClient CreateApiClient()
     {
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 
-        // Try to get token from claims first (standard approach)
         var token = User.FindFirst("Token")?.Value;
-
-        // Fallback to cookie if not in claims
-        if (string.IsNullOrEmpty(token))
-        {
-            Request.Cookies.TryGetValue("authToken", out token);
-        }
-
         if (!string.IsNullOrEmpty(token))
         {
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            return client;
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        return null;
+        return client;
     }
 
     private Guid? GetEmpresaId()
@@ -397,7 +382,9 @@ public class MapeoCuentaDTO
     public Guid EmpresaId { get; set; }
     public string Modulo { get; set; } = "";
     public string TipoOperacion { get; set; } = "";
-    public string? DescripcionOperacion { get; set; }
+    public string ConceptoContable { get; set; } = "";
+    public string TipoMovimiento { get; set; } = "D";
+    public string? Descripcion { get; set; }
     public Guid CuentaContableId { get; set; }
     public string? CuentaCodigo { get; set; }
     public string? CuentaNombre { get; set; }

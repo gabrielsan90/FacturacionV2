@@ -262,8 +262,9 @@
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
                 },
                 ajax: {
-                    url: function() {
-                        return '?handler=Data&cuentaId=' + (currentCuentaId || '');
+                    url: '?handler=Data',
+                    data: function(d) {
+                        d.cuentaId = currentCuentaId || '';
                     },
                     dataSrc: function(json) {
                         extractosData = json || [];

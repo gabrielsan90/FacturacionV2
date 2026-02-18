@@ -304,27 +304,20 @@
     function loadDataTable() {
         table = initDataTable('#tableAuditoria', {
             ajax: {
-                url: function() {
-                    const fechaInicio = $('#filtroFechaInicio').val();
-                    const fechaFin = $('#filtroFechaFin').val();
-                    const usuarioId = $('#filtroUsuario').val();
-                    const accion = $('#filtroAccion').val();
-                    const exitoso = $('#filtroExitoso').val();
-
-                    let url = '?handler=Data';
-                    const params = [];
-                    if (fechaInicio) params.push('fechaInicio=' + fechaInicio);
-                    if (fechaFin) params.push('fechaFin=' + fechaFin);
-                    if (usuarioId) params.push('usuarioId=' + usuarioId);
-                    if (accion) params.push('accion=' + accion);
-                    if (exitoso) params.push('exitoso=' + exitoso);
-
-                    if (params.length > 0) {
-                        url += '&' + params.join('&');
-                    }
-                    return url;
-                },
+                url: '?handler=Data',
                 type: 'GET',
+                data: function(d) {
+                    var fechaInicio = $('#filtroFechaInicio').val();
+                    var fechaFin = $('#filtroFechaFin').val();
+                    var usuarioId = $('#filtroUsuario').val();
+                    var accion = $('#filtroAccion').val();
+                    var exitoso = $('#filtroExitoso').val();
+                    if (fechaInicio) d.fechaInicio = fechaInicio;
+                    if (fechaFin) d.fechaFin = fechaFin;
+                    if (usuarioId) d.usuarioId = usuarioId;
+                    if (accion) d.accion = accion;
+                    if (exitoso) d.exitoso = exitoso;
+                },
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },

@@ -121,14 +121,23 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
             var sucursal = await _context.Set<Sucursal>()
                 .FirstOrDefaultAsync(s => s.EmpresaId == empresaId && !s.IsDeleted);
 
-            var terminal = sucursal != null
-                ? await _context.Set<Terminal>()
-                    .FirstOrDefaultAsync(t => t.SucursalId == sucursal.Id && !t.IsDeleted)
-                : null;
-
-            if (sucursal == null || terminal == null)
+            if (sucursal == null)
             {
-                resultado.Advertencias.Add("No se encontró sucursal o terminal por defecto. El documento se guardará sin esta información.");
+                resultado.Exitoso = false;
+                resultado.Mensaje = "La empresa no tiene una sucursal configurada. Configure al menos una sucursal antes de recibir documentos.";
+                resultado.Errores.Add("Sucursal no encontrada");
+                return resultado;
+            }
+
+            var terminal = await _context.Set<Terminal>()
+                .FirstOrDefaultAsync(t => t.SucursalId == sucursal.Id && !t.IsDeleted);
+
+            if (terminal == null)
+            {
+                resultado.Exitoso = false;
+                resultado.Mensaje = "La sucursal no tiene una terminal configurada. Configure al menos una terminal antes de recibir documentos.";
+                resultado.Errores.Add("Terminal no encontrada");
+                return resultado;
             }
 
             // 10. Crear el documento en la base de datos
@@ -136,8 +145,8 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
             {
                 Id = Guid.NewGuid(),
                 EmpresaId = empresaId,
-                SucursalId = sucursal?.Id ?? empresaId, // Usar empresaId como fallback
-                TerminalId = terminal?.Id ?? empresaId, // Usar empresaId como fallback
+                SucursalId = sucursal.Id,
+                TerminalId = terminal.Id,
                 ProveedorId = proveedor.Id,
 
                 // Datos del documento
@@ -147,6 +156,7 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
                 FechaEmision = docRecibido.FechaEmision,
                 EsDocumentoRecibido = true, // IMPORTANTE: Marcar como documento recibido
                 Estado = EstadoDocumento.Pendiente, // Estado inicial - pendiente de enviar MR
+                Ambiente = empresa.Ambiente,
 
                 // Actividad económica
                 ActividadEconomica = docRecibido.EmisorActividadEconomica ?? "000000",
@@ -186,9 +196,22 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
                 IsDeleted = false
             };
 
-            // 11. Crear los detalles del documento
+            // 11. Cargar catálogo de unidades de medida para mapear códigos a IDs
+            var unidadesMedida = await _context.Set<Facturacion.Shared.Entities.Catalogos.UnidadMedida>()
+                .Where(u => u.Activo)
+                .ToListAsync();
+            // Fallback: "Unid" siempre debe existir
+            var unidadDefault = unidadesMedida.FirstOrDefault(u => u.Codigo == "Unid")
+                ?? unidadesMedida.First();
+
+            // 12. Crear los detalles del documento
             foreach (var detalleRecibido in docRecibido.Detalles)
             {
+                var codigoUnidad = detalleRecibido.UnidadMedida ?? "Unid";
+                var unidad = unidadesMedida.FirstOrDefault(u =>
+                    string.Equals(u.Codigo, codigoUnidad, StringComparison.OrdinalIgnoreCase))
+                    ?? unidadDefault;
+
                 var detalle = new DocumentoDetalle
                 {
                     Id = Guid.NewGuid(),
@@ -197,7 +220,8 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
                     Codigo = detalleRecibido.Codigo,
                     CodigoCabys = detalleRecibido.CodigoCabys,
                     Descripcion = detalleRecibido.Descripcion,
-                    UnidadMedidaComercial = detalleRecibido.UnidadMedida ?? "Unid",
+                    UnidadMedidaId = unidad.Id,
+                    UnidadMedidaComercial = codigoUnidad,
                     Cantidad = detalleRecibido.Cantidad,
                     PrecioUnitario = detalleRecibido.PrecioUnitario,
                     MontoTotal = detalleRecibido.MontoTotal,
@@ -211,10 +235,10 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
                 documento.Detalles.Add(detalle);
             }
 
-            // 12. Guardar en la base de datos
+            // 13. Guardar en la base de datos
             await _documentoRepository.AddAsync(documento);
 
-            // 13. Retornar resultado exitoso
+            // 14. Retornar resultado exitoso
             resultado.Exitoso = true;
             resultado.Mensaje = "Documento recibido exitosamente";
             resultado.DocumentoId = documento.Id;
@@ -304,19 +328,34 @@ public class DocumentoRecepcionService : IDocumentoRecepcionService
     #region Métodos Privados
 
     /// <summary>
-    /// Busca un proveedor por su número de identificación o lo crea si no existe
+    /// Busca un proveedor por su número de identificación o lo crea si no existe.
+    /// Si existe pero fue eliminado (soft-delete), lo reactiva.
+    /// Búsqueda sin filtro IsDeleted para respetar el índice único {EmpresaId, NumeroIdentificacion}.
     /// </summary>
     private async Task<Proveedor> BuscarOCrearProveedorAsync(DocumentoRecibido docRecibido, Guid empresaId)
     {
-        // Buscar proveedor existente
+        // Buscar proveedor SIN filtrar por IsDeleted (el índice único no distingue soft-delete)
         var proveedorExistente = await _context.Set<Proveedor>()
             .FirstOrDefaultAsync(p =>
                 p.NumeroIdentificacion == docRecibido.EmisorNumeroIdentificacion &&
-                p.EmpresaId == empresaId &&
-                !p.IsDeleted);
+                p.EmpresaId == empresaId);
 
         if (proveedorExistente != null)
         {
+            // Si estaba eliminado, reactivarlo con los datos actuales del XML
+            if (proveedorExistente.IsDeleted || !proveedorExistente.Activo)
+            {
+                proveedorExistente.IsDeleted = false;
+                proveedorExistente.Activo = true;
+                proveedorExistente.Nombre = docRecibido.EmisorNombre;
+                proveedorExistente.NombreComercial = docRecibido.EmisorNombreComercial;
+                proveedorExistente.TipoIdentificacion = docRecibido.EmisorTipoIdentificacion;
+                proveedorExistente.FechaModificacion = FechaCostaRicaHelper.Ahora;
+                proveedorExistente.FechaEliminacion = null;
+                proveedorExistente.UsuarioEliminacionId = null;
+                await _context.SaveChangesAsync();
+            }
+
             return proveedorExistente;
         }
 

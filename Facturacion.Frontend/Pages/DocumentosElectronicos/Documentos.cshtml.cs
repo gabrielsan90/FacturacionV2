@@ -76,6 +76,9 @@ public class DocumentosModel : PageModel
             if (ambiente.HasValue)
                 queryParams.Add($"ambiente={ambiente}");
 
+            // Excluir documentos recibidos (se muestran en DocumentosRecibidos)
+            queryParams.Add("esDocumentoRecibido=false");
+
             // Server-side pagination parameters
             queryParams.Add($"skip={start}");
             queryParams.Add($"take={length}");

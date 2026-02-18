@@ -93,14 +93,6 @@
                         <small class="text-muted">Descripción opcional del rol.</small>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="Rol_EsSistema" />
-                        <label class="form-check-label" for="Rol_EsSistema">
-                            Rol de Sistema
-                        </label>
-                        <small class="text-muted d-block">Los roles de sistema no pueden ser eliminados</small>
-                    </div>
-
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="Rol_Activo" checked />
                         <label class="form-check-label" for="Rol_Activo">
@@ -281,7 +273,6 @@
         $('#formRol').removeClass('was-validated');
         $('#Rol_Id').val('');
         $('#Rol_Activo').prop('checked', true);
-        $('#Rol_EsSistema').prop('checked', false);
         $('#modalTitle').html('<i class="fas fa-user-tag me-2 text-primary"></i>Nuevo Rol');
         $('#modalRol').modal('show');
     }
@@ -299,7 +290,6 @@
                     $('#Rol_Id').val(data.id);
                     $('#Rol_Nombre').val(data.nombre);
                     $('#Rol_Descripcion').val(data.descripcion || '');
-                    $('#Rol_EsSistema').prop('checked', data.esSistema || false);
                     $('#Rol_Activo').prop('checked', data.activo || false);
                     $('#modalTitle').html('<i class="fas fa-user-tag me-2 text-primary"></i>Editar Rol');
                     $('#formRol').removeClass('was-validated');
@@ -319,7 +309,6 @@
             id: $('#Rol_Id').val() || null,
             nombre: $('#Rol_Nombre').val(),
             descripcion: $('#Rol_Descripcion').val() || null,
-            esSistema: $('#Rol_EsSistema').is(':checked'),
             activo: $('#Rol_Activo').is(':checked')
         };
 
@@ -350,68 +339,56 @@
         $('#Privilegios_RolId').val(rolId);
         $('#Privilegios_RolName').text(rolName);
 
-        // Load role's current privilegios
+        // Load role's assigned privilege IDs
         $.ajax({
-            url: '?handler=Details&id=' + rolId,
+            url: '?handler=RolPrivilegios&id=' + rolId,
             type: 'GET',
             headers: {
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
-            success: function(response) {
-                if (response.success && response.data) {
-                    const rolePrivilegios = response.data.privilegios || [];
+            success: function(assignedIds) {
+                const rolePrivilegioIds = assignedIds || [];
 
-                    // Group privilegios by module
-                    const privilegiosByModule = {};
-                    allPrivilegios.forEach(priv => {
-                        const moduleName = priv.modulo?.nombre || 'Sin Módulo';
-                        if (!privilegiosByModule[moduleName]) {
-                            privilegiosByModule[moduleName] = [];
-                        }
-                        privilegiosByModule[moduleName].push(priv);
+                // allPrivilegios is module-grouped: [{moduloId, nombreModulo, privilegios: [...]}]
+                $('#privilegiosAccordion').empty();
+                allPrivilegios.forEach((modulo, moduleIndex) => {
+                    const moduleName = modulo.nombreModulo || 'Sin Módulo';
+                    const privileges = modulo.privilegios || [];
+                    const accordionId = 'module_' + moduleIndex;
+
+                    let privilegiosHtml = '';
+                    privileges.forEach(priv => {
+                        const checked = rolePrivilegioIds.includes(priv.id) ? 'checked' : '';
+                        privilegiosHtml += `
+                            <div class="form-check mb-2">
+                                <input class="form-check-input privilegio-checkbox" type="checkbox" value="${priv.id}" ${checked} id="priv_${priv.id}">
+                                <label class="form-check-label" for="priv_${priv.id}">
+                                    <strong>${priv.nombre}</strong> - ${priv.accion}
+                                    ${priv.descripcion ? '<small class="text-muted d-block">' + priv.descripcion + '</small>' : ''}
+                                </label>
+                            </div>
+                        `;
                     });
 
-                    // Build accordion
-                    $('#privilegiosAccordion').empty();
-                    let moduleIndex = 0;
-                    Object.keys(privilegiosByModule).sort().forEach(moduleName => {
-                        const privileges = privilegiosByModule[moduleName];
-                        const accordionId = 'module_' + moduleIndex;
-
-                        let privilegiosHtml = '';
-                        privileges.forEach(priv => {
-                            const checked = rolePrivilegios.some(rp => rp.id === priv.id) ? 'checked' : '';
-                            privilegiosHtml += `
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input privilegio-checkbox" type="checkbox" value="${priv.id}" ${checked} id="priv_${priv.id}">
-                                    <label class="form-check-label" for="priv_${priv.id}">
-                                        <strong>${priv.nombre}</strong> - ${priv.accion}
-                                        ${priv.descripcion ? '<small class="text-muted d-block">' + priv.descripcion + '</small>' : ''}
-                                    </label>
-                                </div>
-                            `;
-                        });
-
-                        $('#privilegiosAccordion').append(`
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading${accordionId}">
-                                    <button class="accordion-button ${moduleIndex > 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${accordionId}">
-                                        <i class="fas fa-folder me-2"></i>${moduleName}
-                                        <span class="badge bg-secondary ms-2">${privileges.length}</span>
-                                    </button>
-                                </h2>
-                                <div id="collapse${accordionId}" class="accordion-collapse collapse ${moduleIndex === 0 ? 'show' : ''}" data-bs-parent="#privilegiosAccordion">
-                                    <div class="accordion-body">
-                                        ${privilegiosHtml}
-                                    </div>
+                    $('#privilegiosAccordion').append(`
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading${accordionId}">
+                                <button class="accordion-button ${moduleIndex > 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${accordionId}">
+                                    ${modulo.icono ? '<i class="' + modulo.icono + ' me-2"></i>' : '<i class="fas fa-folder me-2"></i>'}
+                                    ${moduleName}
+                                    <span class="badge bg-secondary ms-2">${privileges.length}</span>
+                                </button>
+                            </h2>
+                            <div id="collapse${accordionId}" class="accordion-collapse collapse ${moduleIndex === 0 ? 'show' : ''}" data-bs-parent="#privilegiosAccordion">
+                                <div class="accordion-body">
+                                    ${privilegiosHtml}
                                 </div>
                             </div>
-                        `);
-                        moduleIndex++;
-                    });
+                        </div>
+                    `);
+                });
 
-                    $('#modalPrivilegios').modal('show');
-                }
+                $('#modalPrivilegios').modal('show');
             },
             error: function(xhr) {
                 handleAjaxError(xhr);

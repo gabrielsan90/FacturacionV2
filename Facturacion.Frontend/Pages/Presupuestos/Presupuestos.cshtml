@@ -5,6 +5,9 @@
     ViewData["Breadcrumb"] = "Presupuestos";
 }
 
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
 <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
@@ -17,23 +20,940 @@
     </div>
 </div>
 
+<!-- Filtros -->
+<div class="card shadow-custom mb-4">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1"><small>Año Fiscal</small></label>
+                <select class="form-select form-select-sm" id="filtroAnio">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1"><small>Estado</small></label>
+                <select class="form-select form-select-sm" id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="BOR">Borrador</option>
+                    <option value="REV">En Revisión</option>
+                    <option value="APR">Aprobado</option>
+                    <option value="VIG">Vigente</option>
+                    <option value="CER">Cerrado</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1"><small>Tipo</small></label>
+                <select class="form-select form-select-sm" id="filtroTipo">
+                    <option value="">Todos</option>
+                    <option value="ANU">Anual</option>
+                    <option value="TRI">Trimestral</option>
+                    <option value="MEN">Mensual</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-sm btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-1"></i>Limpiar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DataTable -->
 <div class="card shadow-custom">
     <div class="card-header">
         <i class="fas fa-table me-2 text-primary"></i>
-        <strong>Presupuestos</strong>
+        <strong>Listado de Presupuestos</strong>
+        <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
     </div>
     <div class="card-body">
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Módulo en desarrollo.</strong> Esta funcionalidad estará disponible próximamente.
+        <table id="tblPresupuestos" class="table table-striped table-hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Año</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Monto Total</th>
+                    <th>Ejecutado</th>
+                    <th>% Ejecución</th>
+                    <th style="width:160px">Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Presupuesto (crear/editar) -->
+<div class="modal fade" id="modalPresupuesto" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalPresupuestoTitle">
+                    <i class="fas fa-file-invoice me-2"></i>Nuevo Presupuesto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPresupuesto" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="presupuestoId" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="pCodigo" maxlength="20" required />
+                            <div class="invalid-feedback">El código es obligatorio.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Año Fiscal <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="pAnioFiscal" min="2020" max="2050" required />
+                            <div class="invalid-feedback">El año fiscal es obligatorio.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="pNombre" maxlength="100" required />
+                        <div class="invalid-feedback">El nombre es obligatorio.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="pDescripcion" maxlength="500" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Presupuesto</label>
+                        <select class="form-select" id="pTipoPresupuesto">
+                            <option value="ANU">Anual</option>
+                            <option value="TRI">Trimestral</option>
+                            <option value="MEN">Mensual</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="pObservaciones" maxlength="1000" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Líneas (lista de líneas del presupuesto) -->
+<div class="modal fade" id="modalLineas" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-list-ol me-2"></i>Líneas del Presupuesto: <span id="lineasPresupuestoNombre"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-secondary" id="badgeLineas">0 líneas</span>
+                        <span class="ms-2 text-muted" id="lineasMontoTotal"></span>
+                    </div>
+                    <button class="btn btn-sm btn-primary" id="btnAgregarLinea" onclick="openLineaModal()">
+                        <i class="fas fa-plus me-1"></i>Agregar Línea
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover" id="tblLineas">
+                        <thead>
+                            <tr>
+                                <th>Cuenta Contable</th>
+                                <th>Centro de Costo</th>
+                                <th class="text-end">Ene</th>
+                                <th class="text-end">Feb</th>
+                                <th class="text-end">Mar</th>
+                                <th class="text-end">Abr</th>
+                                <th class="text-end">May</th>
+                                <th class="text-end">Jun</th>
+                                <th class="text-end">Jul</th>
+                                <th class="text-end">Ago</th>
+                                <th class="text-end">Sep</th>
+                                <th class="text-end">Oct</th>
+                                <th class="text-end">Nov</th>
+                                <th class="text-end">Dic</th>
+                                <th class="text-end">Total Anual</th>
+                                <th style="width:80px">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyLineas"></tbody>
+                        <tfoot id="tfootLineas"></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Línea Individual (agregar/editar) -->
+<div class="modal fade" id="modalLinea" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalLineaTitle">
+                    <i class="fas fa-plus-circle me-2"></i>Agregar Línea
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formLinea" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="lineaId" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Cuenta Contable <span class="text-danger">*</span></label>
+                            <select class="form-select" id="lCuentaContableId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">La cuenta contable es obligatoria.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Centro de Costo</label>
+                            <select class="form-select" id="lCentroCostoId">
+                                <option value="">Sin centro de costo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Distribución uniforme -->
+                    <div class="card bg-light mb-3">
+                        <div class="card-body py-2">
+                            <div class="row align-items-end">
+                                <div class="col-md-6">
+                                    <label class="form-label mb-1"><small><strong>Distribución Uniforme</strong></small></label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">Monto Anual</span>
+                                        <input type="number" class="form-control" id="lMontoAnualDistribuir" step="0.01" min="0" placeholder="0.00" />
+                                        <button type="button" class="btn btn-outline-success" onclick="distribuirUniforme()">
+                                            <i class="fas fa-divide me-1"></i>Dividir / 12
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <strong>Total Anual Calculado: </strong>
+                                    <span class="fs-5 text-primary fw-bold" id="totalAnualCalculado">0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Montos mensuales -->
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Enero</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoEnero" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Febrero</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoFebrero" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Marzo</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoMarzo" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Abril</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoAbril" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Mayo</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoMayo" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Junio</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoJunio" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Julio</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoJulio" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Agosto</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoAgosto" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Septiembre</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoSeptiembre" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Octubre</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoOctubre" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Noviembre</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoNoviembre" step="0.01" min="0" value="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-0"><small>Diciembre</small></label>
+                            <input type="number" class="form-control form-control-sm monto-mensual" id="lMontoDiciembre" step="0.01" min="0" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">Notas</label>
+                        <input type="text" class="form-control" id="lNotas" maxlength="500" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i>Guardar Línea
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cambiar Estado -->
+<div class="modal fade" id="modalCambiarEstado" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="fas fa-exchange-alt me-2"></i>Cambiar Estado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cambiarEstadoPresupuestoId" />
+                <p class="mb-2">Presupuesto: <strong id="cambiarEstadoNombre"></strong></p>
+                <p class="mb-3">Estado actual: <span id="cambiarEstadoActual"></span></p>
+                <label class="form-label">Nuevo Estado:</label>
+                <select class="form-select" id="cambiarEstadoNuevo"></select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="confirmarCambiarEstado()">
+                    <i class="fas fa-check me-1"></i>Confirmar
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script>
-        function openCreateModal() {
-            Swal.fire('Información', 'Esta funcionalidad estará disponible próximamente.', 'info');
+<script>
+    let table;
+    let presupuestosData = [];
+    let presupuestoActual = null; // presupuesto cargado en modal lineas
+    let cuentasContables = [];
+    let centrosCosto = [];
+
+    const estadoBadges = {
+        'BOR': '<span class="badge bg-secondary">Borrador</span>',
+        'REV': '<span class="badge bg-warning text-dark">En Revisión</span>',
+        'APR': '<span class="badge bg-info">Aprobado</span>',
+        'VIG': '<span class="badge bg-success">Vigente</span>',
+        'CER': '<span class="badge bg-dark">Cerrado</span>'
+    };
+
+    const tipoBadges = {
+        'ANU': '<span class="badge bg-primary">Anual</span>',
+        'TRI': '<span class="badge bg-info">Trimestral</span>',
+        'MEN': '<span class="badge bg-warning text-dark">Mensual</span>'
+    };
+
+    const transicionesPermitidas = {
+        'BOR': [{ value: 'REV', text: 'En Revisión' }],
+        'REV': [{ value: 'APR', text: 'Aprobado' }, { value: 'BOR', text: 'Borrador' }],
+        'APR': [{ value: 'VIG', text: 'Vigente' }, { value: 'REV', text: 'En Revisión' }],
+        'VIG': [{ value: 'CER', text: 'Cerrado' }],
+        'CER': []
+    };
+
+    $(document).ready(function () {
+        initPresupuestosTable();
+        setupFiltros();
+        setupFormPresupuesto();
+        setupFormLinea();
+        setupMontoMensualCalculation();
+        loadAniosFiltro();
+    });
+
+    // =========================================================
+    // DataTable
+    // =========================================================
+    function initPresupuestosTable() {
+        table = initDataTable('#tblPresupuestos', {
+            ajax: {
+                url: '?handler=Data',
+                type: 'GET',
+                headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                dataSrc: function (json) {
+                    presupuestosData = json || [];
+                    $('#badgeTotal').text(presupuestosData.length);
+                    return presupuestosData;
+                },
+                error: function (xhr) {
+                    handleAjaxError(xhr);
+                }
+            },
+            columns: [
+                { data: 'codigo' },
+                { data: 'nombre' },
+                { data: 'anioFiscal' },
+                {
+                    data: 'tipoPresupuesto',
+                    render: function (data) { return tipoBadges[data] || data; }
+                },
+                {
+                    data: 'estado',
+                    render: function (data) { return estadoBadges[data] || data; }
+                },
+                {
+                    data: 'montoTotal',
+                    className: 'text-end',
+                    render: function (data) { return formatCurrency(data || 0); }
+                },
+                {
+                    data: 'montoEjecutado',
+                    className: 'text-end',
+                    render: function (data) { return formatCurrency(data || 0); }
+                },
+                {
+                    data: 'porcentajeEjecucion',
+                    render: function (data) {
+                        const pct = parseFloat(data) || 0;
+                        let color = 'bg-success';
+                        if (pct >= 90) color = 'bg-danger';
+                        else if (pct >= 75) color = 'bg-warning';
+                        return `<div class="progress" style="height:20px;" title="${pct}%">
+                                    <div class="progress-bar ${color}" style="width:${Math.min(pct, 100)}%">${pct}%</div>
+                                </div>`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function (data) {
+                        let buttons = `
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="editPresupuesto('${data.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-info" onclick="openLineasModal('${data.id}')" title="Ver Líneas">
+                                    <i class="fas fa-list-ol"></i>
+                                </button>`;
+
+                        if (transicionesPermitidas[data.estado] && transicionesPermitidas[data.estado].length > 0) {
+                            buttons += `<button class="btn btn-outline-warning" onclick="openCambiarEstadoModal('${data.id}')" title="Cambiar Estado">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>`;
+                        }
+
+                        if (data.estado === 'BOR') {
+                            buttons += `<button class="btn btn-outline-danger" onclick="deletePresupuesto('${data.id}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>`;
+                        }
+
+                        buttons += '</div>';
+                        return buttons;
+                    }
+                }
+            ],
+            order: [[2, 'desc'], [0, 'asc']]
+        });
+    }
+
+    // =========================================================
+    // Filtros
+    // =========================================================
+    function setupFiltros() {
+        $('#filtroAnio, #filtroEstado, #filtroTipo').on('change', function () {
+            applyFilters();
+        });
+    }
+
+    function applyFilters() {
+        const anio = $('#filtroAnio').val();
+        const estado = $('#filtroEstado').val();
+        const tipo = $('#filtroTipo').val();
+
+        // Columna 2 = anioFiscal, 4 = estado, 3 = tipoPresupuesto
+        table.column(2).search(anio);
+        table.column(4).search(estado);
+        table.column(3).search(tipo);
+        table.draw();
+    }
+
+    function limpiarFiltros() {
+        $('#filtroAnio').val('');
+        $('#filtroEstado').val('');
+        $('#filtroTipo').val('');
+        table.search('').columns().search('').draw();
+    }
+
+    function loadAniosFiltro() {
+        const currentYear = new Date().getFullYear();
+        const select = $('#filtroAnio');
+        for (let y = currentYear + 1; y >= currentYear - 5; y--) {
+            select.append(`<option value="${y}">${y}</option>`);
         }
-    </script>
+    }
+
+    // =========================================================
+    // CRUD Presupuesto
+    // =========================================================
+    function setupFormPresupuesto() {
+        $('#formPresupuesto').on('submit', function (e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                savePresupuesto();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function openCreateModal() {
+        $('#formPresupuesto')[0].reset();
+        $('#formPresupuesto').removeClass('was-validated');
+        $('#presupuestoId').val('');
+        $('#pAnioFiscal').val(new Date().getFullYear());
+        $('#pTipoPresupuesto').val('ANU');
+        $('#modalPresupuestoTitle').html('<i class="fas fa-file-invoice me-2"></i>Nuevo Presupuesto');
+        $('#modalPresupuesto').modal('show');
+    }
+
+    function editPresupuesto(id) {
+        const p = presupuestosData.find(x => x.id === id);
+        if (!p) return;
+
+        $('#presupuestoId').val(p.id);
+        $('#pCodigo').val(p.codigo);
+        $('#pNombre').val(p.nombre);
+        $('#pDescripcion').val(p.descripcion || '');
+        $('#pAnioFiscal').val(p.anioFiscal);
+        $('#pTipoPresupuesto').val(p.tipoPresupuesto);
+        $('#pObservaciones').val(p.observaciones || '');
+        $('#modalPresupuestoTitle').html('<i class="fas fa-edit me-2"></i>Editar Presupuesto');
+        $('#formPresupuesto').removeClass('was-validated');
+        $('#modalPresupuesto').modal('show');
+    }
+
+    function savePresupuesto() {
+        const idVal = $('#presupuestoId').val();
+        const data = {
+            id: idVal || '00000000-0000-0000-0000-000000000000',
+            codigo: $('#pCodigo').val(),
+            nombre: $('#pNombre').val(),
+            descripcion: $('#pDescripcion').val() || null,
+            anioFiscal: parseInt($('#pAnioFiscal').val()),
+            tipoPresupuesto: $('#pTipoPresupuesto').val(),
+            observaciones: $('#pObservaciones').val() || null
+        };
+
+        $.ajax({
+            url: '?handler=Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (response) {
+                if (response.success) {
+                    showSuccess(idVal ? 'Presupuesto actualizado correctamente' : 'Presupuesto creado correctamente');
+                    $('#modalPresupuesto').modal('hide');
+                    table.ajax.reload();
+                }
+            },
+            error: function (xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deletePresupuesto(id) {
+        const p = presupuestosData.find(x => x.id === id);
+        if (!p) return;
+
+        Swal.fire({
+            title: '¿Eliminar Presupuesto?',
+            html: `¿Está seguro de eliminar el presupuesto <strong>${p.codigo} - ${p.nombre}</strong>?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-trash me-1"></i>Eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `?handler=Delete&id=${id}`,
+                    type: 'POST',
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                    success: function (response) {
+                        if (response.success) {
+                            showSuccess('Presupuesto eliminado correctamente');
+                            table.ajax.reload();
+                        }
+                    },
+                    error: function (xhr) {
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+
+    // =========================================================
+    // Cambiar Estado
+    // =========================================================
+    function openCambiarEstadoModal(id) {
+        const p = presupuestosData.find(x => x.id === id);
+        if (!p) return;
+
+        $('#cambiarEstadoPresupuestoId').val(p.id);
+        $('#cambiarEstadoNombre').text(`${p.codigo} - ${p.nombre}`);
+        $('#cambiarEstadoActual').html(estadoBadges[p.estado]);
+
+        const select = $('#cambiarEstadoNuevo');
+        select.empty();
+        const opciones = transicionesPermitidas[p.estado] || [];
+        opciones.forEach(o => select.append(`<option value="${o.value}">${o.text}</option>`));
+
+        $('#modalCambiarEstado').modal('show');
+    }
+
+    function confirmarCambiarEstado() {
+        const presupuestoId = $('#cambiarEstadoPresupuestoId').val();
+        const nuevoEstado = $('#cambiarEstadoNuevo').val();
+
+        if (!nuevoEstado) {
+            showError('Seleccione un estado');
+            return;
+        }
+
+        $.ajax({
+            url: '?handler=CambiarEstado',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ presupuestoId: presupuestoId, nuevoEstado: nuevoEstado }),
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (response) {
+                if (response.success) {
+                    showSuccess('Estado actualizado correctamente');
+                    $('#modalCambiarEstado').modal('hide');
+                    table.ajax.reload();
+                }
+            },
+            error: function (xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    // =========================================================
+    // Líneas del Presupuesto
+    // =========================================================
+    function openLineasModal(id) {
+        showLoading('Cargando líneas...');
+
+        $.ajax({
+            url: `?handler=Detalle&id=${id}`,
+            type: 'GET',
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (data) {
+                hideLoading();
+                presupuestoActual = data;
+
+                $('#lineasPresupuestoNombre').text(`${data.codigo} - ${data.nombre}`);
+
+                // Solo mostrar botón agregar si está en BOR
+                if (data.estado === 'BOR') {
+                    $('#btnAgregarLinea').show();
+                } else {
+                    $('#btnAgregarLinea').hide();
+                }
+
+                renderLineasTable(data.lineas || [], data.estado);
+                $('#lineasMontoTotal').html(`<strong>Total:</strong> ${formatCurrency(data.montoTotal || 0)}`);
+                $('#badgeLineas').text(`${(data.lineas || []).length} líneas`);
+
+                // Cargar combos si no se han cargado
+                if (cuentasContables.length === 0) loadCuentasContables();
+                if (centrosCosto.length === 0) loadCentrosCosto();
+
+                $('#modalLineas').modal('show');
+            },
+            error: function (xhr) {
+                hideLoading();
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function renderLineasTable(lineas, estado) {
+        const tbody = $('#tbodyLineas');
+        tbody.empty();
+
+        const meses = ['montoEnero', 'montoFebrero', 'montoMarzo', 'montoAbril', 'montoMayo', 'montoJunio',
+            'montoJulio', 'montoAgosto', 'montoSeptiembre', 'montoOctubre', 'montoNoviembre', 'montoDiciembre'];
+
+        let totalGeneral = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let totalAnual = 0;
+
+        lineas.forEach(l => {
+            let row = `<tr>
+                <td><small>${l.cuentaContableCodigo} - ${l.cuentaContableNombre}</small></td>
+                <td><small>${l.centroCostoCodigo ? l.centroCostoCodigo + ' - ' + l.centroCostoNombre : '-'}</small></td>`;
+
+            let lineaTotal = 0;
+            meses.forEach((m, i) => {
+                const val = l[m] || 0;
+                lineaTotal += val;
+                totalGeneral[i] += val;
+                row += `<td class="text-end"><small>${formatNumber(val)}</small></td>`;
+            });
+
+            totalAnual += lineaTotal;
+
+            row += `<td class="text-end fw-bold"><small>${formatNumber(lineaTotal)}</small></td>`;
+
+            if (estado === 'BOR') {
+                row += `<td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary btn-sm" onclick="editLinea('${l.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteLinea('${l.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>`;
+            } else {
+                row += '<td><small class="text-muted">-</small></td>';
+            }
+
+            row += '</tr>';
+            tbody.append(row);
+        });
+
+        // Footer totales
+        const tfoot = $('#tfootLineas');
+        tfoot.empty();
+        let footRow = '<tr class="table-primary fw-bold"><td colspan="2">Totales</td>';
+        totalGeneral.forEach(t => {
+            footRow += `<td class="text-end"><small>${formatNumber(t)}</small></td>`;
+        });
+        footRow += `<td class="text-end"><small>${formatNumber(totalAnual)}</small></td><td></td></tr>`;
+        tfoot.append(footRow);
+    }
+
+    function formatNumber(val) {
+        return parseFloat(val).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // =========================================================
+    // CRUD Línea Individual
+    // =========================================================
+    function loadCuentasContables() {
+        $.ajax({
+            url: '?handler=CuentasContables',
+            type: 'GET',
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (data) {
+                cuentasContables = data || [];
+                const select = $('#lCuentaContableId');
+                select.find('option:not(:first)').remove();
+                cuentasContables.forEach(c => {
+                    select.append(`<option value="${c.id}">${c.codigo} - ${c.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function loadCentrosCosto() {
+        $.ajax({
+            url: '?handler=CentrosCosto',
+            type: 'GET',
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (data) {
+                centrosCosto = data || [];
+                const select = $('#lCentroCostoId');
+                select.find('option:not(:first)').remove();
+                centrosCosto.forEach(c => {
+                    select.append(`<option value="${c.id}">${c.codigo} - ${c.nombre}</option>`);
+                });
+            }
+        });
+    }
+
+    function setupFormLinea() {
+        $('#formLinea').on('submit', function (e) {
+            e.preventDefault();
+            if (this.checkValidity()) {
+                saveLinea();
+            } else {
+                $(this).addClass('was-validated');
+            }
+        });
+    }
+
+    function setupMontoMensualCalculation() {
+        $(document).on('input', '.monto-mensual', function () {
+            calcularTotalAnual();
+        });
+    }
+
+    function calcularTotalAnual() {
+        const meses = ['lMontoEnero', 'lMontoFebrero', 'lMontoMarzo', 'lMontoAbril', 'lMontoMayo', 'lMontoJunio',
+            'lMontoJulio', 'lMontoAgosto', 'lMontoSeptiembre', 'lMontoOctubre', 'lMontoNoviembre', 'lMontoDiciembre'];
+        let total = 0;
+        meses.forEach(m => total += parseFloat($(`#${m}`).val()) || 0);
+        $('#totalAnualCalculado').text(formatNumber(total));
+    }
+
+    function distribuirUniforme() {
+        const montoAnual = parseFloat($('#lMontoAnualDistribuir').val()) || 0;
+        if (montoAnual <= 0) {
+            showError('Ingrese un monto anual válido');
+            return;
+        }
+
+        const mensual = Math.round((montoAnual / 12) * 100) / 100;
+        // Ajustar residuo en el último mes
+        const residuo = Math.round((montoAnual - (mensual * 12)) * 100) / 100;
+
+        const meses = ['lMontoEnero', 'lMontoFebrero', 'lMontoMarzo', 'lMontoAbril', 'lMontoMayo', 'lMontoJunio',
+            'lMontoJulio', 'lMontoAgosto', 'lMontoSeptiembre', 'lMontoOctubre', 'lMontoNoviembre', 'lMontoDiciembre'];
+
+        meses.forEach((m, i) => {
+            const val = i === 11 ? mensual + residuo : mensual;
+            $(`#${m}`).val(val.toFixed(2));
+        });
+
+        calcularTotalAnual();
+    }
+
+    function openLineaModal(lineaId) {
+        $('#formLinea')[0].reset();
+        $('#formLinea').removeClass('was-validated');
+        $('#lineaId').val('');
+        $('#totalAnualCalculado').text('0.00');
+
+        if (lineaId) {
+            // Editar
+            const linea = presupuestoActual.lineas.find(l => l.id === lineaId);
+            if (!linea) return;
+
+            $('#lineaId').val(linea.id);
+            $('#lCuentaContableId').val(linea.cuentaContableId);
+            $('#lCentroCostoId').val(linea.centroCostoId || '');
+            $('#lMontoEnero').val(linea.montoEnero);
+            $('#lMontoFebrero').val(linea.montoFebrero);
+            $('#lMontoMarzo').val(linea.montoMarzo);
+            $('#lMontoAbril').val(linea.montoAbril);
+            $('#lMontoMayo').val(linea.montoMayo);
+            $('#lMontoJunio').val(linea.montoJunio);
+            $('#lMontoJulio').val(linea.montoJulio);
+            $('#lMontoAgosto').val(linea.montoAgosto);
+            $('#lMontoSeptiembre').val(linea.montoSeptiembre);
+            $('#lMontoOctubre').val(linea.montoOctubre);
+            $('#lMontoNoviembre').val(linea.montoNoviembre);
+            $('#lMontoDiciembre').val(linea.montoDiciembre);
+            $('#lNotas').val(linea.notas || '');
+            $('#modalLineaTitle').html('<i class="fas fa-edit me-2"></i>Editar Línea');
+            calcularTotalAnual();
+        } else {
+            $('#modalLineaTitle').html('<i class="fas fa-plus-circle me-2"></i>Agregar Línea');
+        }
+
+        $('#modalLinea').modal('show');
+    }
+
+    function editLinea(lineaId) {
+        openLineaModal(lineaId);
+    }
+
+    function saveLinea() {
+        const idVal = $('#lineaId').val();
+        const data = {
+            id: idVal || '00000000-0000-0000-0000-000000000000',
+            presupuestoId: presupuestoActual.id,
+            cuentaContableId: $('#lCuentaContableId').val(),
+            centroCostoId: $('#lCentroCostoId').val() || null,
+            montoEnero: parseFloat($('#lMontoEnero').val()) || 0,
+            montoFebrero: parseFloat($('#lMontoFebrero').val()) || 0,
+            montoMarzo: parseFloat($('#lMontoMarzo').val()) || 0,
+            montoAbril: parseFloat($('#lMontoAbril').val()) || 0,
+            montoMayo: parseFloat($('#lMontoMayo').val()) || 0,
+            montoJunio: parseFloat($('#lMontoJunio').val()) || 0,
+            montoJulio: parseFloat($('#lMontoJulio').val()) || 0,
+            montoAgosto: parseFloat($('#lMontoAgosto').val()) || 0,
+            montoSeptiembre: parseFloat($('#lMontoSeptiembre').val()) || 0,
+            montoOctubre: parseFloat($('#lMontoOctubre').val()) || 0,
+            montoNoviembre: parseFloat($('#lMontoNoviembre').val()) || 0,
+            montoDiciembre: parseFloat($('#lMontoDiciembre').val()) || 0,
+            notas: $('#lNotas').val() || null
+        };
+
+        $.ajax({
+            url: '?handler=SaveLinea',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (response) {
+                if (response.success) {
+                    showSuccess(idVal ? 'Línea actualizada' : 'Línea agregada');
+                    $('#modalLinea').modal('hide');
+                    // Recargar detalle
+                    openLineasModal(presupuestoActual.id);
+                    // Recargar DataTable principal para reflejar nuevos totales
+                    table.ajax.reload(null, false);
+                }
+            },
+            error: function (xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function deleteLinea(lineaId) {
+        Swal.fire({
+            title: '¿Eliminar línea?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-trash me-1"></i>Eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `?handler=DeleteLinea&presupuestoId=${presupuestoActual.id}&lineaId=${lineaId}`,
+                    type: 'POST',
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                    success: function (response) {
+                        if (response.success) {
+                            showSuccess('Línea eliminada');
+                            openLineasModal(presupuestoActual.id);
+                            table.ajax.reload(null, false);
+                        }
+                    },
+                    error: function (xhr) {
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+</script>
 }

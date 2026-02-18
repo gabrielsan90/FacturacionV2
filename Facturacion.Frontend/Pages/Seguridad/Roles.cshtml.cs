@@ -29,7 +29,7 @@ public class RolesModel : PageModel
         // Page initialization
     }
 
-    // Handler for DataTable - Load all roles
+    // Handler for DataTable - Load roles (system + custom for current empresa)
     public async Task<IActionResult> OnGetDataAsync()
     {
         try
@@ -43,7 +43,9 @@ public class RolesModel : PageModel
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync("/api/roles");
+            var empresaId = User.FindFirst("EmpresaId")?.Value;
+            var url = string.IsNullOrEmpty(empresaId) ? "/api/roles" : $"/api/roles?empresaId={empresaId}";
+            var response = await client.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
@@ -58,10 +60,11 @@ public class RolesModel : PageModel
 
                 if (doc.RootElement.TryGetProperty("result", out var resultElement))
                 {
-                    return new JsonResult(new { data = resultElement });
+                    var resultJson = resultElement.GetRawText();
+                    return new ContentResult { Content = $"{{\"data\":{resultJson}}}", ContentType = "application/json", StatusCode = 200 };
                 }
 
-                return new JsonResult(new { data = doc.RootElement });
+                return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
             }
 
             _logger.LogWarning("Failed to load roles. Status: {StatusCode}", response.StatusCode);
@@ -93,13 +96,12 @@ public class RolesModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(content);
-
-                if (doc.RootElement.TryGetProperty("result", out var resultElement))
+                return new ContentResult
                 {
-                    return new JsonResult(new { success = true, data = resultElement });
-                }
-                return new JsonResult(new { success = true, data = doc.RootElement });
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Role not found with ID: {Id}", id);
@@ -130,8 +132,8 @@ public class RolesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var privilegios = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                return new JsonResult(privilegios ?? new List<object>());
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult { Content = content, ContentType = "application/json", StatusCode = 200 };
             }
 
             return new JsonResult(new List<object>());
@@ -140,6 +142,37 @@ public class RolesModel : PageModel
         {
             _logger.LogError(ex, "Error loading privilegios");
             return new JsonResult(new List<object>());
+        }
+    }
+
+    // Handler to get privilegio IDs assigned to a specific role
+    public async Task<IActionResult> OnGetRolPrivilegiosAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/roles/{id}/privilegios");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult { Content = content, ContentType = "application/json", StatusCode = 200 };
+            }
+
+            return new JsonResult(new List<int>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading privilegios for role {Id}", id);
+            return new JsonResult(new List<int>());
         }
     }
 
@@ -158,7 +191,6 @@ public class RolesModel : PageModel
             }
 
             var json = JsonSerializer.Serialize(rolData);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;
             bool isNew = !rolData.TryGetProperty("id", out var idProp) ||
@@ -166,10 +198,21 @@ public class RolesModel : PageModel
 
             if (isNew)
             {
+                // Inyectar empresaId del usuario actual para roles personalizados
+                var empresaId = User.FindFirst("EmpresaId")?.Value;
+                if (!string.IsNullOrEmpty(empresaId))
+                {
+                    var jsonObj = System.Text.Json.Nodes.JsonNode.Parse(json)!.AsObject();
+                    jsonObj["empresaId"] = empresaId;
+                    json = jsonObj.ToJsonString();
+                }
+
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
                 response = await client.PostAsync("/api/roles", content);
             }
             else
             {
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var id = idProp.GetString();
                 response = await client.PutAsync($"/api/roles/{id}", content);
             }
@@ -209,10 +252,13 @@ public class RolesModel : PageModel
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var json = JsonSerializer.Serialize(privilegiosData);
+            // Backend expects RolPrivilegiosDto: { rolId, privilegioIds }
+            var dto = new { rolId = roleId, privilegioIds = privilegiosData };
+            var json = JsonSerializer.Serialize(dto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/roles/{roleId}/privilegios", content);
+            // Backend uses HttpPut, not HttpPost
+            var response = await client.PutAsync($"/api/roles/{roleId}/privilegios", content);
 
             if (response.IsSuccessStatusCode)
             {

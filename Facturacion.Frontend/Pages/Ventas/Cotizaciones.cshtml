@@ -736,30 +736,49 @@
 
         // Build detalles array
         const detalles = [];
+        let lineaNum = 0;
+        let hasError = false;
         $('#detallesBody tr').each(function () {
             const id = $(this).find('.cantidad-input').data('id');
-            const productoId = $(`select.producto-select[data-id="${id}"]`).val();
+            const productoSelect = $(`select.producto-select[data-id="${id}"]`);
+            const productoId = productoSelect.val();
+            const productoNombre = productoSelect.find(':selected').text() || 'Producto';
             const cantidad = parseFloat($(`input.cantidad-input[data-id="${id}"]`).val()) || 0;
             const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
             const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
 
             if (!productoId) {
                 Swal.fire('Error', 'Todos los productos deben estar seleccionados', 'error');
+                hasError = true;
                 return false;
             }
 
-            const subtotalBruto = cantidad * precio;
-            const montoDescuento = subtotalBruto * (descuento / 100);
-            const subtotal = subtotalBruto - montoDescuento;
+            lineaNum++;
+            const montoTotal = cantidad * precio;
+            const montoDescuento = montoTotal * (descuento / 100);
+            const subTotal = montoTotal - montoDescuento;
+            const montoIVA = subTotal * 0.13;
+            const totalLinea = subTotal + montoIVA;
 
             detalles.push({
                 productoId: productoId,
+                descripcion: productoNombre.trim(),
+                numeroLinea: lineaNum,
                 cantidad: cantidad,
                 precioUnitario: precio,
-                descuento: descuento,
-                subtotal: subtotal
+                montoTotal: montoTotal,
+                montoDescuento: montoDescuento,
+                porcentajeDescuento: descuento,
+                subTotal: subTotal,
+                codigoTarifaIVA: '07',
+                tarifaIVA: 13,
+                montoIVA: montoIVA,
+                totalImpuestos: montoIVA,
+                totalLinea: totalLinea
             });
         });
+
+        if (hasError) return;
 
         if (detalles.length === 0) {
             return;
@@ -769,8 +788,8 @@
         let subtotal = 0;
         let descuentoTotal = 0;
         detalles.forEach(d => {
-            subtotal += d.cantidad * d.precioUnitario;
-            descuentoTotal += (d.cantidad * d.precioUnitario) * (d.descuento / 100);
+            subtotal += d.montoTotal;
+            descuentoTotal += d.montoDescuento;
         });
         const subtotalNeto = subtotal - descuentoTotal;
         const impuestos = subtotalNeto * 0.13;

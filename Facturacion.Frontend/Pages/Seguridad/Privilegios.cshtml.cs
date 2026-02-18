@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Text;
 using System.Text.Json;
 
 namespace Facturacion.Frontend.Pages.Seguridad;
@@ -10,17 +11,11 @@ public class PrivilegiosModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<PrivilegiosModel> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public PrivilegiosModel(IHttpClientFactory httpClientFactory, ILogger<PrivilegiosModel> logger)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
-        };
     }
 
     public void OnGet()
@@ -28,20 +23,24 @@ public class PrivilegiosModel : PageModel
         // Page initialization - read-only view
     }
 
-    // Handler for DataTable - Load all privilegios
+    private HttpClient CreateApiClient()
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        return client;
+    }
+
+    // Handler for DataTable - Load all privilegios (flattened from module-grouped API)
     public async Task<IActionResult> OnGetDataAsync()
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateApiClient();
             var response = await client.GetAsync("/api/privilegios");
 
             if (response.IsSuccessStatusCode)
@@ -49,13 +48,29 @@ public class PrivilegiosModel : PageModel
                 var content = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(content);
 
-                // API returns ActionResponse<T> with result property
-                if (doc.RootElement.TryGetProperty("result", out var resultElement))
+                // API returns modules with nested privilegios — flatten into individual privilege rows
+                var sb = new StringBuilder("[");
+                bool first = true;
+                foreach (var modulo in doc.RootElement.EnumerateArray())
                 {
-                    return new JsonResult(new { data = resultElement });
+                    if (modulo.TryGetProperty("privilegios", out var privilegios))
+                    {
+                        foreach (var priv in privilegios.EnumerateArray())
+                        {
+                            if (!first) sb.Append(',');
+                            sb.Append(priv.GetRawText());
+                            first = false;
+                        }
+                    }
                 }
+                sb.Append(']');
 
-                return new JsonResult(new { data = doc.RootElement });
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{sb}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load privilegios. Status: {StatusCode}", response.StatusCode);
@@ -68,26 +83,34 @@ public class PrivilegiosModel : PageModel
         }
     }
 
-    // Handler to get modulos for grouping
+    // Handler to get modulos for filter dropdown (extracted from privilegios API)
     public async Task<IActionResult> OnGetModulosAsync()
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var response = await client.GetAsync("/api/modulos");
+            var client = CreateApiClient();
+            var response = await client.GetAsync("/api/privilegios");
 
             if (response.IsSuccessStatusCode)
             {
-                var modulos = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                return new JsonResult(modulos ?? new List<object>());
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+
+                // Extract unique modules from the grouped response
+                var sb = new StringBuilder("[");
+                bool first = true;
+                foreach (var modulo in doc.RootElement.EnumerateArray())
+                {
+                    if (!first) sb.Append(',');
+                    var id = modulo.GetProperty("moduloId").GetRawText();
+                    var nombre = modulo.GetProperty("nombreModulo").GetString();
+                    var icono = modulo.TryGetProperty("icono", out var iconoEl) ? iconoEl.GetString() : null;
+                    sb.Append($"{{\"id\":{id},\"nombre\":{JsonSerializer.Serialize(nombre)},\"icono\":{JsonSerializer.Serialize(icono)}}}");
+                    first = false;
+                }
+                sb.Append(']');
+
+                return new ContentResult { Content = sb.ToString(), ContentType = "application/json", StatusCode = 200 };
             }
 
             return new JsonResult(new List<object>());

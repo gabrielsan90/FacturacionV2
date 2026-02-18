@@ -10,6 +10,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Facturacion.Backend.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Facturacion.Backend.Controllers;
 
@@ -22,19 +23,22 @@ public class AccountsController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<AccountsController> _logger;
     private readonly DataContext _context;
+    private readonly IMemoryCache _cache;
 
     public AccountsController(
         IUserHelper userHelper,
         UserManager<User> userManager,
         IConfiguration configuration,
         ILogger<AccountsController> logger,
-        DataContext context)
+        DataContext context,
+        IMemoryCache cache)
     {
         _userHelper = userHelper;
         _userManager = userManager;
         _configuration = configuration;
         _logger = logger;
         _context = context;
+        _cache = cache;
     }
 
     [HttpPost("ValidateCredentials")]
@@ -130,11 +134,16 @@ public class AccountsController : ControllerBase
             _logger.LogInformation("Successfully validated credentials for user: {UserId} - {Email}. Available empresas: {EmpresaCount}",
                 user.Id, model.Email, empresas.Count);
 
+            // Generate pre-auth token to avoid re-hashing password on login
+            var preAuthToken = Guid.NewGuid().ToString("N");
+            _cache.Set($"preauth:{user.Id}", preAuthToken, TimeSpan.FromSeconds(60));
+
             return Ok(new ValidateCredentialsResponseDto
             {
                 IsValid = true,
                 Empresas = empresas,
-                RequiresEmpresaSelection = empresas.Count > 1
+                RequiresEmpresaSelection = empresas.Count > 1,
+                PreAuthToken = preAuthToken
             });
         }
         catch (Exception ex)
@@ -174,40 +183,55 @@ public class AccountsController : ControllerBase
                 return BadRequest($"Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intente nuevamente en {remainingMinutes} minuto(s).");
             }
 
-            // Attempt login
-            var result = await _userHelper.LoginAsync(model);
+            // Check if we have a valid pre-auth token (from ValidateCredentials)
+            bool isAuthenticated = false;
 
-            if (result.Succeeded)
+            if (!string.IsNullOrEmpty(model.PreAuthToken) &&
+                _cache.TryGetValue($"preauth:{user.Id}", out string? cachedToken) &&
+                cachedToken == model.PreAuthToken)
             {
-                // Login successful - reset failed attempts counter
+                // Pre-auth token valid — skip password re-hash
+                isAuthenticated = true;
+                _cache.Remove($"preauth:{user.Id}"); // one-time use
+
+                _logger.LogInformation("Login via pre-auth token for user: {UserId} - {Email}",
+                    user.Id, model.Email);
+            }
+            else
+            {
+                // No pre-auth token — full password check
+                var result = await _userHelper.LoginAsync(model);
+
+                if (result.Succeeded)
+                {
+                    isAuthenticated = true;
+                }
+                else if (result.IsLockedOut)
+                {
+                    _logger.LogWarning("Account locked out after failed login attempt: {UserId} - {Email}",
+                        user.Id, model.Email);
+                    return BadRequest("Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intente nuevamente en 15 minutos.");
+                }
+                else
+                {
+                    var failedCount = await _userHelper.GetAccessFailedCountAsync(user);
+                    var remainingAttempts = 5 - failedCount;
+                    _logger.LogWarning("Failed login attempt for user: {UserId} - {Email}. Failed attempts: {FailedCount}/5",
+                        user.Id, model.Email, failedCount);
+                    return BadRequest(remainingAttempts > 0
+                        ? $"Email o contraseña incorrectos. Intentos restantes: {remainingAttempts}"
+                        : "Email o contraseña incorrectos.");
+                }
+            }
+
+            if (isAuthenticated)
+            {
                 await _userHelper.ResetAccessFailedCountAsync(user);
 
                 _logger.LogInformation("Successful login for user: {UserId} - {Email} with empresa: {EmpresaId}",
                     user.Id, model.Email, model.EmpresaId);
 
-                // Use selected empresa if provided, otherwise use default
                 return Ok(await BuildLoginResponse(user, model.EmpresaId));
-            }
-
-            if (result.IsLockedOut)
-            {
-                // Account just got locked out
-                _logger.LogWarning("Account locked out after failed login attempt: {UserId} - {Email}",
-                    user.Id, model.Email);
-
-                return BadRequest("Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intente nuevamente en 15 minutos.");
-            }
-
-            // Failed login - log the attempt
-            var failedCount = await _userHelper.GetAccessFailedCountAsync(user);
-            var remainingAttempts = 5 - failedCount;
-
-            _logger.LogWarning("Failed login attempt for user: {UserId} - {Email}. Failed attempts: {FailedCount}/5",
-                user.Id, model.Email, failedCount);
-
-            if (remainingAttempts > 0)
-            {
-                return BadRequest($"Email o contraseña incorrectos. Intentos restantes: {remainingAttempts}");
             }
 
             return BadRequest("Email o contraseña incorrectos.");

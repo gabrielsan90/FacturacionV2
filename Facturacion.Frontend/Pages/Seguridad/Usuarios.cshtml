@@ -342,11 +342,12 @@
                 }
             });
             allRoles = response || [];
-            // Populate roles multiselect
+            // Populate roles multiselect (value = role ID for precise assignment)
             const $select = $('#Usuario_Roles');
             $select.empty();
             allRoles.forEach(rol => {
-                $select.append(`<option value="${rol.nombre}">${rol.nombre}</option>`);
+                const suffix = rol.esSistema ? ' (Sistema)' : '';
+                $select.append(`<option value="${rol.id}">${rol.nombre}${suffix}</option>`);
             });
         } catch (error) {
             console.error('Error loading roles:', error);
@@ -452,9 +453,9 @@
                     $('#Usuario_Password').prop('required', false).val('');
                     $('#Usuario_ConfirmPassword').prop('required', false).val('');
 
-                    // Preselect roles
-                    const userRoles = data.roles || [];
-                    $('#Usuario_Roles').val(userRoles);
+                    // Preselect roles by ID
+                    const userRoleIds = data.roleIds || [];
+                    $('#Usuario_Roles').val(userRoleIds);
 
                     // Preselect empresas
                     const userEmpresaIds = (data.empresaIds || []).map(e => e.toString());
@@ -546,17 +547,20 @@
             },
             success: function(response) {
                 if (response.success && response.data) {
-                    const userRoles = response.data.roles || [];
+                    const userRoleIds = response.data.roleIds || [];
 
                     $('#rolesCheckboxContainer').empty();
                     allRoles.forEach(rol => {
-                        const checked = userRoles.includes(rol.nombre) ? 'checked' : '';
+                        const checked = userRoleIds.includes(rol.id) ? 'checked' : '';
+                        const badge = rol.esSistema
+                            ? '<span class="badge bg-warning ms-1">Sistema</span>'
+                            : '<span class="badge bg-info ms-1">Personalizado</span>';
                         $('#rolesCheckboxContainer').append(`
                             <div class="list-group-item">
                                 <div class="form-check">
                                     <input class="form-check-input role-checkbox" type="checkbox" value="${rol.id}" ${checked} id="role_${rol.id}">
                                     <label class="form-check-label" for="role_${rol.id}">
-                                        ${rol.nombre}
+                                        ${rol.nombre} ${badge}
                                         ${rol.descripcion ? '<small class="text-muted d-block">' + rol.descripcion + '</small>' : ''}
                                     </label>
                                 </div>

@@ -48,6 +48,8 @@ public class LoginModel : PageModel
 
         [Display(Name = "Empresa")]
         public Guid? EmpresaId { get; set; }
+
+        public string? PreAuthToken { get; set; }
     }
 
     public void OnGet(string? returnUrl = null)
@@ -113,7 +115,8 @@ public class LoginModel : PageModel
             {
                 Email = Input.Email.Trim(),
                 Password = Input.Password,
-                EmpresaId = Input.EmpresaId
+                EmpresaId = Input.EmpresaId,
+                PreAuthToken = Input.PreAuthToken
             };
 
             var result = await _authService.LoginAsync(loginDto);

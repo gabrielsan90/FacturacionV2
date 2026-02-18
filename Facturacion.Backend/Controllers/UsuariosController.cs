@@ -159,7 +159,18 @@ public class UsuariosController : ControllerBase
                 }
             }
 
-            var roles = await _userManager.GetRolesAsync(user);
+            // Obtener IDs de roles asignados al usuario
+            var assignedRoleIds = await _context.UserRoles
+                .Where(ur => ur.UserId == user.Id)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            // Obtener detalles de los roles (Id y Nombre)
+            var roleDetails = await _context.Roles
+                .Where(r => assignedRoleIds.Contains(r.Id))
+                .Select(r => new { r.Id, r.Nombre })
+                .ToListAsync();
+
             var empresaIds = await _context.UsuariosEmpresas
                 .Where(ue => ue.UserId == user.Id)
                 .Select(ue => ue.EmpresaId)
@@ -173,12 +184,13 @@ public class UsuariosController : ControllerBase
                 Document = user.Document,
                 PhoneNumber = user.PhoneNumber,
                 EmailConfirmed = user.EmailConfirmed,
-                Roles = roles.ToList(),
+                Roles = roleDetails.Select(r => r.Nombre).ToList(),
+                RoleIds = roleDetails.Select(r => r.Id).ToList(),
                 EmpresaIds = empresaIds
             };
 
             _logger.LogInformation("Successfully retrieved user details. UserId: {UserId}, Roles: {RoleCount}, Empresas: {EmpresaCount}",
-                id, roles.Count, empresaIds.Count);
+                id, roleDetails.Count, empresaIds.Count);
 
             return Ok(userDto);
         }
@@ -271,17 +283,25 @@ public class UsuariosController : ControllerBase
 
             try
             {
-                // Asignar roles
-                if (model.Roles != null && model.Roles.Any())
+                // Asignar roles por ID (model.RoleIds o model.Roles contiene IDs de roles)
+                var roleIdsToAssign = model.RoleIds?.Any() == true ? model.RoleIds : model.Roles;
+                if (roleIdsToAssign != null && roleIdsToAssign.Any())
                 {
-                    foreach (var roleName in model.Roles)
+                    var validRoleIds = await _context.Roles
+                        .Where(r => roleIdsToAssign.Contains(r.Id))
+                        .Select(r => r.Id)
+                        .ToListAsync();
+
+                    foreach (var roleId in validRoleIds)
                     {
-                        if (await _roleManager.RoleExistsAsync(roleName))
+                        _context.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<string>
                         {
-                            await _userManager.AddToRoleAsync(user, roleName);
-                        }
+                            UserId = user.Id,
+                            RoleId = roleId
+                        });
                     }
-                    _logger.LogDebug("Assigned {RoleCount} roles to user {UserId}", model.Roles.Count, user.Id);
+                    await _context.SaveChangesAsync();
+                    _logger.LogDebug("Assigned {RoleCount} roles to user {UserId}", validRoleIds.Count, user.Id);
                 }
 
                 // Asignar empresas
@@ -472,24 +492,34 @@ public class UsuariosController : ControllerBase
                 }
             }
 
-            // Actualizar roles
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var rolesToRemove = currentRoles.Except(model.Roles ?? new List<string>()).ToList();
-            var rolesToAdd = (model.Roles ?? new List<string>()).Except(currentRoles).ToList();
+            // Actualizar roles por ID
+            var requestedRoleIds = model.RoleIds?.Any() == true ? model.RoleIds : model.Roles ?? new List<string>();
+            var currentRoleIds = await _context.UserRoles
+                .Where(ur => ur.UserId == id)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
 
-            if (rolesToRemove.Any())
+            var roleIdsToRemove = currentRoleIds.Except(requestedRoleIds).ToList();
+            var roleIdsToAdd = requestedRoleIds.Except(currentRoleIds).ToList();
+
+            if (roleIdsToRemove.Any())
             {
-                await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+                var userRolesToRemove = await _context.UserRoles
+                    .Where(ur => ur.UserId == id && roleIdsToRemove.Contains(ur.RoleId))
+                    .ToListAsync();
+                _context.UserRoles.RemoveRange(userRolesToRemove);
             }
 
-            if (rolesToAdd.Any())
+            foreach (var roleId in roleIdsToAdd)
             {
-                foreach (var roleName in rolesToAdd)
+                var roleExists = await _context.Roles.AnyAsync(r => r.Id == roleId);
+                if (roleExists)
                 {
-                    if (await _roleManager.RoleExistsAsync(roleName))
+                    _context.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<string>
                     {
-                        await _userManager.AddToRoleAsync(user, roleName);
-                    }
+                        UserId = id,
+                        RoleId = roleId
+                    });
                 }
             }
 
@@ -793,7 +823,7 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
-    /// Actualiza los roles de un usuario
+    /// Actualiza los roles de un usuario (recibe IDs de roles)
     /// </summary>
     [HttpPut("{userId}/roles")]
     public async Task<IActionResult> UpdateRolesAsync(string userId, [FromBody] UpdateUserRolesDto model)
@@ -811,38 +841,57 @@ public class UsuariosController : ControllerBase
                 return NotFound("Usuario no encontrado.");
             }
 
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var rolesToRemove = currentRoles.Except(model.Roles).ToList();
-            var rolesToAdd = model.Roles.Except(currentRoles).ToList();
+            var requestedRoleIds = model.Roles ?? new List<string>();
 
-            if (rolesToRemove.Any())
+            // Validar que todos los IDs de roles existen
+            if (requestedRoleIds.Any())
             {
-                var removeResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
-                if (!removeResult.Succeeded)
+                var validCount = await _context.Roles
+                    .Where(r => requestedRoleIds.Contains(r.Id))
+                    .CountAsync();
+
+                if (validCount != requestedRoleIds.Count)
                 {
-                    var errors = string.Join(", ", removeResult.Errors.Select(e => e.Description));
-                    return BadRequest($"Error al remover roles: {errors}");
+                    return BadRequest("Algunos de los roles especificados no existen.");
                 }
             }
 
-            if (rolesToAdd.Any())
+            // Obtener roles actuales del usuario por ID
+            var currentRoleIds = await _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            var toRemove = currentRoleIds.Except(requestedRoleIds).ToList();
+            var toAdd = requestedRoleIds.Except(currentRoleIds).ToList();
+
+            // Eliminar roles
+            if (toRemove.Any())
             {
-                foreach (var roleName in rolesToAdd)
-                {
-                    if (await _roleManager.RoleExistsAsync(roleName))
-                    {
-                        await _userManager.AddToRoleAsync(user, roleName);
-                    }
-                    else
-                    {
-                        return BadRequest($"El rol '{roleName}' no existe.");
-                    }
-                }
+                var userRolesToRemove = await _context.UserRoles
+                    .Where(ur => ur.UserId == userId && toRemove.Contains(ur.RoleId))
+                    .ToListAsync();
+                _context.UserRoles.RemoveRange(userRolesToRemove);
             }
+
+            // Agregar roles
+            foreach (var roleId in toAdd)
+            {
+                _context.UserRoles.Add(new Microsoft.AspNetCore.Identity.IdentityUserRole<string>
+                {
+                    UserId = userId,
+                    RoleId = roleId
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Actualizar security stamp para forzar re-autenticación
+            await _userManager.UpdateSecurityStampAsync(user);
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("Roles actualizados para usuario {UserId} por usuario {UpdatedBy}",
-                userId, currentUserId);
+            _logger.LogInformation("Roles actualizados para usuario {UserId}. Agregados: {Added}, Removidos: {Removed}. Por: {UpdatedBy}",
+                userId, toAdd.Count, toRemove.Count, currentUserId);
 
             return Ok(new { message = "Roles actualizados exitosamente." });
         }

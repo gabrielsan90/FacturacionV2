@@ -146,7 +146,7 @@
             $('#filtroModulo').empty().append('<option value="">Todos los módulos</option>');
             modulos.forEach(modulo => {
                 $('#filtroModulo').append(
-                    `<option value="${modulo.id}">${modulo.nombre}</option>`
+                    `<option value="${modulo.nombre}">${modulo.nombre}</option>`
                 );
             });
         } catch (error) {
@@ -190,7 +190,7 @@
             columns: [
                 { data: 'id' },
                 {
-                    data: 'modulo.nombre',
+                    data: 'nombreModulo',
                     render: function(data) {
                         return data || '<span class="text-muted">Sin módulo</span>';
                     }
@@ -222,10 +222,10 @@
     }
 
     function aplicarFiltros() {
-        const moduloId = $('#filtroModulo').val();
+        const moduloName = $('#filtroModulo').val();
         const accion = $('#filtroAccion').val();
 
-        table.columns(1).search(moduloId ? moduloId : '', false, false);
+        table.columns(1).search(moduloName ? moduloName : '', false, false);
         table.columns(4).search(accion ? accion : '', false, false);
         table.draw();
 
@@ -238,7 +238,7 @@
         // Group by module
         const byModule = {};
         data.forEach(priv => {
-            const moduleName = priv.modulo?.nombre || 'Sin Módulo';
+            const moduleName = priv.nombreModulo || 'Sin Módulo';
             if (!byModule[moduleName]) {
                 byModule[moduleName] = 0;
             }

@@ -1,5 +1,6 @@
 using Facturacion.Shared.Entities;
 using Facturacion.Shared.Entities.Catalogos;
+using Facturacion.Shared.Enums;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -186,6 +187,13 @@ public class DataContext : IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder);
 
+        // Override Identity's unique index on NormalizedName to allow
+        // same role name in different empresas (roles personalizados)
+        modelBuilder.Entity<Rol>()
+            .HasIndex(r => r.NormalizedName)
+            .HasDatabaseName("RoleNameIndex")
+            .IsUnique(false);
+
         // =============================================
         // 1. UNIQUE INDEXES
         // =============================================
@@ -211,7 +219,7 @@ public class DataContext : IdentityDbContext<User>
             .IsUnique();
 
         modelBuilder.Entity<Rol>()
-            .HasIndex(r => r.Nombre)
+            .HasIndex(r => new { r.Nombre, r.EmpresaId })
             .IsUnique();
 
         modelBuilder.Entity<Email>()
@@ -458,6 +466,13 @@ public class DataContext : IdentityDbContext<User>
             .HasOne(r => r.UsuarioCreacion)
             .WithMany()
             .HasForeignKey(r => r.UsuarioCreacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Rol - Empresa (nullable: null para roles de sistema, set para roles personalizados)
+        modelBuilder.Entity<Rol>()
+            .HasOne(r => r.Empresa)
+            .WithMany()
+            .HasForeignKey(r => r.EmpresaId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Cliente - Empresa
@@ -967,6 +982,10 @@ public class DataContext : IdentityDbContext<User>
         modelBuilder.Entity<Producto>()
             .Property(p => p.FechaCreacion)
             .HasDefaultValueSql("GETDATE()");
+
+        modelBuilder.Entity<Producto>()
+            .Property(p => p.Moneda)
+            .HasDefaultValue(TipoMoneda.CRC);
 
         // Cliente - Default Values
         modelBuilder.Entity<Cliente>()
@@ -1785,10 +1804,17 @@ public class DataContext : IdentityDbContext<User>
         // 10. GASTOS MODULE
         // =============================================
 
-        // CategoriaGasto - Index
+        // CategoriaGasto - Index (unique per empresa)
         modelBuilder.Entity<CategoriaGasto>()
-            .HasIndex(c => c.Nombre)
-            .IsUnique();
+            .HasIndex(c => new { c.EmpresaId, c.Nombre })
+            .IsUnique()
+            .HasDatabaseName("IX_CategoriaGasto_Empresa_Nombre");
+
+        modelBuilder.Entity<CategoriaGasto>()
+            .HasOne(c => c.Empresa)
+            .WithMany()
+            .HasForeignKey(c => c.EmpresaId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Gasto - Indexes
         modelBuilder.Entity<Gasto>()

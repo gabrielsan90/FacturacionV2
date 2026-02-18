@@ -31,7 +31,6 @@ public class CentrosCostoModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -58,7 +57,6 @@ public class CentrosCostoModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -84,7 +82,6 @@ public class CentrosCostoModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -110,7 +107,6 @@ public class CentrosCostoModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
@@ -162,7 +158,6 @@ public class CentrosCostoModel : PageModel
         try
         {
             var client = CreateApiClient();
-            if (client == null) return Unauthorized();
 
             var response = await client.DeleteAsync($"api/centroscosto/{id}");
 
@@ -180,17 +175,18 @@ public class CentrosCostoModel : PageModel
         }
     }
 
-    private HttpClient? CreateApiClient()
+    private HttpClient CreateApiClient()
     {
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 
-        if (Request.Cookies.TryGetValue("authToken", out var jwt))
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
         {
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-            return client;
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        return null;
+        return client;
     }
 
     private Guid? GetEmpresaId()

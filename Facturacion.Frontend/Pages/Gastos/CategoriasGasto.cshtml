@@ -28,6 +28,9 @@
                 <span class="badge bg-secondary ms-2" id="badgeTotalCategorias">0</span>
             </div>
             <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="crearCatalogoGenerico()" title="Crear categorías genéricas predefinidas">
+                    <i class="fas fa-magic"></i> Catálogo Genérico
+                </button>
                 <button type="button" class="btn btn-outline-success" onclick="descargarPlantilla()" title="Descargar plantilla Excel">
                     <i class="fas fa-download"></i> Plantilla
                 </button>
@@ -68,8 +71,11 @@
             </div>
             <h3 class="empty-state-title">No hay categorías de gasto registradas</h3>
             <p class="empty-state-description">Crea categorías para clasificar y organizar tus gastos empresariales</p>
-            <button class="btn btn-primary" onclick="openCreateModal()">
-                <i class="fas fa-plus me-2"></i>Crear Primera Categoría
+            <button class="btn btn-primary me-2" onclick="crearCatalogoGenerico()">
+                <i class="fas fa-magic me-2"></i>Crear Catálogo Genérico
+            </button>
+            <button class="btn btn-outline-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Crear Manualmente
             </button>
         </div>
     </div>
@@ -253,6 +259,7 @@
     function save() {
         const data = {
             id: parseInt($('#CategoriaGasto_Id').val()) || 0,
+            empresaId: '@Model.EmpresaId',
             nombre: $('#CategoriaGasto_Nombre').val(),
             descripcion: $('#CategoriaGasto_Descripcion').val() || null,
             activa: $('#CategoriaGasto_Activa').is(':checked')
@@ -319,6 +326,47 @@
 
     function descargarPlantilla() {
         window.location.href = '?handler=Plantilla';
+    }
+
+    function crearCatalogoGenerico() {
+        Swal.fire({
+            title: 'Crear Catálogo Genérico',
+            text: 'Se crearán las categorías de gasto predefinidas (Alquiler, Servicios Públicos, Salarios, etc.). Las que ya existan no se duplicarán.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Crear Catálogo',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Creando catálogo...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '?handler=CatalogoGenerico',
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            showSuccess(response.message);
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message || 'Error al crear el catálogo genérico');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
     }
 
     function importarExcel(input) {

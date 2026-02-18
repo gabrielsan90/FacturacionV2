@@ -296,7 +296,11 @@ public class GastoModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync("/api/CategoriasGasto/activas");
+            var empresaId = User.FindFirstValue("EmpresaId");
+            var response = await client.GetAsync(
+                !string.IsNullOrEmpty(empresaId)
+                    ? $"/api/CategoriasGasto/activas/empresa/{empresaId}"
+                    : "/api/CategoriasGasto/activas");
 
             if (response.IsSuccessStatusCode)
             {

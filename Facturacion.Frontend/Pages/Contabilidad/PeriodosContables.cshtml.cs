@@ -54,12 +54,17 @@ public class PeriodosContablesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var periodos = await response.Content.ReadFromJsonAsync<List<PeriodoContableDTO>>(_jsonOptions);
-                return new JsonResult(new { data = periodos ?? new List<PeriodoContableDTO>() });
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load periodos contables. Status: {StatusCode}", response.StatusCode);
-            return new JsonResult(new { data = new List<PeriodoContableDTO>() });
+            return new JsonResult(new { data = new List<object>() });
         }
         catch (Exception ex)
         {
@@ -91,8 +96,13 @@ public class PeriodosContablesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var periodo = await response.Content.ReadFromJsonAsync<PeriodoContableDTO>(_jsonOptions);
-                return new JsonResult(new { success = true, data = periodo });
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {

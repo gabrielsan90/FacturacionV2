@@ -253,25 +253,19 @@
     function loadDataTable() {
         table = initDataTable('#tableHistorialVentas', {
             ajax: {
-                url: function() {
+                url: '?handler=Data',
+                type: 'GET',
+                data: function(d) {
                     const fechaInicio = $('#filtroFechaInicio').val();
                     const fechaFin = $('#filtroFechaFin').val();
                     const clienteId = $('#filtroCliente').val();
                     const sucursalId = $('#filtroSucursal').val();
 
-                    let url = '?handler=Data';
-                    const params = [];
-                    if (fechaInicio) params.push('fechaInicio=' + fechaInicio);
-                    if (fechaFin) params.push('fechaFin=' + fechaFin);
-                    if (clienteId) params.push('clienteId=' + clienteId);
-                    if (sucursalId) params.push('sucursalId=' + sucursalId);
-
-                    if (params.length > 0) {
-                        url += '&' + params.join('&');
-                    }
-                    return url;
+                    if (fechaInicio) d.fechaInicio = fechaInicio;
+                    if (fechaFin) d.fechaFin = fechaFin;
+                    if (clienteId && clienteId !== 'TODOS') d.clienteId = clienteId;
+                    if (sucursalId && sucursalId !== 'TODAS') d.sucursalId = sucursalId;
                 },
-                type: 'GET',
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },

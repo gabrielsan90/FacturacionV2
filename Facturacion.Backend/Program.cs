@@ -174,6 +174,7 @@ builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IDocumentoHac
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IXmlParserService, Facturacion.Backend.Services.Implementations.XmlParserService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IDocumentoRecepcionService, Facturacion.Backend.Services.Implementations.DocumentoRecepcionService>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IMensajeReceptorService, Facturacion.Backend.Services.Implementations.MensajeReceptorService>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IEmailReaderService, Facturacion.Backend.Services.Implementations.EmailReaderService>();
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IDocumentoReceptorMensajeRepository, Facturacion.Backend.Repositories.Implementations.DocumentoReceptorMensajeRepository>();
 
 // Dependency Injection - REP (Recibo Electrónico de Pago) Module - NUEVO v4.4
@@ -308,14 +309,14 @@ builder.Services.AddTransient<SeedDb>();
 var app = builder.Build();
 
 // Seed data
-SeedData(app);
+//SeedData(app);
 
-void SeedData(WebApplication app)
-{
-    using var scope = app.Services.CreateScope();
-    var seedDb = scope.ServiceProvider.GetRequiredService<SeedDb>();
-    seedDb.SeedAsync().Wait();
-}
+//void SeedData(WebApplication app)
+//{
+//    using var scope = app.Services.CreateScope();
+//    var seedDb = scope.ServiceProvider.GetRequiredService<SeedDb>();
+//    seedDb.SeedAsync().Wait();
+//}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

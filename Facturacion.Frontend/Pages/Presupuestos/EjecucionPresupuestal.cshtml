@@ -5,6 +5,9 @@
     ViewData["Breadcrumb"] = "Ejecución Presupuestal";
 }
 
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
 <div class="page-header mb-4">
     <div>
         <h2><i class="fas fa-chart-pie"></i> Ejecución Presupuestal</h2>
@@ -12,15 +15,382 @@
     </div>
 </div>
 
-<div class="card shadow-custom">
-    <div class="card-header">
-        <i class="fas fa-chart-pie me-2 text-primary"></i>
-        <strong>Ejecución Presupuestal</strong>
-    </div>
-    <div class="card-body">
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Módulo en desarrollo.</strong> Esta funcionalidad estará disponible próximamente.
+<!-- Selector de Presupuesto -->
+<div class="card shadow-custom mb-4">
+    <div class="card-body py-3">
+        <div class="row align-items-end">
+            <div class="col-md-6">
+                <label class="form-label"><strong>Seleccionar Presupuesto</strong></label>
+                <select class="form-select" id="selectPresupuesto">
+                    <option value="">-- Seleccione un presupuesto --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <div id="presupuestoInfo" class="d-none">
+                    <small class="text-muted">
+                        Estado: <span id="infoEstado"></span> |
+                        Tipo: <span id="infoTipo"></span> |
+                        Año: <span id="infoAnio"></span>
+                    </small>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Dashboard (oculto hasta seleccionar presupuesto) -->
+<div id="dashboardContainer" style="display:none;">
+
+    <!-- Cards Resumen -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-primary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-file-invoice-dollar fa-2x"></i>
+                    </div>
+                    <h6 class="text-muted">Monto Presupuestado</h6>
+                    <h3 class="text-primary fw-bold" id="cardPresupuestado">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-success shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <h6 class="text-muted">Monto Ejecutado</h6>
+                    <h3 class="text-success fw-bold" id="cardEjecutado">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-warning shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-warning mb-2">
+                        <i class="fas fa-wallet fa-2x"></i>
+                    </div>
+                    <h6 class="text-muted">Monto Disponible</h6>
+                    <h3 class="text-warning fw-bold" id="cardDisponible">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card shadow-sm h-100" id="cardPorcentajeContainer">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-percentage fa-2x" id="cardPorcentajeIcon"></i>
+                    </div>
+                    <h6 class="text-muted">% Ejecución General</h6>
+                    <h3 class="fw-bold" id="cardPorcentaje">-</h3>
+                    <div class="progress mt-2" style="height:8px;">
+                        <div class="progress-bar" id="cardProgressBar" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Comparativa por Línea -->
+    <div class="card shadow-custom mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-2 text-primary"></i>
+            <strong>Detalle por Línea Presupuestaria</strong>
+            <span class="badge bg-secondary ms-2" id="badgeLineasEjecucion">0</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="tblEjecucion">
+                    <thead>
+                        <tr>
+                            <th>Cuenta Contable</th>
+                            <th>Centro de Costo</th>
+                            <th class="text-end">Presupuestado</th>
+                            <th class="text-end">Ejecutado</th>
+                            <th class="text-end">Disponible</th>
+                            <th style="width:200px">% Ejecución</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyEjecucion"></tbody>
+                    <tfoot id="tfootEjecucion"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Mensual Detallada -->
+    <div class="card shadow-custom">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                <strong>Detalle Mensual</strong>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMensual">
+                <i class="fas fa-chevron-down me-1"></i>Mostrar / Ocultar
+            </button>
+        </div>
+        <div class="collapse" id="collapseMensual">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered" id="tblMensual">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th class="text-end">Ene</th>
+                                <th class="text-end">Feb</th>
+                                <th class="text-end">Mar</th>
+                                <th class="text-end">Abr</th>
+                                <th class="text-end">May</th>
+                                <th class="text-end">Jun</th>
+                                <th class="text-end">Jul</th>
+                                <th class="text-end">Ago</th>
+                                <th class="text-end">Sep</th>
+                                <th class="text-end">Oct</th>
+                                <th class="text-end">Nov</th>
+                                <th class="text-end">Dic</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyMensual"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estado vacío -->
+<div id="emptyState" class="text-center py-5">
+    <div class="text-muted">
+        <i class="fas fa-chart-pie fa-4x mb-3 opacity-25"></i>
+        <h4>Seleccione un presupuesto</h4>
+        <p>Elija un presupuesto del selector superior para ver su ejecución presupuestal.</p>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const mesesCortos = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const montoPropsMonto = ['montoEnero', 'montoFebrero', 'montoMarzo', 'montoAbril', 'montoMayo', 'montoJunio',
+        'montoJulio', 'montoAgosto', 'montoSeptiembre', 'montoOctubre', 'montoNoviembre', 'montoDiciembre'];
+    const montoPropsEjecutado = ['ejecutadoEnero', 'ejecutadoFebrero', 'ejecutadoMarzo', 'ejecutadoAbril', 'ejecutadoMayo', 'ejecutadoJunio',
+        'ejecutadoJulio', 'ejecutadoAgosto', 'ejecutadoSeptiembre', 'ejecutadoOctubre', 'ejecutadoNoviembre', 'ejecutadoDiciembre'];
+
+    const estadoBadges = {
+        'BOR': '<span class="badge bg-secondary">Borrador</span>',
+        'REV': '<span class="badge bg-warning text-dark">En Revisión</span>',
+        'APR': '<span class="badge bg-info">Aprobado</span>',
+        'VIG': '<span class="badge bg-success">Vigente</span>',
+        'CER': '<span class="badge bg-dark">Cerrado</span>'
+    };
+
+    const tipoLabels = { 'ANU': 'Anual', 'TRI': 'Trimestral', 'MEN': 'Mensual' };
+
+    $(document).ready(function () {
+        loadPresupuestos();
+
+        $('#selectPresupuesto').on('change', function () {
+            const id = $(this).val();
+            if (id) {
+                loadEjecucion(id);
+            } else {
+                $('#dashboardContainer').hide();
+                $('#emptyState').show();
+            }
+        });
+    });
+
+    function loadPresupuestos() {
+        $.ajax({
+            url: '?handler=Presupuestos',
+            type: 'GET',
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (data) {
+                const select = $('#selectPresupuesto');
+                select.find('option:not(:first)').remove();
+
+                // Filtrar solo APR, VIG, CER (los que tienen sentido para ejecución)
+                const filtrados = (data || []).filter(p => ['APR', 'VIG', 'CER'].includes(p.estado));
+
+                filtrados.forEach(p => {
+                    const estadoText = { 'APR': 'Aprobado', 'VIG': 'Vigente', 'CER': 'Cerrado' };
+                    select.append(`<option value="${p.id}">${p.codigo} - ${p.nombre} (${p.anioFiscal}) [${estadoText[p.estado] || p.estado}]</option>`);
+                });
+            },
+            error: function (xhr) {
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function loadEjecucion(id) {
+        showLoading('Cargando ejecución presupuestal...');
+
+        $.ajax({
+            url: `?handler=Ejecucion&id=${id}`,
+            type: 'GET',
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (data) {
+                hideLoading();
+                renderDashboard(data);
+            },
+            error: function (xhr) {
+                hideLoading();
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function renderDashboard(data) {
+        // Info del presupuesto
+        $('#infoEstado').html(estadoBadges[data.estado] || data.estado);
+        $('#infoTipo').text(tipoLabels[data.tipoPresupuesto] || data.tipoPresupuesto);
+        $('#infoAnio').text(data.anioFiscal);
+        $('#presupuestoInfo').removeClass('d-none');
+
+        // Cards resumen
+        const presupuestado = data.montoTotal || 0;
+        const ejecutado = data.montoEjecutado || 0;
+        const disponible = presupuestado - ejecutado;
+        const porcentaje = data.porcentajeEjecucion || 0;
+
+        $('#cardPresupuestado').text(formatCurrency(presupuestado));
+        $('#cardEjecutado').text(formatCurrency(ejecutado));
+        $('#cardDisponible').text(formatCurrency(disponible));
+        $('#cardPorcentaje').text(porcentaje.toFixed(2) + '%');
+
+        // Color del % según nivel
+        let pctColor = 'text-success';
+        let pctBorder = 'border-success';
+        let barColor = 'bg-success';
+        if (porcentaje >= 90) {
+            pctColor = 'text-danger';
+            pctBorder = 'border-danger';
+            barColor = 'bg-danger';
+        } else if (porcentaje >= 75) {
+            pctColor = 'text-warning';
+            pctBorder = 'border-warning';
+            barColor = 'bg-warning';
+        }
+
+        $('#cardPorcentajeContainer').removeClass('border-success border-warning border-danger').addClass(pctBorder);
+        $('#cardPorcentajeIcon').removeClass('text-success text-warning text-danger').addClass(pctColor);
+        $('#cardPorcentaje').removeClass('text-success text-warning text-danger').addClass(pctColor);
+        $('#cardProgressBar').removeClass('bg-success bg-warning bg-danger').addClass(barColor).css('width', Math.min(porcentaje, 100) + '%');
+
+        // Tabla comparativa por línea
+        renderTablaEjecucion(data.lineas || []);
+
+        // Tabla mensual
+        renderTablaMensual(data.lineas || []);
+
+        $('#emptyState').hide();
+        $('#dashboardContainer').show();
+    }
+
+    function renderTablaEjecucion(lineas) {
+        const tbody = $('#tbodyEjecucion');
+        tbody.empty();
+
+        let totalPresupuestado = 0, totalEjecutado = 0;
+
+        lineas.forEach(l => {
+            const presup = l.montoAnual || 0;
+            const ejec = l.ejecutadoAnual || 0;
+            const disp = presup - ejec;
+            const pct = l.porcentajeEjecucion || 0;
+
+            totalPresupuestado += presup;
+            totalEjecutado += ejec;
+
+            let barColor = 'bg-success';
+            if (pct >= 90) barColor = 'bg-danger';
+            else if (pct >= 75) barColor = 'bg-warning';
+
+            tbody.append(`<tr>
+                <td><small>${l.cuentaContableCodigo} - ${l.cuentaContableNombre}</small></td>
+                <td><small>${l.centroCostoCodigo ? l.centroCostoCodigo + ' - ' + l.centroCostoNombre : '-'}</small></td>
+                <td class="text-end">${fn(presup)}</td>
+                <td class="text-end">${fn(ejec)}</td>
+                <td class="text-end ${disp < 0 ? 'text-danger fw-bold' : ''}">${fn(disp)}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height:18px;">
+                            <div class="progress-bar ${barColor}" style="width:${Math.min(pct, 100)}%">${pct.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>`);
+        });
+
+        const totalDisp = totalPresupuestado - totalEjecutado;
+        const totalPct = totalPresupuestado > 0 ? ((totalEjecutado / totalPresupuestado) * 100) : 0;
+
+        const tfoot = $('#tfootEjecucion');
+        tfoot.empty();
+        tfoot.append(`<tr class="table-primary fw-bold">
+            <td colspan="2">Totales</td>
+            <td class="text-end">${fn(totalPresupuestado)}</td>
+            <td class="text-end">${fn(totalEjecutado)}</td>
+            <td class="text-end ${totalDisp < 0 ? 'text-danger' : ''}">${fn(totalDisp)}</td>
+            <td>${totalPct.toFixed(2)}%</td>
+        </tr>`);
+
+        $('#badgeLineasEjecucion').text(lineas.length);
+    }
+
+    function renderTablaMensual(lineas) {
+        const tbody = $('#tbodyMensual');
+        tbody.empty();
+
+        // Sumar por mes
+        let presupMes = new Array(12).fill(0);
+        let ejecutMes = new Array(12).fill(0);
+
+        lineas.forEach(l => {
+            montoPropsMonto.forEach((prop, i) => presupMes[i] += l[prop] || 0);
+            montoPropsEjecutado.forEach((prop, i) => ejecutMes[i] += l[prop] || 0);
+        });
+
+        let totalPresup = 0, totalEjecut = 0;
+
+        // Fila Presupuestado
+        let rowPresup = '<tr class="table-info"><td><strong>Presupuestado</strong></td>';
+        presupMes.forEach(v => { totalPresup += v; rowPresup += `<td class="text-end">${fn(v)}</td>`; });
+        rowPresup += `<td class="text-end fw-bold">${fn(totalPresup)}</td></tr>`;
+
+        // Fila Ejecutado
+        let rowEjecut = '<tr class="table-success"><td><strong>Ejecutado</strong></td>';
+        ejecutMes.forEach(v => { totalEjecut += v; rowEjecut += `<td class="text-end">${fn(v)}</td>`; });
+        rowEjecut += `<td class="text-end fw-bold">${fn(totalEjecut)}</td></tr>`;
+
+        // Fila Diferencia
+        let totalDif = totalPresup - totalEjecut;
+        let rowDif = '<tr class="table-warning"><td><strong>Disponible</strong></td>';
+        presupMes.forEach((v, i) => {
+            const dif = v - ejecutMes[i];
+            rowDif += `<td class="text-end ${dif < 0 ? 'text-danger fw-bold' : ''}">${fn(dif)}</td>`;
+        });
+        rowDif += `<td class="text-end fw-bold ${totalDif < 0 ? 'text-danger' : ''}">${fn(totalDif)}</td></tr>`;
+
+        // Fila % Ejecución
+        let rowPct = '<tr><td><strong>% Ejecución</strong></td>';
+        presupMes.forEach((v, i) => {
+            const pct = v > 0 ? ((ejecutMes[i] / v) * 100) : 0;
+            let cls = 'text-success';
+            if (pct >= 90) cls = 'text-danger fw-bold';
+            else if (pct >= 75) cls = 'text-warning fw-bold';
+            rowPct += `<td class="text-end ${cls}">${pct.toFixed(1)}%</td>`;
+        });
+        const totalPct = totalPresup > 0 ? ((totalEjecut / totalPresup) * 100) : 0;
+        rowPct += `<td class="text-end fw-bold">${totalPct.toFixed(1)}%</td></tr>`;
+
+        tbody.append(rowPresup + rowEjecut + rowDif + rowPct);
+    }
+
+    function fn(val) {
+        return parseFloat(val).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+</script>
+}

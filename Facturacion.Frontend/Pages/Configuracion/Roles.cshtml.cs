@@ -52,8 +52,8 @@ public class RolesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var roles = await response.Content.ReadFromJsonAsync<List<dynamic>>(_jsonOptions);
-                return new JsonResult(new { data = roles });
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
             }
 
             _logger.LogWarning("Failed to load roles. Status: {StatusCode}", response.StatusCode);
@@ -86,8 +86,8 @@ public class RolesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var privilegios = await response.Content.ReadFromJsonAsync<List<dynamic>>(_jsonOptions);
-                return new JsonResult(privilegios);
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult { Content = content, ContentType = "application/json", StatusCode = 200 };
             }
 
             _logger.LogWarning("Failed to load privilegios. Status: {StatusCode}", response.StatusCode);
@@ -120,8 +120,13 @@ public class RolesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var rol = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(new { success = true, data = rol });
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load rol {Id}. Status: {StatusCode}", id, response.StatusCode);
@@ -202,13 +207,14 @@ public class RolesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(new
+                var resultContent = await response.Content.ReadAsStringAsync();
+                var message = isUpdate ? "Rol actualizado exitosamente" : "Rol creado exitosamente";
+                return new ContentResult
                 {
-                    success = true,
-                    message = isUpdate ? "Rol actualizado exitosamente" : "Rol creado exitosamente",
-                    data = result
-                });
+                    Content = $"{{\"success\":true,\"message\":\"{message}\",\"data\":{resultContent}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             var errorContent = await response.Content.ReadAsStringAsync();

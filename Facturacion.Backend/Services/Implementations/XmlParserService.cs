@@ -12,12 +12,35 @@ namespace Facturacion.Backend.Services.Implementations;
 /// </summary>
 public class XmlParserService : IXmlParserService
 {
-    // Namespaces oficiales de Hacienda v4.3/v4.4
-    private static readonly XNamespace NsFE = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/facturaElectronica";
-    private static readonly XNamespace NsTE = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/tiqueteElectronico";
-    private static readonly XNamespace NsNC = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/notaCreditoElectronica";
-    private static readonly XNamespace NsND = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/notaDebitoElectronica";
-    private static readonly XNamespace NsFEE = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/facturaElectronicaExportacion";
+    // Namespaces oficiales de Hacienda v4.3
+    private static readonly XNamespace NsFE_43 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/facturaElectronica";
+    private static readonly XNamespace NsTE_43 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/tiqueteElectronico";
+    private static readonly XNamespace NsNC_43 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/notaCreditoElectronica";
+    private static readonly XNamespace NsND_43 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/notaDebitoElectronica";
+    private static readonly XNamespace NsFEE_43 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.3/facturaElectronicaExportacion";
+
+    // Namespaces oficiales de Hacienda v4.4
+    private static readonly XNamespace NsFE_44 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronica";
+    private static readonly XNamespace NsTE_44 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/tiqueteElectronico";
+    private static readonly XNamespace NsNC_44 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/notaCreditoElectronica";
+    private static readonly XNamespace NsND_44 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/notaDebitoElectronica";
+    private static readonly XNamespace NsFEE_44 = "https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/facturaElectronicaExportacion";
+
+    /// <summary>
+    /// Determina el tipo de documento y retorna (tipo, namespace) para el namespace del XML
+    /// </summary>
+    private static (DocumentoTipo tipo, string metodo)? ResolverTipoDocumento(XNamespace ns)
+    {
+        var nsStr = ns.NamespaceName;
+
+        if (ns == NsFE_43 || ns == NsFE_44) return (DocumentoTipo.FacturaElectronica, "FE");
+        if (ns == NsTE_43 || ns == NsTE_44) return (DocumentoTipo.TiqueteElectronico, "TE");
+        if (ns == NsNC_43 || ns == NsNC_44) return (DocumentoTipo.NotaCreditoElectronica, "NC");
+        if (ns == NsND_43 || ns == NsND_44) return (DocumentoTipo.NotaDebitoElectronica, "ND");
+        if (ns == NsFEE_43 || ns == NsFEE_44) return (DocumentoTipo.FacturaElectronicaExportacion, "FEE");
+
+        return null;
+    }
 
     /// <inheritdoc/>
     public async Task<DocumentoRecibido> ParseXmlAsync(string xmlContent)
@@ -34,19 +57,18 @@ public class XmlParserService : IXmlParserService
 
                 // Determinar el tipo de documento por el namespace
                 var ns = root.Name.Namespace;
+                var tipoInfo = ResolverTipoDocumento(ns)
+                    ?? throw new NotSupportedException($"Tipo de documento no soportado. Namespace: {ns}");
 
-                if (ns == NsFE)
-                    return ParseFacturaElectronica(doc, xmlContent);
-                else if (ns == NsTE)
-                    return ParseTiqueteElectronico(doc, xmlContent);
-                else if (ns == NsNC)
-                    return ParseNotaCredito(doc, xmlContent);
-                else if (ns == NsND)
-                    return ParseNotaDebito(doc, xmlContent);
-                else if (ns == NsFEE)
-                    return ParseFacturaExportacion(doc, xmlContent);
-                else
-                    throw new NotSupportedException($"Tipo de documento no soportado. Namespace: {ns}");
+                return tipoInfo.metodo switch
+                {
+                    "FE" => ParseFacturaElectronica(doc, xmlContent, ns),
+                    "TE" => ParseTiqueteElectronico(doc, xmlContent, ns),
+                    "NC" => ParseNotaCredito(doc, xmlContent, ns),
+                    "ND" => ParseNotaDebito(doc, xmlContent, ns),
+                    "FEE" => ParseFacturaExportacion(doc, xmlContent, ns),
+                    _ => throw new NotSupportedException($"Tipo de documento no soportado. Namespace: {ns}")
+                };
             }
             catch (Exception ex)
             {
@@ -152,10 +174,9 @@ public class XmlParserService : IXmlParserService
 
     #region Métodos de Parseo por Tipo de Documento
 
-    private DocumentoRecibido ParseFacturaElectronica(XDocument doc, string xmlOriginal)
+    private DocumentoRecibido ParseFacturaElectronica(XDocument doc, string xmlOriginal, XNamespace ns)
     {
         var root = doc.Root!;
-        var ns = NsFE;
 
         var documento = new DocumentoRecibido
         {
@@ -179,7 +200,7 @@ public class XmlParserService : IXmlParserService
             documento.PlazoCreditoDias = int.Parse(plazoCredito);
 
         // Parsear MedioPago
-        documento.MedioPago = root.Element(ns + "MedioPago")!.Value;
+        documento.MedioPago = root.Element(ns + "MedioPago")?.Value ?? "01";
 
         // Parsear ResumenFactura
         var resumen = root.Element(ns + "ResumenFactura")!;
@@ -201,10 +222,9 @@ public class XmlParserService : IXmlParserService
         return documento;
     }
 
-    private DocumentoRecibido ParseTiqueteElectronico(XDocument doc, string xmlOriginal)
+    private DocumentoRecibido ParseTiqueteElectronico(XDocument doc, string xmlOriginal, XNamespace ns)
     {
         var root = doc.Root!;
-        var ns = NsTE;
 
         var documento = new DocumentoRecibido
         {
@@ -225,7 +245,7 @@ public class XmlParserService : IXmlParserService
         documento.CondicionVenta = root.Element(ns + "CondicionVenta")!.Value;
 
         // Parsear MedioPago
-        documento.MedioPago = root.Element(ns + "MedioPago")!.Value;
+        documento.MedioPago = root.Element(ns + "MedioPago")?.Value ?? "01";
 
         // Parsear ResumenFactura
         var resumen = root.Element(ns + "ResumenFactura")!;
@@ -244,10 +264,9 @@ public class XmlParserService : IXmlParserService
         return documento;
     }
 
-    private DocumentoRecibido ParseNotaCredito(XDocument doc, string xmlOriginal)
+    private DocumentoRecibido ParseNotaCredito(XDocument doc, string xmlOriginal, XNamespace ns)
     {
         var root = doc.Root!;
-        var ns = NsNC;
 
         var documento = new DocumentoRecibido
         {
@@ -287,10 +306,9 @@ public class XmlParserService : IXmlParserService
         return documento;
     }
 
-    private DocumentoRecibido ParseNotaDebito(XDocument doc, string xmlOriginal)
+    private DocumentoRecibido ParseNotaDebito(XDocument doc, string xmlOriginal, XNamespace ns)
     {
         var root = doc.Root!;
-        var ns = NsND;
 
         var documento = new DocumentoRecibido
         {
@@ -330,10 +348,9 @@ public class XmlParserService : IXmlParserService
         return documento;
     }
 
-    private DocumentoRecibido ParseFacturaExportacion(XDocument doc, string xmlOriginal)
+    private DocumentoRecibido ParseFacturaExportacion(XDocument doc, string xmlOriginal, XNamespace ns)
     {
         var root = doc.Root!;
-        var ns = NsFEE;
 
         var documento = new DocumentoRecibido
         {
@@ -354,7 +371,7 @@ public class XmlParserService : IXmlParserService
         documento.CondicionVenta = root.Element(ns + "CondicionVenta")!.Value;
 
         // Parsear MedioPago
-        documento.MedioPago = root.Element(ns + "MedioPago")!.Value;
+        documento.MedioPago = root.Element(ns + "MedioPago")?.Value ?? "01";
 
         // Parsear ResumenFactura
         var resumen = root.Element(ns + "ResumenFactura")!;

@@ -88,12 +88,10 @@ public class MensajeReceptorService : IMensajeReceptorService
                 return resultado;
             }
 
-            // 4. Generar clave de 50 dígitos para el MR
+            // 4. Generar consecutivo y clave de 50 dígitos para el MR
             var tipoDocMR = ObtenerTipoDocumentoMR(tipoMensaje);
-            var claveMR = await GenerarClaveMRAsync(documentoOriginal, tipoDocMR);
-
-            // 5. Generar consecutivo para el MR
             var consecutivoMR = await GenerarConsecutivoMRAsync(documentoOriginal, tipoDocMR);
+            var claveMR = GenerarClaveMR(documentoOriginal, tipoDocMR, consecutivoMR);
 
             // 6. Crear entidad DocumentoReceptorMensaje
             var mensaje = new DocumentoReceptorMensaje
@@ -116,9 +114,12 @@ public class MensajeReceptorService : IMensajeReceptorService
             var xmlGenerado = await _xmlGeneradorService.GenerarMensajeReceptorAsync(mensaje, documentoOriginal);
             mensaje.XmlGenerado = xmlGenerado;
 
-            // 9. Obtener credenciales de Hacienda de la empresa
+            // 9. Obtener empresa
             var empresa = await _context.Set<Empresa>()
                 .FirstOrDefaultAsync(e => e.Id == documentoOriginal.EmpresaId);
+
+            if (empresa == null)
+                throw new InvalidOperationException("Empresa no encontrada");
 
             // 8. Firmar digitalmente el XML
             var certificado = await _firmaDigitalService.ObtenerCertificadoAsync(documentoOriginal.EmpresaId);
@@ -126,41 +127,51 @@ public class MensajeReceptorService : IMensajeReceptorService
             mensaje.XmlFirmado = xmlFirmado;
             mensaje.FechaFirma = FechaCostaRicaHelper.Ahora;
 
-            
-
-            if (empresa == null)
-                throw new InvalidOperationException("Empresa no encontrada");
-
-            // 10. Enviar a Hacienda usando el método general de envío
+            // 10. Enviar a Hacienda usando OAuth2 Bearer token
             var ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
-            var respuestaHacienda = await _haciendaApiService.EnviarDocumentoAsync(
+            var respuestaHacienda = await _haciendaApiService.EnviarDocumentoConTokenAsync(
                 claveMR,
                 xmlFirmado,
-                empresa.UsuarioHacienda ?? "",
-                empresa.ClaveHacienda ?? "",
+                empresa.Id,
                 ambiente);
 
-            // 10. Actualizar mensaje con respuesta de Hacienda
+            // 11. Actualizar mensaje con respuesta de Hacienda
             mensaje.FechaEnvioHacienda = FechaCostaRicaHelper.Ahora;
             var mensajesHacienda = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Detalle ?? m.Mensaje ?? ""));
             mensaje.MensajeHacienda = mensajesHacienda;
 
-            var exitoso = respuestaHacienda.IndEstado?.ToLower() == "aceptado";
-            mensaje.Estado = exitoso ? "Aceptado" : "Rechazado";
+            var indEstado = respuestaHacienda.IndEstado?.ToLower();
+            // "aceptado", "procesando", "enviado" son estados exitosos de Hacienda
+            var exitoso = indEstado == "aceptado" || indEstado == "procesando" || indEstado == "enviado";
+            if (indEstado == "aceptado")
+                mensaje.Estado = "Aceptado";
+            else if (indEstado == "procesando" || indEstado == "enviado")
+                mensaje.Estado = "Procesando";
+            else if (indEstado == "rechazado")
+                mensaje.Estado = "Rechazado";
+            else
+                mensaje.Estado = "Error";
 
             if (exitoso)
             {
                 mensaje.FechaRespuestaHacienda = FechaCostaRicaHelper.Ahora;
             }
 
-            // 11. Guardar en base de datos
-            await _mensajeRepository.AddAsync(mensaje);
+            // 11. Solo guardar en base de datos si Hacienda dio respuesta (no en errores de conexión/token)
+            if (mensaje.Estado != "Error")
+            {
+                await _mensajeRepository.AddAsync(mensaje);
+            }
 
             // 12. Preparar resultado
             resultado.Exitoso = exitoso;
-            resultado.Mensaje = exitoso
-                ? "Mensaje receptor enviado y aceptado por Hacienda"
-                : $"Mensaje enviado pero rechazado por Hacienda: {mensajesHacienda}";
+            resultado.Mensaje = mensaje.Estado switch
+            {
+                "Aceptado" => "Mensaje receptor enviado y aceptado por Hacienda",
+                "Procesando" => "Mensaje receptor enviado exitosamente. Hacienda lo está procesando",
+                "Rechazado" => $"Mensaje rechazado por Hacienda: {mensajesHacienda}",
+                _ => $"Error al enviar a Hacienda (reintente): {mensajesHacienda}"
+            };
             resultado.ClaveMensaje = claveMR;
             resultado.TipoMensaje = tipoMensaje;
             resultado.CodigoMensaje = codigoMensaje;
@@ -204,11 +215,18 @@ public class MensajeReceptorService : IMensajeReceptorService
             return (false, "El documento no es un documento recibido. Solo se puede enviar MR para documentos recibidos de proveedores");
         }
 
-        // 3. Verificar que no se haya enviado ya un MR
-        var existeMR = await _mensajeRepository.ExisteMensajeParaDocumentoAsync(documentoOriginalId);
-        if (existeMR)
+        // 3. Verificar que no se haya enviado ya un MR exitoso (aceptado por Hacienda)
+        var mrExistente = await _context.Set<DocumentoReceptorMensaje>()
+            .FirstOrDefaultAsync(m => m.DocumentoOriginalId == documentoOriginalId && !m.IsDeleted);
+        if (mrExistente != null && (mrExistente.Estado == "Aceptado" || mrExistente.Estado == "Procesando"))
         {
-            return (false, "Ya se ha enviado un Mensaje Receptor para este documento");
+            return (false, "Ya se ha enviado un Mensaje Receptor para este documento y está en estado: " + mrExistente.Estado);
+        }
+        // Si existe un MR con error o rechazado, eliminarlo para permitir reintento
+        if (mrExistente != null)
+        {
+            mrExistente.IsDeleted = true;
+            await _context.SaveChangesAsync();
         }
 
         // 4. Verificar plazo de 8 días calendario
@@ -311,13 +329,12 @@ public class MensajeReceptorService : IMensajeReceptorService
                 return resultado;
             }
 
-            // Reenviar a Hacienda
+            // Reenviar a Hacienda usando OAuth2 Bearer token
             var ambiente = empresa.Ambiente == Ambiente.Produccion ? "prod" : "stag";
-            var respuestaHacienda = await _haciendaApiService.EnviarDocumentoAsync(
+            var respuestaHacienda = await _haciendaApiService.EnviarDocumentoConTokenAsync(
                 mensaje.ClaveMensaje,
                 mensaje.XmlFirmado,
-                empresa.UsuarioHacienda ?? "",
-                empresa.ClaveHacienda ?? "",
+                empresa.Id,
                 ambiente);
 
             // Actualizar estado
@@ -325,8 +342,16 @@ public class MensajeReceptorService : IMensajeReceptorService
             var mensajesHacienda = string.Join("; ", respuestaHacienda.Mensajes.Select(m => m.Detalle ?? m.Mensaje ?? ""));
             mensaje.MensajeHacienda = mensajesHacienda;
 
-            var exitoso = respuestaHacienda.IndEstado?.ToLower() == "aceptado";
-            mensaje.Estado = exitoso ? "Aceptado" : "Rechazado";
+            var indEstado = respuestaHacienda.IndEstado?.ToLower();
+            var exitoso = indEstado == "aceptado" || indEstado == "procesando" || indEstado == "enviado";
+            if (indEstado == "aceptado")
+                mensaje.Estado = "Aceptado";
+            else if (indEstado == "procesando" || indEstado == "enviado")
+                mensaje.Estado = "Procesando";
+            else if (indEstado == "rechazado")
+                mensaje.Estado = "Rechazado";
+            else
+                mensaje.Estado = "Error";
 
             if (exitoso)
             {
@@ -336,9 +361,12 @@ public class MensajeReceptorService : IMensajeReceptorService
             await _mensajeRepository.UpdateAsync(mensaje);
 
             resultado.Exitoso = exitoso;
-            resultado.Mensaje = exitoso
-                ? "Mensaje reenviado y aceptado por Hacienda"
-                : $"Mensaje reenviado pero rechazado: {mensajesHacienda}";
+            resultado.Mensaje = mensaje.Estado switch
+            {
+                "Aceptado" => "Mensaje reenviado y aceptado por Hacienda",
+                "Procesando" => "Mensaje reenviado exitosamente. Hacienda lo está procesando",
+                _ => $"Mensaje reenviado pero rechazado: {mensajesHacienda}"
+            };
             resultado.ClaveMensaje = mensaje.ClaveMensaje;
             resultado.Estado = mensaje.Estado;
             resultado.RespuestaHacienda = mensajesHacienda;
@@ -441,18 +469,10 @@ public class MensajeReceptorService : IMensajeReceptorService
         };
     }
 
-    private async Task<string> GenerarClaveMRAsync(Documento documentoOriginal, string tipoDocMR)
+    private string GenerarClaveMR(Documento documentoOriginal, string tipoDocMR, string consecutivoMR)
     {
-        // Generar clave de 50 dígitos para el MR
-        // Formato: CCPPPPDDDDDDDDDDSSSTTTNNNNNNNNNNNNNNNNNNNNSSSSSSSSC
-        // CC = País (506)
-        // PPPP = Día + Mes + Año (ddmmyy)
-        // DDDDDDDDDD = Cédula del receptor del doc original (nosotros)
-        // SSS = Situación (1=Normal)
-        // TTT = Tipo de documento MR (05, 06, 07)
-        // NNNNNNNNNNNNNNNNNNNN = Consecutivo (20 dígitos)
-        // SSSSSSSS = Código de seguridad (8 dígitos)
-        // C = Dígito verificador
+        // Clave numérica de exactamente 50 dígitos según formato Hacienda:
+        // 506(3) + DDMMYY(6) + Cédula(12) + Consecutivo(20) + Situación(1) + CódigoSeguridad(8) = 50
 
         var fecha = FechaCostaRicaHelper.Ahora;
         var dia = fecha.Day.ToString("D2");
@@ -461,52 +481,46 @@ public class MensajeReceptorService : IMensajeReceptorService
 
         var cedula = documentoOriginal.ReceptorNumeroIdentificacion?.PadLeft(12, '0').Substring(0, 12) ?? "000000000000";
         var situacion = "1"; // Normal
-        var tipo = tipoDocMR.PadLeft(3, '0');
-
-        // Generar consecutivo de 20 dígitos
-        var consecutivo = Guid.NewGuid().ToString("N").Substring(0, 20);
 
         // Código de seguridad de 8 dígitos
         var random = new Random();
         var codigoSeguridad = random.Next(10000000, 99999999).ToString();
 
-        // Construir clave sin dígito verificador
-        var claveSinDV = $"506{dia}{mes}{anio}{cedula}{situacion}{tipo}{consecutivo}{codigoSeguridad}";
+        // Consecutivo ya es 20 dígitos numéricos (SSSTTTTTZZNNNNNNNNNN)
+        var clave = $"506{dia}{mes}{anio}{cedula}{consecutivoMR}{situacion}{codigoSeguridad}";
 
-        // Calcular dígito verificador (algoritmo ATV)
-        var digitoVerificador = CalcularDigitoVerificador(claveSinDV);
-
-        return claveSinDV + digitoVerificador;
+        return clave;
     }
 
     private async Task<string> GenerarConsecutivoMRAsync(Documento documentoOriginal, string tipoDocMR)
     {
-        // Formato: XXX-YYYYY-ZZ-AAAAAAAAAA
-        // XXX = Código sucursal (3 dígitos)
-        // YYYYY = Código terminal (5 dígitos)
+        // Formato: SSSTTTTTZZNNNNNNNNNN (20 dígitos sin guiones)
+        // SSS = Código sucursal (3 dígitos)
+        // TTTTT = Código terminal (5 dígitos)
         // ZZ = Tipo de documento MR (05, 06, 07)
-        // AAAAAAAAAA = Consecutivo (10 dígitos)
+        // NNNNNNNNNN = Consecutivo (10 dígitos)
 
         var sucursal = documentoOriginal.Sucursal?.Codigo ?? "001";
         var terminal = documentoOriginal.Terminal?.Codigo ?? "00001";
 
-        // Obtener el último consecutivo para este tipo de MR
+        // Obtener el último consecutivo para este tipo de MR en esta empresa
+        var empresaId = documentoOriginal.EmpresaId;
         var ultimoMensaje = await _context.Set<DocumentoReceptorMensaje>()
-            .Where(m => m.NumeroConsecutivo.Contains($"-{tipoDocMR}-"))
+            .Where(m => m.DocumentoOriginal!.EmpresaId == empresaId
+                && m.NumeroConsecutivo.Substring(8, 2) == tipoDocMR)
             .OrderByDescending(m => m.FechaCreacion)
             .FirstOrDefaultAsync();
 
         int numeroConsecutivo = 1;
-        if (ultimoMensaje != null)
+        if (ultimoMensaje != null && ultimoMensaje.NumeroConsecutivo.Length == 20)
         {
-            var partes = ultimoMensaje.NumeroConsecutivo.Split('-');
-            if (partes.Length == 4 && int.TryParse(partes[3], out int ultimo))
+            if (int.TryParse(ultimoMensaje.NumeroConsecutivo.Substring(10, 10), out int ultimo))
             {
                 numeroConsecutivo = ultimo + 1;
             }
         }
 
-        return $"{sucursal.PadLeft(3, '0')}-{terminal.PadLeft(5, '0')}-{tipoDocMR}-{numeroConsecutivo:D10}";
+        return $"{sucursal.PadLeft(3, '0')}{terminal.PadLeft(5, '0')}{tipoDocMR}{numeroConsecutivo:D10}";
     }
 
     private string FormatearCodigoMensaje(CodigoMensajeReceptor codigo)
@@ -532,19 +546,6 @@ public class MensajeReceptorService : IMensajeReceptorService
             DocumentoTipo.FacturaElectronicaExportacion => "Factura de Exportación",
             _ => tipo.ToString()
         };
-    }
-
-    private int CalcularDigitoVerificador(string clave)
-    {
-        // Algoritmo básico de dígito verificador (módulo 10)
-        int suma = 0;
-        for (int i = 0; i < clave.Length; i++)
-        {
-            int digito = int.Parse(clave[i].ToString());
-            suma += digito * ((i % 2) + 1);
-        }
-        int dv = (10 - (suma % 10)) % 10;
-        return dv;
     }
 
     #endregion

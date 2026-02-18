@@ -121,8 +121,8 @@ public class CotizacionesController : ControllerBase
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             cotizacion.UsuarioCreacionId = userId;
 
-            // Generate quotation number if not provided
-            if (string.IsNullOrEmpty(cotizacion.Numero))
+            // Generate quotation number if not provided or placeholder
+            if (string.IsNullOrEmpty(cotizacion.Numero) || cotizacion.Numero == "PENDIENTE")
             {
                 cotizacion.Numero = await GenerateQuotationNumberAsync(cotizacion.EmpresaId);
             }

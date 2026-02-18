@@ -35,6 +35,21 @@ public class CategoriaGastoRepository : ICategoriaGastoRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<CategoriaGasto>> GetByEmpresaAsync(Guid empresaId, bool includeInactive = false)
+    {
+        var query = _context.CategoriasGasto
+            .Where(c => c.EmpresaId == empresaId);
+
+        if (!includeInactive)
+        {
+            query = query.Where(c => c.Activa);
+        }
+
+        return await query
+            .OrderBy(c => c.Nombre)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<CategoriaGasto>> GetActivasAsync()
     {
         return await _context.CategoriasGasto
@@ -43,10 +58,24 @@ public class CategoriaGastoRepository : ICategoriaGastoRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<CategoriaGasto>> GetActivasByEmpresaAsync(Guid empresaId)
+    {
+        return await _context.CategoriasGasto
+            .Where(c => c.EmpresaId == empresaId && c.Activa)
+            .OrderBy(c => c.Nombre)
+            .ToListAsync();
+    }
+
     public async Task<CategoriaGasto?> GetByNombreAsync(string nombre)
     {
         return await _context.CategoriasGasto
             .FirstOrDefaultAsync(c => c.Nombre.ToLower() == nombre.ToLower());
+    }
+
+    public async Task<CategoriaGasto?> GetByNombreYEmpresaAsync(string nombre, Guid empresaId)
+    {
+        return await _context.CategoriasGasto
+            .FirstOrDefaultAsync(c => c.Nombre.ToLower() == nombre.ToLower() && c.EmpresaId == empresaId);
     }
 
     public async Task<CategoriaGasto> AddAsync(CategoriaGasto categoria)
@@ -70,5 +99,11 @@ public class CategoriaGastoRepository : ICategoriaGastoRepository
             categoria.Activa = false;
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<int> CountByEmpresaAsync(Guid empresaId)
+    {
+        return await _context.CategoriasGasto
+            .CountAsync(c => c.EmpresaId == empresaId);
     }
 }

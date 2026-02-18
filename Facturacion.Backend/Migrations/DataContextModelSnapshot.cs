@@ -2047,6 +2047,9 @@ namespace Facturacion.Backend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid>("EmpresaId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2054,8 +2057,9 @@ namespace Facturacion.Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Nombre")
-                        .IsUnique();
+                    b.HasIndex("EmpresaId", "Nombre")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CategoriaGasto_Empresa_Nombre");
 
                     b.ToTable("CategoriasGasto");
                 });
@@ -5935,12 +5939,20 @@ namespace Facturacion.Backend.Migrations
                     b.Property<int>("Canton")
                         .HasColumnType("int");
 
+                    b.Property<string>("CarpetaIMAP")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<byte[]>("CertificadoDigital")
                         .HasColumnType("varbinary(max)");
 
                     b.Property<string>("ClaveHacienda")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ClaveIMAP")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ClaveSMTP")
                         .HasMaxLength(100)
@@ -5959,6 +5971,9 @@ namespace Facturacion.Backend.Migrations
 
                     b.Property<DateTime?>("FechaModificacion")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("ImapEnableSsl")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -6000,6 +6015,9 @@ namespace Facturacion.Backend.Migrations
                     b.Property<int>("Provincia")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PuertoIMAP")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PuertoSMTP")
                         .HasColumnType("int");
 
@@ -6007,6 +6025,10 @@ namespace Facturacion.Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ServidorIMAP")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ServidorSMTP")
                         .HasMaxLength(100)
@@ -6039,6 +6061,10 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("UsuarioHacienda")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UsuarioIMAP")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -8862,6 +8888,11 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int>("Moneda")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -10706,9 +10737,7 @@ namespace Facturacion.Backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
+                        .HasDatabaseName("RoleNameIndex");
 
                     b.ToTable("AspNetRoles", (string)null);
 
@@ -10836,6 +10865,9 @@ namespace Facturacion.Backend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid?>("EmpresaId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("EsSistema")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -10854,11 +10886,13 @@ namespace Facturacion.Backend.Migrations
                     b.Property<string>("UsuarioCreacionId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.HasIndex("Nombre")
-                        .IsUnique()
-                        .HasFilter("[Nombre] IS NOT NULL");
+                    b.HasIndex("EmpresaId");
 
                     b.HasIndex("UsuarioCreacionId");
+
+                    b.HasIndex("Nombre", "EmpresaId")
+                        .IsUnique()
+                        .HasFilter("[Nombre] IS NOT NULL AND [EmpresaId] IS NOT NULL");
 
                     b.HasDiscriminator().HasValue("Rol");
                 });
@@ -11443,6 +11477,17 @@ namespace Facturacion.Backend.Migrations
                     b.Navigation("UsuarioEliminacion");
 
                     b.Navigation("UsuarioModificacion");
+                });
+
+            modelBuilder.Entity("Facturacion.Shared.Entities.CategoriaGasto", b =>
+                {
+                    b.HasOne("Facturacion.Shared.Entities.Empresa", "Empresa")
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empresa");
                 });
 
             modelBuilder.Entity("Facturacion.Shared.Entities.CentroCosto", b =>
@@ -14884,10 +14929,17 @@ namespace Facturacion.Backend.Migrations
 
             modelBuilder.Entity("Facturacion.Shared.Entities.Rol", b =>
                 {
+                    b.HasOne("Facturacion.Shared.Entities.Empresa", "Empresa")
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Facturacion.Shared.Entities.User", "UsuarioCreacion")
                         .WithMany()
                         .HasForeignKey("UsuarioCreacionId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Empresa");
 
                     b.Navigation("UsuarioCreacion");
                 });

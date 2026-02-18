@@ -15,6 +15,12 @@ public class LoginDto
 
     [Display(Name = "Empresa")]
     public Guid? EmpresaId { get; set; }
+
+    /// <summary>
+    /// Token de pre-autenticación generado por ValidateCredentials.
+    /// Evita re-hashear la contraseña en el login.
+    /// </summary>
+    public string? PreAuthToken { get; set; }
 }
 
 public class EmpresaLoginDto
@@ -30,4 +36,5 @@ public class ValidateCredentialsResponseDto
     public string? Message { get; set; }
     public List<EmpresaLoginDto> Empresas { get; set; } = new();
     public bool RequiresEmpresaSelection { get; set; }
+    public string? PreAuthToken { get; set; }
 }

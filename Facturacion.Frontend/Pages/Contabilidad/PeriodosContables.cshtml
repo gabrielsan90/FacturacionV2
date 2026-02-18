@@ -340,7 +340,9 @@
                 {
                     data: 'cerradoPor',
                     render: function(data) {
-                        return data || '<span class="text-muted">-</span>';
+                        if (!data) return '<span class="text-muted">-</span>';
+                        if (typeof data === 'object') return data.fullName || data.email || '-';
+                        return data;
                     }
                 },
                 {

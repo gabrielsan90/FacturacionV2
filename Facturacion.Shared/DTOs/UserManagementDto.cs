@@ -38,6 +38,9 @@ public class UserManagementDto
     [Display(Name = "Roles")]
     public List<string> Roles { get; set; } = new();
 
+    [Display(Name = "IDs de Roles")]
+    public List<string> RoleIds { get; set; } = new();
+
     [Display(Name = "Empresas")]
     public List<Guid> EmpresaIds { get; set; } = new();
 

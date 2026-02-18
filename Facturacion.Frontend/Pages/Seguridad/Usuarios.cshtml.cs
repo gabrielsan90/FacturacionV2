@@ -60,10 +60,11 @@ public class UsuariosModel : PageModel
 
                 if (doc.RootElement.TryGetProperty("result", out var resultElement))
                 {
-                    return new JsonResult(new { data = resultElement });
+                    var resultJson = resultElement.GetRawText();
+                    return new ContentResult { Content = $"{{\"data\":{resultJson}}}", ContentType = "application/json", StatusCode = 200 };
                 }
 
-                return new JsonResult(new { data = doc.RootElement });
+                return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
             }
 
             _logger.LogWarning("Failed to load usuarios. Status: {StatusCode}", response.StatusCode);
@@ -113,7 +114,7 @@ public class UsuariosModel : PageModel
         }
     }
 
-    // Handler to get all roles
+    // Handler to get roles (system + custom for current empresa)
     public async Task<IActionResult> OnGetRolesAsync()
     {
         try
@@ -127,7 +128,9 @@ public class UsuariosModel : PageModel
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync("/api/roles");
+            var empresaId = User.FindFirst("EmpresaId")?.Value;
+            var url = string.IsNullOrEmpty(empresaId) ? "/api/roles" : $"/api/roles?empresaId={empresaId}";
+            var response = await client.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
@@ -310,10 +313,13 @@ public class UsuariosModel : PageModel
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var json = JsonSerializer.Serialize(rolesData);
+            // Backend expects UpdateUserRolesDto: { roles: [...] }
+            var dto = new { roles = rolesData };
+            var json = JsonSerializer.Serialize(dto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/usuarios/{userId}/roles", content);
+            // Backend uses HttpPut, not HttpPost
+            var response = await client.PutAsync($"/api/usuarios/{userId}/roles", content);
 
             if (response.IsSuccessStatusCode)
             {
