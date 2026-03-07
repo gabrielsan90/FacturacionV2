@@ -141,7 +141,34 @@ public class ReporteDocumentosEmitidosModel : PageModel
             return new List<DocumentoItem>();
         }
 
-        var documentos = await response.Content.ReadFromJsonAsync<List<DocumentoItem>>(_jsonOptions);
+        // Read raw string and unwrap ActionResponse if needed
+        var content = await response.Content.ReadAsStringAsync();
+        string arrayJson;
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                arrayJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultProp) &&
+                     resultProp.ValueKind == JsonValueKind.Array)
+            {
+                arrayJson = resultProp.GetRawText();
+            }
+            else
+            {
+                _logger.LogWarning("Unexpected response format for documentos. ValueKind: {ValueKind}", doc.RootElement.ValueKind);
+                return new List<DocumentoItem>();
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse documentos response");
+            return new List<DocumentoItem>();
+        }
+
+        var documentos = JsonSerializer.Deserialize<List<DocumentoItem>>(arrayJson, _jsonOptions);
         return documentos ?? new List<DocumentoItem>();
     }
 

@@ -21,7 +21,11 @@ public class PlanCuentasModel : PageModel
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
-        _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
     }
 
     public void OnGet()
@@ -37,13 +41,17 @@ public class PlanCuentasModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/cuentascontables/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/cuentascontables/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var cuentas = JsonSerializer.Deserialize<List<CuentaContable>>(content, _jsonOptions);
-                return new JsonResult(cuentas);
+                return new ContentResult
+                {
+                    Content = content,
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             return BadRequest("Error al obtener las cuentas.");
@@ -85,11 +93,11 @@ public class PlanCuentasModel : PageModel
             HttpResponseMessage response;
             if (cuenta.Id == Guid.Empty)
             {
-                response = await client.PostAsync("api/cuentascontables", content);
+                response = await client.PostAsync("/api/cuentascontables", content);
             }
             else
             {
-                response = await client.PutAsync($"api/cuentascontables/{cuenta.Id}", content);
+                response = await client.PutAsync($"/api/cuentascontables/{cuenta.Id}", content);
             }
 
             if (response.IsSuccessStatusCode)
@@ -98,11 +106,14 @@ public class PlanCuentasModel : PageModel
             }
 
             var error = await response.Content.ReadAsStringAsync();
-            return BadRequest(error);
+            // Limpiar comillas JSON si el backend devolvió un string serializado
+            if (error.StartsWith("\"") && error.EndsWith("\""))
+                error = error[1..^1].Replace("\\\"", "\"");
+            return new ContentResult { Content = error, ContentType = "text/plain", StatusCode = 400 };
         }
         catch (Exception ex)
         {
-            return BadRequest($"Error: {ex.Message}");
+            return new ContentResult { Content = $"Error: {ex.Message}", ContentType = "text/plain", StatusCode = 400 };
         }
     }
 
@@ -112,7 +123,7 @@ public class PlanCuentasModel : PageModel
         {
             var client = CreateApiClient();
 
-            var response = await client.DeleteAsync($"api/cuentascontables/{id}");
+            var response = await client.DeleteAsync($"/api/cuentascontables/{id}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -251,7 +262,7 @@ public class PlanCuentasModel : PageModel
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
             // Obtener cuentas existentes para validar padres y detectar actualizaciones
-            var existingResponse = await client.GetAsync($"api/cuentascontables/empresa/{empresaId}");
+            var existingResponse = await client.GetAsync($"/api/cuentascontables/empresa/{empresaId}");
             var cuentasExistentes = new Dictionary<string, Guid>();
             if (existingResponse.IsSuccessStatusCode)
             {
@@ -339,11 +350,11 @@ public class PlanCuentasModel : PageModel
                         cuenta.Id = cuentasExistentes[codigo];
                         json = JsonSerializer.Serialize(cuenta, _jsonOptions);
                         contentBody = new StringContent(json, Encoding.UTF8, "application/json");
-                        response = await client.PutAsync($"api/cuentascontables/{cuenta.Id}", contentBody);
+                        response = await client.PutAsync($"/api/cuentascontables/{cuenta.Id}", contentBody);
                     }
                     else
                     {
-                        response = await client.PostAsync("api/cuentascontables", contentBody);
+                        response = await client.PostAsync("/api/cuentascontables", contentBody);
                     }
 
                     if (response.IsSuccessStatusCode)
@@ -402,7 +413,7 @@ public class PlanCuentasModel : PageModel
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
             // Verificar si ya existen cuentas
-            var existingResponse = await client.GetAsync($"api/cuentascontables/empresa/{empresaId}");
+            var existingResponse = await client.GetAsync($"/api/cuentascontables/empresa/{empresaId}");
             if (existingResponse.IsSuccessStatusCode)
             {
                 var content = await existingResponse.Content.ReadAsStringAsync();
@@ -431,7 +442,7 @@ public class PlanCuentasModel : PageModel
                 var json = JsonSerializer.Serialize(cuenta, _jsonOptions);
                 var contentBody = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync("api/cuentascontables", contentBody);
+                var response = await client.PostAsync("/api/cuentascontables", contentBody);
                 if (response.IsSuccessStatusCode)
                 {
                     var createdContent = await response.Content.ReadAsStringAsync();
@@ -476,8 +487,11 @@ public class PlanCuentasModel : PageModel
             new() { Codigo = "1.1.03.001", Nombre = "Inventario de Mercaderías", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.03", EmpresaId = empresaId },
             new() { Codigo = "1.1.03.002", Nombre = "Inventario de Materias Primas", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.03", EmpresaId = empresaId },
             new() { Codigo = "1.1.04", Nombre = "Impuestos por Cobrar", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = false, CodigoPadreTemp = "1.1", EmpresaId = empresaId },
-            new() { Codigo = "1.1.04.001", Nombre = "IVA Crédito Fiscal", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
-            new() { Codigo = "1.1.04.002", Nombre = "Retenciones de Renta", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
+            new() { Codigo = "1.1.04.001", Nombre = "IVA Crédito Fiscal 13%", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
+            new() { Codigo = "1.1.04.002", Nombre = "IVA Crédito Fiscal 4%", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
+            new() { Codigo = "1.1.04.003", Nombre = "IVA Crédito Fiscal 2%", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
+            new() { Codigo = "1.1.04.004", Nombre = "IVA Crédito Fiscal 1%", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
+            new() { Codigo = "1.1.04.005", Nombre = "Retenciones de Renta", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.1.04", EmpresaId = empresaId },
             new() { Codigo = "1.2", Nombre = "Activo No Circulante", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = false, CodigoPadreTemp = "1", EmpresaId = empresaId },
             new() { Codigo = "1.2.01", Nombre = "Propiedad, Planta y Equipo", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = false, CodigoPadreTemp = "1.2", EmpresaId = empresaId },
             new() { Codigo = "1.2.01.001", Nombre = "Terrenos", TipoCuenta = "ACT", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "1.2.01", EmpresaId = empresaId },
@@ -499,9 +513,12 @@ public class PlanCuentasModel : PageModel
             new() { Codigo = "2.1.01.002", Nombre = "Documentos por Pagar", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.01", EmpresaId = empresaId },
             new() { Codigo = "2.1.01.003", Nombre = "Anticipos de Clientes", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.01", EmpresaId = empresaId },
             new() { Codigo = "2.1.02", Nombre = "Impuestos por Pagar", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = false, CodigoPadreTemp = "2.1", EmpresaId = empresaId },
-            new() { Codigo = "2.1.02.001", Nombre = "IVA por Pagar", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
-            new() { Codigo = "2.1.02.002", Nombre = "Retención en la Fuente", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
-            new() { Codigo = "2.1.02.003", Nombre = "Impuesto sobre la Renta", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
+            new() { Codigo = "2.1.02.001", Nombre = "IVA por Pagar 13%", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
+            new() { Codigo = "2.1.02.002", Nombre = "IVA por Pagar 4%", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
+            new() { Codigo = "2.1.02.003", Nombre = "IVA por Pagar 2%", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
+            new() { Codigo = "2.1.02.004", Nombre = "IVA por Pagar 1%", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
+            new() { Codigo = "2.1.02.005", Nombre = "Retención en la Fuente", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
+            new() { Codigo = "2.1.02.006", Nombre = "Impuesto sobre la Renta", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.02", EmpresaId = empresaId },
             new() { Codigo = "2.1.03", Nombre = "Obligaciones Laborales", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = false, CodigoPadreTemp = "2.1", EmpresaId = empresaId },
             new() { Codigo = "2.1.03.001", Nombre = "Salarios por Pagar", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.03", EmpresaId = empresaId },
             new() { Codigo = "2.1.03.002", Nombre = "CCSS Patronal por Pagar", TipoCuenta = "PAS", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "2.1.03", EmpresaId = empresaId },
@@ -527,8 +544,12 @@ public class PlanCuentasModel : PageModel
             new() { Codigo = "4", Nombre = "INGRESOS", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = false, EmpresaId = empresaId },
             new() { Codigo = "4.1", Nombre = "Ingresos Operativos", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = false, CodigoPadreTemp = "4", EmpresaId = empresaId },
             new() { Codigo = "4.1.01", Nombre = "Ventas", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = false, CodigoPadreTemp = "4.1", EmpresaId = empresaId },
-            new() { Codigo = "4.1.01.001", Nombre = "Ventas de Mercaderías", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
-            new() { Codigo = "4.1.01.002", Nombre = "Ventas de Servicios", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
+            new() { Codigo = "4.1.01.001", Nombre = "Ventas Gravadas 13%", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
+            new() { Codigo = "4.1.01.002", Nombre = "Ventas Gravadas 4%", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
+            new() { Codigo = "4.1.01.003", Nombre = "Ventas Gravadas 2%", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
+            new() { Codigo = "4.1.01.004", Nombre = "Ventas Gravadas 1%", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
+            new() { Codigo = "4.1.01.005", Nombre = "Ventas Exentas", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
+            new() { Codigo = "4.1.01.006", Nombre = "Ventas Gravadas 8% (Transitorio)", TipoCuenta = "ING", Naturaleza = "A", AceptaMovimientos = true, CodigoPadreTemp = "4.1.01", EmpresaId = empresaId },
             new() { Codigo = "4.1.02", Nombre = "Devoluciones y Descuentos", TipoCuenta = "ING", Naturaleza = "D", AceptaMovimientos = false, CodigoPadreTemp = "4.1", EmpresaId = empresaId },
             new() { Codigo = "4.1.02.001", Nombre = "Devoluciones sobre Ventas", TipoCuenta = "ING", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "4.1.02", EmpresaId = empresaId },
             new() { Codigo = "4.1.02.002", Nombre = "Descuentos sobre Ventas", TipoCuenta = "ING", Naturaleza = "D", AceptaMovimientos = true, CodigoPadreTemp = "4.1.02", EmpresaId = empresaId },

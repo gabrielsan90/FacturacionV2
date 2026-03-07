@@ -167,6 +167,60 @@ public class ConfiguracionContableController : ControllerBase
     }
 
     /// <summary>
+    /// Crea o actualiza la configuración contable.
+    /// POST /api/configuracioncontable
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> PostAsync([FromBody] ConfiguracionContable configuracion)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!await TieneAccesoEmpresaAsync(configuracion.EmpresaId))
+            {
+                return Forbid();
+            }
+
+            // Check if config already exists for this empresa
+            var existente = await _context.ConfiguracionesContables
+                .FirstOrDefaultAsync(c => c.EmpresaId == configuracion.EmpresaId);
+
+            if (existente != null)
+            {
+                // Update existing - delegate to PUT logic
+                configuracion.Id = existente.Id;
+                configuracion.FechaCreacion = existente.FechaCreacion;
+                configuracion.CreadoPorId = existente.CreadoPorId;
+                configuracion.FechaModificacion = DateTime.Now;
+                configuracion.ModificadoPorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                _context.Entry(existente).CurrentValues.SetValues(configuracion);
+            }
+            else
+            {
+                // Create new
+                configuracion.Id = Guid.NewGuid();
+                configuracion.FechaCreacion = DateTime.Now;
+                configuracion.CreadoPorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                _context.ConfiguracionesContables.Add(configuracion);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(configuracion);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear/actualizar configuración contable");
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Inicializa la configuración contable para una empresa con valores por defecto de Costa Rica.
     /// POST /api/configuracioncontable/inicializar/{empresaId}
     /// </summary>

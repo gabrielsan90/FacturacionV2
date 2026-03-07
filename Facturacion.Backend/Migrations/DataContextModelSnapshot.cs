@@ -3284,10 +3284,6 @@ namespace Facturacion.Backend.Migrations
                     b.HasIndex("FechaVencimiento")
                         .HasDatabaseName("IX_Cotizacion_FechaVencimiento");
 
-                    b.HasIndex("Numero")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Cotizacion_Numero");
-
                     b.HasIndex("SucursalId");
 
                     b.HasIndex("TerminalId");
@@ -3300,6 +3296,11 @@ namespace Facturacion.Backend.Migrations
 
                     b.HasIndex("EmpresaId", "Estado")
                         .HasDatabaseName("IX_Cotizacion_Empresa_Estado");
+
+                    b.HasIndex("EmpresaId", "Numero")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Cotizacion_Empresa_Numero")
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Cotizaciones");
                 });
@@ -4472,7 +4473,6 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ActividadEconomica")
-                        .IsRequired()
                         .HasMaxLength(6)
                         .HasColumnType("nvarchar(6)");
 
@@ -4483,7 +4483,6 @@ namespace Facturacion.Backend.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Clave")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -4734,7 +4733,8 @@ namespace Facturacion.Backend.Migrations
 
                     b.HasIndex("Clave")
                         .IsUnique()
-                        .HasDatabaseName("IX_Documento_Clave");
+                        .HasDatabaseName("IX_Documento_Clave")
+                        .HasFilter("[Clave] IS NOT NULL");
 
                     b.HasIndex("ClienteId");
 
@@ -5619,8 +5619,8 @@ namespace Facturacion.Backend.Migrations
 
                     b.Property<string>("NumeroDocumentoReferenciado")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("RazonReferencia")
                         .IsRequired()
@@ -6025,6 +6025,11 @@ namespace Facturacion.Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("RequiereFacturacionElectronica")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("ServidorIMAP")
                         .HasMaxLength(100)
@@ -6587,6 +6592,12 @@ namespace Facturacion.Backend.Migrations
                         .HasPrecision(18, 5)
                         .HasColumnType("decimal(18,5)")
                         .HasDefaultValue(0m);
+
+                    b.Property<decimal>("MontoRetencionIVA")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoRetencionRenta")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("MontoSubtotal")
                         .HasPrecision(18, 5)
@@ -8252,6 +8263,194 @@ namespace Facturacion.Backend.Migrations
                     b.ToTable("OrdenesCompraDetalle");
                 });
 
+            modelBuilder.Entity("Facturacion.Shared.Entities.PedidoVenta", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ClienteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CondicionVenta")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<Guid?>("DocumentoGeneradoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmpresaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaAprobacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaEliminacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaVencimiento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MedioPago")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("Moneda")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("PlazoCreditoDias")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal?>("TipoCambio")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("TotalDescuentos")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("TotalImpuestos")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<string>("UsuarioAprobacionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UsuarioCreacionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UsuarioEliminacionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UsuarioModificacionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("DocumentoGeneradoId");
+
+                    b.HasIndex("EmpresaId")
+                        .HasDatabaseName("IX_PedidoVenta_EmpresaId");
+
+                    b.HasIndex("Fecha")
+                        .HasDatabaseName("IX_PedidoVenta_Fecha");
+
+                    b.HasIndex("UsuarioAprobacionId");
+
+                    b.HasIndex("UsuarioCreacionId");
+
+                    b.HasIndex("UsuarioEliminacionId");
+
+                    b.HasIndex("UsuarioModificacionId");
+
+                    b.HasIndex("EmpresaId", "Estado")
+                        .HasDatabaseName("IX_PedidoVenta_Empresa_Estado");
+
+                    b.HasIndex("EmpresaId", "Numero")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PedidoVenta_Empresa_Numero")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("PedidosVenta");
+                });
+
+            modelBuilder.Entity("Facturacion.Shared.Entities.PedidoVentaDetalle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Cantidad")
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<string>("CodigoTarifaIVA")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("MontoDescuento")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("MontoIVA")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("MontoTotal")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<int>("NumeroLinea")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PedidoVentaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PorcentajeDescuento")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<Guid?>("ProductoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("TarifaIVA")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.Property<decimal>("TotalLinea")
+                        .HasColumnType("decimal(18, 5)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PedidoVentaId")
+                        .HasDatabaseName("IX_PedidoVentaDetalle_PedidoVentaId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("PedidoVentaDetalles");
+                });
+
             modelBuilder.Entity("Facturacion.Shared.Entities.PeriodoContable", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9011,6 +9210,9 @@ namespace Facturacion.Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<bool>("EsRegimenSimplificado")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("FechaCreacion")
                         .ValueGeneratedOnAdd()
@@ -10579,6 +10781,9 @@ namespace Facturacion.Backend.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UltimaConexion")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
@@ -13828,6 +14033,78 @@ namespace Facturacion.Backend.Migrations
                     b.Navigation("Producto");
                 });
 
+            modelBuilder.Entity("Facturacion.Shared.Entities.PedidoVenta", b =>
+                {
+                    b.HasOne("Facturacion.Shared.Entities.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Facturacion.Shared.Entities.Documento", "DocumentoGenerado")
+                        .WithMany()
+                        .HasForeignKey("DocumentoGeneradoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Facturacion.Shared.Entities.Empresa", "Empresa")
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Facturacion.Shared.Entities.User", "UsuarioAprobacion")
+                        .WithMany()
+                        .HasForeignKey("UsuarioAprobacionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Facturacion.Shared.Entities.User", "UsuarioCreacion")
+                        .WithMany()
+                        .HasForeignKey("UsuarioCreacionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Facturacion.Shared.Entities.User", "UsuarioEliminacion")
+                        .WithMany()
+                        .HasForeignKey("UsuarioEliminacionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Facturacion.Shared.Entities.User", "UsuarioModificacion")
+                        .WithMany()
+                        .HasForeignKey("UsuarioModificacionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Cliente");
+
+                    b.Navigation("DocumentoGenerado");
+
+                    b.Navigation("Empresa");
+
+                    b.Navigation("UsuarioAprobacion");
+
+                    b.Navigation("UsuarioCreacion");
+
+                    b.Navigation("UsuarioEliminacion");
+
+                    b.Navigation("UsuarioModificacion");
+                });
+
+            modelBuilder.Entity("Facturacion.Shared.Entities.PedidoVentaDetalle", b =>
+                {
+                    b.HasOne("Facturacion.Shared.Entities.PedidoVenta", "PedidoVenta")
+                        .WithMany("Detalles")
+                        .HasForeignKey("PedidoVentaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Facturacion.Shared.Entities.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PedidoVenta");
+
+                    b.Navigation("Producto");
+                });
+
             modelBuilder.Entity("Facturacion.Shared.Entities.PeriodoContable", b =>
                 {
                     b.HasOne("Facturacion.Shared.Entities.User", "CerradoPor")
@@ -15195,6 +15472,11 @@ namespace Facturacion.Backend.Migrations
                     b.Navigation("Detalles");
 
                     b.Navigation("Recepciones");
+                });
+
+            modelBuilder.Entity("Facturacion.Shared.Entities.PedidoVenta", b =>
+                {
+                    b.Navigation("Detalles");
                 });
 
             modelBuilder.Entity("Facturacion.Shared.Entities.PeriodoContable", b =>

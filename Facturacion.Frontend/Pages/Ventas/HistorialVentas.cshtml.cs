@@ -69,14 +69,20 @@ public class HistorialVentasModel : PageModel
             var content = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(content);
 
-            // API returns ActionResponse<T> with result property
+            // API may return a plain array or an ActionResponse<T> wrapper
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
+            }
+
+            // If it's an object, check for ActionResponse<T> with result property
             if (doc.RootElement.TryGetProperty("result", out var resultElement))
             {
                 var resultJson = resultElement.GetRawText();
                 return new ContentResult { Content = $"{{\"data\":{resultJson}}}", ContentType = "application/json", StatusCode = 200 };
             }
 
-            return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
+            return new ContentResult { Content = $"{{\"data\":[]}}", ContentType = "application/json", StatusCode = 200 };
         }
 
         return new JsonResult(new { data = new List<object>() });

@@ -121,17 +121,24 @@ public class AjustesInventarioController : ControllerBase
         {
             _logger.LogInformation("Creating new inventory adjustment for company {EmpresaId}", ajuste.EmpresaId);
 
-            if (!ModelState.IsValid)
-            {
-                _logger.LogWarning("Invalid model state for inventory adjustment creation");
-                return BadRequest(ModelState);
-            }
-
             if (!await TieneAccesoEmpresaAsync(ajuste.EmpresaId))
             {
                 _logger.LogWarning("User {UserId} attempted to create inventory adjustment for company {EmpresaId} without permission",
                     User.FindFirstValue(ClaimTypes.NameIdentifier), ajuste.EmpresaId);
                 return Forbid();
+            }
+
+            // Generate Numero before validation ([ApiController] auto-validates [Required] fields)
+            if (string.IsNullOrWhiteSpace(ajuste.Numero) || ajuste.Numero == "AUTO")
+            {
+                ajuste.Numero = await GenerarNumeroAjusteAsync(ajuste.EmpresaId);
+            }
+
+            ModelState.Remove("Numero");
+            if (!TryValidateModel(ajuste))
+            {
+                _logger.LogWarning("Invalid model state for inventory adjustment creation");
+                return BadRequest(ModelState);
             }
 
             var action = await _repository.AddAsync(ajuste);
@@ -153,6 +160,78 @@ public class AjustesInventarioController : ControllerBase
             {
                 WasSuccess = false,
                 Message = "Error al crear el ajuste de inventario"
+            });
+        }
+    }
+
+    /// <summary>
+    /// Actualiza un ajuste de inventario existente (solo en estado Pendiente)
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> PutAsync(Guid id, [FromBody] AjusteInventario ajuste)
+    {
+        try
+        {
+            if (id != ajuste.Id)
+                return BadRequest("El ID de la URL no coincide con el ID del ajuste.");
+
+            _logger.LogInformation("Updating inventory adjustment {AjusteId}", id);
+
+            var existente = await _context.AjustesInventario
+                .Include(a => a.Detalles)
+                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
+
+            if (existente == null)
+            {
+                return NotFound(new ActionResponse<AjusteInventario> { WasSuccess = false, Message = "Ajuste no encontrado." });
+            }
+
+            if (!await TieneAccesoEmpresaAsync(existente.EmpresaId))
+            {
+                return Forbid();
+            }
+
+            if (existente.Estado != "PEN")
+            {
+                return BadRequest("Solo se pueden modificar ajustes en estado Pendiente.");
+            }
+
+            // Update scalar fields
+            existente.Fecha = ajuste.Fecha;
+            existente.BodegaId = ajuste.BodegaId;
+            existente.TipoAjuste = ajuste.TipoAjuste;
+            existente.Motivo = ajuste.Motivo;
+            existente.Observaciones = ajuste.Observaciones;
+            existente.UsuarioModificacionId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            existente.FechaModificacion = DateTime.UtcNow;
+
+            // Update details: remove old, add new
+            if (existente.Detalles != null)
+            {
+                _context.Set<AjusteInventarioDetalle>().RemoveRange(existente.Detalles);
+            }
+            if (ajuste.Detalles != null)
+            {
+                foreach (var detalle in ajuste.Detalles)
+                {
+                    detalle.AjusteInventarioId = id;
+                    if (detalle.Id == Guid.Empty) detalle.Id = Guid.NewGuid();
+                }
+                _context.Set<AjusteInventarioDetalle>().AddRange(ajuste.Detalles);
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully updated inventory adjustment {AjusteId}", id);
+            return Ok(new ActionResponse<AjusteInventario> { WasSuccess = true, Result = existente });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating inventory adjustment {AjusteId}", id);
+            return StatusCode(500, new ActionResponse<AjusteInventario>
+            {
+                WasSuccess = false,
+                Message = "Error al actualizar el ajuste de inventario"
             });
         }
     }
@@ -264,6 +343,29 @@ public class AjustesInventarioController : ControllerBase
     /// <summary>
     /// Verifica si el usuario actual tiene acceso a la empresa especificada (multi-tenant security)
     /// </summary>
+    private async Task<string> GenerarNumeroAjusteAsync(Guid empresaId)
+    {
+        var year = DateTime.Now.Year;
+        var month = DateTime.Now.Month;
+        var prefix = $"AI-{year:D4}-{month:D2}-";
+
+        var lastNumber = await _context.AjustesInventario
+            .IgnoreQueryFilters()
+            .Where(a => a.EmpresaId == empresaId && a.Numero != null && a.Numero.StartsWith(prefix))
+            .OrderByDescending(a => a.Numero)
+            .Select(a => a.Numero)
+            .FirstOrDefaultAsync();
+
+        int nextNumber = 1;
+        if (!string.IsNullOrEmpty(lastNumber) && lastNumber.Length > prefix.Length)
+        {
+            if (int.TryParse(lastNumber[prefix.Length..], out var parsed))
+                nextNumber = parsed + 1;
+        }
+
+        return $"{prefix}{nextNumber:D4}";
+    }
+
     private async Task<bool> TieneAccesoEmpresaAsync(Guid empresaId)
     {
         try

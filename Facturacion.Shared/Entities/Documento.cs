@@ -41,8 +41,7 @@ public class Documento
     [Display(Name = "Clave")]
     [MaxLength(50, ErrorMessage = "El campo {0} debe tener exactamente {1} caracteres.")]
     [MinLength(50, ErrorMessage = "El campo {0} debe tener exactamente {1} caracteres.")]
-    [Required(ErrorMessage = "El campo {0} es obligatorio.")]
-    public string Clave { get; set; } = null!;
+    public string? Clave { get; set; }
 
     /// <summary>
     /// Número consecutivo de 20 dígitos
@@ -95,8 +94,7 @@ public class Documento
     /// </summary>
     [Display(Name = "Actividad Económica Emisor")]
     [MaxLength(6, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
-    [Required(ErrorMessage = "El campo {0} es obligatorio.")]
-    public string ActividadEconomica { get; set; } = null!;
+    public string? ActividadEconomica { get; set; }
 
     // ========================================
     // FECHAS

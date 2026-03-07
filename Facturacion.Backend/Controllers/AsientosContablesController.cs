@@ -73,19 +73,20 @@ public class AsientosContablesController : ControllerBase
         public Guid Id { get; set; }
         public int Numero { get; set; }
         public DateTime Fecha { get; set; }
-        public string TipoAsiento { get; set; } = null!;
-        public string TipoAsientoDescripcion { get; set; } = null!;
-        public string Concepto { get; set; } = null!;
-        public string? Referencia { get; set; }
+        public string PeriodoNombre { get; set; } = "";
+        public string TipoAsiento { get; set; } = "";
+        public string TipoAsientoDescripcion { get; set; } = "";
+        public string Concepto { get; set; } = "";
+        public string Referencia { get; set; } = "";
         public decimal TotalDebe { get; set; }
         public decimal TotalHaber { get; set; }
-        public string Estado { get; set; } = null!;
-        public string EstadoDescripcion { get; set; } = null!;
+        public string Estado { get; set; } = "";
+        public string EstadoDescripcion { get; set; } = "";
         public bool EstaBalanceado { get; set; }
-        public string? ModuloOrigen { get; set; }
-        public string ModuloOrigenDescripcion { get; set; } = null!;
+        public string ModuloOrigen { get; set; } = "";
+        public string ModuloOrigenDescripcion { get; set; } = "";
         public DateTime FechaCreacion { get; set; }
-        public string? CreadoPorNombre { get; set; }
+        public string CreadoPorNombre { get; set; } = "";
     }
 
     /// <summary>
@@ -190,19 +191,20 @@ public class AsientosContablesController : ControllerBase
                 Id = a.Id,
                 Numero = a.Numero,
                 Fecha = a.Fecha,
+                PeriodoNombre = a.PeriodoContable?.PeriodoNombre ?? "",
                 TipoAsiento = a.TipoAsiento,
                 TipoAsientoDescripcion = a.TipoAsientoDescripcion,
                 Concepto = a.Concepto,
-                Referencia = a.Referencia,
+                Referencia = a.Referencia ?? "",
                 TotalDebe = a.TotalDebe,
                 TotalHaber = a.TotalHaber,
                 Estado = a.Estado,
                 EstadoDescripcion = a.EstadoDescripcion,
                 EstaBalanceado = a.EstaBalanceado,
-                ModuloOrigen = a.ModuloOrigen,
+                ModuloOrigen = a.ModuloOrigen ?? "",
                 ModuloOrigenDescripcion = a.ModuloOrigenDescripcion,
                 FechaCreacion = a.FechaCreacion,
-                CreadoPorNombre = a.CreadoPor?.Email
+                CreadoPorNombre = a.CreadoPor?.Email ?? ""
             }).ToList();
 
             return Ok(new ActionResponse<IEnumerable<AsientoListDTO>>

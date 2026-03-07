@@ -15,14 +15,14 @@ public class RecibosPagoModel : PageModel
     private readonly ILogger<RecibosPagoModel> _logger;
 
     public Guid EmpresaId { get; set; }
-    public Guid TerminalId { get; set; }
 
     public RecibosPagoModel(
         IHttpClientFactory httpClientFactory,
         ILogger<RecibosPagoModel> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _logger = logger;        _jsonOptions = new JsonSerializerOptions
+        _logger = logger;
+        _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
@@ -31,18 +31,11 @@ public class RecibosPagoModel : PageModel
 
     public void OnGet()
     {
-        // Get empresa and terminal from user claims or session
         var empresaIdClaim = User.FindFirst("EmpresaId")?.Value;
-        var terminalIdClaim = User.FindFirst("TerminalId")?.Value;
 
         if (!string.IsNullOrEmpty(empresaIdClaim) && Guid.TryParse(empresaIdClaim, out var empresaId))
         {
             EmpresaId = empresaId;
-        }
-
-        if (!string.IsNullOrEmpty(terminalIdClaim) && Guid.TryParse(terminalIdClaim, out var terminalId))
-        {
-            TerminalId = terminalId;
         }
 
         _logger.LogInformation("RecibosPago page loaded for empresa {EmpresaId}", EmpresaId);
@@ -318,20 +311,7 @@ public class RecibosPagoModel : PageModel
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-
-                return new JsonResult(new ResultadoREP
-                {
-                    Exitoso = false,
-                    Mensaje = "Datos inválidos",
-                    Errores = errors
-                });
-            }
+            // No validar ModelState aquí: la validación real la hace el API backend.
 
             var client = _httpClientFactory.CreateClient("FacturacionApi");
             var token = User.FindFirst("Token")?.Value;
@@ -441,6 +421,115 @@ public class RecibosPagoModel : PageModel
     }
 
     /// <summary>
+    /// Handler para generar un REP multi-factura
+    /// </summary>
+    public async Task<IActionResult> OnPostGenerarREPMultiAsync(
+        [FromBody] JsonElement dto,
+        Guid empresaId,
+        Guid terminalId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var json = dto.GetRawText();
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var url = $"/api/recibospago/generar-multi?empresaId={empresaId}&terminalId={terminalId}";
+
+            _logger.LogInformation("Generating multi-document REP for empresa {EmpresaId}", empresaId);
+
+            var response = await client.PostAsync(url, content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            return new ContentResult
+            {
+                Content = responseContent,
+                ContentType = "application/json",
+                StatusCode = (int)response.StatusCode
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating multi-document REP");
+            return new JsonResult(new { exitoso = false, mensaje = "Error interno del servidor", errores = new[] { ex.Message } });
+        }
+    }
+
+    /// <summary>
+    /// Handler para obtener sucursales de la empresa
+    /// </summary>
+    public async Task<IActionResult> OnGetSucursalesAsync(string empresaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/Sucursales/empresa/{empresaId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
+                return new JsonResult(data ?? new List<object>());
+            }
+
+            _logger.LogWarning("Failed to load sucursales. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading sucursales");
+            return new JsonResult(new List<object>());
+        }
+    }
+
+    /// <summary>
+    /// Handler para obtener terminales de la empresa
+    /// </summary>
+    public async Task<IActionResult> OnGetTerminalesAsync(string empresaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/Terminales/empresa/{empresaId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
+                return new JsonResult(data ?? new List<object>());
+            }
+
+            _logger.LogWarning("Failed to load terminales. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading terminales");
+            return new JsonResult(new List<object>());
+        }
+    }
+
+    /// <summary>
     /// Helper method to get EmpresaId from claims or session
     /// </summary>
     private Guid GetEmpresaId()
@@ -460,29 +549,6 @@ public class RecibosPagoModel : PageModel
         }
 
         _logger.LogWarning("EmpresaId not found in claims or session");
-        return Guid.Empty;
-    }
-
-    /// <summary>
-    /// Helper method to get TerminalId from claims or session
-    /// </summary>
-    private Guid GetTerminalId()
-    {
-        var terminalIdClaim = User.FindFirst("TerminalId")?.Value;
-
-        if (!string.IsNullOrEmpty(terminalIdClaim) && Guid.TryParse(terminalIdClaim, out var terminalId))
-        {
-            return terminalId;
-        }
-
-        // Fallback: try to get from session or default
-        if (HttpContext.Session.TryGetValue("TerminalId", out var sessionBytes))
-        {
-            var sessionId = new Guid(sessionBytes);
-            return sessionId;
-        }
-
-        _logger.LogWarning("TerminalId not found in claims or session");
         return Guid.Empty;
     }
 }

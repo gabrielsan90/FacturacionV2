@@ -336,6 +336,40 @@ public class DocumentosRecibidosModel : PageModel
     }
 
     /// <summary>
+    /// Obtiene documentos pendientes de MensajeReceptor con alertas de vencimiento
+    /// </summary>
+    public async Task<IActionResult> OnGetPendientesMRAsync()
+    {
+        try
+        {
+            var empresaId = GetEmpresaId();
+            if (string.IsNullOrEmpty(empresaId))
+                return new JsonResult(new { success = false, data = Array.Empty<object>() });
+
+            var client = GetAuthenticatedClient();
+            var response = await client.GetAsync($"/api/MensajesReceptor/pendientes/{empresaId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
+            }
+
+            return new JsonResult(new { success = false, data = Array.Empty<object>() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en OnGetPendientesMRAsync");
+            return new JsonResult(new { success = false, data = Array.Empty<object>() });
+        }
+    }
+
+    /// <summary>
     /// Lee correos IMAP y procesa XMLs adjuntos
     /// </summary>
     public async Task<IActionResult> OnPostLeerCorreosAsync()

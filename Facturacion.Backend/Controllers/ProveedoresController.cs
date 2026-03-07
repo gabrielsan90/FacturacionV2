@@ -131,7 +131,8 @@ public class ProveedoresController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear proveedor para empresa {EmpresaId}", proveedor.EmpresaId);
-            return StatusCode(500, "Error interno al crear proveedor.");
+            var detalle = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al crear proveedor: {detalle}");
         }
     }
 
@@ -197,7 +198,8 @@ public class ProveedoresController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar proveedor {ProveedorId}", id);
-            return StatusCode(500, "Error interno al actualizar proveedor.");
+            var detalle = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al actualizar proveedor: {detalle}");
         }
     }
 

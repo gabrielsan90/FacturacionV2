@@ -192,7 +192,7 @@
                                     <th>Cliente/Receptor</th>
                                     <th>Fecha Emisión</th>
                                     <th>Fecha Creación</th>
-                                    <th>Total Venta</th>
+                                    <th>Total</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -619,6 +619,7 @@
         let table;
         let sucursales = [];
         let terminales = [];
+        let empresaRequiereFE = true; // default: empresa requires facturacion electronica
 
         $(document).ready(function () {
             // Initialize date filters to last 30 days
@@ -626,6 +627,18 @@
             const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
             $('#filtroFechaInicio').val(thirtyDaysAgo.toISOString().split('T')[0]);
             $('#filtroFechaFin').val(today.toISOString().split('T')[0]);
+
+            // Check if empresa requires facturacion electronica
+            if (empresaId) {
+                $.ajax({
+                    url: `?handler=EmpresaRequiereFE&empresaId=${empresaId}`,
+                    type: 'GET',
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                    success: function (data) {
+                        empresaRequiereFE = data.requiereFacturacionElectronica !== false;
+                    }
+                });
+            }
 
             loadDataTable();
             loadSucursales();
@@ -784,7 +797,8 @@
                     {
                         data: 'clave',
                         render: function (data) {
-                            if (!data || data.length < 20) return data;
+                            if (!data) return '<span class="text-muted">N/A</span>';
+                            if (data.length < 20) return data;
                             return data.substring(0, 10) + '...' + data.substring(data.length - 10);
                         }
                     },
@@ -818,8 +832,11 @@
                     },
                     {
                         data: 'totalVenta',
-                        render: function (data) {
-                            return '₡' + parseFloat(data).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                        render: function (data, type, row) {
+                            var total = parseFloat(data || 0) + parseFloat(row.totalImpuestos || 0) + parseFloat(row.totalOtrosCargos || 0);
+                            var m = (row.moneda || '').toString();
+                            var simbolo = (m === 'USD' || m === '2') ? '$' : (m === 'EUR' || m === '3') ? '€' : '₡';
+                            return simbolo + total.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
                         }
                     },
                     {
@@ -879,11 +896,19 @@
                             `;
 
                             if (isPendienteOrBorrador) {
-                                buttons += `
-                                    <button class="btn btn-sm btn-success" onclick="sendToHacienda('${row.id}')" title="Enviar a Hacienda">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                `;
+                                if (empresaRequiereFE) {
+                                    buttons += `
+                                        <button class="btn btn-sm btn-success" onclick="sendToHacienda('${row.id}')" title="Enviar a Hacienda">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    `;
+                                } else if (isBorrador) {
+                                    buttons += `
+                                        <button class="btn btn-sm btn-success" onclick="finalizarDocumento('${row.id}')" title="Finalizar documento">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    `;
+                                }
                             }
 
                             // Reintentar envío (solo para documentos con error)
@@ -1297,6 +1322,41 @@
                         },
                         error: function (xhr) {
                             const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al enviar el documento.';
+                            Swal.fire('Error', message, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        function finalizarDocumento(id) {
+            Swal.fire({
+                title: '¿Finalizar documento?',
+                text: 'El documento será marcado como Aceptado (sin envío a Hacienda).',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, finalizar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `?handler=Finalizar&id=${id}`,
+                        type: 'POST',
+                        headers: {
+                            "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                Swal.fire('Finalizado', response.message, 'success');
+                                table.ajax.reload();
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Ocurrió un error al finalizar el documento.';
                             Swal.fire('Error', message, 'error');
                         }
                     });

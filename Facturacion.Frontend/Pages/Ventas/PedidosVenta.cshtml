@@ -2,7 +2,7 @@
 @model Facturacion.Frontend.Pages.Ventas.PedidosVentaModel
 @{
     ViewData["Title"] = "Pedidos de Venta";
-    ViewData["Breadcrumb"] = "Ventas > Pedidos de Venta";
+    ViewData["Breadcrumb"] = "Pedidos de Venta";
 }
 
 @Html.AntiForgeryToken()
@@ -113,9 +113,48 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="Pedido_Observaciones" rows="2"></textarea>
+                        <div class="col-md-4">
+                            <label class="form-label">Condici&oacute;n Venta <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Pedido_CondicionVenta" required>
+                                <option value="01" selected>01 - Contado</option>
+                                <option value="02">02 - Cr&eacute;dito</option>
+                                <option value="03">03 - Consignaci&oacute;n</option>
+                                <option value="04">04 - Apartado</option>
+                                <option value="05">05 - Arrendamiento con opci&oacute;n de compra</option>
+                                <option value="06">06 - Arrendamiento en funci&oacute;n financiera</option>
+                                <option value="99">99 - Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Medio Pago <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Pedido_MedioPago" required>
+                                <option value="01" selected>01 - Efectivo</option>
+                                <option value="02">02 - Tarjeta</option>
+                                <option value="03">03 - Cheque</option>
+                                <option value="04">04 - Transferencia / dep&oacute;sito bancario</option>
+                                <option value="05">05 - Recaudado por terceros</option>
+                                <option value="06">06 - SINPE M&oacute;vil</option>
+                                <option value="99">99 - Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="divPlazoCreditoDias" style="display: none;">
+                            <label class="form-label">Plazo Cr&eacute;dito (d&iacute;as)</label>
+                            <input type="number" class="form-control" id="Pedido_PlazoCreditoDias" min="1" placeholder="30" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Moneda <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Pedido_Moneda" required>
+                                <option value="CRC" selected>CRC - Col&oacute;n</option>
+                                <option value="USD">USD - D&oacute;lar</option>
+                                <option value="EUR">EUR - Euro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3" id="divTipoCambio" style="display: none;">
+                            <label class="form-label">Tipo de Cambio <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Pedido_TipoCambio" step="0.01" min="0.01" value="1.00" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Estado</label>
@@ -126,10 +165,8 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Moneda</label>
-                            <select class="form-select" id="Pedido_MonedaId">
-                                <option value="">Colones (CRC)</option>
-                            </select>
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="Pedido_Observaciones" rows="1"></textarea>
                         </div>
                     </div>
 
@@ -146,17 +183,18 @@
                         <table class="table table-sm" id="tableLineas">
                             <thead>
                                 <tr>
-                                    <th style="width: 35%;">Producto</th>
-                                    <th style="width: 15%;">Cantidad</th>
-                                    <th style="width: 20%;">Precio Unit.</th>
-                                    <th style="width: 10%;">Descuento %</th>
-                                    <th style="width: 15%;">Total</th>
-                                    <th style="width: 5%;"></th>
+                                    <th style="width: 28%;">Producto</th>
+                                    <th style="width: 10%;">Cantidad</th>
+                                    <th style="width: 13%;">Precio Unit.</th>
+                                    <th style="width: 10%;">Desc %</th>
+                                    <th style="width: 14%;">IVA</th>
+                                    <th style="width: 13%;">Total</th>
+                                    <th style="width: 12%;"></th>
                                 </tr>
                             </thead>
                             <tbody id="lineasContainer">
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted">
+                                    <td colspan="7" class="text-center text-muted">
                                         <i>No hay líneas agregadas. Haga clic en "Agregar Línea"</i>
                                     </td>
                                 </tr>
@@ -170,19 +208,19 @@
                         <div class="col-md-4">
                             <div class="d-flex justify-content-between mb-2">
                                 <strong>Subtotal:</strong>
-                                <span id="subtotalDisplay">₡0.00</span>
+                                <span id="subtotalDisplay">&#x20A1;0.00</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <strong>Descuentos:</strong>
-                                <span id="descuentosDisplay">₡0.00</span>
+                                <span id="descuentosDisplay">&#x20A1;0.00</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>IVA (13%):</strong>
-                                <span id="ivaDisplay">₡0.00</span>
+                                <strong>Impuestos:</strong>
+                                <span id="ivaDisplay">&#x20A1;0.00</span>
                             </div>
                             <div class="d-flex justify-content-between border-top pt-2">
                                 <strong class="fs-5">Total:</strong>
-                                <strong class="fs-5 text-primary" id="totalDisplay">₡0.00</strong>
+                                <strong class="fs-5 text-primary" id="totalDisplay">&#x20A1;0.00</strong>
                             </div>
                         </div>
                     </div>
@@ -213,12 +251,40 @@
         loadProductos();
         setupFormSubmit();
         setupEstadoFilter();
+        setupHeaderFieldHandlers();
         initializeDate();
     });
 
+    function formatLocalDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     function initializeDate() {
-        const today = new Date().toISOString().split('T')[0];
-        $('#Pedido_Fecha').val(today);
+        $('#Pedido_Fecha').val(formatLocalDate(new Date()));
+    }
+
+    function simboloMoneda() {
+        const m = $('#Pedido_Moneda').val();
+        return m === 'USD' ? '$' : m === 'EUR' ? '€' : '₡';
+    }
+
+    function setupHeaderFieldHandlers() {
+        $('#Pedido_CondicionVenta').on('change', function() {
+            const isCredito = $(this).val() === '02';
+            $('#divPlazoCreditoDias').toggle(isCredito);
+            if (!isCredito) $('#Pedido_PlazoCreditoDias').val('');
+        });
+
+        $('#Pedido_Moneda').on('change', function() {
+            const moneda = $(this).val();
+            const isCRC = moneda === 'CRC';
+            $('#divTipoCambio').toggle(!isCRC);
+            if (isCRC) $('#Pedido_TipoCambio').val('1.00');
+            updateTotals();
+        });
     }
 
     function setupEstadoFilter() {
@@ -274,7 +340,7 @@
                 {
                     data: 'fecha',
                     render: function(data) {
-                        return data ? new Date(data).toLocaleDateString('es-CR') : '-';
+                        return data ? new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-';
                     }
                 },
                 {
@@ -292,8 +358,9 @@
                 {
                     data: 'total',
                     render: function(data, type, row) {
-                        const symbol = row.moneda === 'USD' ? '$' : '₡';
-                        return symbol + parseFloat(data || 0).toFixed(2);
+                        var m = (row.moneda || '').toString();
+                        var sm = (m === 'USD' || m === '2') ? '$' : (m === 'EUR' || m === '3') ? '€' : '₡';
+                        return sm + parseFloat(data || 0).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
                 },
                 {
@@ -316,6 +383,12 @@
                         let actions = `
                             <button class="btn btn-sm btn-info" onclick="view('${data}')" title="Ver">
                                 <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="verPDF('${data}')" title="Ver PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="descargarPDF('${data}')" title="Descargar PDF">
+                                <i class="fas fa-download"></i>
                             </button>
                             <button class="btn btn-sm btn-primary" onclick="edit('${data}')" title="Editar">
                                 <i class="fas fa-edit"></i>
@@ -394,12 +467,46 @@
         $('#formPedido').removeClass('was-validated');
         $('#Pedido_Id').val('00000000-0000-0000-0000-000000000000');
         $('#Pedido_Estado').val('BORRADOR');
-        $('#lineasContainer').html('<tr><td colspan="6" class="text-center text-muted"><i>No hay líneas agregadas. Haga clic en "Agregar Línea"</i></td></tr>');
+        $('#lineasContainer').html('<tr><td colspan="7" class="text-center text-muted"><i>No hay líneas agregadas. Haga clic en "Agregar Línea"</i></td></tr>');
         lineCounter = 0;
+
+        // Reset header fields
+        $('#Pedido_CondicionVenta').val('01');
+        $('#Pedido_MedioPago').val('01');
+        $('#Pedido_Moneda').val('CRC').trigger('change');
+        $('#Pedido_TipoCambio').val('1.00');
+        $('#Pedido_PlazoCreditoDias').val('');
+        $('#divPlazoCreditoDias').hide();
+        $('#divTipoCambio').hide();
+
         updateTotals();
         initializeDate();
         $('#modalTitle').text('Nuevo Pedido de Venta');
         $('#modalPedido').modal('show');
+    }
+
+    function verPDF(id) {
+        const pdfUrl = `?handler=Pdf&id=${id}&download=false`;
+        const newWindow = window.open(pdfUrl, '_blank');
+        if (!newWindow) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Ventana bloqueada',
+                text: 'El navegador bloqueó la ventana emergente. Habilite ventanas emergentes para este sitio.',
+                confirmButtonText: 'Entendido'
+            });
+        }
+    }
+
+    function descargarPDF(id) {
+        Swal.fire({
+            title: 'Generando PDF...',
+            text: 'Por favor espere mientras se genera el pedido.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        window.location.href = `?handler=Pdf&id=${id}&download=true`;
+        setTimeout(() => Swal.close(), 2000);
     }
 
     function view(id) {
@@ -421,9 +528,14 @@
                     $('#Pedido_ClienteId').val(data.clienteId);
                     $('#Pedido_Fecha').val(data.fecha ? data.fecha.split('T')[0] : '');
                     $('#Pedido_FechaVencimiento').val(data.fechaVencimiento ? data.fechaVencimiento.split('T')[0] : '');
+                    $('#Pedido_CondicionVenta').val(data.condicionVenta || '01');
+                    $('#Pedido_MedioPago').val(data.medioPago || '01');
+                    $('#Pedido_Moneda').val(data.moneda || 'CRC').trigger('change');
+                    $('#Pedido_TipoCambio').val(data.tipoCambio || 1);
+                    $('#Pedido_PlazoCreditoDias').val(data.plazoCreditoDias || '');
+                    $('#Pedido_CondicionVenta').trigger('change');
                     $('#Pedido_Observaciones').val(data.observaciones || '');
                     $('#Pedido_Estado').val(data.estado || 'BORRADOR');
-                    $('#Pedido_MonedaId').val(data.monedaId || '');
 
                     // Load line items if available
                     $('#lineasContainer').empty();
@@ -434,7 +546,7 @@
                             addLineItem(detalle);
                         });
                     } else {
-                        $('#lineasContainer').html('<tr><td colspan="6" class="text-center text-muted"><i>No hay líneas agregadas</i></td></tr>');
+                        $('#lineasContainer').html('<tr><td colspan="7" class="text-center text-muted"><i>No hay líneas agregadas</i></td></tr>');
                     }
 
                     updateTotals();
@@ -458,34 +570,45 @@
 
         lineCounter++;
         const lineId = 'line_' + lineCounter;
+        const ivaCode = detalle ? (detalle.codigoTarifaIVA || '08') : '08';
 
         let productoOptions = '<option value="">Seleccione producto...</option>';
         productos.forEach(p => {
             const selected = detalle && p.id === detalle.productoId ? 'selected' : '';
-            productoOptions += `<option value="${p.id}" data-precio="${p.precioVenta || 0}" ${selected}>${p.nombre}</option>`;
+            productoOptions += `<option value="${p.id}" data-precio="${p.precioVenta || 0}" data-iva="${p.codigoTarifaIVA || '08'}" data-tarifa="${p.tarifaIVA != null ? p.tarifaIVA : 13}" ${selected}>${p.nombre}</option>`;
         });
 
         const row = `
             <tr id="${lineId}">
                 <td>
-                    <select class="form-select form-select-sm line-producto" onchange="updateLineTotal('${lineId}')" required>
+                    <select class="form-select form-select-sm line-producto" onchange="onProductoChange('${lineId}')" required>
                         ${productoOptions}
                     </select>
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm line-cantidad" value="${detalle ? detalle.cantidad : 1}"
-                           min="0.001" step="0.001" onchange="updateLineTotal('${lineId}')" required />
+                           min="0.001" step="0.001" oninput="updateLineTotal('${lineId}')" required />
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm line-precio" value="${detalle ? detalle.precioUnitario : 0}"
-                           min="0" step="0.01" onchange="updateLineTotal('${lineId}')" required />
+                           min="0" step="0.01" oninput="updateLineTotal('${lineId}')" required />
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm line-descuento" value="${detalle ? detalle.porcentajeDescuento : 0}"
-                           min="0" max="100" step="0.01" onchange="updateLineTotal('${lineId}')" />
+                           min="0" max="100" step="0.01" oninput="updateLineTotal('${lineId}')" />
                 </td>
                 <td>
-                    <span class="line-total fw-bold">₡0.00</span>
+                    <select class="form-select form-select-sm line-iva" onchange="updateLineTotal('${lineId}')">
+                        <option value="01" data-tarifa="0" ${ivaCode === '01' ? 'selected' : ''}>No sujeto</option>
+                        <option value="02" data-tarifa="0" ${ivaCode === '02' ? 'selected' : ''}>Exento</option>
+                        <option value="03" data-tarifa="1" ${ivaCode === '03' ? 'selected' : ''}>1%</option>
+                        <option value="04" data-tarifa="2" ${ivaCode === '04' ? 'selected' : ''}>2%</option>
+                        <option value="05" data-tarifa="4" ${ivaCode === '05' ? 'selected' : ''}>4%</option>
+                        <option value="08" data-tarifa="13" ${ivaCode === '08' || !ivaCode ? 'selected' : ''}>13%</option>
+                    </select>
+                </td>
+                <td>
+                    <span class="line-total fw-bold">${simboloMoneda()}0.00</span>
                 </td>
                 <td>
                     <button type="button" class="btn btn-sm btn-danger" onclick="removeLine('${lineId}')">
@@ -499,10 +622,22 @@
         updateLineTotal(lineId);
     }
 
+    function onProductoChange(lineId) {
+        const row = $('#' + lineId);
+        const sel = row.find('.line-producto option:selected');
+        const precio = sel.data('precio') || 0;
+        row.find('.line-precio').val(precio);
+        const ivaCode = sel.data('iva') || '08';
+        if (ivaCode) {
+            row.find('.line-iva').val(ivaCode);
+        }
+        updateLineTotal(lineId);
+    }
+
     function removeLine(lineId) {
         $('#' + lineId).remove();
         if ($('#lineasContainer tr').length === 0) {
-            $('#lineasContainer').html('<tr><td colspan="6" class="text-center text-muted"><i>No hay líneas agregadas</i></td></tr>');
+            $('#lineasContainer').html('<tr><td colspan="7" class="text-center text-muted"><i>No hay líneas agregadas</i></td></tr>');
         }
         updateTotals();
     }
@@ -512,51 +647,82 @@
         const cantidad = parseFloat(row.find('.line-cantidad').val()) || 0;
         const precio = parseFloat(row.find('.line-precio').val()) || 0;
         const descuentoPct = parseFloat(row.find('.line-descuento').val()) || 0;
+        const tarifaIVA = parseFloat(row.find('.line-iva option:selected').data('tarifa')) || 0;
 
         const subtotal = cantidad * precio;
         const descuento = subtotal * (descuentoPct / 100);
-        const total = subtotal - descuento;
+        const neto = subtotal - descuento;
+        const montoIVA = neto * (tarifaIVA / 100);
+        const total = neto + montoIVA;
 
-        row.find('.line-total').text('₡' + total.toFixed(2));
+        row.find('.line-total').text(simboloMoneda() + total.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         updateTotals();
     }
 
     function updateTotals() {
         let subtotal = 0;
         let descuentos = 0;
+        let impuestos = 0;
 
         $('#lineasContainer tr').each(function() {
             const cantidad = parseFloat($(this).find('.line-cantidad').val()) || 0;
             const precio = parseFloat($(this).find('.line-precio').val()) || 0;
             const descuentoPct = parseFloat($(this).find('.line-descuento').val()) || 0;
+            const tarifaIVA = parseFloat($(this).find('.line-iva option:selected').data('tarifa')) || 0;
 
             const lineSubtotal = cantidad * precio;
             const lineDescuento = lineSubtotal * (descuentoPct / 100);
+            const lineNeto = lineSubtotal - lineDescuento;
+            const lineIVA = lineNeto * (tarifaIVA / 100);
 
             subtotal += lineSubtotal;
             descuentos += lineDescuento;
+            impuestos += lineIVA;
         });
 
-        const baseImponible = subtotal - descuentos;
-        const iva = baseImponible * 0.13;
-        const total = baseImponible + iva;
+        const total = subtotal - descuentos + impuestos;
+        const sm = simboloMoneda();
 
-        $('#subtotalDisplay').text('₡' + subtotal.toFixed(2));
-        $('#descuentosDisplay').text('₡' + descuentos.toFixed(2));
-        $('#ivaDisplay').text('₡' + iva.toFixed(2));
-        $('#totalDisplay').text('₡' + total.toFixed(2));
+        $('#subtotalDisplay').text(sm + subtotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#descuentosDisplay').text(sm + descuentos.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#ivaDisplay').text(sm + impuestos.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#totalDisplay').text(sm + total.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
     }
 
     function save() {
         const lineas = [];
+        let lineaNum = 0;
         $('#lineasContainer tr').each(function() {
             const productoId = $(this).find('.line-producto').val();
             if (productoId) {
+                lineaNum++;
+                const productoNombre = $(this).find('.line-producto option:selected').text() || 'Producto';
+                const cantidad = parseFloat($(this).find('.line-cantidad').val()) || 0;
+                const precio = parseFloat($(this).find('.line-precio').val()) || 0;
+                const descuentoPct = parseFloat($(this).find('.line-descuento').val()) || 0;
+                const codigoTarifaIVA = $(this).find('.line-iva').val() || '08';
+                const tarifaIVA = parseFloat($(this).find('.line-iva option:selected').data('tarifa')) || 0;
+
+                const montoTotal = cantidad * precio;
+                const montoDescuento = montoTotal * (descuentoPct / 100);
+                const subTotal = montoTotal - montoDescuento;
+                const montoIVA = subTotal * (tarifaIVA / 100);
+                const totalLinea = subTotal + montoIVA;
+
                 lineas.push({
                     productoId: productoId,
-                    cantidad: parseFloat($(this).find('.line-cantidad').val()) || 0,
-                    precioUnitario: parseFloat($(this).find('.line-precio').val()) || 0,
-                    porcentajeDescuento: parseFloat($(this).find('.line-descuento').val()) || 0
+                    descripcion: productoNombre.trim(),
+                    numeroLinea: lineaNum,
+                    cantidad: cantidad,
+                    precioUnitario: precio,
+                    montoTotal: montoTotal,
+                    montoDescuento: montoDescuento,
+                    porcentajeDescuento: descuentoPct,
+                    subTotal: subTotal,
+                    codigoTarifaIVA: codigoTarifaIVA,
+                    tarifaIVA: tarifaIVA,
+                    montoIVA: montoIVA,
+                    totalLinea: totalLinea
                 });
             }
         });
@@ -566,15 +732,32 @@
             return;
         }
 
+        // Calculate totals
+        let subtotal = 0, descuentoTotal = 0, impuestosTotal = 0;
+        lineas.forEach(d => {
+            subtotal += d.montoTotal;
+            descuentoTotal += d.montoDescuento;
+            impuestosTotal += d.montoIVA;
+        });
+        const total = subtotal - descuentoTotal + impuestosTotal;
+
         const data = {
             id: $('#Pedido_Id').val(),
             empresaId: '@Model.EmpresaId',
             clienteId: $('#Pedido_ClienteId').val(),
             fecha: $('#Pedido_Fecha').val(),
             fechaVencimiento: $('#Pedido_FechaVencimiento').val() || null,
+            condicionVenta: $('#Pedido_CondicionVenta').val(),
+            medioPago: $('#Pedido_MedioPago').val(),
+            moneda: $('#Pedido_Moneda').val(),
+            tipoCambio: parseFloat($('#Pedido_TipoCambio').val()) || 1,
+            plazoCreditoDias: parseInt($('#Pedido_PlazoCreditoDias').val()) || null,
             observaciones: $('#Pedido_Observaciones').val() || null,
             estado: $('#Pedido_Estado').val(),
-            monedaId: $('#Pedido_MonedaId').val() || null,
+            subtotal: subtotal,
+            totalDescuentos: descuentoTotal,
+            totalImpuestos: impuestosTotal,
+            total: total,
             detalles: lineas
         };
 

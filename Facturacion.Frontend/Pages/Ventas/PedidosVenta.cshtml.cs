@@ -62,14 +62,22 @@ public class PedidosVentaModel : PageModel
             var content = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(content);
 
-            // API returns ActionResponse<T> with result property
-            if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            // API may return array directly or wrapped in ActionResponse<T>
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
             {
-                var resultJson = resultElement.GetRawText();
-                return new ContentResult { Content = $"{{\"data\":{resultJson}}}", ContentType = "application/json", StatusCode = 200 };
+                dataJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultElement))
+            {
+                dataJson = resultElement.GetRawText();
+            }
+            else
+            {
+                dataJson = content;
             }
 
-            return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
+            return new ContentResult { Content = $"{{\"data\":{dataJson}}}", ContentType = "application/json", StatusCode = 200 };
         }
 
         return new JsonResult(new { data = new List<object>() });
@@ -260,6 +268,45 @@ public class PedidosVentaModel : PageModel
 
         var error = await response.Content.ReadAsStringAsync();
         return new JsonResult(new { success = false, message = error });
+    }
+
+    // Handler to view or download PDF
+    // download parameter: true = download (attachment), false = view inline
+    public async Task<IActionResult> OnGetPdfAsync(string id, bool download = false)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await client.GetAsync($"/api/pedidosventa/{id}/descargar-pdf");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+            var fileName = $"PedidoVenta_{id}.pdf";
+
+            if (response.Content.Headers.ContentDisposition?.FileName != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            if (download)
+            {
+                return File(fileBytes, "application/pdf", fileName);
+            }
+            else
+            {
+                // Return without fileName to use Content-Disposition: inline
+                return File(fileBytes, "application/pdf");
+            }
+        }
+
+        return new JsonResult(new { success = false, message = "Error al generar el PDF del pedido." });
     }
 
     // Handler to delete a sales order

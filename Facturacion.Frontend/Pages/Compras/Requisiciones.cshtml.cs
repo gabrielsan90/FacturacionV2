@@ -194,11 +194,22 @@ public class RequisicionesModel : PageModel
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
+        bool isNew = requisicionData.Id == Guid.Empty;
+
+        if (isNew)
+        {
+            // Set placeholders for server-generated fields to pass API model validation
+            // The backend controller will overwrite these with real values
+            if (string.IsNullOrWhiteSpace(requisicionData.Numero))
+                requisicionData.Numero = "AUTO";
+            if (string.IsNullOrWhiteSpace(requisicionData.SolicitanteId))
+                requisicionData.SolicitanteId = "PLACEHOLDER";
+        }
+
         var json = JsonSerializer.Serialize(requisicionData, _jsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
-        bool isNew = requisicionData.Id == Guid.Empty;
 
         if (isNew)
         {
@@ -260,6 +271,31 @@ public class RequisicionesModel : PageModel
         if (response.IsSuccessStatusCode)
         {
             return new JsonResult(new { success = true, message = "Requisición aprobada exitosamente" });
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return new JsonResult(new { success = false, message = error });
+    }
+
+    // Handler to reject requisicion
+    public async Task<IActionResult> OnPostRechazarAsync(string id, [FromBody] string motivo)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var json = JsonSerializer.Serialize(motivo);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync($"/api/requisiciones/{id}/rechazar", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new JsonResult(new { success = true, message = "Requisición rechazada" });
         }
 
         var error = await response.Content.ReadAsStringAsync();

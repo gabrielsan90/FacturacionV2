@@ -59,6 +59,7 @@
             <table id="tableInventario" class="table table-hover">
                 <thead>
                     <tr>
+                        <th>Código</th>
                         <th>Producto</th>
                         <th>Sucursal</th>
                         <th>Cantidad Actual</th>
@@ -408,24 +409,35 @@
                 columns: [
                     {
                         data: 'producto',
+                        defaultContent: '-',
+                        render: function (data) {
+                            return data ? (data.codigo || '-') : '-';
+                        }
+                    },
+                    {
+                        data: 'producto',
+                        defaultContent: '-',
                         render: function (data) {
                             return data ? data.nombre : '-';
                         }
                     },
                     {
                         data: 'sucursal',
+                        defaultContent: '-',
                         render: function (data) {
                             return data ? data.nombre : '-';
                         }
                     },
                     {
                         data: 'cantidadActual',
+                        defaultContent: '0.00',
                         render: function (data) {
-                            return parseFloat(data).toFixed(2);
+                            return parseFloat(data != null ? data : 0).toFixed(2);
                         }
                     },
                     {
                         data: 'cantidadReservada',
+                        defaultContent: '0.00',
                         render: function (data) {
                             return data ? parseFloat(data).toFixed(2) : '0.00';
                         }
@@ -433,8 +445,8 @@
                     {
                         data: null,
                         render: function (data, type, row) {
-                            const disponible = row.cantidadActual - (row.cantidadReservada || 0);
-                            const stockMinimo = row.producto?.stockMinimo || 0;
+                            const disponible = (row.cantidadActual || 0) - (row.cantidadReservada || 0);
+                            const stockMinimo = (row.producto && row.producto.stockMinimo) || 0;
                             const isLowStock = disponible <= stockMinimo;
                             const colorClass = isLowStock ? 'text-danger fw-bold' : '';
                             return `<span class="${colorClass}">${disponible.toFixed(2)}</span>`;
@@ -442,7 +454,9 @@
                     },
                     {
                         data: 'ultimaActualizacion',
+                        defaultContent: '-',
                         render: function (data) {
+                            if (!data) return '-';
                             return new Date(data).toLocaleString('es-CR');
                         }
                     },
@@ -450,6 +464,8 @@
                         data: null,
                         orderable: false,
                         render: function (data, type, row) {
+                            const productoNombre = (row.producto && row.producto.nombre) || 'Producto';
+                            const sucursalNombre = (row.sucursal && row.sucursal.nombre) || 'Sucursal';
                             return `
                                 <button class="btn btn-sm btn-info" onclick="viewDetails('${row.id}')" title="Ver Detalles">
                                     <i class="fas fa-eye"></i>
@@ -460,7 +476,7 @@
                                 <button class="btn btn-sm btn-success" onclick="openTrasladoModal('${row.id}')" title="Traslado">
                                     <i class="fas fa-exchange-alt"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteInventario('${row.id}', '${row.producto.nombre}', '${row.sucursal.nombre}')" title="Eliminar">
+                                <button class="btn btn-sm btn-danger" onclick="deleteInventario('${row.id}', '${productoNombre}', '${sucursalNombre}')" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             `;

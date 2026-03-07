@@ -39,7 +39,7 @@ public class EmpleadosModel : PageModel
         var empresaId = User.FindFirstValue("EmpresaId");
         if (string.IsNullOrEmpty(empresaId))
         {
-            return new JsonResult(new { data = new List<Empleado>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
 
         var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -54,11 +54,33 @@ public class EmpleadosModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var empleados = await response.Content.ReadFromJsonAsync<List<Empleado>>(_jsonOptions);
-            return new JsonResult(new { data = empleados ?? new List<Empleado>() });
+            var content = await response.Content.ReadAsStringAsync();
+
+            // Unwrap ActionResponse if needed
+            using var doc = JsonDocument.Parse(content);
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                dataJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+            {
+                dataJson = resultProp.GetRawText();
+            }
+            else
+            {
+                dataJson = "[]";
+            }
+
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{dataJson}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
-        return new JsonResult(new { data = new List<Empleado>() });
+        return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
     }
 
     public async Task<IActionResult> OnGetDetailsAsync(string id)
@@ -75,8 +97,13 @@ public class EmpleadosModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var empleado = await response.Content.ReadFromJsonAsync<Empleado>(_jsonOptions);
-            return new JsonResult(new { success = true, data = empleado });
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                Content = $"{{\"success\":true,\"data\":{content}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
         return new JsonResult(new { success = false, message = "Empleado no encontrado" });
@@ -157,11 +184,32 @@ public class EmpleadosModel : PageModel
         if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<object>(content, _jsonOptions);
-            return new JsonResult(new { data });
+
+            // Unwrap ActionResponse if needed
+            using var doc = JsonDocument.Parse(content);
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                dataJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+            {
+                dataJson = resultProp.GetRawText();
+            }
+            else
+            {
+                dataJson = "[]";
+            }
+
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{dataJson}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
-        return new JsonResult(new { data = new List<object>() });
+        return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
     }
 
     public async Task<IActionResult> OnGetPuestosAsync()
@@ -180,10 +228,31 @@ public class EmpleadosModel : PageModel
         if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
-            var data = JsonSerializer.Deserialize<object>(content, _jsonOptions);
-            return new JsonResult(new { data });
+
+            // Unwrap ActionResponse if needed
+            using var doc = JsonDocument.Parse(content);
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                dataJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+            {
+                dataJson = resultProp.GetRawText();
+            }
+            else
+            {
+                dataJson = "[]";
+            }
+
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{dataJson}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
-        return new JsonResult(new { data = new List<object>() });
+        return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
     }
 }

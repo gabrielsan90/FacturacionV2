@@ -17,7 +17,7 @@
 <div class="row g-4 mb-4">
     <!-- Total Ventas Hoy -->
     <div class="col-sm-6 col-lg-3">
-        <a href="/Documentos" class="text-decoration-none">
+        <a href="/DocumentosElectronicos/Documentos" class="text-decoration-none">
             <div class="metric-card success card-hoverable">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
@@ -34,7 +34,7 @@
 
     <!-- Documentos Pendientes -->
     <div class="col-sm-6 col-lg-3">
-        <a href="/Documentos?estado=pendiente" class="text-decoration-none">
+        <a href="/DocumentosElectronicos/Documentos?estado=pendiente" class="text-decoration-none">
             <div class="metric-card warning card-hoverable">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
@@ -51,7 +51,7 @@
 
     <!-- Productos Bajo Stock -->
     <div class="col-sm-6 col-lg-3">
-        <a href="/Inventario?filtro=bajo-stock" class="text-decoration-none">
+        <a href="/Stock/Inventario?filtro=bajo-stock" class="text-decoration-none">
             <div class="metric-card danger card-hoverable">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
@@ -68,7 +68,7 @@
 
     <!-- Pagos Pendientes -->
     <div class="col-sm-6 col-lg-3">
-        <a href="/Gasto?estado=pendiente" class="text-decoration-none">
+        <a href="/Gastos/Gasto?estado=pendiente" class="text-decoration-none">
             <div class="metric-card info card-hoverable">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="flex-grow-1">
@@ -137,7 +137,7 @@
                     <strong>Documentos Recientes</strong>
                     <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
                 </div>
-                <a href="/Facturacion" class="btn btn-primary btn-sm">
+                <a href="/DocumentosElectronicos/CrearDocumento" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i> Nuevo Documento
                 </a>
             </div>
@@ -175,7 +175,7 @@
                     </div>
                     <h3 class="empty-state-title">No hay documentos recientes</h3>
                     <p class="empty-state-description">Comienza creando tu primer documento electrónico</p>
-                    <a href="/Facturacion" class="btn btn-primary">
+                    <a href="/DocumentosElectronicos/CrearDocumento" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>Crear Documento
                     </a>
                 </div>
@@ -208,11 +208,14 @@
                 // Handle wrapped response (response.data, response.result, or direct)
                 const data = response?.data || response?.result || response || {};
 
-                // Update metric cards - use correct property names from DashboardResumenDTO
-                $('#ventasHoy').text(formatCurrency(data.totalVentasHoy || data.TotalVentasHoy || 0));
+                // Update metric cards with per-currency breakdown
+                const ventasMoneda = data.ventasHoyPorMoneda || data.VentasHoyPorMoneda || [];
+                const pagosMoneda = data.pagosPendientesPorMoneda || data.PagosPendientesPorMoneda || [];
+
+                $('#ventasHoy').html(renderMontosPorMoneda(ventasMoneda, formatCurrency(0)));
                 $('#docsPendientes').text(data.documentosPendientesEnvio || data.DocumentosPendientesEnvio || 0);
                 $('#stockBajo').text(data.productosBajoStock || data.ProductosBajoStock || 0);
-                $('#pagosPendientes').text(formatCurrency(data.pagosPendientes || data.PagosPendientes || 0));
+                $('#pagosPendientes').html(renderMontosPorMoneda(pagosMoneda, formatCurrency(0)));
             },
             error: function(xhr) {
                 console.error('Error loading dashboard metrics:', xhr);

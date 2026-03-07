@@ -42,4 +42,10 @@ public interface IDocumentoHaciendaService
     /// <param name="documentoId">ID del documento</param>
     /// <returns>Lista de errores de validación (vacía si es válido)</returns>
     Task<List<string>> ValidarDocumentoAsync(Guid documentoId);
+
+    /// <summary>
+    /// Procesa la integración post-aceptación: inventario + contabilidad + CxC.
+    /// Llamar cuando un documento pasa a estado Aceptado (desde BackgroundService u otros flujos).
+    /// </summary>
+    Task ProcesarPostAceptacionAsync(Guid documentoId);
 }

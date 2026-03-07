@@ -372,8 +372,10 @@
                     ? '<span class="badge bg-success">Activo</span>'
                     : '<span class="badge bg-secondary">Inactivo</span>';
 
-                const cuentaInfo = mapeo.cuentaCodigo
-                    ? `${mapeo.cuentaCodigo} - ${mapeo.cuentaNombre}`
+                const cuentaCodigo = mapeo.cuentaContable?.codigo || mapeo.cuentaCodigo;
+                const cuentaNombre = mapeo.cuentaContable?.nombre || mapeo.cuentaNombre;
+                const cuentaInfo = cuentaCodigo
+                    ? `${cuentaCodigo} - ${cuentaNombre}`
                     : '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Sin cuenta asignada</span>';
 
                 html += '<tr>';

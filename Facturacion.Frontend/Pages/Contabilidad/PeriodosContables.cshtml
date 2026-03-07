@@ -32,7 +32,7 @@
         <div class="card border-success shadow-sm">
             <div class="card-header bg-success text-white">
                 <i class="fas fa-lock-open me-2"></i>
-                <strong>Período Actual Abierto</strong>
+                <strong>Períodos Abiertos</strong>
             </div>
             <div class="card-body" id="periodoAbiertoCard">
                 <div class="text-center py-3">
@@ -52,18 +52,25 @@
                 <strong>Estados de Períodos</strong>
             </div>
             <div class="card-body">
-                <div class="mb-3">
-                    <span class="badge bg-success fs-6 me-2">ABT</span>
-                    <strong>Abierto:</strong> El período está activo y permite registrar transacciones contables.
+                <div class="mb-2">
+                    <span class="badge bg-warning text-dark fs-6 me-2">PND</span>
+                    <strong>Pendiente:</strong> Período futuro que aún no ha sido trabajado. No permite registrar transacciones.
                 </div>
-                <div>
+                <div class="mb-2">
+                    <span class="badge bg-success fs-6 me-2">ABT</span>
+                    <strong>Abierto:</strong> Período activo que permite registrar transacciones contables.
+                </div>
+                <div class="mb-2">
                     <span class="badge bg-danger fs-6 me-2">CER</span>
-                    <strong>Cerrado:</strong> El período está cerrado y NO permite registrar ni modificar transacciones.
+                    <strong>Cerrado:</strong> Período cerrado definitivamente. No permite modificaciones.
                 </div>
                 <hr>
                 <small class="text-muted">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Solo puede haber un período abierto a la vez. Cerrar un período es una acción irreversible.
+                    <i class="fas fa-info-circle me-1"></i>
+                    La cantidad de períodos abiertos simultáneamente se configura en
+                    <a href="/Contabilidad/ConfiguracionContable">Configuración Contable</a>.
+                    Los períodos abiertos deben ser meses consecutivos.
+                    Para cerrar un período, el anterior debe estar cerrado (traslado de saldos).
                 </small>
             </div>
         </div>
@@ -140,7 +147,7 @@
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <small>El período se creará en estado <strong>Abierto (ABT)</strong> por defecto.</small>
+                        <small>El período se creará en estado <strong>Pendiente (PND)</strong>. Puede abrirlo posteriormente desde la tabla.</small>
                     </div>
 
                     <div class="row mb-3">
@@ -218,7 +225,7 @@
                     <div class="alert alert-success">
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>Esta función generará automáticamente 12 períodos mensuales</strong> (Enero a Diciembre)
-                        para el año seleccionado, todos en estado <strong>Abierto</strong>.
+                        para el año seleccionado, todos en estado <strong>Pendiente</strong>. Luego puede abrir el período deseado.
                     </div>
 
                     <div class="mb-3">
@@ -304,12 +311,15 @@
                 { data: 'anio' },
                 {
                     data: 'mes',
-                    render: function(data) {
+                    type: 'num',
+                    render: function(data, type) {
+                        if (type === 'sort' || type === 'type') return parseInt(data);
                         return mesesNombres[data] || data;
                     }
                 },
                 {
                     data: 'nombre',
+                    defaultContent: '',
                     render: function(data, type, row) {
                         return data || `${mesesNombres[row.mes]} ${row.anio}`;
                     }
@@ -328,17 +338,21 @@
                 },
                 {
                     data: 'estado',
+                    defaultContent: '-',
                     render: function(data) {
-                        if (data === 'ABT') {
+                        if (data === 'PND') {
+                            return '<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pendiente</span>';
+                        } else if (data === 'ABT') {
                             return '<span class="badge bg-success"><i class="fas fa-lock-open me-1"></i>Abierto</span>';
                         } else if (data === 'CER') {
                             return '<span class="badge bg-danger"><i class="fas fa-lock me-1"></i>Cerrado</span>';
                         }
-                        return `<span class="badge bg-secondary">${data}</span>`;
+                        return `<span class="badge bg-secondary">${data || '-'}</span>`;
                     }
                 },
                 {
                     data: 'cerradoPor',
+                    defaultContent: '<span class="text-muted">-</span>',
                     render: function(data) {
                         if (!data) return '<span class="text-muted">-</span>';
                         if (typeof data === 'object') return data.fullName || data.email || '-';
@@ -350,17 +364,30 @@
                     orderable: false,
                     render: function(data, type, row) {
                         let buttons = '';
+                        const nombre = row.nombre || mesesNombres[row.mes] + ' ' + row.anio;
 
-                        if (row.estado === 'ABT') {
+                        if (row.estado === 'PND') {
+                            // Pendiente: puede abrir o eliminar
                             buttons = `
-                                <button class="btn btn-sm btn-danger" onclick="cerrarPeriodo('${data}', '${row.nombre || mesesNombres[row.mes] + ' ' + row.anio}')"
+                                <button class="btn btn-sm btn-success me-1" onclick="abrirPeriodo('${data}', '${nombre}')"
+                                        title="Abrir Período">
+                                    <i class="fas fa-lock-open"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="eliminarPeriodo('${data}', '${nombre}')"
+                                        title="Eliminar Período">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        } else if (row.estado === 'ABT') {
+                            // Abierto: puede cerrar
+                            buttons = `
+                                <button class="btn btn-sm btn-danger" onclick="cerrarPeriodo('${data}', '${nombre}')"
                                         title="Cerrar Período">
                                     <i class="fas fa-lock"></i>
                                 </button>
                             `;
-                        } else {
-                            buttons = '<span class="text-muted small">Cerrado</span>';
                         }
+                        // CER: sin acciones
 
                         return buttons;
                     }
@@ -481,7 +508,7 @@
             nombre: $('#Periodo_Nombre').val() || null,
             fechaInicio: $('#Periodo_FechaInicio').val(),
             fechaFin: $('#Periodo_FechaFin').val(),
-            estado: 'ABT'
+            estado: 'PND'
         };
 
         $.ajax({
@@ -512,9 +539,9 @@
         Swal.fire({
             title: '¿Cerrar Período?',
             html: `<p>¿Está seguro de cerrar el período <strong>"${nombre}"</strong>?</p>
-                   <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>
-                   <strong>Esta acción es IRREVERSIBLE.</strong> Una vez cerrado, no podrá registrar
-                   ni modificar transacciones en este período.</p>`,
+                   <p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>
+                   Una vez cerrado, no se podrán registrar ni modificar transacciones en este período.
+                   Puede reabrirlo posteriormente si lo necesita.</p>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-lock me-1"></i> Sí, cerrar período',
@@ -522,11 +549,6 @@
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#6c757d',
             reverseButtons: true,
-            input: 'checkbox',
-            inputPlaceholder: 'Entiendo que esta acción no se puede revertir',
-            inputValidator: (result) => {
-                return !result && 'Debe confirmar que entiende la acción'
-            }
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
@@ -557,6 +579,85 @@
         });
     }
 
+    function abrirPeriodo(id, nombre) {
+        Swal.fire({
+            title: '¿Abrir Período?',
+            html: `<p>¿Está seguro de abrir el período <strong>"${nombre}"</strong>?</p>
+                   <p class="text-info"><i class="fas fa-info-circle me-1"></i>
+                   El período pasará de Pendiente a Abierto y permitirá registrar transacciones.</p>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-lock-open me-1"></i> Sí, abrir período',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Abrir&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Período Abierto',
+                                text: response.message,
+                                timer: 3000
+                            });
+                            table.ajax.reload();
+                            loadPeriodoAbierto();
+                        } else {
+                            showError(response.message || 'Error al abrir el período');
+                        }
+                    },
+                    error: function(xhr) {
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+
+    function eliminarPeriodo(id, nombre) {
+        Swal.fire({
+            title: '¿Eliminar Período?',
+            html: `<p>¿Está seguro de eliminar el período <strong>"${nombre}"</strong>?</p>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-trash me-1"></i> Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Eliminar&id=' + id,
+                    type: 'POST',
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess('Período eliminado exitosamente');
+                            table.ajax.reload();
+                            loadPeriodoAbierto();
+                        } else {
+                            showError(response.message || 'Error al eliminar el período');
+                        }
+                    },
+                    error: function(xhr) {
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+
     function generarAnio() {
         const anio = parseInt($('#GenerarAnio_Anio').val());
 
@@ -564,7 +665,7 @@
             title: '¿Generar Períodos?',
             html: `<p>¿Está seguro de generar los 12 períodos mensuales para el año <strong>${anio}</strong>?</p>
                    <p class="text-info"><i class="fas fa-info-circle me-1"></i>
-                   Se crearán períodos de enero a diciembre, todos en estado Abierto.</p>`,
+                   Se crearán períodos de enero a diciembre, todos en estado Pendiente. Puede abrir el que necesite desde la tabla.</p>`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-calendar-plus me-1"></i> Sí, generar',

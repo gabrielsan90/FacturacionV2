@@ -35,13 +35,13 @@ public class CentrosCostoModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/centroscosto/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/centroscosto/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var centros = JsonSerializer.Deserialize<List<CentroCosto>>(content, _jsonOptions);
-                return new JsonResult(centros);
+                return new JsonResult(new { data = centros });
             }
 
             return BadRequest("Error al obtener los centros de costo.");
@@ -61,7 +61,7 @@ public class CentrosCostoModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/sucursales/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/sucursales/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -86,7 +86,7 @@ public class CentrosCostoModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/departamentos/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/departamentos/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -132,11 +132,11 @@ public class CentrosCostoModel : PageModel
             HttpResponseMessage response;
             if (centro.Id == Guid.Empty)
             {
-                response = await client.PostAsync("api/centroscosto", content);
+                response = await client.PostAsync("/api/centroscosto", content);
             }
             else
             {
-                response = await client.PutAsync($"api/centroscosto/{centro.Id}", content);
+                response = await client.PutAsync($"/api/centroscosto/{centro.Id}", content);
             }
 
             if (response.IsSuccessStatusCode)
@@ -159,7 +159,7 @@ public class CentrosCostoModel : PageModel
         {
             var client = CreateApiClient();
 
-            var response = await client.DeleteAsync($"api/centroscosto/{id}");
+            var response = await client.DeleteAsync($"/api/centroscosto/{id}");
 
             if (response.IsSuccessStatusCode)
             {

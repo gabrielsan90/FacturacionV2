@@ -57,4 +57,10 @@ public class GastoDTO
     public DateTime? FechaPago { get; set; }
 
     public string? Comprobante { get; set; }
+
+    [Range(0, 999999999999.99, ErrorMessage = "El {0} no puede ser negativo.")]
+    public decimal MontoRetencionRenta { get; set; }
+
+    [Range(0, 999999999999.99, ErrorMessage = "El {0} no puede ser negativo.")]
+    public decimal MontoRetencionIVA { get; set; }
 }

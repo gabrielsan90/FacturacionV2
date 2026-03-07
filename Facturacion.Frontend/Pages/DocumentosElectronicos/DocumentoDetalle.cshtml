@@ -24,6 +24,9 @@
                     <button class="btn btn-success" id="btnEnviar" style="display:none;" onclick="enviarAHacienda()">
                         <i class="fas fa-paper-plane"></i> Enviar a Hacienda
                     </button>
+                    <button class="btn btn-success" id="btnMensajeReceptor" style="display:none;" onclick="irAMensajeReceptor()">
+                        <i class="fas fa-reply"></i> Enviar MensajeReceptor
+                    </button>
                     <button class="btn btn-info" onclick="descargarPDF()">
                         <i class="fas fa-file-pdf"></i> Descargar PDF
                     </button>
@@ -290,9 +293,14 @@
             $('#tipoCambio').text(doc.tipoCambio ? formatNumber(doc.tipoCambio, 5) : 'N/A');
             $('#actividadEconomica').text(doc.actividadEconomica);
 
-            // Emisor
-            $('#empresaNombre').text(doc.empresa?.nombre || 'N/A');
-            $('#empresaIdentificacion').text(doc.empresa?.numeroIdentificacion || 'N/A');
+            // Emisor - para documentos recibidos usar datos del proveedor
+            if (doc.esDocumentoRecibido && doc.proveedor) {
+                $('#empresaNombre').text(doc.proveedor.nombre || doc.proveedor.razonSocial || 'N/A');
+                $('#empresaIdentificacion').text(doc.proveedor.numeroIdentificacion || 'N/A');
+            } else {
+                $('#empresaNombre').text(doc.empresa?.nombreComercial || doc.empresa?.razonSocial || 'N/A');
+                $('#empresaIdentificacion').text(doc.empresa?.numeroIdentificacion || 'N/A');
+            }
             $('#sucursalNombre').text(doc.sucursal?.nombre || 'N/A');
             $('#sucursalDireccion').text(doc.sucursal?.direccion || 'N/A');
             $('#terminalCodigo').text(doc.terminal?.codigo || 'N/A');
@@ -314,12 +322,12 @@
                             <td>${detalle.descripcion}</td>
                             <td>${detalle.codigoCabys || 'N/A'}</td>
                             <td class="text-end">${formatNumber(detalle.cantidad, 3)}</td>
-                            <td>${detalle.unidadMedida}</td>
+                            <td>${detalle.unidadMedida?.codigo || detalle.unidadMedidaComercial || detalle.unidadMedida || 'N/A'}</td>
                             <td class="text-end">₡${formatNumber(detalle.precioUnitario, 5)}</td>
                             <td class="text-end text-danger">₡${formatNumber(detalle.montoDescuento || 0, 2)}</td>
                             <td class="text-end">₡${formatNumber(detalle.subtotal, 2)}</td>
-                            <td class="text-end">₡${formatNumber(detalle.montoTotalImpuestos || 0, 2)}</td>
-                            <td class="text-end"><strong>₡${formatNumber(detalle.totalLinea, 2)}</strong></td>
+                            <td class="text-end">₡${formatNumber(detalle.montoImpuesto || detalle.montoTotalImpuestos || 0, 2)}</td>
+                            <td class="text-end"><strong>₡${formatNumber(detalle.montoTotalLinea || detalle.totalLinea || 0, 2)}</strong></td>
                         </tr>
                     `;
                 });
@@ -383,6 +391,11 @@
             } else if (doc.estado === 2) { // Pendiente
                 $('#btnEnviar').show();
             }
+
+            // Show MR button for received documents
+            if (doc.esDocumentoRecibido) {
+                $('#btnMensajeReceptor').show();
+            }
         }
 
         function editarDocumento() {
@@ -431,6 +444,10 @@
                 text: 'La integración con Hacienda se implementará en un próximo sprint.',
                 icon: 'info'
             });
+        }
+
+        function irAMensajeReceptor() {
+            window.location.href = '/DocumentosElectronicos/MensajesReceptor';
         }
 
         function descargarPDF() {

@@ -389,6 +389,14 @@ public class MapeoCuentaDTO
     public string? CuentaCodigo { get; set; }
     public string? CuentaNombre { get; set; }
     public bool Activo { get; set; } = true;
+    public CuentaContableRef? CuentaContable { get; set; }
+}
+
+public class CuentaContableRef
+{
+    public Guid Id { get; set; }
+    public string Codigo { get; set; } = "";
+    public string Nombre { get; set; } = "";
 }
 
 public class ModuloInfo

@@ -41,6 +41,23 @@ public class PeriodosContablesController : ControllerBase
                 return Forbid();
             }
 
+            // Data migration: convert empty CER periods in current/future months to PND
+            var hoy = DateTime.UtcNow;
+            var periodosParaMigrar = await _context.PeriodosContables
+                .Where(p => p.EmpresaId == empresaId && p.Estado == "CER" && !p.IsDeleted
+                    && p.CantidadAsientos == 0 && p.FechaCierre == null
+                    && (p.Anio > hoy.Year || (p.Anio == hoy.Year && p.Mes >= hoy.Month)))
+                .ToListAsync();
+
+            if (periodosParaMigrar.Any())
+            {
+                foreach (var p in periodosParaMigrar)
+                    p.Estado = "PND";
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Data migration: converted {Count} empty future CER periods to PND for empresa {EmpresaId}",
+                    periodosParaMigrar.Count, empresaId);
+            }
+
             var periodos = await _unitOfWork.PeriodoContableRepository.GetByEmpresaAsync(empresaId);
 
             return Ok(periodos);
@@ -149,7 +166,7 @@ public class PeriodosContablesController : ControllerBase
             periodo.FechaInicio = fechaInicio;
             periodo.FechaFin = fechaFin;
             periodo.Nombre = $"{periodo.NombreMes} {periodo.Anio}";
-            periodo.Estado = "ABT";
+            periodo.Estado = "PND"; // Created as pending; user opens via Abrir endpoint
             periodo.UltimoNumeroAsiento = 0;
             periodo.TotalDebe = 0;
             periodo.TotalHaber = 0;
@@ -281,6 +298,23 @@ public class PeriodosContablesController : ControllerBase
                 return BadRequest("El período ya está cerrado.");
             }
 
+            if (periodo.Estado == "PND")
+            {
+                return BadRequest("No se puede cerrar un período pendiente. Debe abrirlo primero.");
+            }
+
+            // Validar cierre secuencial: el período anterior debe estar cerrado
+            var periodoAnterior = await _context.PeriodosContables
+                .Where(p => p.EmpresaId == periodo.EmpresaId && !p.IsDeleted && p.Id != id
+                    && ((p.Anio == periodo.Anio && p.Mes == periodo.Mes - 1)
+                        || (periodo.Mes == 1 && p.Anio == periodo.Anio - 1 && p.Mes == 12)))
+                .FirstOrDefaultAsync();
+
+            if (periodoAnterior != null && periodoAnterior.Estado != "CER")
+            {
+                return BadRequest($"No se puede cerrar este período. El período anterior ({periodoAnterior.Nombre}) debe estar cerrado primero (traslado de saldos).");
+            }
+
             // Validar que el período esté balanceado
             if (!periodo.EstaBalanceado)
             {
@@ -302,6 +336,95 @@ public class PeriodosContablesController : ControllerBase
         {
             _logger.LogError(ex, "Error closing periodo contable {Id}", id);
             return BadRequest($"Error al cerrar el período contable: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Abre un período contable pendiente (PND → ABT).
+    /// Valida: máximo de períodos abiertos y consecutividad.
+    /// </summary>
+    [HttpPost("{id:guid}/abrir")]
+    public async Task<IActionResult> AbrirPeriodoAsync(Guid id)
+    {
+        try
+        {
+            var periodo = await _context.PeriodosContables
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (periodo == null)
+            {
+                return NotFound();
+            }
+
+            if (!await TieneAccesoEmpresaAsync(periodo.EmpresaId))
+            {
+                return Forbid();
+            }
+
+            // Solo períodos pendientes pueden abrirse
+            if (periodo.Estado != "PND")
+            {
+                return BadRequest(periodo.Estado == "ABT"
+                    ? "El período ya está abierto."
+                    : "No se puede abrir un período cerrado.");
+            }
+
+            // Verificar límite de períodos abiertos
+            var config = await _context.ConfiguracionesContables
+                .FirstOrDefaultAsync(c => c.EmpresaId == periodo.EmpresaId);
+            int maxAbiertos = config?.PeriodosAbiertosSimultaneos ?? 2;
+
+            var periodosAbiertos = await _context.PeriodosContables
+                .Where(p => p.EmpresaId == periodo.EmpresaId && p.Estado == "ABT" && !p.IsDeleted)
+                .OrderBy(p => p.Anio).ThenBy(p => p.Mes)
+                .ToListAsync();
+
+            if (periodosAbiertos.Count >= maxAbiertos)
+            {
+                return BadRequest($"Ya hay {periodosAbiertos.Count} período(s) abierto(s). El máximo permitido es {maxAbiertos}. Cierre un período antes de abrir otro.");
+            }
+
+            // Verificar consecutividad: el nuevo período + los ABT existentes deben ser meses contiguos
+            if (periodosAbiertos.Any())
+            {
+                var todosAbiertos = periodosAbiertos.Concat(new[] { periodo })
+                    .OrderBy(p => p.Anio).ThenBy(p => p.Mes).ToList();
+
+                for (int i = 1; i < todosAbiertos.Count; i++)
+                {
+                    var prev = todosAbiertos[i - 1];
+                    var curr = todosAbiertos[i];
+                    int prevIndex = prev.Anio * 12 + prev.Mes;
+                    int currIndex = curr.Anio * 12 + curr.Mes;
+                    if (currIndex - prevIndex != 1)
+                    {
+                        return BadRequest($"Los períodos abiertos deben ser consecutivos. No se puede abrir {periodo.Nombre} porque no es adyacente a los períodos abiertos actuales.");
+                    }
+                }
+            }
+
+            // Transición PND → ABT
+            periodo.Estado = "ABT";
+            periodo.FechaCierre = null;
+            periodo.CerradoPorId = null;
+
+            await _context.SaveChangesAsync();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Periodo contable {Id} ({Nombre}) opened by user {UserId}",
+                id, periodo.Nombre, userId);
+
+            return Ok(new
+            {
+                periodo.Id,
+                periodo.Nombre,
+                periodo.Estado
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening periodo contable {Id}", id);
+            return BadRequest($"Error al abrir el período contable: {ex.Message}");
         }
     }
 
@@ -363,7 +486,7 @@ public class PeriodosContablesController : ControllerBase
                     Nombre = $"{nombreMesPeriodo} {request.Anio}",
                     FechaInicio = fechaInicio,
                     FechaFin = fechaFin,
-                    Estado = "ABT",
+                    Estado = "PND", // All periods created as pending; user opens them as needed
                     UltimoNumeroAsiento = 0,
                     TotalDebe = 0,
                     TotalHaber = 0,
@@ -429,7 +552,13 @@ public class PeriodosContablesController : ControllerBase
                 return BadRequest("No se puede eliminar un período cerrado.");
             }
 
-            // No permitir eliminar si tiene asientos
+            // No permitir eliminar período abierto que tiene asientos
+            if (periodo.Estado == "ABT" && periodo.Asientos?.Any() == true)
+            {
+                return BadRequest("No se puede eliminar un período abierto que tiene asientos contables.");
+            }
+
+            // No permitir eliminar si tiene asientos (fallback for any state)
             if (periodo.Asientos?.Any() == true)
             {
                 return BadRequest("No se puede eliminar un período que tiene asientos contables.");

@@ -51,6 +51,7 @@ public class XmlGeneradorService : IXmlGeneradorService
             DocumentoTipo.NotaCreditoElectronica => GenerarNotaCredito(documento),
             DocumentoTipo.NotaDebitoElectronica => GenerarNotaDebito(documento),
             DocumentoTipo.FacturaElectronicaExportacion => GenerarFacturaExportacion(documento),
+            DocumentoTipo.FacturaElectronicaCompra => GenerarFacturaElectronicaCompra(documento),
             _ => throw new NotImplementedException($"Tipo de documento {documento.TipoDocumento} no implementado")
         };
 
@@ -334,6 +335,44 @@ public class XmlGeneradorService : IXmlGeneradorService
                 // v4.4: MedioPago removido del nivel documento
                 GenerarDetalleServicio(doc, ns),
                 GenerarOtrosCargos(doc, ns), // v4.4
+                GenerarResumenFactura(doc, ns),
+                GenerarInformacionReferencia(doc, ns),
+                GenerarOtros(doc, ns)
+            )
+        );
+
+        return documento;
+    }
+
+    #endregion
+
+    #region Factura Electrónica de Compra (FEC)
+
+    /// <summary>
+    /// Genera XML para Factura Electrónica de Compra (FEC) - Documento tipo 06
+    /// Autofacturación: el comprador emite la factura en nombre del proveedor
+    /// </summary>
+    private XDocument GenerarFacturaElectronicaCompra(Documento doc)
+    {
+        XNamespace ns = NamespaceFacturaCompra;
+        XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+
+        var documento = new XDocument(
+            new XDeclaration("1.0", "UTF-8", null),
+            new XElement(ns + "FacturaElectronicaCompra",
+                new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                GenerarClave(doc, ns),
+                GenerarProveedorSistemas(doc, ns),
+                GenerarCodigoActividadEmisor(doc, ns),
+                GenerarCodigoActividadReceptor(doc, ns),
+                GenerarNumeroConsecutivo(doc, ns),
+                GenerarFechaEmision(doc, ns),
+                GenerarEmisor(doc, ns),
+                GenerarReceptor(doc, ns),
+                GenerarCondicionVenta(doc, ns),
+                GenerarPlazoCredito(doc, ns),
+                GenerarDetalleServicio(doc, ns),
+                GenerarOtrosCargos(doc, ns),
                 GenerarResumenFactura(doc, ns),
                 GenerarInformacionReferencia(doc, ns),
                 GenerarOtros(doc, ns)
@@ -1201,14 +1240,14 @@ public class XmlGeneradorService : IXmlGeneradorService
         var referencias = new List<XElement>();
 
         // Segun XSD v4.4, cada referencia es un elemento InformacionReferencia independiente
-        // que contiene directamente: TipoDoc, Numero, FechaEmision, Codigo, Razon
+        // que contiene directamente: TipoDocIR, Numero, FechaEmision, Codigo, Razon
         // NO hay un elemento "Referencia" intermedio
         foreach (var referencia in doc.Referencias)
         {
             var infoRef = new XElement(ns + "InformacionReferencia",
-                new XElement(ns + "TipoDoc", referencia.TipoDocumentoReferenciado),
+                new XElement(ns + "TipoDocIR", referencia.TipoDocumentoReferenciado),
                 new XElement(ns + "Numero", referencia.NumeroDocumentoReferenciado),
-                new XElement(ns + "FechaEmision",
+                new XElement(ns + "FechaEmisionIR",
                     referencia.FechaEmisionDocumentoReferenciado.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)),
                 new XElement(ns + "Codigo", ((int)referencia.CodigoReferencia).ToString("D2")),
                 new XElement(ns + "Razon", referencia.RazonReferencia)
@@ -1368,90 +1407,326 @@ public class XmlGeneradorService : IXmlGeneradorService
 
     /// <summary>
     /// Genera el XML de un Recibo Electrónico de Pago (REP) - NUEVO en v4.4
+    /// Estructura conforme al XSD ReciboElectronicoPago_V4.4.xsd
+    /// Soporta single y multi-documento (carga todos los recibos del mismo DocumentoREP).
     /// </summary>
     public async Task<string> GenerarREPAsync(Documento documentoREP, ReciboPago reciboPago)
     {
-        // Cargar todas las relaciones necesarias
+        // Cargar relaciones necesarias del documento REP
         await CargarRelacionesAsync(documentoREP);
 
-        // Cargar documento original referenciado
-        var documentoOriginal = await _context.Documentos
-            .Include(d => d.Empresa)
-            .FirstOrDefaultAsync(d => d.Id == reciboPago.DocumentoOriginalId)
-            ?? throw new InvalidOperationException("No se encontró el documento original");
+        var empresa = documentoREP.Empresa
+            ?? throw new InvalidOperationException("No se encontró la empresa del documento REP");
+
+        // Cargar TODOS los recibos asociados a este documento REP (multi-documento)
+        var recibos = await _context.RecibosPago
+            .Where(r => r.DocumentoId == documentoREP.Id && !r.IsDeleted)
+            .ToListAsync();
+
+        if (recibos.Count == 0)
+            recibos = new List<ReciboPago> { reciboPago };
+
+        // Cargar documentos originales referenciados
+        var docOriginalIds = recibos.Select(r => r.DocumentoOriginalId).Distinct().ToList();
+        var documentosOriginales = await _context.Documentos
+            .Where(d => docOriginalIds.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id);
 
         // Cargar medios de pago
         var mediosPago = await _context.DocumentoMediosPago
             .Where(m => m.DocumentoId == documentoREP.Id)
             .ToListAsync();
 
-        // Crear documento XML con namespace v4.4 para REP
-        var ns = XNamespace.Get("https://cdn.comprobanteselectronicos.go.cr/xml-schemas/v4.4/reciboElectronicoPago");
+        // Calcular monto total pagado (suma de todos los recibos)
+        var montoTotalPagado = recibos.Sum(r => r.MontoPagado);
+
+        // Tipo de cambio: si no es CRC usar el valor, si es CRC usar 1
+        var tipoCambio = documentoREP.TipoCambio ?? 1m;
+
+        var ns = XNamespace.Get(NamespaceREP);
+
+        // ============================================================
+        // Construir XML según XSD: ReciboElectronicoPago_V4.4.xsd
+        // Orden obligatorio: Clave, ProveedorSistemas, NumeroConsecutivo,
+        // FechaEmision, Emisor, Receptor, CondicionVenta, DetalleServicio,
+        // ResumenFactura, InformacionReferencia, ds:Signature
+        // ============================================================
+
+        var root = new XElement(ns + "ReciboElectronicoPago",
+            // 1. Clave (50 dígitos)
+            new XElement(ns + "Clave", documentoREP.Clave),
+
+            // 2. ProveedorSistemas
+            GenerarProveedorSistemas(documentoREP, ns),
+
+            // 3. NumeroConsecutivo (20 dígitos)
+            new XElement(ns + "NumeroConsecutivo", documentoREP.NumeroConsecutivo),
+
+            // 4. FechaEmision
+            new XElement(ns + "FechaEmision", documentoREP.FechaEmision.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)),
+
+            // 5. Emisor (REP simplificado: Nombre, Identificacion, CorreoElectronico)
+            GenerarEmisorREP(documentoREP, ns),
+
+            // 6. Receptor (REP simplificado: Nombre, Identificacion, CorreoElectronico?)
+            GenerarReceptorREP(documentoREP, ns),
+
+            // 7. CondicionVenta (XSD solo permite "09" o "11" para REP)
+            // "09" = Pago del servicio prestado al Estado (si doc original tiene CondicionVenta "08")
+            // "11" = Pago de venta a crédito en IVA hasta 90 días (default)
+            new XElement(ns + "CondicionVenta",
+                documentosOriginales.Values.Any(d => d.CondicionVenta == "08") ? "09" : "11")
+        );
+
+        // 8. DetalleServicio con LineaDetalle por cada recibo/documento pagado
+        var detalleServicio = new XElement(ns + "DetalleServicio");
+        int numLinea = 1;
+        decimal totalVenta = 0;
+        decimal totalImpuestoGlobal = 0;
+
+        foreach (var recibo in recibos)
+        {
+            var montoLinea = recibo.MontoPagado;
+
+            // Calcular IVA proporcional del documento original
+            decimal tarifaIVA = 0;
+            decimal montoIVA = 0;
+            string codigoTarifaIVA = "08"; // 13% por defecto
+
+            if (documentosOriginales.TryGetValue(recibo.DocumentoOriginalId, out var docOrig))
+            {
+                // Calcular proporción de IVA del documento original
+                if (docOrig.TotalImpuestos > 0 && docOrig.TotalVenta > 0)
+                {
+                    // Tarifa efectiva = IVA / Base
+                    var tarifaEfectiva = (docOrig.TotalImpuestos / docOrig.TotalVenta) * 100;
+                    tarifaIVA = Math.Round(tarifaEfectiva, 2);
+
+                    // Calcular IVA proporcional sobre el monto pagado
+                    // SubTotal (base) = montoPagado / (1 + tarifa/100)
+                    var baseImponible = montoLinea / (1 + tarifaIVA / 100);
+                    montoIVA = Math.Round(montoLinea - baseImponible, 5);
+
+                    // Determinar código tarifa IVA más cercano
+                    codigoTarifaIVA = DeterminarCodigoTarifaIVA(tarifaIVA);
+                }
+            }
+
+            // SubTotal = monto sin IVA
+            var subTotal = montoLinea - montoIVA;
+            totalVenta += subTotal;
+            totalImpuestoGlobal += montoIVA;
+
+            var detalle = $"Pago factura {recibo.NumeroConsecutivoOriginal}";
+            if (detalle.Length < 3) detalle = "Pago de factura";
+
+            var lineaDetalle = new XElement(ns + "LineaDetalle",
+                new XElement(ns + "NumeroLinea", numLinea),
+                new XElement(ns + "Detalle", detalle),
+                new XElement(ns + "MontoTotal", FormatearDecimal(subTotal, 5)),
+                new XElement(ns + "SubTotal", FormatearDecimal(subTotal, 5))
+            );
+
+            // Impuesto (opcional, solo si hay IVA)
+            if (montoIVA > 0)
+            {
+                lineaDetalle.Add(new XElement(ns + "Impuesto",
+                    new XElement(ns + "Codigo", "01"), // 01 = IVA
+                    new XElement(ns + "CodigoTarifaIVA", codigoTarifaIVA),
+                    new XElement(ns + "Tarifa", FormatearDecimal(tarifaIVA, 2)),
+                    new XElement(ns + "Monto", FormatearDecimal(montoIVA, 5))
+                ));
+            }
+
+            lineaDetalle.Add(new XElement(ns + "ImpuestoNeto", FormatearDecimal(montoIVA, 5)));
+            lineaDetalle.Add(new XElement(ns + "MontoTotalLinea", FormatearDecimal(subTotal + montoIVA, 5)));
+
+            detalleServicio.Add(lineaDetalle);
+            numLinea++;
+        }
+
+        root.Add(detalleServicio);
+
+        // 9. ResumenFactura
+        var resumenFactura = new XElement(ns + "ResumenFactura",
+            // CodigoTipoMoneda (obligatorio)
+            new XElement(ns + "CodigoTipoMoneda",
+                new XElement(ns + "CodigoMoneda", documentoREP.Moneda.ToString()),
+                new XElement(ns + "TipoCambio", FormatearDecimal(tipoCambio, 5))
+            ),
+            new XElement(ns + "TotalVenta", FormatearDecimal(totalVenta, 5)),
+            new XElement(ns + "TotalVentaNeta", FormatearDecimal(totalVenta, 5))
+        );
+
+        // TotalDesgloseImpuesto (opcional, si hay impuestos) - agrupado por CodigoTarifaIVA
+        if (totalImpuestoGlobal > 0)
+        {
+            // Agrupar impuestos por tarifa (puede haber líneas con distintas tarifas)
+            var impuestosPorTarifa = new Dictionary<string, decimal>();
+            foreach (var recibo in recibos)
+            {
+                if (documentosOriginales.TryGetValue(recibo.DocumentoOriginalId, out var dOrig)
+                    && dOrig.TotalImpuestos > 0 && dOrig.TotalVenta > 0)
+                {
+                    var tarEfectiva = Math.Round((dOrig.TotalImpuestos / dOrig.TotalVenta) * 100, 2);
+                    var codTarifa = DeterminarCodigoTarifaIVA(tarEfectiva);
+                    var baseImp = recibo.MontoPagado / (1 + tarEfectiva / 100);
+                    var montoImp = Math.Round(recibo.MontoPagado - baseImp, 5);
+                    if (!impuestosPorTarifa.ContainsKey(codTarifa))
+                        impuestosPorTarifa[codTarifa] = 0;
+                    impuestosPorTarifa[codTarifa] += montoImp;
+                }
+            }
+
+            foreach (var kvp in impuestosPorTarifa)
+            {
+                resumenFactura.Add(new XElement(ns + "TotalDesgloseImpuesto",
+                    new XElement(ns + "Codigo", "01"), // IVA
+                    new XElement(ns + "CodigoTarifaIVA", kvp.Key),
+                    new XElement(ns + "TotalMontoImpuesto", FormatearDecimal(kvp.Value, 5))
+                ));
+            }
+
+            resumenFactura.Add(new XElement(ns + "TotalImpuesto", FormatearDecimal(totalImpuestoGlobal, 5)));
+        }
+
+        // MedioPago (max 4, obligatorio)
+        foreach (var medio in mediosPago.Take(4))
+        {
+            var medioPagoElement = new XElement(ns + "MedioPago",
+                new XElement(ns + "TipoMedioPago", medio.CodigoMedioPago)
+            );
+
+            if (mediosPago.Count > 1)
+            {
+                medioPagoElement.Add(new XElement(ns + "TotalMedioPago", FormatearDecimal(medio.Monto, 5)));
+            }
+
+            resumenFactura.Add(medioPagoElement);
+        }
+
+        resumenFactura.Add(new XElement(ns + "TotalComprobante", FormatearDecimal(montoTotalPagado, 5)));
+        root.Add(resumenFactura);
+
+        // 10. InformacionReferencia (max 10, uno por cada documento original)
+        foreach (var recibo in recibos.Take(10))
+        {
+            if (!documentosOriginales.TryGetValue(recibo.DocumentoOriginalId, out var docOrig))
+                continue;
+
+            root.Add(new XElement(ns + "InformacionReferencia",
+                new XElement(ns + "TipoDocIR", recibo.TipoDocumentoOriginal),
+                new XElement(ns + "Numero", recibo.ClaveDocumentoOriginal ?? recibo.NumeroConsecutivoOriginal),
+                new XElement(ns + "FechaEmisionIR", docOrig.FechaEmision.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)),
+                new XElement(ns + "Codigo", "04"), // 04 = Referencia a otro documento
+                new XElement(ns + "Razon", $"Pago recibido por {FormatearDecimal(recibo.MontoPagado, 5)}")
+            ));
+        }
+
+        // ds:Signature se agrega después al firmar
 
         var xml = new XDocument(
             new XDeclaration("1.0", "UTF-8", "yes"),
-            new XElement(ns + "ReciboElectronicoPago",
-                // 1. Clave del REP (50 dígitos)
-                new XElement(ns + "Clave", documentoREP.Clave),
-
-                // 2. ProveedorSistemas (v4.4 - OBLIGATORIO) - REP no tiene CodigoActividad
-                GenerarProveedorSistemas(documentoREP, ns),
-
-                // 3. NumeroConsecutivo del REP
-                new XElement(ns + "NumeroConsecutivo", documentoREP.NumeroConsecutivo),
-
-                // 4. FechaEmision (ISO 8601 con timezone)
-                new XElement(ns + "FechaEmision", documentoREP.FechaEmision.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)),
-
-                // 5. Emisor (la empresa que recibe el pago)
-                GenerarEmisor(documentoREP, ns),
-
-                // 6. Receptor (el cliente que paga)
-                GenerarReceptor(documentoREP, ns),
-
-                // 7. DocumentoReferencia (enlace al documento original)
-                new XElement(ns + "DocumentoReferencia",
-                    new XElement(ns + "TipoDoc", reciboPago.TipoDocumentoOriginal),
-                    new XElement(ns + "Numero", reciboPago.NumeroConsecutivoOriginal),
-                    new XElement(ns + "FechaEmision", documentoOriginal.FechaEmision.ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture)),
-                    new XElement(ns + "Codigo", "01"), // 01 = Anula documento de referencia (para REP siempre es 01)
-                    new XElement(ns + "Razon", $"Pago recibido por {FormatearDecimal(reciboPago.MontoPagado, 5)}")
-                ),
-
-                // 8. CodigoMoneda (CRC, USD, EUR)
-                new XElement(ns + "CodigoMoneda", documentoREP.Moneda.ToString()),
-
-                // 9. TipoCambio (si no es CRC)
-                documentoREP.TipoCambio.HasValue
-                    ? new XElement(ns + "TipoCambio", FormatearDecimal(documentoREP.TipoCambio.Value, 5))
-                    : null,
-
-                // 10. TotalComprobante (monto total pagado en este REP)
-                new XElement(ns + "TotalComprobante", FormatearDecimal(reciboPago.MontoPagado, 5)),
-
-                // 11. MedioPago (puede haber varios)
-                from medio in mediosPago
-                select new XElement(ns + "MedioPago",
-                    new XElement(ns + "Medio", medio.CodigoMedioPago),
-                    new XElement(ns + "Monto", FormatearDecimal(medio.Monto, 5)),
-                    !string.IsNullOrWhiteSpace(medio.NumeroReferencia)
-                        ? new XElement(ns + "NumeroReferencia", medio.NumeroReferencia)
-                        : null
-                ),
-
-                // 12. SaldoPendiente (saldo que queda después de este pago)
-                new XElement(ns + "SaldoPendiente", FormatearDecimal(reciboPago.SaldoPendiente, 5)),
-
-                // 13. Otros (información adicional)
-                !string.IsNullOrWhiteSpace(documentoREP.Observaciones)
-                    ? new XElement(ns + "Otros",
-                        new XElement(ns + "OtroTexto", documentoREP.Observaciones)
-                    )
-                    : null
-            )
+            root
         );
 
         return xml.Declaration?.ToString() + Environment.NewLine + xml.ToString();
+    }
+
+    /// <summary>
+    /// Emisor simplificado para REP según XSD: Nombre, Identificacion, CorreoElectronico
+    /// NO incluye NombreComercial, Ubicacion, ni Telefono (no existen en REP EmisorType)
+    /// </summary>
+    private XElement GenerarEmisorREP(Documento doc, XNamespace ns)
+    {
+        var empresa = doc.Empresa!;
+
+        var emisor = new XElement(ns + "Emisor",
+            new XElement(ns + "Nombre", empresa.RazonSocial),
+            new XElement(ns + "Identificacion",
+                new XElement(ns + "Tipo", ObtenerCodigoTipoIdentificacion(empresa.TipoIdentificacion)),
+                new XElement(ns + "Numero", empresa.NumeroIdentificacion)
+            )
+        );
+
+        // CorreoElectronico es OBLIGATORIO en REP Emisor (max 4)
+        var email = empresa.Emails?.FirstOrDefault();
+        var emailAddress = email?.DireccionEmail ?? "facturacion@empresa.com";
+        emisor.Add(new XElement(ns + "CorreoElectronico", emailAddress));
+
+        return emisor;
+    }
+
+    /// <summary>
+    /// Receptor simplificado para REP según XSD: Nombre, Identificacion, CorreoElectronico(opcional)
+    /// NO incluye NombreComercial, Ubicacion, ni Telefono (no existen en REP ReceptorType)
+    /// </summary>
+    private XElement GenerarReceptorREP(Documento doc, XNamespace ns)
+    {
+        var receptor = new XElement(ns + "Receptor");
+
+        // Nombre (obligatorio, minLength=3)
+        string nombreReceptor = !string.IsNullOrWhiteSpace(doc.ReceptorNombre)
+            ? doc.ReceptorNombre
+            : !string.IsNullOrWhiteSpace(doc.Cliente?.Nombre)
+                ? doc.Cliente.Nombre
+                : "Cliente General";
+        receptor.Add(new XElement(ns + "Nombre", nombreReceptor));
+
+        // Identificacion (OBLIGATORIO en REP - debe coincidir con el receptor del documento referenciado)
+        // Prioridad: 1) Receptor* del documento, 2) Cliente entity (nunca usar "000000000" como fallback)
+        TipoIdentificacion tipoId;
+        string numId;
+
+        if (doc.ReceptorTipoIdentificacion.HasValue && !string.IsNullOrWhiteSpace(doc.ReceptorNumeroIdentificacion))
+        {
+            tipoId = doc.ReceptorTipoIdentificacion.Value;
+            numId = doc.ReceptorNumeroIdentificacion;
+        }
+        else if (doc.Cliente != null && !string.IsNullOrWhiteSpace(doc.Cliente.NumeroIdentificacion))
+        {
+            tipoId = doc.Cliente.TipoIdentificacion;
+            numId = doc.Cliente.NumeroIdentificacion;
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                "No se puede generar REP sin identificación válida del receptor. " +
+                "Verifique que el cliente tenga número de identificación.");
+        }
+
+        receptor.Add(new XElement(ns + "Identificacion",
+            new XElement(ns + "Tipo", ObtenerCodigoTipoIdentificacion(tipoId)),
+            new XElement(ns + "Numero", numId)
+        ));
+
+        // CorreoElectronico (opcional en Receptor)
+        var emailReceptorRaw = doc.ReceptorEmails ?? doc.Cliente?.EmailPrincipal;
+        if (!string.IsNullOrWhiteSpace(emailReceptorRaw))
+        {
+            // Tomar solo el primer email si hay varios separados por coma/punto-coma
+            var emailReceptor = emailReceptorRaw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).First().Trim();
+            receptor.Add(new XElement(ns + "CorreoElectronico", emailReceptor));
+        }
+
+        return receptor;
+    }
+
+    /// <summary>
+    /// Determina el código de tarifa IVA más cercano según la tarifa efectiva
+    /// </summary>
+    private static string DeterminarCodigoTarifaIVA(decimal tarifa)
+    {
+        return tarifa switch
+        {
+            0 => "01",      // 0% Exento
+            <= 0.75m => "09", // 0.5%
+            <= 1.5m => "02",  // 1%
+            <= 3m => "03",    // 2%
+            <= 6m => "04",    // 4%
+            <= 10.5m => "07", // 8%
+            _ => "08"         // 13%
+        };
     }
 
     #endregion

@@ -40,11 +40,32 @@ public class TiposWorkflowModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var tipos = JsonSerializer.Deserialize<List<TipoWorkflow>>(content, _jsonOptions);
-                return new JsonResult(tipos);
+
+                // Unwrap ActionResponse if needed
+                string dataJson;
+                using var doc = JsonDocument.Parse(content);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
-            return BadRequest("Error al obtener los tipos de workflow.");
+            return new JsonResult(new { data = Array.Empty<object>() });
         }
         catch (Exception ex)
         {

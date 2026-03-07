@@ -116,6 +116,7 @@ public class CotizacionesProveedorModel : PageModel
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
+        // Only fetch approved requisitions (APR)
         var response = await client.GetAsync($"/api/requisiciones/empresa/{empresaId}?estado=APR");
 
         if (response.IsSuccessStatusCode)
@@ -187,6 +188,10 @@ public class CotizacionesProveedorModel : PageModel
         {
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
+
+        // Set placeholder for server-generated field to pass API model validation
+        if (string.IsNullOrWhiteSpace(cotizacionData.Numero))
+            cotizacionData.Numero = "AUTO";
 
         var json = JsonSerializer.Serialize(cotizacionData, _jsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");

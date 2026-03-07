@@ -1,0 +1,212 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.BalanceGeneralModel
+@{
+    ViewData["Title"] = "Balance General";
+}
+
+<style>
+    .bg-section { border-left: 4px solid; padding: 0.75rem 1rem; margin-bottom: 1rem; }
+    .bg-section.activos { border-left-color: #0d6efd; background: #e8f0fe; }
+    .bg-section.pasivos { border-left-color: #dc3545; background: #fde8e8; }
+    .bg-section.capital { border-left-color: #198754; background: #e8f5e9; }
+    .bg-section h5 { margin-bottom: 0.5rem; }
+    .cuenta-row { display: flex; justify-content: space-between; padding: 0.2rem 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    .cuenta-row.nivel-1 { font-weight: 700; font-size: 0.95rem; }
+    .cuenta-row.nivel-2 { font-weight: 600; padding-left: 1rem; }
+    .cuenta-row.nivel-3 { padding-left: 2rem; }
+    .cuenta-row.nivel-4 { padding-left: 3rem; color: #555; }
+    .total-line { font-weight: 700; font-size: 1.1rem; border-top: 2px solid #333; padding-top: 0.5rem; margin-top: 0.5rem; display: flex; justify-content: space-between; }
+    .ecuacion-card { border: 2px solid; border-radius: 8px; padding: 1rem; text-align: center; }
+    .ecuacion-card.balanced { border-color: #198754; background: #e8f5e9; }
+    .ecuacion-card.unbalanced { border-color: #dc3545; background: #fde8e8; }
+    .ecuacion-value { font-size: 1.4rem; font-weight: 700; }
+    @@media print { .no-print { display: none !important; } .card { border: none !important; box-shadow: none !important; } }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <div>
+        <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Balance General</h4>
+        <small class="text-muted">Estado de Situación Financiera</small>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1">Fecha de Corte</label>
+                <input type="date" id="fechaCorte" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-9 text-end">
+                <button class="btn btn-primary btn-sm" onclick="generarReporte()">
+                    <i class="fas fa-play me-1"></i>Generar
+                </button>
+                <button class="btn btn-success btn-sm" onclick="exportarExcel()" id="btnExcel" disabled>
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i>Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ecuación Contable -->
+<div class="row g-2 mb-3" id="ecuacionRow" style="display:none;">
+    <div class="col-md-4">
+        <div class="ecuacion-card balanced" id="cardActivos">
+            <small class="text-muted">ACTIVOS</small>
+            <div class="ecuacion-value text-primary" id="valActivos">0.00</div>
+        </div>
+    </div>
+    <div class="col-md-1 d-flex align-items-center justify-content-center">
+        <h3 class="mb-0">=</h3>
+    </div>
+    <div class="col-md-3">
+        <div class="ecuacion-card balanced" id="cardPasivos">
+            <small class="text-muted">PASIVOS</small>
+            <div class="ecuacion-value text-danger" id="valPasivos">0.00</div>
+        </div>
+    </div>
+    <div class="col-md-1 d-flex align-items-center justify-content-center">
+        <h3 class="mb-0">+</h3>
+    </div>
+    <div class="col-md-3">
+        <div class="ecuacion-card balanced" id="cardCapital">
+            <small class="text-muted">CAPITAL + RESULTADO</small>
+            <div class="ecuacion-value text-success" id="valCapital">0.00</div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Header (for print) -->
+<div id="reportHeader" class="text-center mb-4" style="display:none;">
+    <h4 id="headerEmpresa" class="mb-1"></h4>
+    <h5 class="text-muted mb-1">Balance General</h5>
+    <p class="text-muted mb-0" id="headerFechaCorte"></p>
+    <small class="text-muted">(Cifras expresadas en Colones Costarricenses)</small>
+</div>
+
+<!-- Report Content -->
+<div id="reportContent" style="display:none;">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="bg-section activos">
+                <h5><i class="fas fa-arrow-up me-1"></i>ACTIVOS</h5>
+                <div id="listaActivos"></div>
+                <div class="total-line">
+                    <span>TOTAL ACTIVOS</span>
+                    <span id="totalActivos">0.00</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="bg-section pasivos">
+                <h5><i class="fas fa-arrow-down me-1"></i>PASIVOS</h5>
+                <div id="listaPasivos"></div>
+                <div class="total-line">
+                    <span>TOTAL PASIVOS</span>
+                    <span id="totalPasivos">0.00</span>
+                </div>
+            </div>
+            <div class="bg-section capital">
+                <h5><i class="fas fa-landmark me-1"></i>CAPITAL CONTABLE</h5>
+                <div id="listaCapital"></div>
+                <div class="total-line">
+                    <span>TOTAL CAPITAL</span>
+                    <span id="totalCapital">0.00</span>
+                </div>
+            </div>
+            <div class="bg-section" style="border-left-color: #6f42c1; background: #f3e8ff;">
+                <div class="total-line" style="border-top:none; margin-top:0; padding-top:0;">
+                    <span>Resultado del Ejercicio</span>
+                    <span id="resultadoEjercicio">0.00</span>
+                </div>
+                <div class="total-line">
+                    <span><strong>TOTAL PASIVO + CAPITAL</strong></span>
+                    <span id="totalPasivoCapital">0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="emptyState" class="text-center text-muted py-5">
+    <i class="fas fa-file-invoice-dollar fa-3x mb-3 text-muted"></i>
+    <p>Seleccione la fecha de corte y haga clic en Generar</p>
+</div>
+
+@section Scripts {
+<script>
+    const fmt = n => new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+    $(function () {
+        $('#fechaCorte').val(new Date().toISOString().split('T')[0]);
+    });
+
+    function generarReporte() {
+        const fechaCorte = $('#fechaCorte').val();
+        if (!fechaCorte) { showError('Seleccione la fecha de corte.'); return; }
+
+        $('#emptyState').hide();
+        $('#reportContent').hide();
+        $('#ecuacionRow').hide();
+
+        $.ajax({
+            url: `?handler=Generar&fechaCorte=${fechaCorte}`,
+            type: 'GET',
+            success: function (data) {
+                renderReport(data);
+                // Show report header
+                var fechaDisplay = new Date(fechaCorte + 'T00:00:00').toLocaleDateString('es-CR', {day: '2-digit', month: 'long', year: 'numeric'});
+                $('#headerEmpresa').text(data.empresa || '');
+                $('#headerFechaCorte').text('Al ' + fechaDisplay);
+                $('#reportHeader').show();
+                $('#reportContent').show();
+                $('#ecuacionRow').show();
+                $('#btnExcel').prop('disabled', false);
+            },
+            error: function (xhr) { handleAjaxError(xhr); }
+        });
+    }
+
+    function renderSection(cuentas, containerId) {
+        let html = '';
+        if (cuentas) {
+            cuentas.forEach(c => {
+                html += `<div class="cuenta-row nivel-${c.nivel}">
+                    <span>${c.codigo} ${c.nombre}</span>
+                    <span>${fmt(c.saldo)}</span>
+                </div>`;
+            });
+        }
+        $(`#${containerId}`).html(html);
+    }
+
+    function renderReport(data) {
+        renderSection(data.activos?.cuentas, 'listaActivos');
+        renderSection(data.pasivos?.cuentas, 'listaPasivos');
+        renderSection(data.capital?.cuentas, 'listaCapital');
+
+        $('#totalActivos').text(fmt(data.activos?.total || 0));
+        $('#totalPasivos').text(fmt(data.pasivos?.total || 0));
+        $('#totalCapital').text(fmt(data.capital?.total || 0));
+        $('#resultadoEjercicio').text(fmt(data.resultadoEjercicio || 0));
+        $('#totalPasivoCapital').text(fmt(data.totalPasivoMasCapital || 0));
+
+        $('#valActivos').text(fmt(data.activos?.total || 0));
+        $('#valPasivos').text(fmt(data.pasivos?.total || 0));
+        $('#valCapital').text(fmt((data.capital?.total || 0) + (data.resultadoEjercicio || 0)));
+
+        const balanced = data.estaBalanceado;
+        const cls = balanced ? 'balanced' : 'unbalanced';
+        $('#cardActivos, #cardPasivos, #cardCapital').removeClass('balanced unbalanced').addClass(cls);
+    }
+
+    function exportarExcel() {
+        window.location.href = `?handler=ExportarExcel&fechaCorte=${$('#fechaCorte').val()}`;
+    }
+</script>
+}

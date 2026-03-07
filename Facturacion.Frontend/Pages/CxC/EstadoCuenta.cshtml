@@ -16,6 +16,9 @@
             <a href="/CxC/CuentasPorCobrar" class="btn btn-secondary me-2">
                 <i class="fas fa-arrow-left me-1"></i>Volver
             </a>
+            <button class="btn btn-outline-primary me-2" onclick="mostrarModalClientes()">
+                <i class="fas fa-exchange-alt me-1"></i>Cambiar Cliente
+            </button>
             <button class="btn btn-primary me-2" onclick="imprimirEstado()">
                 <i class="fas fa-print me-1"></i>Imprimir
             </button>
@@ -179,31 +182,148 @@
     </div>
 </div>
 
+<!-- Modal Selección de Cliente -->
+<div class="modal fade" id="modalSeleccionCliente" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-users me-2"></i>Seleccionar Cliente</h5>
+                <a href="/CxC/CuentasPorCobrar" class="btn-close btn-close-white"></a>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" id="buscarCliente" class="form-control" placeholder="Buscar por nombre o identificación..." autofocus />
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm" id="tableClientes">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Identificación</th>
+                                <th>Email</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyClientes">
+                            <tr><td colspan="4" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div> Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     let table;
-    const clienteId = '@Model.ClienteId';
+    let clienteId = '@Model.ClienteId';
+    let clientesData = [];
 
     $(document).ready(function () {
         if (!clienteId || clienteId === '') {
-            showError('No se especificó un cliente');
-            setTimeout(() => window.location.href = '/CxC/CuentasPorCobrar', 2000);
+            mostrarModalClientes();
             return;
         }
 
+        cargarEstadoCuenta();
+    });
+
+    function cargarEstadoCuenta() {
         loadClienteInfo();
         loadDataTable();
         loadSummary();
         initializeDateFilters();
+    }
+
+    function mostrarModalClientes() {
+        $('#buscarCliente').val('');
+        var modal = new bootstrap.Modal(document.getElementById('modalSeleccionCliente'));
+        modal.show();
+        cargarListaClientes();
+    }
+
+    function cargarListaClientes() {
+        $.ajax({
+            url: '?handler=Clientes',
+            type: 'GET',
+            headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+            success: function (data) {
+                clientesData = Array.isArray(data) ? data : (data.data || data.result || []);
+                renderClientes(clientesData);
+            },
+            error: function () {
+                $('#tbodyClientes').html('<tr><td colspan="4" class="text-center text-danger">Error al cargar clientes</td></tr>');
+            }
+        });
+    }
+
+    function renderClientes(clientes) {
+        if (!clientes || clientes.length === 0) {
+            $('#tbodyClientes').html('<tr><td colspan="4" class="text-center text-muted">No se encontraron clientes</td></tr>');
+            return;
+        }
+        let html = '';
+        clientes.forEach(function (c) {
+            html += '<tr style="cursor:pointer" onclick="seleccionarCliente(\'' + c.id + '\')">' +
+                '<td>' + (c.nombre || '-') + '</td>' +
+                '<td>' + (c.numeroIdentificacion || '-') + '</td>' +
+                '<td>' + (c.emailPrincipal || '-') + '</td>' +
+                '<td><button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); seleccionarCliente(\'' + c.id + '\')"><i class="fas fa-check"></i></button></td>' +
+                '</tr>';
+        });
+        $('#tbodyClientes').html(html);
+    }
+
+    $('#buscarCliente').on('input', function () {
+        var term = $(this).val().toLowerCase();
+        if (!term) { renderClientes(clientesData); return; }
+        var filtered = clientesData.filter(function (c) {
+            return (c.nombre || '').toLowerCase().includes(term) ||
+                   (c.numeroIdentificacion || '').toLowerCase().includes(term) ||
+                   (c.emailPrincipal || '').toLowerCase().includes(term);
+        });
+        renderClientes(filtered);
     });
+
+    function seleccionarCliente(id) {
+        clienteId = id;
+        var modal = bootstrap.Modal.getInstance(document.getElementById('modalSeleccionCliente'));
+        if (modal) modal.hide();
+
+        // Update URL without reload
+        var url = new URL(window.location);
+        url.searchParams.set('clienteId', id);
+        window.history.replaceState({}, '', url);
+
+        // Reset UI
+        $('#tableEstadoLoader').show();
+        $('#tableEstadoContainer').hide();
+        $('#emptyStateEstado').hide();
+
+        // Destroy existing table if any
+        if (table) {
+            table.destroy();
+            table = null;
+        }
+
+        cargarEstadoCuenta();
+    }
+
+    function formatLocalDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
 
     function initializeDateFilters() {
         // Set default dates to last 6 months
         const now = new Date();
         const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
 
-        $('#filtroFechaDesde').val(sixMonthsAgo.toISOString().split('T')[0]);
-        $('#filtroFechaHasta').val(now.toISOString().split('T')[0]);
+        $('#filtroFechaDesde').val(formatLocalDate(sixMonthsAgo));
+        $('#filtroFechaHasta').val(formatLocalDate(now));
     }
 
     function loadClienteInfo() {
@@ -350,9 +470,9 @@
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
             success: function (data) {
-                $('#totalFacturado').text(formatCurrency(data.totalFacturado || 0));
-                $('#totalPagado').text(formatCurrency(data.totalPagado || 0));
-                $('#saldoPendiente').text(formatCurrency(data.saldoPendiente || 0));
+                $('#totalFacturado').html(renderMontosPorMoneda(data.facturadoPorMoneda, formatCurrency(data.totalFacturado || 0)));
+                $('#totalPagado').html(renderMontosPorMoneda(data.pagadoPorMoneda, formatCurrency(data.totalPagado || 0)));
+                $('#saldoPendiente').html(renderMontosPorMoneda(data.pendientePorMoneda, formatCurrency(data.saldoPendiente || 0)));
                 $('#facturasVencidas').text(data.facturasVencidas || 0);
             },
             error: function (xhr) {

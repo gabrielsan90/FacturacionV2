@@ -286,6 +286,15 @@
                                 `;
                             }
 
+                            // Add verify status button if message is processing
+                            if (row.estado === 'Procesando') {
+                                buttons += `
+                                    <button class="btn btn-sm btn-info" onclick="verificarEstado('${data}')" title="Verificar estado en Hacienda">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                `;
+                            }
+
                             return buttons;
                         }
                     }
@@ -394,6 +403,36 @@
 
         function downloadXMLById(id) {
             window.location.href = '?handler=Xml&id=' + id;
+        }
+
+        function verificarEstado(id) {
+            $.ajax({
+                url: '?handler=VerificarEstado&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                beforeSend: function() {
+                    Swal.fire({ title: 'Consultando Hacienda...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                },
+                success: function (response) {
+                    Swal.close();
+                    var estado = response.estado || 'Desconocido';
+                    var msg = response.mensaje || 'Consulta completada';
+                    if (estado === 'Aceptado') {
+                        Swal.fire('Aceptado', msg, 'success');
+                    } else if (estado === 'Rechazado') {
+                        Swal.fire('Rechazado', msg, 'error');
+                    } else {
+                        Swal.fire('En Proceso', msg, 'info');
+                    }
+                    table.ajax.reload();
+                },
+                error: function () {
+                    Swal.close();
+                    showError('Error al consultar estado en Hacienda');
+                }
+            });
         }
 
         function resendMessage(id) {

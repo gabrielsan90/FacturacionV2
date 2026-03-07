@@ -351,11 +351,11 @@
     }
 
     function updateSummaryCards(resumen) {
-        $('#saldoTotal').text(formatCurrency(resumen.saldoTotal || 0));
-        $('#cardTotalFacturado').text(formatCurrency(resumen.totalFacturado || 0));
-        $('#cardTotalPagado').text(formatCurrency(resumen.totalPagado || 0));
-        $('#cardSaldoPendiente').text(formatCurrency(resumen.saldoPendiente || 0));
-        $('#cardSaldoVencido').text(formatCurrency(resumen.saldoVencido || 0));
+        $('#saldoTotal').html(renderMontosPorMoneda(resumen.pendientePorMoneda, formatCurrency(resumen.saldoTotal || 0)));
+        $('#cardTotalFacturado').html(renderMontosPorMoneda(resumen.facturadoPorMoneda, formatCurrency(resumen.totalFacturado || 0)));
+        $('#cardTotalPagado').html(renderMontosPorMoneda(resumen.pagadoPorMoneda, formatCurrency(resumen.totalPagado || 0)));
+        $('#cardSaldoPendiente').html(renderMontosPorMoneda(resumen.pendientePorMoneda, formatCurrency(resumen.saldoPendiente || 0)));
+        $('#cardSaldoVencido').html(renderMontosPorMoneda(resumen.vencidoPorMoneda, formatCurrency(resumen.saldoVencido || 0)));
     }
 
     function exportarPDF() {

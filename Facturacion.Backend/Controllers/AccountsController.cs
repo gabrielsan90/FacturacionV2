@@ -143,7 +143,8 @@ public class AccountsController : ControllerBase
                 IsValid = true,
                 Empresas = empresas,
                 RequiresEmpresaSelection = empresas.Count > 1,
-                PreAuthToken = preAuthToken
+                PreAuthToken = preAuthToken,
+                IsSuperUser = roles.Contains("SuperUser")
             });
         }
         catch (Exception ex)
@@ -227,6 +228,10 @@ public class AccountsController : ControllerBase
             if (isAuthenticated)
             {
                 await _userHelper.ResetAccessFailedCountAsync(user);
+
+                user.UltimaConexion = Helpers.FechaCostaRicaHelper.Ahora;
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Successful login for user: {UserId} - {Email} with empresa: {EmpresaId}",
                     user.Id, model.Email, model.EmpresaId);

@@ -111,6 +111,69 @@ public class ResultadoREP
 }
 
 /// <summary>
+/// DTO para generar un REP que aplica pago a múltiples facturas del mismo cliente
+/// </summary>
+public class ReciboPagoMultiDTO
+{
+    /// <summary>
+    /// Lista de documentos originales y el monto aplicado a cada uno
+    /// </summary>
+    [Required(ErrorMessage = "Debe especificar al menos un documento.")]
+    [MinLength(1, ErrorMessage = "Debe especificar al menos un documento.")]
+    public List<DocumentoPagoItemDTO> Documentos { get; set; } = new List<DocumentoPagoItemDTO>();
+
+    /// <summary>
+    /// Fecha en que se recibió el pago
+    /// </summary>
+    [Required(ErrorMessage = "La fecha de pago es obligatoria.")]
+    public DateTime FechaPago { get; set; }
+
+    /// <summary>
+    /// Moneda del pago (debe coincidir con todos los documentos originales)
+    /// </summary>
+    [Required(ErrorMessage = "La moneda es obligatoria.")]
+    public TipoMoneda Moneda { get; set; }
+
+    /// <summary>
+    /// Tipo de cambio aplicado (obligatorio si no es CRC)
+    /// </summary>
+    public decimal? TipoCambio { get; set; }
+
+    /// <summary>
+    /// Observaciones adicionales
+    /// </summary>
+    [MaxLength(500)]
+    public string? Observaciones { get; set; }
+
+    /// <summary>
+    /// Medios de pago utilizados (puede ser pago mixto)
+    /// La suma debe coincidir con la suma de MontoAplicado de todos los documentos
+    /// </summary>
+    [Required(ErrorMessage = "Debe especificar al menos un medio de pago.")]
+    [MinLength(1, ErrorMessage = "Debe especificar al menos un medio de pago.")]
+    public List<MedioPagoDTO> MediosPago { get; set; } = new List<MedioPagoDTO>();
+}
+
+/// <summary>
+/// Item de pago aplicado a un documento específico dentro de un REP multi-factura
+/// </summary>
+public class DocumentoPagoItemDTO
+{
+    /// <summary>
+    /// ID del documento original que se está pagando
+    /// </summary>
+    [Required(ErrorMessage = "El documento es obligatorio.")]
+    public Guid DocumentoId { get; set; }
+
+    /// <summary>
+    /// Monto aplicado a este documento
+    /// </summary>
+    [Required(ErrorMessage = "El monto aplicado es obligatorio.")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor a cero.")]
+    public decimal MontoAplicado { get; set; }
+}
+
+/// <summary>
 /// DTO para documentos pendientes de pago (cuentas por cobrar)
 /// </summary>
 public class DocumentoPendientePagoDTO

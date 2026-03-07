@@ -275,7 +275,7 @@ public class MayoresContablesController : ControllerBase
         }
 
         // Admin tiene acceso a todas las empresas
-        if (User.IsInRole("Admin"))
+        if (User.IsInRole("SuperUser"))
         {
             return true;
         }

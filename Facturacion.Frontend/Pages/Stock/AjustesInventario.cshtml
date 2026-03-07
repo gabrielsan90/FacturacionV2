@@ -406,6 +406,50 @@
                     $(this).addClass('was-validated');
                 }
             });
+
+            // Al cambiar bodega, actualizar cant sistema de todos los productos
+            $('#Ajuste_BodegaId').on('change', function() {
+                $('#detallesBody .detalle-producto').each(function() {
+                    if ($(this).val()) {
+                        actualizarCantSistema($(this));
+                    }
+                });
+            });
+
+            // Al seleccionar producto, consultar stock en bodega
+            $(document).on('change', '.detalle-producto', function() {
+                actualizarCantSistema($(this));
+            });
+        }
+
+        function actualizarCantSistema(selectElement) {
+            const productoId = selectElement.val();
+            const bodegaId = $('#Ajuste_BodegaId').val();
+            const index = selectElement.data('index');
+            const cantSistemaInput = $(`.detalle-cant-sistema[data-index="${index}"]`);
+
+            if (!productoId || !bodegaId) {
+                cantSistemaInput.val(0);
+                calcularDiferencia(index);
+                return;
+            }
+
+            $.ajax({
+                url: `?handler=Stock&productoId=${productoId}&bodegaId=${bodegaId}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function(response) {
+                    const stock = response.stock || 0;
+                    cantSistemaInput.val(parseFloat(stock).toFixed(4));
+                    calcularDiferencia(index);
+                },
+                error: function() {
+                    cantSistemaInput.val(0);
+                    calcularDiferencia(index);
+                }
+            });
         }
 
         function loadProductos() {

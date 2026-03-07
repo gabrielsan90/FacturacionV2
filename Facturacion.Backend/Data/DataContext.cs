@@ -183,6 +183,10 @@ public class DataContext : IdentityDbContext<User>
     public DbSet<CuentaPorPagar> CuentasPorPagar { get; set; }
     public DbSet<AbonoPago> AbonosPago { get; set; }
 
+    // DbSets - Pedidos de Venta
+    public DbSet<PedidoVenta> PedidosVenta { get; set; }
+    public DbSet<PedidoVentaDetalle> PedidoVentaDetalles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -861,6 +865,10 @@ public class DataContext : IdentityDbContext<User>
         // =============================================
 
         modelBuilder.Entity<Empresa>()
+            .Property(e => e.RequiereFacturacionElectronica)
+            .HasDefaultValue(true);
+
+        modelBuilder.Entity<Empresa>()
             .Property(e => e.Activa)
             .HasDefaultValue(true);
 
@@ -1190,6 +1198,7 @@ public class DataContext : IdentityDbContext<User>
         modelBuilder.Entity<Documento>()
             .HasIndex(e => e.Clave)
             .IsUnique()
+            .HasFilter("[Clave] IS NOT NULL")
             .HasDatabaseName("IX_Documento_Clave");
 
         modelBuilder.Entity<Documento>()
@@ -1704,9 +1713,10 @@ public class DataContext : IdentityDbContext<User>
 
         // Cotizacion - Indexes
         modelBuilder.Entity<Cotizacion>()
-            .HasIndex(c => c.Numero)
+            .HasIndex(c => new { c.EmpresaId, c.Numero })
             .IsUnique()
-            .HasDatabaseName("IX_Cotizacion_Numero");
+            .HasFilter("[IsDeleted] = 0")
+            .HasDatabaseName("IX_Cotizacion_Empresa_Numero");
 
         modelBuilder.Entity<Cotizacion>()
             .HasIndex(c => c.EmpresaId)
@@ -6561,5 +6571,93 @@ public class DataContext : IdentityDbContext<User>
         modelBuilder.Entity<AbonoCobranza>()
             .Property(a => a.FechaCreacion)
             .HasDefaultValueSql("GETDATE()");
+
+        // =============================================
+        // PEDIDOS DE VENTA
+        // =============================================
+
+        // PedidoVenta - QueryFilter (soft delete)
+        modelBuilder.Entity<PedidoVenta>()
+            .HasQueryFilter(p => !p.IsDeleted);
+
+        // PedidoVenta - Indexes
+        modelBuilder.Entity<PedidoVenta>()
+            .HasIndex(p => new { p.EmpresaId, p.Numero })
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0")
+            .HasDatabaseName("IX_PedidoVenta_Empresa_Numero");
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasIndex(p => p.EmpresaId)
+            .HasDatabaseName("IX_PedidoVenta_EmpresaId");
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasIndex(p => new { p.EmpresaId, p.Estado })
+            .HasDatabaseName("IX_PedidoVenta_Empresa_Estado");
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasIndex(p => p.Fecha)
+            .HasDatabaseName("IX_PedidoVenta_Fecha");
+
+        // PedidoVenta - Relationships
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.Empresa)
+            .WithMany()
+            .HasForeignKey(p => p.EmpresaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.Cliente)
+            .WithMany()
+            .HasForeignKey(p => p.ClienteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.DocumentoGenerado)
+            .WithMany()
+            .HasForeignKey(p => p.DocumentoGeneradoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.UsuarioAprobacion)
+            .WithMany()
+            .HasForeignKey(p => p.UsuarioAprobacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.UsuarioCreacion)
+            .WithMany()
+            .HasForeignKey(p => p.UsuarioCreacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.UsuarioModificacion)
+            .WithMany()
+            .HasForeignKey(p => p.UsuarioModificacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PedidoVenta>()
+            .HasOne(p => p.UsuarioEliminacion)
+            .WithMany()
+            .HasForeignKey(p => p.UsuarioEliminacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // PedidoVentaDetalle - Relationships
+        modelBuilder.Entity<PedidoVentaDetalle>()
+            .HasOne(d => d.PedidoVenta)
+            .WithMany(p => p.Detalles)
+            .HasForeignKey(d => d.PedidoVentaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PedidoVentaDetalle>()
+            .HasOne(d => d.Producto)
+            .WithMany()
+            .HasForeignKey(d => d.ProductoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // PedidoVentaDetalle - Indexes
+        modelBuilder.Entity<PedidoVentaDetalle>()
+            .HasIndex(d => d.PedidoVentaId)
+            .HasDatabaseName("IX_PedidoVentaDetalle_PedidoVentaId");
     }
 }

@@ -73,6 +73,7 @@ public class DocumentoEnvioBackgroundService : BackgroundService
             .Include(d => d.Detalles)
                 .ThenInclude(det => det.Impuestos)
             .Where(d => !d.IsDeleted &&
+                       d.Empresa!.RequiereFacturacionElectronica &&
                        ((d.Estado == EstadoDocumento.Pendiente && d.FechaEnvioHacienda == null) ||
                         (d.Estado == EstadoDocumento.Error && d.FechaEnvioHacienda < tiempoMinimoReintento)))
             .OrderBy(d => d.FechaEmision) // Más antiguos primero
@@ -250,6 +251,17 @@ public class DocumentoEnvioBackgroundService : BackgroundService
 
                                 _logger.LogInformation("Documento {Clave} cambió de {EstadoAnterior} a Aceptado",
                                     documento.Clave, estadoAnterior);
+
+                                // Procesar integración post-aceptación (inventario + contabilidad + CxC)
+                                try
+                                {
+                                    await documentoService.ProcesarPostAceptacionAsync(documento.Id);
+                                    _logger.LogInformation("Integración post-aceptación completada para documento {Clave}", documento.Clave);
+                                }
+                                catch (Exception exIntegracion)
+                                {
+                                    _logger.LogError(exIntegracion, "Error en integración post-aceptación para documento {Clave}. El documento ya fue aceptado.", documento.Clave);
+                                }
 
                                 await CrearNotificacionEstadoAsync(notificacionService, documento,
                                     TipoNotificacion.DocumentoAceptado, "success", "fa-check-circle");

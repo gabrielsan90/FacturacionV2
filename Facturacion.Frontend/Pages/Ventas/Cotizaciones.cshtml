@@ -130,13 +130,52 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Condiciones de Pago</label>
-                            <input type="text" class="form-control" id="Cotizacion_CondicionesPago" maxlength="100" placeholder="Ej: Contado, 30 días, etc." />
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Condici&oacute;n Venta <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cotizacion_CondicionVenta" required>
+                                <option value="01" selected>01 - Contado</option>
+                                <option value="02">02 - Cr&eacute;dito</option>
+                                <option value="03">03 - Consignaci&oacute;n</option>
+                                <option value="04">04 - Apartado</option>
+                                <option value="05">05 - Arrendamiento con opci&oacute;n de compra</option>
+                                <option value="06">06 - Arrendamiento en funci&oacute;n financiera</option>
+                                <option value="99">99 - Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Medio Pago <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cotizacion_MedioPago" required>
+                                <option value="01" selected>01 - Efectivo</option>
+                                <option value="02">02 - Tarjeta</option>
+                                <option value="03">03 - Cheque</option>
+                                <option value="04">04 - Transferencia / dep&oacute;sito bancario</option>
+                                <option value="05">05 - Recaudado por terceros</option>
+                                <option value="06">06 - SINPE M&oacute;vil</option>
+                                <option value="99">99 - Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3" id="divPlazoCreditoDias" style="display: none;">
+                            <label class="form-label">Plazo Cr&eacute;dito (d&iacute;as)</label>
+                            <input type="number" class="form-control" id="Cotizacion_PlazoCreditoDias" min="1" placeholder="30" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Moneda <span class="text-danger">*</span></label>
+                            <select class="form-select" id="Cotizacion_Moneda" required>
+                                <option value="CRC" selected>CRC - Col&oacute;n</option>
+                                <option value="USD">USD - D&oacute;lar</option>
+                                <option value="EUR">EUR - Euro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3" id="divTipoCambio" style="display: none;">
+                            <label class="form-label">Tipo de Cambio <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="Cotizacion_TipoCambio" step="0.01" min="0.01" value="1.00" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Notas</label>
-                            <textarea class="form-control" id="Cotizacion_Notas" rows="2" maxlength="500" placeholder="Observaciones adicionales"></textarea>
+                            <textarea class="form-control" id="Cotizacion_Notas" rows="1" maxlength="500" placeholder="Observaciones adicionales"></textarea>
                         </div>
                     </div>
 
@@ -154,12 +193,13 @@
                         <table class="table table-sm table-bordered" id="tableDetalles">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 35%;">Producto</th>
-                                    <th style="width: 12%;">Cantidad</th>
-                                    <th style="width: 15%;">Precio Unit.</th>
-                                    <th style="width: 12%;">Descuento %</th>
-                                    <th style="width: 15%;">Subtotal</th>
-                                    <th style="width: 11%;">Acciones</th>
+                                    <th style="width: 28%;">Producto</th>
+                                    <th style="width: 10%;">Cantidad</th>
+                                    <th style="width: 13%;">Precio Unit.</th>
+                                    <th style="width: 10%;">Desc %</th>
+                                    <th style="width: 14%;">IVA</th>
+                                    <th style="width: 13%;">Subtotal</th>
+                                    <th style="width: 12%;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="detallesBody">
@@ -185,19 +225,19 @@
                             <table class="table table-sm">
                                 <tr>
                                     <td class="text-end"><strong>Subtotal:</strong></td>
-                                    <td class="text-end" style="width: 150px;" id="displaySubtotal">₡0.00</td>
+                                    <td class="text-end" style="width: 150px;" id="displaySubtotal">&#x20A1;0.00</td>
                                 </tr>
                                 <tr>
                                     <td class="text-end"><strong>Descuento Total:</strong></td>
-                                    <td class="text-end" id="displayDescuento">₡0.00</td>
+                                    <td class="text-end" id="displayDescuento">&#x20A1;0.00</td>
                                 </tr>
                                 <tr>
-                                    <td class="text-end"><strong>Impuestos (13%):</strong></td>
-                                    <td class="text-end" id="displayImpuestos">₡0.00</td>
+                                    <td class="text-end"><strong>Impuestos:</strong></td>
+                                    <td class="text-end" id="displayImpuestos">&#x20A1;0.00</td>
                                 </tr>
                                 <tr class="table-primary">
                                     <td class="text-end"><strong>TOTAL:</strong></td>
-                                    <td class="text-end"><strong id="displayTotal">₡0.00</strong></td>
+                                    <td class="text-end"><strong id="displayTotal">&#x20A1;0.00</strong></td>
                                 </tr>
                             </table>
                         </div>
@@ -245,16 +285,45 @@
         loadClientes();
         loadProductos();
         setDefaultDates();
+        setupHeaderFieldHandlers();
     });
 
-    function setDefaultDates() {
-        const today = new Date().toISOString().split('T')[0];
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        const vencimiento = nextMonth.toISOString().split('T')[0];
+    function formatLocalDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
 
-        $('#Cotizacion_Fecha').val(today);
-        $('#Cotizacion_FechaVencimiento').val(vencimiento);
+    function setDefaultDates() {
+        const today = new Date();
+        const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+        $('#Cotizacion_Fecha').val(formatLocalDate(today));
+        $('#Cotizacion_FechaVencimiento').val(formatLocalDate(nextMonth));
+    }
+
+    function simboloMoneda() {
+        const m = $('#Cotizacion_Moneda').val();
+        return m === 'USD' ? '$' : m === 'EUR' ? '€' : '₡';
+    }
+
+    function setupHeaderFieldHandlers() {
+        // CondicionVenta change: show/hide PlazoCreditoDias
+        $('#Cotizacion_CondicionVenta').on('change', function () {
+            const isCredito = $(this).val() === '02';
+            $('#divPlazoCreditoDias').toggle(isCredito);
+            if (!isCredito) $('#Cotizacion_PlazoCreditoDias').val('');
+        });
+
+        // Moneda change: show/hide TipoCambio, recalculate currency symbols
+        $('#Cotizacion_Moneda').on('change', function () {
+            const moneda = $(this).val();
+            const isCRC = moneda === 'CRC';
+            $('#divTipoCambio').toggle(!isCRC);
+            if (isCRC) $('#Cotizacion_TipoCambio').val('1.00');
+            calcularTotales();
+        });
     }
 
     function loadDataTable() {
@@ -272,10 +341,10 @@
             columns: [
                 { data: 'numero' },
                 {
-                    data: 'fecha',
+                    data: 'fechaEmision',
                     render: function (data) {
                         if (!data) return '';
-                        return new Date(data).toLocaleDateString('es-CR');
+                        return new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                     }
                 },
                 {
@@ -296,13 +365,15 @@
                         if (diferencia < 0) clase = 'text-danger';
                         else if (diferencia <= 7) clase = 'text-warning';
 
-                        return `<span class="${clase}">${fecha.toLocaleDateString('es-CR')}</span>`;
+                        return `<span class="${clase}">${fecha.toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'})}</span>`;
                     }
                 },
                 {
                     data: 'total',
-                    render: function (data) {
-                        return '₡' + parseFloat(data || 0).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    render: function (data, type, row) {
+                        var m = (row.moneda || '').toString();
+                        var sm = (m === 'USD' || m === '2') ? '$' : (m === 'EUR' || m === '3') ? '€' : '₡';
+                        return sm + parseFloat(data || 0).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
                 },
                 {
@@ -314,7 +385,13 @@
                             'APR': { text: 'Aprobada', class: 'success' },
                             'REC': { text: 'Rechazada', class: 'danger' },
                             'CON': { text: 'Convertida', class: 'primary' },
-                            'VEN': { text: 'Vencida', class: 'dark' }
+                            'VEN': { text: 'Vencida', class: 'dark' },
+                            'Borrador': { text: 'Borrador', class: 'secondary' },
+                            'Enviada': { text: 'Enviada', class: 'info' },
+                            'Aprobada': { text: 'Aprobada', class: 'success' },
+                            'Rechazada': { text: 'Rechazada', class: 'danger' },
+                            'Convertida': { text: 'Convertida', class: 'primary' },
+                            'Vencida': { text: 'Vencida', class: 'dark' }
                         };
                         const estado = estados[data] || { text: data, class: 'secondary' };
                         return `<span class="badge bg-${estado.class}">${estado.text}</span>`;
@@ -328,22 +405,35 @@
                             <i class="fa fa-eye"></i>
                         </button> `;
 
+                        buttons += `<button class="btn btn-sm btn-outline-danger" onclick="verPDF('${row.id}')" title="Ver PDF">
+                            <i class="fa fa-file-pdf"></i>
+                        </button> `;
+                        buttons += `<button class="btn btn-sm btn-secondary" onclick="descargarPDF('${row.id}')" title="Descargar PDF">
+                            <i class="fa fa-download"></i>
+                        </button> `;
+
+                        const est = row.estado;
+                        const esBorrador = est === 'BOR' || est === 'Borrador';
+                        const esEnviada = est === 'ENV' || est === 'Enviada';
+                        const esAprobada = est === 'APR' || est === 'Aprobada';
+                        const esRechazada = est === 'REC' || est === 'Rechazada';
+
                         // Edit button - only for drafts
-                        if (row.estado === 'BOR') {
+                        if (esBorrador) {
                             buttons += `<button class="btn btn-sm btn-warning" onclick="edit('${row.id}')" title="Editar">
                                 <i class="fa fa-edit"></i>
                             </button> `;
                         }
 
                         // Send button - for drafts
-                        if (row.estado === 'BOR') {
+                        if (esBorrador) {
                             buttons += `<button class="btn btn-sm btn-primary" onclick="enviar('${row.id}')" title="Enviar">
                                 <i class="fa fa-paper-plane"></i>
                             </button> `;
                         }
 
                         // Approve/Reject buttons - for sent quotations
-                        if (row.estado === 'ENV') {
+                        if (esEnviada) {
                             buttons += `<button class="btn btn-sm btn-success" onclick="aprobar('${row.id}')" title="Aprobar">
                                 <i class="fa fa-check"></i>
                             </button> `;
@@ -353,14 +443,14 @@
                         }
 
                         // Convert button - for approved quotations
-                        if (row.estado === 'APR') {
+                        if (esAprobada) {
                             buttons += `<button class="btn btn-sm btn-success" onclick="convertir('${row.id}')" title="Convertir a Factura">
                                 <i class="fa fa-file-invoice"></i>
                             </button> `;
                         }
 
                         // Delete button - only for drafts and rejected
-                        if (row.estado === 'BOR' || row.estado === 'REC') {
+                        if (esBorrador || esRechazada) {
                             buttons += `<button class="btn btn-sm btn-danger" onclick="deleteRecord('${row.id}')" title="Eliminar">
                                 <i class="fa fa-trash"></i>
                             </button>`;
@@ -448,9 +538,43 @@
         $('#detallesBody').empty();
         detalleCounter = 0;
         toggleEmptyDetalles();
+
+        // Reset new header fields
+        $('#Cotizacion_CondicionVenta').val('01');
+        $('#Cotizacion_MedioPago').val('01');
+        $('#Cotizacion_Moneda').val('CRC').trigger('change');
+        $('#Cotizacion_TipoCambio').val('1.00');
+        $('#Cotizacion_PlazoCreditoDias').val('');
+        $('#divPlazoCreditoDias').hide();
+        $('#divTipoCambio').hide();
+
         calcularTotales();
         setDefaultDates();
         $('#modalCotizacion').modal('show');
+    }
+
+    function verPDF(id) {
+        const pdfUrl = `?handler=Pdf&id=${id}&download=false`;
+        const newWindow = window.open(pdfUrl, '_blank');
+        if (!newWindow) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Ventana bloqueada',
+                text: 'El navegador bloqueó la ventana emergente. Habilite ventanas emergentes para este sitio.',
+                confirmButtonText: 'Entendido'
+            });
+        }
+    }
+
+    function descargarPDF(id) {
+        Swal.fire({
+            title: 'Generando PDF...',
+            text: 'Por favor espere mientras se genera la cotización.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        window.location.href = `?handler=Pdf&id=${id}&download=true`;
+        setTimeout(() => Swal.close(), 2000);
     }
 
     function ver(id) {
@@ -471,16 +595,23 @@
     }
 
     function mostrarCotizacion(data) {
+        const condVentaMap = { '01': 'Contado', '02': 'Crédito', '03': 'Consignación', '04': 'Apartado', '05': 'Arrendamiento opción compra', '06': 'Arrendamiento financiero', '99': 'Otros' };
+        const medioPagoMap = { '01': 'Efectivo', '02': 'Tarjeta', '03': 'Cheque', '04': 'Transferencia', '05': 'Recaudado terceros', '06': 'SINPE Móvil', '99': 'Otros' };
+        const moneda = data.moneda || 'CRC';
+        const sm = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : '₡';
+
         let html = `
             <div class="row mb-3">
                 <div class="col-md-6">
                     <h6>Número: <strong>${data.numero || 'N/A'}</strong></h6>
                     <p><strong>Cliente:</strong> ${data.cliente?.nombre || 'N/A'}</p>
-                    <p><strong>Fecha:</strong> ${data.fecha ? new Date(data.fecha).toLocaleDateString('es-CR') : 'N/A'}</p>
-                    <p><strong>Vencimiento:</strong> ${data.fechaVencimiento ? new Date(data.fechaVencimiento).toLocaleDateString('es-CR') : 'N/A'}</p>
+                    <p><strong>Fecha:</strong> ${data.fechaEmision ? new Date(data.fechaEmision).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : 'N/A'}</p>
+                    <p><strong>Vencimiento:</strong> ${data.fechaVencimiento ? new Date(data.fechaVencimiento).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : 'N/A'}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Condiciones de Pago:</strong> ${data.condicionesPago || 'N/A'}</p>
+                    <p><strong>Condición Venta:</strong> ${data.condicionVenta ? data.condicionVenta + ' - ' + (condVentaMap[data.condicionVenta] || '') : 'N/A'}</p>
+                    <p><strong>Medio Pago:</strong> ${data.medioPago ? data.medioPago + ' - ' + (medioPagoMap[data.medioPago] || '') : 'N/A'}</p>
+                    <p><strong>Moneda:</strong> ${moneda}${data.tipoCambio && moneda !== 'CRC' ? ' (TC: ' + data.tipoCambio + ')' : ''}</p>
                     <p><strong>Notas:</strong> ${data.notas || 'N/A'}</p>
                     <p><strong>Estado:</strong> <span class="badge bg-info">${data.estadoDescripcion || data.estado}</span></p>
                 </div>
@@ -493,7 +624,8 @@
                         <th>Producto</th>
                         <th>Cantidad</th>
                         <th>Precio Unit.</th>
-                        <th>Descuento</th>
+                        <th>Desc %</th>
+                        <th>IVA</th>
                         <th>Subtotal</th>
                     </tr>
                 </thead>
@@ -501,22 +633,24 @@
 
         if (data.detalles && data.detalles.length > 0) {
             data.detalles.forEach(function (detalle) {
+                const tarifa = detalle.tarifaIVA != null ? detalle.tarifaIVA : 13;
                 html += `<tr>
-                    <td>${detalle.producto?.nombre || 'N/A'}</td>
+                    <td>${detalle.producto?.nombre || detalle.descripcion || 'N/A'}</td>
                     <td>${detalle.cantidad}</td>
-                    <td>₡${parseFloat(detalle.precioUnitario || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</td>
-                    <td>${detalle.descuento || 0}%</td>
-                    <td>₡${parseFloat(detalle.subtotal || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</td>
+                    <td>${sm}${parseFloat(detalle.precioUnitario || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</td>
+                    <td>${detalle.porcentajeDescuento || detalle.descuento || 0}%</td>
+                    <td>${tarifa}%</td>
+                    <td>${sm}${parseFloat(detalle.totalLinea || detalle.subtotal || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</td>
                 </tr>`;
             });
         } else {
-            html += '<tr><td colspan="5" class="text-center">No hay detalles</td></tr>';
+            html += '<tr><td colspan="6" class="text-center">No hay detalles</td></tr>';
         }
 
         html += `</tbody>
             </table>
             <div class="text-end mt-3">
-                <h5>Total: <strong>₡${parseFloat(data.total || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</strong></h5>
+                <h5>Total: <strong>${sm}${parseFloat(data.total || 0).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</strong></h5>
             </div>`;
 
         $('#verCotizacionBody').html(html);
@@ -536,9 +670,14 @@
                     $('#Cotizacion_Id').val(data.id);
                     $('#Cotizacion_EmpresaId').val(data.empresaId);
                     $('#Cotizacion_ClienteId').val(data.clienteId);
-                    $('#Cotizacion_Fecha').val(data.fecha ? data.fecha.split('T')[0] : '');
+                    $('#Cotizacion_Fecha').val(data.fechaEmision ? data.fechaEmision.split('T')[0] : '');
                     $('#Cotizacion_FechaVencimiento').val(data.fechaVencimiento ? data.fechaVencimiento.split('T')[0] : '');
-                    $('#Cotizacion_CondicionesPago').val(data.condicionesPago || '');
+                    $('#Cotizacion_CondicionVenta').val(data.condicionVenta || '01');
+                    $('#Cotizacion_MedioPago').val(data.medioPago || '01');
+                    $('#Cotizacion_Moneda').val(data.moneda || 'CRC').trigger('change');
+                    $('#Cotizacion_TipoCambio').val(data.tipoCambio || 1);
+                    $('#Cotizacion_PlazoCreditoDias').val(data.plazoCreditoDias || '');
+                    $('#Cotizacion_CondicionVenta').trigger('change'); // Show/hide plazo
                     $('#Cotizacion_Notas').val(data.notas || '');
 
                     // Load details
@@ -570,7 +709,7 @@
                 <td>
                     <select class="form-select form-select-sm producto-select" data-id="${id}" required>
                         <option value="">Seleccione...</option>
-                        ${productosData.map(p => `<option value="${p.id}" data-precio="${p.precioVenta || 0}">${p.nombre}</option>`).join('')}
+                        ${productosData.map(p => `<option value="${p.id}" data-precio="${p.precioVenta || 0}" data-iva="${p.codigoTarifaIVA || '08'}" data-tarifa="${p.tarifaIVA != null ? p.tarifaIVA : 13}">${p.nombre}</option>`).join('')}
                     </select>
                 </td>
                 <td>
@@ -586,8 +725,18 @@
                            min="0" max="100" step="0.01" value="0" />
                 </td>
                 <td>
+                    <select class="form-select form-select-sm iva-select" data-id="${id}">
+                        <option value="01" data-tarifa="0">No sujeto</option>
+                        <option value="02" data-tarifa="0">Exento</option>
+                        <option value="03" data-tarifa="1">1%</option>
+                        <option value="04" data-tarifa="2">2%</option>
+                        <option value="05" data-tarifa="4">4%</option>
+                        <option value="08" data-tarifa="13" selected>13%</option>
+                    </select>
+                </td>
+                <td>
                     <input type="text" class="form-control form-control-sm subtotal-display" data-id="${id}"
-                           readonly value="₡0.00" />
+                           readonly value="${simboloMoneda()}0.00" />
                 </td>
                 <td>
                     <button type="button" class="btn btn-sm btn-danger" onclick="eliminarDetalle(${id})">
@@ -602,8 +751,15 @@
 
         // Attach event handlers
         $(`select.producto-select[data-id="${id}"]`).on('change', function () {
-            const precio = $(this).find(':selected').data('precio') || 0;
+            const sel = $(this).find(':selected');
+            const precio = sel.data('precio') || 0;
             $(`input.precio-input[data-id="${id}"]`).val(precio);
+            // Set IVA from product data
+            const ivaCode = sel.data('iva') || '08';
+            const ivaTarifa = sel.data('tarifa');
+            if (ivaCode) {
+                $(`select.iva-select[data-id="${id}"]`).val(ivaCode);
+            }
             calcularSubtotal(id);
         });
 
@@ -611,16 +767,21 @@
             .on('input', function () {
                 calcularSubtotal(id);
             });
+
+        $(`select.iva-select[data-id="${id}"]`).on('change', function () {
+            calcularSubtotal(id);
+        });
     }
 
     function agregarDetalleConDatos(detalle) {
         const id = detalleCounter++;
+        const ivaCode = detalle.codigoTarifaIVA || '08';
         const html = `
             <tr id="detalle_${id}">
                 <td>
                     <select class="form-select form-select-sm producto-select" data-id="${id}" required>
                         <option value="">Seleccione...</option>
-                        ${productosData.map(p => `<option value="${p.id}" data-precio="${p.precioVenta || 0}" ${p.id === detalle.productoId ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                        ${productosData.map(p => `<option value="${p.id}" data-precio="${p.precioVenta || 0}" data-iva="${p.codigoTarifaIVA || '08'}" data-tarifa="${p.tarifaIVA != null ? p.tarifaIVA : 13}" ${p.id === detalle.productoId ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                     </select>
                 </td>
                 <td>
@@ -633,11 +794,21 @@
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm descuento-input" data-id="${id}"
-                           min="0" max="100" step="0.01" value="${detalle.descuento || 0}" />
+                           min="0" max="100" step="0.01" value="${detalle.porcentajeDescuento || detalle.descuento || 0}" />
+                </td>
+                <td>
+                    <select class="form-select form-select-sm iva-select" data-id="${id}">
+                        <option value="01" data-tarifa="0" ${ivaCode === '01' ? 'selected' : ''}>No sujeto</option>
+                        <option value="02" data-tarifa="0" ${ivaCode === '02' ? 'selected' : ''}>Exento</option>
+                        <option value="03" data-tarifa="1" ${ivaCode === '03' ? 'selected' : ''}>1%</option>
+                        <option value="04" data-tarifa="2" ${ivaCode === '04' ? 'selected' : ''}>2%</option>
+                        <option value="05" data-tarifa="4" ${ivaCode === '05' ? 'selected' : ''}>4%</option>
+                        <option value="08" data-tarifa="13" ${ivaCode === '08' || !ivaCode ? 'selected' : ''}>13%</option>
+                    </select>
                 </td>
                 <td>
                     <input type="text" class="form-control form-control-sm subtotal-display" data-id="${id}"
-                           readonly value="₡0.00" />
+                           readonly value="${simboloMoneda()}0.00" />
                 </td>
                 <td>
                     <button type="button" class="btn btn-sm btn-danger" onclick="eliminarDetalle(${id})">
@@ -651,8 +822,13 @@
 
         // Attach event handlers
         $(`select.producto-select[data-id="${id}"]`).on('change', function () {
-            const precio = $(this).find(':selected').data('precio') || 0;
+            const sel = $(this).find(':selected');
+            const precio = sel.data('precio') || 0;
             $(`input.precio-input[data-id="${id}"]`).val(precio);
+            const ivaCode = sel.data('iva') || '08';
+            if (ivaCode) {
+                $(`select.iva-select[data-id="${id}"]`).val(ivaCode);
+            }
             calcularSubtotal(id);
         });
 
@@ -660,6 +836,10 @@
             .on('input', function () {
                 calcularSubtotal(id);
             });
+
+        $(`select.iva-select[data-id="${id}"]`).on('change', function () {
+            calcularSubtotal(id);
+        });
 
         calcularSubtotal(id);
     }
@@ -684,12 +864,15 @@
         const cantidad = parseFloat($(`input.cantidad-input[data-id="${id}"]`).val()) || 0;
         const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
         const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
+        const tarifaIVA = parseFloat($(`select.iva-select[data-id="${id}"] :selected`).data('tarifa')) || 0;
 
         const subtotalBruto = cantidad * precio;
         const montoDescuento = subtotalBruto * (descuento / 100);
-        const subtotal = subtotalBruto - montoDescuento;
+        const subtotalNeto = subtotalBruto - montoDescuento;
+        const montoIVA = subtotalNeto * (tarifaIVA / 100);
+        const totalLinea = subtotalNeto + montoIVA;
 
-        $(`input.subtotal-display[data-id="${id}"]`).val('₡' + subtotal.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        $(`input.subtotal-display[data-id="${id}"]`).val(simboloMoneda() + totalLinea.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
         calcularTotales();
     }
@@ -697,28 +880,32 @@
     function calcularTotales() {
         let subtotal = 0;
         let descuentoTotal = 0;
+        let impuestosTotal = 0;
 
         $('#detallesBody tr').each(function () {
             const id = $(this).find('.cantidad-input').data('id');
             const cantidad = parseFloat($(`input.cantidad-input[data-id="${id}"]`).val()) || 0;
             const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
             const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
+            const tarifaIVA = parseFloat($(`select.iva-select[data-id="${id}"] :selected`).data('tarifa')) || 0;
 
             const subtotalBruto = cantidad * precio;
             const montoDescuento = subtotalBruto * (descuento / 100);
+            const subtotalNeto = subtotalBruto - montoDescuento;
+            const montoIVA = subtotalNeto * (tarifaIVA / 100);
 
             subtotal += subtotalBruto;
             descuentoTotal += montoDescuento;
+            impuestosTotal += montoIVA;
         });
 
-        const subtotalNeto = subtotal - descuentoTotal;
-        const impuestos = subtotalNeto * 0.13; // 13% IVA
-        const total = subtotalNeto + impuestos;
+        const total = subtotal - descuentoTotal + impuestosTotal;
+        const sm = simboloMoneda();
 
-        $('#displaySubtotal').text('₡' + subtotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
-        $('#displayDescuento').text('₡' + descuentoTotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
-        $('#displayImpuestos').text('₡' + impuestos.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
-        $('#displayTotal').text('₡' + total.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displaySubtotal').text(sm + subtotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displayDescuento').text(sm + descuentoTotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displayImpuestos').text(sm + impuestosTotal.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
+        $('#displayTotal').text(sm + total.toLocaleString('es-CR', { minimumFractionDigits: 2 }));
     }
 
     function save() {
@@ -747,6 +934,10 @@
             const precio = parseFloat($(`input.precio-input[data-id="${id}"]`).val()) || 0;
             const descuento = parseFloat($(`input.descuento-input[data-id="${id}"]`).val()) || 0;
 
+            const ivaSelect = $(`select.iva-select[data-id="${id}"]`);
+            const codigoTarifaIVA = ivaSelect.val();
+            const tarifaIVA = parseFloat(ivaSelect.find(':selected').data('tarifa')) || 0;
+
             if (!productoId) {
                 Swal.fire('Error', 'Todos los productos deben estar seleccionados', 'error');
                 hasError = true;
@@ -757,7 +948,7 @@
             const montoTotal = cantidad * precio;
             const montoDescuento = montoTotal * (descuento / 100);
             const subTotal = montoTotal - montoDescuento;
-            const montoIVA = subTotal * 0.13;
+            const montoIVA = subTotal * (tarifaIVA / 100);
             const totalLinea = subTotal + montoIVA;
 
             detalles.push({
@@ -770,8 +961,8 @@
                 montoDescuento: montoDescuento,
                 porcentajeDescuento: descuento,
                 subTotal: subTotal,
-                codigoTarifaIVA: '07',
-                tarifaIVA: 13,
+                codigoTarifaIVA: codigoTarifaIVA,
+                tarifaIVA: tarifaIVA,
                 montoIVA: montoIVA,
                 totalImpuestos: montoIVA,
                 totalLinea: totalLinea
@@ -787,13 +978,13 @@
         // Calculate totals
         let subtotal = 0;
         let descuentoTotal = 0;
+        let impuestosTotal = 0;
         detalles.forEach(d => {
             subtotal += d.montoTotal;
             descuentoTotal += d.montoDescuento;
+            impuestosTotal += d.montoIVA;
         });
-        const subtotalNeto = subtotal - descuentoTotal;
-        const impuestos = subtotalNeto * 0.13;
-        const total = subtotalNeto + impuestos;
+        const total = subtotal - descuentoTotal + impuestosTotal;
 
         const cotizacion = {
             id: $('#Cotizacion_Id').val(),
@@ -801,11 +992,15 @@
             clienteId: $('#Cotizacion_ClienteId').val(),
             fecha: $('#Cotizacion_Fecha').val(),
             fechaVencimiento: $('#Cotizacion_FechaVencimiento').val(),
-            condicionesPago: $('#Cotizacion_CondicionesPago').val(),
+            condicionVenta: $('#Cotizacion_CondicionVenta').val(),
+            medioPago: $('#Cotizacion_MedioPago').val(),
+            moneda: $('#Cotizacion_Moneda').val(),
+            tipoCambio: parseFloat($('#Cotizacion_TipoCambio').val()) || 1,
+            plazoCreditoDias: parseInt($('#Cotizacion_PlazoCreditoDias').val()) || null,
             notas: $('#Cotizacion_Notas').val(),
             subtotal: subtotal,
             descuentoTotal: descuentoTotal,
-            impuestos: impuestos,
+            impuestos: impuestosTotal,
             total: total,
             estado: 'BOR', // Always save as draft
             detalles: detalles

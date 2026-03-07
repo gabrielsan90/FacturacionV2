@@ -161,12 +161,20 @@
             headers: {
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
-            success: function(data) {
+            success: function(response) {
+                const data = response.data || response.result || response || [];
                 const select = $('#sucursalId');
                 select.empty().append('<option value="">Seleccione una sucursal...</option>');
-                data.forEach(suc => {
-                    select.append(`<option value="${suc.id}">${suc.nombre}</option>`);
-                });
+                if (Array.isArray(data)) {
+                    data.forEach(suc => {
+                        const id = suc.id || suc.Id;
+                        const nombre = suc.nombre || suc.Nombre || '';
+                        select.append(`<option value="${id}">${nombre}</option>`);
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading sucursales:', xhr);
             }
         });
     }
@@ -178,12 +186,20 @@
             headers: {
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
-            success: function(data) {
+            success: function(response) {
+                const data = response.data || response.result || response || [];
                 const select = $('#filterCategoria');
                 select.empty().append('<option value="">Todas las categorías</option>');
-                data.forEach(cat => {
-                    select.append(`<option value="${cat.id}">${cat.nombre}</option>`);
-                });
+                if (Array.isArray(data)) {
+                    data.forEach(cat => {
+                        const id = cat.id || cat.Id;
+                        const nombre = cat.nombre || cat.Nombre || '';
+                        select.append(`<option value="${id}">${nombre}</option>`);
+                    });
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading categorias:', xhr);
             }
         });
     }

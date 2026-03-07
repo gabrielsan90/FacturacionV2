@@ -223,9 +223,9 @@
                 const promedioVenta = data.promedioVenta ?? data.PromedioVenta ?? 0;
                 const clientesUnicos = data.clientesUnicos ?? data.ClientesUnicos ?? 0;
 
-                $('#totalVentas').text(formatCurrency(totalVentas));
+                $('#totalVentas').html(renderMontosPorMoneda(data.ventasPorMoneda, formatCurrency(totalVentas)));
                 $('#totalDocumentos').text(totalDocumentos);
-                $('#promedioVenta').text(formatCurrency(promedioVenta));
+                $('#promedioVenta').html(renderMontosPorMoneda(data.promedioPorMoneda, formatCurrency(promedioVenta)));
                 $('#clientesUnicos').text(clientesUnicos);
             },
             error: function(xhr, status, error) {
@@ -433,6 +433,19 @@
     }
 
     function filtrar() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+
+        if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Fechas inválidas',
+                text: 'La fecha de inicio debe ser anterior a la fecha de fin.',
+                confirmButtonColor: '#0052cc'
+            });
+            return;
+        }
+
         cargarReporte();
     }
 

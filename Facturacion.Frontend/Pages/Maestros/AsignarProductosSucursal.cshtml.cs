@@ -46,23 +46,39 @@ public class AsignarProductosSucursalModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrWhiteSpace(empresaId))
             {
-                return new JsonResult(new List<Sucursal>());
+                return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
             }
 
             var response = await client.GetAsync($"/api/Sucursales/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<List<Sucursal>>(_jsonOptions);
-                return new JsonResult(data ?? new List<Sucursal>());
+                var content = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult { Content = dataJson, ContentType = "application/json", StatusCode = 200 };
             }
 
-            return new JsonResult(new List<Sucursal>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading sucursales");
-            return new JsonResult(new List<Sucursal>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -81,23 +97,39 @@ public class AsignarProductosSucursalModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrWhiteSpace(empresaId))
             {
-                return new JsonResult(new List<Categoria>());
+                return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
             }
 
             var response = await client.GetAsync($"/api/Categorias/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
-                var categorias = await response.Content.ReadFromJsonAsync<List<Categoria>>(_jsonOptions);
-                return new JsonResult(categorias ?? new List<Categoria>());
+                var content = await response.Content.ReadAsStringAsync();
+
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult { Content = dataJson, ContentType = "application/json", StatusCode = 200 };
             }
 
-            return new JsonResult(new List<Categoria>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading categorias");
-            return new JsonResult(new List<Categoria>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
     }
 

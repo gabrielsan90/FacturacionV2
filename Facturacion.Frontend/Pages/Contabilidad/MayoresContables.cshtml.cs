@@ -39,7 +39,7 @@ public class MayoresContablesModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/cuentascontables/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/cuentascontables/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -80,7 +80,7 @@ public class MayoresContablesModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/periodoscontables/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/periodoscontables/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -89,11 +89,11 @@ public class MayoresContablesModel : PageModel
 
                 // Filtrar solo periodos activos
                 var periodosFiltrados = periodos?
-                    .Where(p => p.Activo)
+                    .Where(p => p.EstaAbierto)
                     .Select(p => new
                     {
                         id = p.Id,
-                        nombre = p.Nombre,
+                        nombre = p.PeriodoNombre ?? p.Nombre,
                         fechaInicio = p.FechaInicio,
                         fechaFin = p.FechaFin
                     })
@@ -118,10 +118,7 @@ public class MayoresContablesModel : PageModel
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest("Datos inválidos");
-            }
+            // No validar ModelState aquí: la validación real la hace el API backend.
 
             var client = CreateApiClient();
 
@@ -142,18 +139,17 @@ public class MayoresContablesModel : PageModel
             }
 
             var queryString = string.Join("&", queryParams);
-            var response = await client.GetAsync($"api/mayorescontables?{queryString}");
+            var response = await client.GetAsync($"/api/mayorescontables?{queryString}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var resultado = JsonSerializer.Deserialize<ResumenMayorDTO>(content, _jsonOptions);
-
-                return new JsonResult(new
+                return new ContentResult
                 {
-                    success = true,
-                    data = resultado
-                });
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             var error = await response.Content.ReadAsStringAsync();
@@ -176,18 +172,17 @@ public class MayoresContablesModel : PageModel
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
             var queryString = $"empresaId={empresaId}&cuentaId={cuentaId}&fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}";
-            var response = await client.GetAsync($"api/mayorescontables/movimientos?{queryString}");
+            var response = await client.GetAsync($"/api/mayorescontables/movimientos?{queryString}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var movimientos = JsonSerializer.Deserialize<List<MovimientoMayorDTO>>(content, _jsonOptions);
-
-                return new JsonResult(new
+                return new ContentResult
                 {
-                    success = true,
-                    data = movimientos
-                });
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             return BadRequest("Error al obtener movimientos");
@@ -222,7 +217,7 @@ public class MayoresContablesModel : PageModel
             }
 
             var queryString = string.Join("&", queryParams);
-            var response = await client.GetAsync($"api/mayorescontables?{queryString}");
+            var response = await client.GetAsync($"/api/mayorescontables?{queryString}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -438,5 +433,7 @@ public class MayoresContablesModel : PageModel
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
         public bool Activo { get; set; }
+        public bool EstaAbierto { get; set; }
+        public string? PeriodoNombre { get; set; }
     }
 }

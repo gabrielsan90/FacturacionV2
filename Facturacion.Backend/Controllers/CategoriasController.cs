@@ -124,7 +124,8 @@ public class CategoriasController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear categoría para empresa {EmpresaId}", categoria.EmpresaId);
-            return StatusCode(500, "Error interno al crear categoría.");
+            var detalle = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al crear categoría: {detalle}");
         }
     }
 
@@ -190,7 +191,8 @@ public class CategoriasController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar categoría {CategoriaId}", id);
-            return StatusCode(500, "Error interno al actualizar categoría.");
+            var detalle = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al actualizar categoría: {detalle}");
         }
     }
 

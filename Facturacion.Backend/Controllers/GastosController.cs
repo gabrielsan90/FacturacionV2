@@ -468,8 +468,8 @@ public class GastosController : ControllerBase
                 return false;
             }
 
-            // Verificar si el usuario es admin (tiene acceso a todo)
-            if (User.IsInRole("Admin"))
+            // Verificar si el usuario es SuperUser (tiene acceso a todo)
+            if (User.IsInRole("SuperUser"))
             {
                 return true;
             }

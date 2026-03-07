@@ -100,7 +100,8 @@ public class UsuariosController : ControllerBase
                     Empresas = empresas,
                     IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
                     LockoutEnd = user.LockoutEnd,
-                    AccessFailedCount = user.AccessFailedCount
+                    AccessFailedCount = user.AccessFailedCount,
+                    UltimaConexion = user.UltimaConexion
                 });
             }
 
@@ -632,6 +633,62 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
+    /// Asigna un usuario a múltiples empresas (reemplaza las asignaciones actuales)
+    /// </summary>
+    [HttpPost("{userId}/empresas")]
+    public async Task<IActionResult> AssignEmpresasBulkAsync(string userId, [FromBody] List<Guid> empresaIds)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound("Usuario no encontrado.");
+            }
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Remove existing empresa assignments
+            var currentEmpresas = await _context.UsuariosEmpresas
+                .Where(ue => ue.UserId == userId)
+                .ToListAsync();
+
+            _context.UsuariosEmpresas.RemoveRange(currentEmpresas);
+
+            // Add new assignments
+            if (empresaIds != null)
+            {
+                foreach (var empresaId in empresaIds)
+                {
+                    var empresa = await _context.Empresas.FindAsync(empresaId);
+                    if (empresa != null)
+                    {
+                        _context.UsuariosEmpresas.Add(new UsuarioEmpresa
+                        {
+                            UserId = userId,
+                            EmpresaId = empresaId,
+                            FechaAsignacion = FechaCostaRicaHelper.Ahora,
+                            AsignadoPorId = currentUserId
+                        });
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Empresas asignadas a usuario {UserId}: {Count} empresas por {AssignedBy}",
+                userId, empresaIds?.Count ?? 0, currentUserId);
+
+            return Ok(new { message = "Empresas asignadas exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al asignar empresas al usuario {UserId}", userId);
+            return StatusCode(500, "Error interno del servidor al asignar empresas.");
+        }
+    }
+
+    /// <summary>
     /// Asigna un usuario a una empresa
     /// </summary>
     [HttpPost("{userId}/empresas/{empresaId}")]
@@ -713,6 +770,45 @@ public class UsuariosController : ControllerBase
         {
             _logger.LogError(ex, "Error al remover usuario {UserId} de empresa {EmpresaId}", userId, empresaId);
             return StatusCode(500, "Error interno del servidor al remover el usuario de la empresa.");
+        }
+    }
+
+    /// <summary>
+    /// Activa o desactiva un usuario (toggle)
+    /// </summary>
+    [HttpPost("{id}/toggle-status")]
+    public async Task<IActionResult> ToggleStatusAsync(string id)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound("Usuario no encontrado.");
+            }
+
+            // Toggle the LockoutEnabled or use a custom approach
+            // We'll toggle the lockout end date - if locked, unlock; if unlocked, lock
+            var isLockedOut = await _userManager.IsLockedOutAsync(user);
+
+            if (isLockedOut)
+            {
+                await _userManager.SetLockoutEndDateAsync(user, null);
+                await _userManager.ResetAccessFailedCountAsync(user);
+                _logger.LogInformation("Usuario {UserId} activado por toggle-status", id);
+                return Ok(new { message = "Usuario activado exitosamente.", active = true });
+            }
+            else
+            {
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+                _logger.LogInformation("Usuario {UserId} desactivado por toggle-status", id);
+                return Ok(new { message = "Usuario desactivado exitosamente.", active = false });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al cambiar estado del usuario {UserId}", id);
+            return StatusCode(500, "Error interno del servidor al cambiar el estado del usuario.");
         }
     }
 

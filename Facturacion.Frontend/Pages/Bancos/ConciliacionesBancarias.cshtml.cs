@@ -38,7 +38,7 @@ public class ConciliacionesBancariasModel : PageModel
             var empresaId = GetEmpresaId();
             if (empresaId == null) return BadRequest("No se encontró la empresa.");
 
-            var response = await client.GetAsync($"api/cuentasbancarias/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/cuentasbancarias/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -73,7 +73,7 @@ public class ConciliacionesBancariasModel : PageModel
                 return new JsonResult(new { data = new List<object>() });
             }
 
-            var response = await client.GetAsync($"api/conciliacionesbancarias/cuenta/{cuentaBancariaId}");
+            var response = await client.GetAsync($"/api/conciliacionesbancarias/cuenta/{cuentaBancariaId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -101,13 +101,31 @@ public class ConciliacionesBancariasModel : PageModel
         {
             var client = CreateApiClient();
 
-            var response = await client.GetAsync($"api/conciliacionesbancarias/{id}");
+            var response = await client.GetAsync($"/api/conciliacionesbancarias/{id}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var conciliacion = JsonSerializer.Deserialize<ConciliacionBancaria>(content, _jsonOptions);
-                return new JsonResult(new { success = true, data = conciliacion });
+                // API returns { conciliacion: {...}, movimientos: [...], extractos: [...] }
+                // Extract the conciliacion sub-object for the view
+                using var doc = JsonDocument.Parse(content);
+                if (doc.RootElement.TryGetProperty("conciliacion", out var conciliacionEl))
+                {
+                    return new ContentResult
+                    {
+                        Content = $"{{\"success\":true,\"data\":{conciliacionEl.GetRawText()}}}",
+                        ContentType = "application/json",
+                        StatusCode = 200
+                    };
+                }
+
+                // Fallback: pass entire response as data
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             return new JsonResult(new { success = false, message = "No se encontró la conciliación." });
@@ -171,11 +189,11 @@ public class ConciliacionesBancariasModel : PageModel
             HttpResponseMessage response;
             if (conciliacion.Id == Guid.Empty)
             {
-                response = await client.PostAsync("api/conciliacionesbancarias", content);
+                response = await client.PostAsync("/api/conciliacionesbancarias", content);
             }
             else
             {
-                response = await client.PutAsync($"api/conciliacionesbancarias/{conciliacion.Id}", content);
+                response = await client.PutAsync($"/api/conciliacionesbancarias/{conciliacion.Id}", content);
             }
 
             if (response.IsSuccessStatusCode)
@@ -202,7 +220,7 @@ public class ConciliacionesBancariasModel : PageModel
             var client = CreateApiClient();
             if (client == null) return new JsonResult(new { success = false, message = "No autorizado." });
 
-            var response = await client.PostAsync($"api/conciliacionesbancarias/{id}/cerrar", null);
+            var response = await client.PostAsync($"/api/conciliacionesbancarias/{id}/cerrar", null);
 
             if (response.IsSuccessStatusCode)
             {
@@ -228,7 +246,7 @@ public class ConciliacionesBancariasModel : PageModel
             var client = CreateApiClient();
             if (client == null) return new JsonResult(new { success = false, message = "No autorizado." });
 
-            var response = await client.DeleteAsync($"api/conciliacionesbancarias/{id}");
+            var response = await client.DeleteAsync($"/api/conciliacionesbancarias/{id}");
 
             if (response.IsSuccessStatusCode)
             {

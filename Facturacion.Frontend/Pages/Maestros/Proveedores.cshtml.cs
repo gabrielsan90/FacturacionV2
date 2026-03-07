@@ -5,6 +5,7 @@ using Facturacion.Shared.Entities;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Facturacion.Frontend.Pages.Maestros;
 
@@ -47,7 +48,7 @@ public class ProveedoresModel : PageModel
         var empresaId = User.FindFirstValue("EmpresaId");
         if (string.IsNullOrWhiteSpace(empresaId))
         {
-            return new JsonResult(new List<Proveedor>());
+            return new JsonResult(new { data = new List<Proveedor>() });
         }
 
         var response = await client.GetAsync($"/api/Proveedores/empresa/{empresaId}");
@@ -55,10 +56,10 @@ public class ProveedoresModel : PageModel
         if (response.IsSuccessStatusCode)
         {
             var proveedores = await response.Content.ReadFromJsonAsync<List<Proveedor>>(_jsonOptions);
-            return new JsonResult(proveedores ?? new List<Proveedor>());
+            return new JsonResult(new { data = proveedores ?? new List<Proveedor>() });
         }
 
-        return new JsonResult(new List<Proveedor>());
+        return new JsonResult(new { data = new List<Proveedor>() });
     }
 
     // Handler to get a single proveedor by ID
@@ -84,22 +85,8 @@ public class ProveedoresModel : PageModel
     }
 
     // Handler to save (create or update) a proveedor
-    public async Task<IActionResult> OnPostSaveAsync([FromBody] Proveedor proveedorData)
+    public async Task<IActionResult> OnPostSaveAsync([FromBody] JsonElement proveedorElement)
     {
-        // Note: Using [FromBody] to receive JSON data from JavaScript
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState
-                .Where(x => x.Value!.Errors.Count > 0)
-                .Select(x => new
-                {
-                    Field = x.Key,
-                    Message = x.Value!.Errors.First().ErrorMessage
-                });
-
-            return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-        }
-
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 
         var token = User.FindFirst("Token")?.Value;
@@ -114,16 +101,33 @@ public class ProveedoresModel : PageModel
             return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
         }
 
-        if (proveedorData.EmpresaId == Guid.Empty)
+        // Use JsonNode to manipulate the JSON: inject empresaId, normalize id
+        var node = JsonNode.Parse(proveedorElement.GetRawText())?.AsObject();
+        if (node == null)
         {
-            proveedorData.EmpresaId = empresaGuid;
+            return new JsonResult(new { success = false, message = "No se recibieron los datos del proveedor." });
         }
 
-        var json = JsonSerializer.Serialize(proveedorData);
+        // Determine if new or update
+        var idStr = node["id"]?.GetValue<string>() ?? "";
+        bool isNew = !Guid.TryParse(idStr, out var idGuid) || idGuid == Guid.Empty;
+
+        if (isNew)
+        {
+            node["id"] = Guid.Empty.ToString();
+        }
+
+        // Inject empresaId if missing
+        var existingEmpresa = node["empresaId"]?.GetValue<string>() ?? "";
+        if (!Guid.TryParse(existingEmpresa, out var existingEmpresaGuid) || existingEmpresaGuid == Guid.Empty)
+        {
+            node["empresaId"] = empresaGuid.ToString();
+        }
+
+        var json = node.ToJsonString();
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
-        bool isNew = proveedorData.Id == Guid.Empty;
 
         if (isNew)
         {
@@ -131,7 +135,7 @@ public class ProveedoresModel : PageModel
         }
         else
         {
-            response = await client.PutAsync($"/api/proveedores/{proveedorData.Id}", content);
+            response = await client.PutAsync($"/api/proveedores/{idGuid}", content);
         }
 
         if (response.IsSuccessStatusCode)
@@ -144,7 +148,57 @@ public class ProveedoresModel : PageModel
         }
 
         var error = await response.Content.ReadAsStringAsync();
-        return new JsonResult(new { success = false, message = error });
+        var mensajeError = ExtraerMensajeError(error, (int)response.StatusCode);
+        return new JsonResult(new { success = false, message = mensajeError });
+    }
+
+    /// <summary>
+    /// Extrae un mensaje de error legible de la respuesta del API
+    /// </summary>
+    private static string ExtraerMensajeError(string responseBody, int statusCode)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return statusCode switch
+            {
+                400 => "Datos inválidos. Verifique los campos e intente de nuevo.",
+                403 => "No tiene permisos para realizar esta acción.",
+                404 => "Recurso no encontrado.",
+                _ => $"Error del servidor (código {statusCode})."
+            };
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            // ValidationProblem format
+            if (root.TryGetProperty("errors", out var errors))
+            {
+                var mensajes = new List<string>();
+                foreach (var field in errors.EnumerateObject())
+                {
+                    foreach (var msg in field.Value.EnumerateArray())
+                    {
+                        mensajes.Add(msg.GetString() ?? field.Name);
+                    }
+                }
+                if (mensajes.Count > 0) return string.Join(" | ", mensajes);
+            }
+
+            if (root.TryGetProperty("message", out var message))
+                return message.GetString() ?? responseBody;
+
+            if (root.ValueKind == JsonValueKind.String)
+                return root.GetString() ?? responseBody;
+        }
+        catch { /* Not JSON */ }
+
+        if (responseBody.Contains("An error occurred while saving"))
+            return "Error al guardar los datos. Verifique que todos los campos requeridos estén completos y no existan duplicados.";
+
+        return responseBody;
     }
 
     // Handler to delete a proveedor

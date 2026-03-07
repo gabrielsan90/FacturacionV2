@@ -670,4 +670,66 @@ public class DocumentosModel : PageModel
             return new JsonResult(new { success = false, mensaje = $"Error interno: {ex.Message}" });
         }
     }
+
+    /// <summary>
+    /// Finalizar documento sin envío a Hacienda (empresas sin facturación electrónica).
+    /// </summary>
+    public async Task<IActionResult> OnPostFinalizarAsync(string id)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await client.PostAsync($"/api/Documentos/{id}/finalizar", null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new JsonResult(new { success = true, message = "Documento finalizado exitosamente" });
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return new JsonResult(new { success = false, message = error });
+    }
+
+    /// <summary>
+    /// Obtener si la empresa requiere facturación electrónica.
+    /// </summary>
+    public async Task<IActionResult> OnGetEmpresaRequiereFEAsync(string empresaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/empresas/{empresaId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+                var requiereFE = true; // default
+                if (doc.RootElement.TryGetProperty("requiereFacturacionElectronica", out var prop))
+                {
+                    requiereFE = prop.GetBoolean();
+                }
+                return new JsonResult(new { requiereFacturacionElectronica = requiereFE });
+            }
+
+            return new JsonResult(new { requiereFacturacionElectronica = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking empresa RequiereFacturacionElectronica");
+            return new JsonResult(new { requiereFacturacionElectronica = true });
+        }
+    }
 }

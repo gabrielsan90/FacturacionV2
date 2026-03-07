@@ -3,6 +3,15 @@ using System.ComponentModel.DataAnnotations;
 namespace Facturacion.Shared.DTOs;
 
 /// <summary>
+/// Monto desglosado por moneda, para mostrar en stats cards
+/// </summary>
+public class MontoPorMonedaDTO
+{
+    public string Moneda { get; set; } = "CRC";
+    public decimal Monto { get; set; }
+}
+
+/// <summary>
 /// Resumen general del dashboard con métricas principales del negocio
 /// </summary>
 public class DashboardResumenDTO
@@ -60,4 +69,8 @@ public class DashboardResumenDTO
 
     [Display(Name = "Gastos Pendientes de Pago")]
     public decimal GastosPendientesPago { get; set; }
+
+    // Desglose por moneda
+    public List<MontoPorMonedaDTO> VentasHoyPorMoneda { get; set; } = new();
+    public List<MontoPorMonedaDTO> PagosPendientesPorMoneda { get; set; } = new();
 }

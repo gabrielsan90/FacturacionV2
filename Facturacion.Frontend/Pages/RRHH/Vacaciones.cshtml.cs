@@ -54,11 +54,33 @@ public class VacacionesModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var vacaciones = await response.Content.ReadFromJsonAsync<List<Vacacion>>(_jsonOptions);
-            return new JsonResult(new { data = vacaciones ?? new List<Vacacion>() });
+            var content = await response.Content.ReadAsStringAsync();
+
+            // Unwrap ActionResponse if needed
+            using var doc = JsonDocument.Parse(content);
+            string dataJson;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                dataJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+            {
+                dataJson = resultProp.GetRawText();
+            }
+            else
+            {
+                dataJson = "[]";
+            }
+
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{dataJson}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
-        return new JsonResult(new { data = new List<Vacacion>() });
+        return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
     }
 
     public async Task<IActionResult> OnGetDetailsAsync(string id)

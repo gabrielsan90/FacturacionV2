@@ -385,6 +385,71 @@ public class ReportesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Genera reporte de retenciones de renta (D-103)
+    /// GET: api/reportes/retenciones?empresaId=xxx&fechaInicio=xxx&fechaFin=xxx
+    /// </summary>
+    [HttpGet("retenciones")]
+    public async Task<IActionResult> GetReporteRetencionesAsync(
+        [FromQuery] Guid empresaId,
+        [FromQuery] DateTime fechaInicio,
+        [FromQuery] DateTime fechaFin)
+    {
+        try
+        {
+            _logger.LogInformation("Generating withholding tax report (D-103) for company {EmpresaId}, date range {Start} to {End}",
+                empresaId, fechaInicio, fechaFin);
+
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                return Forbid();
+            }
+
+            var action = await _reportesService.GetReporteRetencionesAsync(empresaId, fechaInicio, fechaFin);
+
+            return action.WasSuccess ? Ok(action.Result) : BadRequest(action.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating withholding tax report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al generar el reporte de retenciones");
+        }
+    }
+
+    /// <summary>
+    /// Exporta reporte de retenciones a Excel
+    /// GET: api/reportes/retenciones/excel?empresaId=xxx&fechaInicio=xxx&fechaFin=xxx
+    /// </summary>
+    [HttpGet("retenciones/excel")]
+    public async Task<IActionResult> ExportarRetencionesExcelAsync(
+        [FromQuery] Guid empresaId,
+        [FromQuery] DateTime fechaInicio,
+        [FromQuery] DateTime fechaFin)
+    {
+        try
+        {
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                return Forbid();
+            }
+
+            var action = await _reportesService.ExportarRetencionesExcelAsync(empresaId, fechaInicio, fechaFin);
+
+            if (!action.WasSuccess || action.Result == null)
+            {
+                return BadRequest(action.Message);
+            }
+
+            var fileName = $"D-103_Retenciones_{fechaInicio:yyyyMM}.xlsx";
+            return File(action.Result, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting withholding tax report for company {EmpresaId}", empresaId);
+            return StatusCode(500, "Error al exportar el reporte de retenciones");
+        }
+    }
+
     #region Helper Methods
 
     /// <summary>
@@ -401,8 +466,8 @@ public class ReportesController : ControllerBase
                 return false;
             }
 
-            // Admin tiene acceso a todas las empresas
-            if (User.IsInRole("Admin"))
+            // SuperUser tiene acceso a todas las empresas
+            if (User.IsInRole("SuperUser"))
             {
                 return true;
             }

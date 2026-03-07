@@ -108,11 +108,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Nombre de la Institución Emisora <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="NombreInstitucion" required
-                               placeholder="Ejemplo: Ministerio de Hacienda" />
-                        <div class="invalid-feedback">El nombre de la institución es obligatorio.</div>
-                        <small class="text-muted">Nombre completo de la institución que emitió la exoneración.</small>
+                        <label class="form-label">Nombre de la Institución Emisora</label>
+                        <input type="text" class="form-control" id="NombreInstitucion"
+                               placeholder="Ejemplo: Ministerio de Hacienda" value="Ministerio de Hacienda" />
+                        <small class="text-muted">Déjelo como "Ministerio de Hacienda" si no conoce la institución exacta.</small>
                     </div>
 
                     <div class="mb-3">
@@ -286,17 +285,18 @@
     function openSearchModal() {
         $('#formSearchExoneracion')[0].reset();
         $('#formSearchExoneracion').removeClass('was-validated');
+        $('#NombreInstitucion').val('Ministerio de Hacienda');
         $('#FechaValidacion').val('');
         $('#modalSearchExoneracion').modal('show');
     }
 
     function buscarExoneracion() {
         const numeroDocumento = $('#NumeroDocumento').val().trim();
-        const nombreInstitucion = $('#NombreInstitucion').val().trim();
+        const nombreInstitucion = $('#NombreInstitucion').val().trim() || 'Ministerio de Hacienda';
         const fechaValidacion = $('#FechaValidacion').val();
 
-        if (!numeroDocumento || !nombreInstitucion) {
-            showWarning('Debe ingresar el número de documento y el nombre de la institución');
+        if (!numeroDocumento) {
+            showWarning('Debe ingresar el número de documento');
             return;
         }
 

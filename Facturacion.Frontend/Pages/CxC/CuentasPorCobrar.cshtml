@@ -313,8 +313,8 @@
                 }
             },
             columns: [
-                { data: 'numeroDocumento' },
-                { data: 'clienteNombre' },
+                { data: 'numeroConsecutivo' },
+                { data: 'nombreCliente' },
                 {
                     data: 'fechaEmision',
                     render: function (data) {
@@ -340,7 +340,7 @@
                     }
                 },
                 {
-                    data: 'saldo',
+                    data: 'montoSaldo',
                     render: function (data) {
                         return '<strong>' + formatCurrency(data) + '</strong>';
                     }
@@ -417,9 +417,9 @@
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
             success: function (data) {
-                $('#totalPendiente').text(formatCurrency(data.totalPendiente || 0));
-                $('#totalVencido').text(formatCurrency(data.totalVencido || 0));
-                $('#totalCobradoMes').text(formatCurrency(data.totalCobradoMes || 0));
+                $('#totalPendiente').html(renderMontosPorMoneda(data.pendientePorMoneda, formatCurrency(0)));
+                $('#totalVencido').html(renderMontosPorMoneda(data.vencidoPorMoneda, formatCurrency(0)));
+                $('#totalCobradoMes').html(renderMontosPorMoneda(data.cobradoMesPorMoneda, formatCurrency(0)));
             },
             error: function (xhr) {
                 console.error('Error loading summary:', xhr);
@@ -436,13 +436,14 @@
             },
             success: function (data) {
                 $('#Abono_CuentaPorCobrarId').val(data.id);
-                $('#infoDocumento').text(data.numeroDocumento);
-                $('#infoCliente').text(data.clienteNombre);
+                $('#infoDocumento').text(data.numeroConsecutivo || data.numeroDocumento || '-');
+                $('#infoCliente').text(data.nombreCliente || data.clienteNombre || '-');
                 $('#infoMontoOriginal').text(formatCurrency(data.montoOriginal));
-                $('#infoSaldo').text(formatCurrency(data.saldo));
-                $('#maxAbono').text(data.saldo.toFixed(2));
-                $('#Abono_Monto').attr('max', data.saldo);
-                $('#Abono_Monto').val(data.saldo.toFixed(2));
+                const saldo = data.montoSaldo != null ? data.montoSaldo : (data.saldo || 0);
+                $('#infoSaldo').text(formatCurrency(saldo));
+                $('#maxAbono').text(saldo.toFixed(2));
+                $('#Abono_Monto').attr('max', saldo);
+                $('#Abono_Monto').val(saldo.toFixed(2));
                 $('#Abono_FechaPago').val(new Date().toISOString().split('T')[0]);
                 $('#Abono_NumeroReferencia').val('');
                 $('#Abono_Notas').val('');

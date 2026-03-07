@@ -134,19 +134,7 @@ public class TerminalesModel : PageModel
     /// </summary>
     public async Task<IActionResult> OnPostSaveAsync([FromBody] Terminal terminal)
     {
-        // Validate ModelState
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState
-                .Where(x => x.Value!.Errors.Count > 0)
-                .Select(x => new
-                {
-                    Field = x.Key,
-                    Message = x.Value!.Errors.First().ErrorMessage
-                });
-
-            return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-        }
+        // No validar ModelState aquí: la validación real la hace el API backend.
 
         try
         {

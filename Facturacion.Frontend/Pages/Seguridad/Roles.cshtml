@@ -2,7 +2,7 @@
 @model Facturacion.Frontend.Pages.Seguridad.RolesModel
 @{
     ViewData["Title"] = "Roles del Sistema";
-    ViewData["Breadcrumb"] = "Seguridad > Roles";
+    ViewData["Breadcrumb"] = "Roles";
 }
 
 @Html.AntiForgeryToken()
@@ -212,7 +212,7 @@
                 {
                     data: 'fechaCreacion',
                     render: function(data) {
-                        return data ? new Date(data).toLocaleDateString('es-CR') : '-';
+                        return data ? new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-';
                     }
                 },
                 {

@@ -20,6 +20,34 @@
         </div>
     </div>
 
+    <!-- Alerta MensajeReceptor Pendientes -->
+    <div id="alertaMR" class="d-none">
+        <div class="card shadow mb-4 border-warning">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Documentos Pendientes de MensajeReceptor</h5>
+                <a href="/DocumentosElectronicos/MensajesReceptor" class="btn btn-sm btn-dark">
+                    <i class="fas fa-arrow-right me-1"></i>Ir a Mensajes Receptor
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Emisor</th>
+                                <th>Tipo</th>
+                                <th>Fecha Emisi&oacute;n</th>
+                                <th class="text-end">Monto</th>
+                                <th class="text-center">Plazo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendientesMRBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Secci&oacute;n 1: Carga Manual de XML -->
     <div class="card shadow mb-4">
         <div class="card-header bg-primary text-white">
@@ -165,6 +193,7 @@
         initTable();
         cargarConfigImap();
         setupDragDrop();
+        cargarPendientesMR();
     });
 
     function getToken() {
@@ -183,7 +212,7 @@
                     data: 'fechaEmision',
                     render: function (data) {
                         if (!data) return '';
-                        return new Date(data).toLocaleDateString('es-CR');
+                        return new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                     }
                 },
                 {
@@ -511,6 +540,53 @@
                 showError('Error al probar la conexion');
             }
         });
+    }
+
+    // ==========================================
+    // PENDIENTES MENSAJE RECEPTOR
+    // ==========================================
+    function cargarPendientesMR() {
+        $.ajax({
+            url: '?handler=PendientesMR',
+            type: 'GET',
+            headers: { "RequestVerificationToken": getToken() },
+            success: function (response) {
+                if (response.success && response.data && response.data.length > 0) {
+                    renderPendientesMR(response.data);
+                }
+            }
+        });
+    }
+
+    function renderPendientesMR(docs) {
+        var tbody = $('#pendientesMRBody');
+        tbody.empty();
+
+        docs.forEach(function (doc) {
+            var plazoHtml = '';
+            if (doc.plazoVencido) {
+                plazoHtml = '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Vencido (' + Math.abs(doc.diasParaVencer) + ' d&iacute;as)</span>';
+            } else if (doc.diasParaVencer <= 2) {
+                plazoHtml = '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i>' + doc.diasParaVencer + ' d&iacute;as</span>';
+            } else {
+                plazoHtml = '<span class="badge bg-info">' + doc.diasParaVencer + ' d&iacute;as</span>';
+            }
+
+            var fecha = doc.fechaEmision ? new Date(doc.fechaEmision).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '';
+            var monto = doc.totalVenta != null ? parseFloat(doc.totalVenta).toLocaleString('es-CR', { style: 'currency', currency: 'CRC' }) : '';
+
+            tbody.append(
+                '<tr class="' + (doc.plazoVencido ? 'table-danger' : (doc.diasParaVencer <= 2 ? 'table-warning' : '')) + '">' +
+                '<td>' + (doc.emisorNombre || '') + '</td>' +
+                '<td>' + (doc.tipoDocumentoNombre || '') + '</td>' +
+                '<td>' + fecha + '</td>' +
+                '<td class="text-end">' + monto + '</td>' +
+                '<td class="text-center">' + plazoHtml + '</td>' +
+                '</tr>'
+            );
+        });
+
+        $('#alertaMR').removeClass('d-none');
     }
 
     function leerCorreos() {

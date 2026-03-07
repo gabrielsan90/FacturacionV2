@@ -464,6 +464,13 @@ public class DocumentosController : ControllerBase
         {
             _logger.LogInformation("Procesando y enviando documento {DocumentoId} a Hacienda", id);
 
+            // Verificar que la empresa requiere facturación electrónica
+            var docCheck = await _unitOfWork.DocumentoRepository.GetAsync(id);
+            if (docCheck?.Empresa != null && !docCheck.Empresa.RequiereFacturacionElectronica)
+            {
+                return BadRequest(new { Exitoso = false, Mensaje = "Esta empresa no requiere envío a Hacienda. Use el endpoint /finalizar en su lugar." });
+            }
+
             var resultado = await _haciendaService.ProcesarYEnviarAsync(id);
 
             if (resultado.Exitoso)
@@ -482,6 +489,61 @@ public class DocumentosController : ControllerBase
             {
                 Exitoso = false,
                 Mensaje = "Error interno al procesar el documento",
+                Detalle = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Finalizar documento sin envío a Hacienda.
+    /// Solo para empresas que NO requieren facturación electrónica.
+    /// Mueve el documento de Borrador → Aceptado directamente.
+    /// </summary>
+    [HttpPost("{id:guid}/finalizar")]
+    public async Task<IActionResult> FinalizarAsync(Guid id)
+    {
+        try
+        {
+            _logger.LogInformation("Finalizando documento {DocumentoId} sin Hacienda", id);
+
+            var documento = await _unitOfWork.DocumentoRepository.GetAsync(id);
+            if (documento == null)
+            {
+                return NotFound(new { Exitoso = false, Mensaje = "Documento no encontrado." });
+            }
+
+            // Validar que la empresa NO requiere facturación electrónica
+            if (documento.Empresa == null || documento.Empresa.RequiereFacturacionElectronica)
+            {
+                return BadRequest(new { Exitoso = false, Mensaje = "Esta empresa requiere facturación electrónica. Use el endpoint /procesar para enviar a Hacienda." });
+            }
+
+            // Solo se pueden finalizar documentos en estado Borrador
+            if (documento.Estado != EstadoDocumento.Borrador)
+            {
+                return BadRequest(new { Exitoso = false, Mensaje = $"No se puede finalizar un documento en estado {documento.Estado}. Solo se permiten documentos en estado Borrador." });
+            }
+
+            // Mover a Aceptado directamente
+            documento.Estado = EstadoDocumento.Aceptado;
+            documento.FechaEmision = FechaCostaRicaHelper.Ahora;
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            documento.UsuarioModificacionId = userId;
+
+            await _unitOfWork.DocumentoRepository.UpdateAsync(documento);
+
+            _logger.LogInformation("Documento {DocumentoId} finalizado exitosamente (sin Hacienda)", id);
+
+            return Ok(new { Exitoso = true, Mensaje = "Documento finalizado exitosamente.", Estado = "Aceptado" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al finalizar documento {DocumentoId}", id);
+            return StatusCode(500, new
+            {
+                Exitoso = false,
+                Mensaje = "Error interno al finalizar el documento",
                 Detalle = ex.Message
             });
         }

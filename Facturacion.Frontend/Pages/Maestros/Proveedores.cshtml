@@ -98,10 +98,10 @@
                             <label class="form-label">Tipo Identificación <span class="text-danger">*</span></label>
                             <select class="form-select" id="Proveedor_TipoIdentificacion" required>
                                 <option value="">Seleccione...</option>
-                                <option value="01">Física</option>
-                                <option value="02">Jurídica</option>
-                                <option value="03">DIMEX</option>
-                                <option value="04">NITE</option>
+                                <option value="1">Física</option>
+                                <option value="2">Jurídica</option>
+                                <option value="3">DIMEX</option>
+                                <option value="4">NITE</option>
                             </select>
                             <div class="invalid-feedback">Seleccione un tipo.</div>
                         </div>
@@ -172,11 +172,24 @@
 
                     <hr />
 
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="Proveedor_Activo" checked />
-                        <label class="form-check-label" for="Proveedor_Activo">
-                            Proveedor Activo
-                        </label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Proveedor_Activo" checked />
+                                <label class="form-check-label" for="Proveedor_Activo">
+                                    Proveedor Activo
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="Proveedor_EsRegimenSimplificado" />
+                                <label class="form-check-label" for="Proveedor_EsRegimenSimplificado">
+                                    Régimen Simplificado
+                                </label>
+                                <small class="d-block text-muted">Proveedores bajo Régimen de Tributación Simplificada (no cobran IVA)</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -419,6 +432,7 @@
         $('#formProveedor').removeClass('was-validated');
         $('#Proveedor_Id').val('0');
         $('#Proveedor_Activo').prop('checked', true);
+        $('#Proveedor_EsRegimenSimplificado').prop('checked', false);
         resetCascade('#Proveedor_Canton', '#Proveedor_Distrito');
         $('#modalTitle').text('Nuevo Proveedor');
         $('#modalProveedor').modal('show');
@@ -441,6 +455,7 @@
                 $('#Proveedor_TelefonoPrincipal').val(data.telefonoPrincipal || '');
                 $('#Proveedor_OtrasSenas').val(data.otrasSenas || '');
                 $('#Proveedor_Activo').prop('checked', data.activo);
+                $('#Proveedor_EsRegimenSimplificado').prop('checked', data.esRegimenSimplificado);
 
                 $('#Proveedor_Provincia').val(data.provincia);
                 loadCantones(data.provincia);
@@ -464,10 +479,38 @@
         });
     }
 
+    function validarIdentificacion() {
+        const tipo = parseInt($('#Proveedor_TipoIdentificacion').val());
+        const numero = $('#Proveedor_NumeroIdentificacion').val().trim();
+
+        if (!numero) return true; // required lo maneja HTML5
+
+        if (tipo === 1) {
+            if (!/^\d+$/.test(numero)) { showError('La cédula física debe contener solo números.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+            if (numero.length !== 9) { showError('La cédula física debe tener exactamente 9 dígitos.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+        } else if (tipo === 2) {
+            if (!/^\d+$/.test(numero)) { showError('La cédula jurídica debe contener solo números.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+            if (numero.length !== 10) { showError('La cédula jurídica debe tener exactamente 10 dígitos.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+        } else if (tipo === 3) {
+            if (!/^\d+$/.test(numero)) { showError('El DIMEX debe contener solo números.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+            if (numero.length < 11 || numero.length > 12) { showError('El DIMEX debe tener entre 11 y 12 dígitos.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+        } else if (tipo === 4) {
+            if (!/^\d+$/.test(numero)) { showError('El NITE debe contener solo números.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+            if (numero.length !== 10) { showError('El NITE debe tener exactamente 10 dígitos.'); $('#Proveedor_NumeroIdentificacion').focus(); return false; }
+        }
+
+        return true;
+    }
+
     function save() {
+        if (!validarIdentificacion()) return;
+
+        const $btnSave = $('#formProveedor button[type="submit"]');
+        $btnSave.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Guardando...');
+
         const proveedorData = {
             id: $('#Proveedor_Id').val(),
-            tipoIdentificacion: $('#Proveedor_TipoIdentificacion').val(),
+            tipoIdentificacion: parseInt($('#Proveedor_TipoIdentificacion').val()),
             numeroIdentificacion: $('#Proveedor_NumeroIdentificacion').val(),
             nombre: $('#Proveedor_Nombre').val(),
             nombreComercial: $('#Proveedor_NombreComercial').val() || null,
@@ -477,7 +520,8 @@
             canton: parseInt($('#Proveedor_Canton').val()),
             distrito: parseInt($('#Proveedor_Distrito').val()),
             otrasSenas: $('#Proveedor_OtrasSenas').val() || null,
-            activo: $('#Proveedor_Activo').is(':checked')
+            activo: $('#Proveedor_Activo').is(':checked'),
+            esRegimenSimplificado: $('#Proveedor_EsRegimenSimplificado').is(':checked')
         };
 
         $.ajax({
@@ -499,6 +543,9 @@
             },
             error: function(xhr) {
                 handleAjaxError(xhr);
+            },
+            complete: function() {
+                $btnSave.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Guardar');
             }
         });
     }

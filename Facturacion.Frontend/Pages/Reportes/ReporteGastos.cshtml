@@ -23,7 +23,7 @@
                 <input type="date" class="form-control" id="fechaFin" />
             </div>
             <div class="col-md-3">
-                <label class="form-label">CategorÃ­a Gasto</label>
+                <label class="form-label">Categoría Gasto</label>
                 <select class="form-select" id="categoriaGasto">
                     <option value="">Todas</option>
                 </select>
@@ -46,7 +46,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-0">Total Gastos</h6>
-                                <h4 class="mb-0" id="totalGastos">â‚¡0.00</h4>
+                                <h4 class="mb-0" id="totalGastos">₡0.00</h4>
                             </div>
                             <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
                         </div>
@@ -72,7 +72,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-0">Promedio</h6>
-                                <h4 class="mb-0" id="promedioGasto">â‚¡0.00</h4>
+                                <h4 class="mb-0" id="promedioGasto">₡0.00</h4>
                             </div>
                             <i class="fas fa-chart-bar fa-2x opacity-50"></i>
                         </div>
@@ -109,7 +109,7 @@
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">
-                        <h6 class="mb-0">Gastos por CategorÃ­a</h6>
+                        <h6 class="mb-0">Gastos por Categoría</h6>
                     </div>
                     <div class="card-body">
                         <canvas id="chartGastosCategoria" height="200"></canvas>
@@ -158,11 +158,11 @@
                 <tr>
                     <th>Fecha</th>
                     <th>Tipo</th>
-                    <th>NÃºmero</th>
+                    <th>Número</th>
                     <th>Proveedor</th>
-                    <th>CategorÃ­a</th>
+                    <th>Categoría</th>
                     <th>Monto</th>
-                    <th>DescripciÃ³n</th>
+                    <th>Descripción</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -272,9 +272,9 @@
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
             success: function(data) {
-                $('#totalGastos').text(formatCurrency(data.totalGastos));
+                $('#totalGastos').html(renderMontosPorMoneda(data.gastosPorMoneda, formatCurrency(data.totalGastos)));
                 $('#totalDocumentos').text(data.totalDocumentos);
-                $('#promedioGasto').text(formatCurrency(data.promedioGasto));
+                $('#promedioGasto').html(renderMontosPorMoneda(data.promedioPorMoneda, formatCurrency(data.promedioGasto)));
                 $('#totalProveedores').text(data.totalProveedores);
             }
         });
@@ -316,7 +316,7 @@
                     }
                 });
 
-                // Chart Gastos por CategorÃ­a
+                // Chart Gastos por Categoría
                 if (chartGastosCategoria) {
                     chartGastosCategoria.destroy();
                 }

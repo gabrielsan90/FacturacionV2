@@ -1,7 +1,9 @@
+using ClosedXML.Excel;
 using Facturacion.Backend.Helpers;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Shared.DTOs;
+using Facturacion.Shared.Entities;
 using Facturacion.Shared.Enums;
 using Facturacion.Shared.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +25,7 @@ public class ReportesService : IReportesService
 
     /// <summary>
     /// Genera reporte de ventas consolidado por período
-    /// Solo incluye documentos Aceptados y Contingencia (ventas válidas)
+    /// Incluye documentos válidos (excluye Borrador, Rechazado, Anulado y Error)
     /// </summary>
     public async Task<ActionResponse<ReporteVentasDTO>> GetReporteVentasAsync(
         Guid empresaId,
@@ -34,12 +36,13 @@ public class ReportesService : IReportesService
     {
         try
         {
-            // Query base: documentos de venta aceptados o en contingencia
+            // Query base: documentos de venta válidos (no borrador, rechazado, anulado ni error)
+            var estadosExcluidos = new[] { EstadoDocumento.Borrador, EstadoDocumento.Rechazado, EstadoDocumento.Anulado, EstadoDocumento.Error };
             var query = _context.Documentos
                 .Where(d => !d.IsDeleted
                     && d.EmpresaId == empresaId
                     && !d.EsDocumentoRecibido
-                    && (d.Estado == EstadoDocumento.Aceptado || d.Estado == EstadoDocumento.Contingencia)
+                    && !estadosExcluidos.Contains(d.Estado)
                     && d.FechaEmision >= fechaInicio
                     && d.FechaEmision <= fechaFin);
 
@@ -77,7 +80,8 @@ public class ReportesService : IReportesService
                 Subtotal = d.Subtotal,
                 Impuestos = d.TotalImpuestos,
                 Descuentos = d.TotalDescuentos,
-                Total = d.TotalVenta
+                Total = d.TotalVenta,
+                Moneda = d.Moneda.ToString()
             }).ToList();
 
             var reporte = new ReporteVentasDTO
@@ -162,7 +166,8 @@ public class ReportesService : IReportesService
                 Descripcion = g.Descripcion,
                 Subtotal = g.MontoSubtotal,
                 Impuesto = g.MontoImpuesto,
-                Total = g.MontoTotal
+                Total = g.MontoTotal,
+                Moneda = g.Moneda.ToString()
             }).ToList();
 
             var reporte = new ReporteGastosDTO
@@ -279,7 +284,7 @@ public class ReportesService : IReportesService
     {
         try
         {
-            // 1. Obtener documentos de venta aceptados/contingencia
+            // 1. Obtener documentos de venta aceptados/contingencia con detalle de impuestos
             var documentosVenta = await _context.Documentos
                 .Where(d => !d.IsDeleted
                     && d.EmpresaId == empresaId
@@ -290,7 +295,14 @@ public class ReportesService : IReportesService
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 2. Obtener gastos aprobados
+            // 2. Obtener impuestos por línea de los documentos de venta
+            var docVentaIds = documentosVenta.Select(d => d.Id).ToList();
+            var impuestosVenta = await _context.Set<DocumentoDetalleImpuesto>()
+                .Where(i => !i.IsDeleted && docVentaIds.Contains(i.DocumentoDetalle!.DocumentoId))
+                .AsNoTracking()
+                .ToListAsync();
+
+            // 3. Obtener gastos aprobados (compras con IVA crédito)
             var gastos = await _context.Gastos
                 .Where(g => !g.IsDeleted
                     && g.EmpresaId == empresaId
@@ -300,7 +312,7 @@ public class ReportesService : IReportesService
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 3. Calcular totales de ventas
+            // 4. Calcular totales de ventas
             var totalVentasGravadas = documentosVenta
                 .Where(d => d.TotalImpuestos > 0)
                 .Sum(d => d.TotalGravado);
@@ -310,22 +322,63 @@ public class ReportesService : IReportesService
 
             var ivaVentas = documentosVenta.Sum(d => d.TotalImpuestos);
 
-            // 4. Calcular IVA de compras (gastos)
+            // 5. Calcular IVA de compras (gastos)
             var ivaCompras = gastos.Sum(g => g.MontoImpuesto);
 
-            // 5. Calcular IVA por pagar (ventas - compras)
+            // 6. IVA por pagar (ventas - compras)
             var ivaPorPagar = ivaVentas - ivaCompras;
 
-            // 6. Agrupar por tarifa (simplificado - se puede expandir con detalle de impuestos)
-            var detallesPorTarifa = new List<ReporteImpuestosTarifaDTO>
-            {
-                new ReporteImpuestosTarifaDTO
+            // 7. Desglose por tarifa IVA - Ventas
+            var detallesPorTarifa = new List<ReporteImpuestosTarifaDTO>();
+
+            var ventasPorTarifa = impuestosVenta
+                .GroupBy(i => i.Tarifa)
+                .OrderByDescending(g => g.Key)
+                .Select(g => new ReporteImpuestosTarifaDTO
                 {
-                    TipoImpuesto = "IVA 13%",
-                    BaseImponible = totalVentasGravadas,
-                    MontoImpuesto = ivaVentas
+                    Tipo = "Ventas",
+                    TipoImpuesto = g.Key == 0 ? "Exento" : $"IVA {g.Key:0.##}%",
+                    Tarifa = g.Key,
+                    BaseImponible = g.Sum(i => i.MontoBase),
+                    MontoImpuesto = g.Sum(i => i.MontoImpuesto),
+                    CantidadDocumentos = g.Select(i => i.DocumentoDetalleId).Distinct().Count()
+                })
+                .ToList();
+
+            detallesPorTarifa.AddRange(ventasPorTarifa);
+
+            // Ventas exentas (documentos sin impuestos)
+            var ventasExentas = documentosVenta.Sum(d => d.TotalExento + d.TotalExonerado);
+            if (ventasExentas > 0)
+            {
+                var yaExisteExento = detallesPorTarifa.Any(d => d.Tipo == "Ventas" && d.Tarifa == 0);
+                if (!yaExisteExento)
+                {
+                    detallesPorTarifa.Add(new ReporteImpuestosTarifaDTO
+                    {
+                        Tipo = "Ventas",
+                        TipoImpuesto = "Exento",
+                        Tarifa = 0,
+                        BaseImponible = ventasExentas,
+                        MontoImpuesto = 0,
+                        CantidadDocumentos = documentosVenta.Count(d => d.TotalExento > 0 || d.TotalExonerado > 0)
+                    });
                 }
-            };
+            }
+
+            // Compras - agrupado como total (gastos no tienen desglose por tarifa)
+            if (ivaCompras > 0)
+            {
+                detallesPorTarifa.Add(new ReporteImpuestosTarifaDTO
+                {
+                    Tipo = "Compras",
+                    TipoImpuesto = "IVA Crédito Fiscal",
+                    Tarifa = 0,
+                    BaseImponible = gastos.Sum(g => g.MontoSubtotal),
+                    MontoImpuesto = ivaCompras,
+                    CantidadDocumentos = gastos.Count(g => g.MontoImpuesto > 0)
+                });
+            }
 
             var reporte = new ReporteImpuestosDTO
             {
@@ -336,6 +389,8 @@ public class ReportesService : IReportesService
                 IVAVentas = ivaVentas,
                 IVACompras = ivaCompras,
                 IVAPorPagar = ivaPorPagar,
+                CantidadDocumentosVenta = documentosVenta.Count,
+                CantidadDocumentosCompra = gastos.Count,
                 DetallesPorTarifa = detallesPorTarifa
             };
 
@@ -372,12 +427,13 @@ public class ReportesService : IReportesService
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 2. Obtener documentos del período
+            // 2. Obtener documentos del período (excluye Borrador, Rechazado, Anulado y Error)
+            var estadosExcluidos = new[] { EstadoDocumento.Borrador, EstadoDocumento.Rechazado, EstadoDocumento.Anulado, EstadoDocumento.Error };
             var documentos = await _context.Documentos
                 .Where(d => !d.IsDeleted
                     && d.EmpresaId == empresaId
                     && !d.EsDocumentoRecibido
-                    && (d.Estado == EstadoDocumento.Aceptado || d.Estado == EstadoDocumento.Contingencia)
+                    && !estadosExcluidos.Contains(d.Estado)
                     && d.FechaEmision >= fechaInicio
                     && d.FechaEmision <= fechaFin
                     && d.ClienteId != null)
@@ -390,7 +446,7 @@ public class ReportesService : IReportesService
                     && d.EmpresaId == empresaId
                     && !d.EsDocumentoRecibido
                     && d.CondicionVenta == "02"
-                    && (d.Estado == EstadoDocumento.Aceptado || d.Estado == EstadoDocumento.Contingencia)
+                    && !estadosExcluidos.Contains(d.Estado)
                     && d.ClienteId != null)
                 .AsNoTracking()
                 .ToListAsync();
@@ -466,14 +522,15 @@ public class ReportesService : IReportesService
     {
         try
         {
-            // 1. Obtener detalles de documentos del período
+            // 1. Obtener detalles de documentos del período (excluye Borrador, Rechazado, Anulado y Error)
+            var estadosExcluidos = new[] { EstadoDocumento.Borrador, EstadoDocumento.Rechazado, EstadoDocumento.Anulado, EstadoDocumento.Error };
             var detallesQuery = _context.DocumentoDetalles
                 .Where(dd => !dd.IsDeleted
                     && dd.Documento != null
                     && !dd.Documento.IsDeleted
                     && dd.Documento.EmpresaId == empresaId
                     && !dd.Documento.EsDocumentoRecibido
-                    && (dd.Documento.Estado == EstadoDocumento.Aceptado || dd.Documento.Estado == EstadoDocumento.Contingencia)
+                    && !estadosExcluidos.Contains(dd.Documento.Estado)
                     && dd.Documento.FechaEmision >= fechaInicio
                     && dd.Documento.FechaEmision <= fechaFin);
 
@@ -657,7 +714,8 @@ public class ReportesService : IReportesService
                 Subtotal = d.Subtotal,
                 Impuestos = d.TotalImpuestos,
                 Descuentos = d.TotalDescuentos,
-                Total = d.TotalVenta
+                Total = d.TotalVenta,
+                Moneda = d.Moneda.ToString()
             }).ToList();
 
             var reporte = new ReporteVentasDTO
@@ -683,6 +741,182 @@ public class ReportesService : IReportesService
             {
                 WasSuccess = false,
                 Message = $"Error al generar Libro de Ventas: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Genera reporte de retenciones de renta (D-103) por período
+    /// Agrupa gastos con retención por proveedor
+    /// </summary>
+    public async Task<ActionResponse<ReporteRetencionesDTO>> GetReporteRetencionesAsync(
+        Guid empresaId,
+        DateTime fechaInicio,
+        DateTime fechaFin)
+    {
+        try
+        {
+            var gastos = await _context.Gastos
+                .Where(g => !g.IsDeleted
+                    && g.EmpresaId == empresaId
+                    && g.FechaGasto >= fechaInicio
+                    && g.FechaGasto <= fechaFin
+                    && g.MontoRetencionRenta > 0)
+                .Include(g => g.Proveedor)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var detalles = gastos
+                .GroupBy(g => g.ProveedorId)
+                .Select(grp =>
+                {
+                    var primero = grp.First();
+                    var baseImponible = grp.Sum(g => g.MontoSubtotal);
+                    var montoRetencion = grp.Sum(g => g.MontoRetencionRenta);
+                    var montoRetencionIva = grp.Sum(g => g.MontoRetencionIVA);
+                    var tarifa = baseImponible > 0
+                        ? Math.Round((montoRetencion / baseImponible) * 100, 2)
+                        : 0;
+
+                    return new RetencionDetalleDTO
+                    {
+                        ProveedorNombre = primero.Proveedor?.Nombre ?? "Proveedor no especificado",
+                        ProveedorIdentificacion = primero.Proveedor?.NumeroIdentificacion ?? "",
+                        TipoIdentificacion = primero.Proveedor?.TipoIdentificacion.ToString() ?? "",
+                        BaseImponible = baseImponible,
+                        TarifaRetencion = tarifa,
+                        MontoRetencion = montoRetencion,
+                        MontoRetencionIVA = montoRetencionIva,
+                        CantidadDocumentos = grp.Count()
+                    };
+                })
+                .OrderByDescending(d => d.MontoRetencion)
+                .ToList();
+
+            var reporte = new ReporteRetencionesDTO
+            {
+                FechaInicio = fechaInicio,
+                FechaFin = fechaFin,
+                TotalRetencionRenta = detalles.Sum(d => d.MontoRetencion),
+                TotalRetencionIVA = detalles.Sum(d => d.MontoRetencionIVA),
+                TotalBaseImponible = detalles.Sum(d => d.BaseImponible),
+                CantidadDocumentos = gastos.Count,
+                CantidadProveedores = detalles.Count,
+                Detalles = detalles
+            };
+
+            return new ActionResponse<ReporteRetencionesDTO>
+            {
+                WasSuccess = true,
+                Result = reporte
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ActionResponse<ReporteRetencionesDTO>
+            {
+                WasSuccess = false,
+                Message = $"Error al generar reporte de retenciones: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Exporta reporte de retenciones a Excel (formato D-103)
+    /// </summary>
+    public async Task<ActionResponse<byte[]>> ExportarRetencionesExcelAsync(
+        Guid empresaId,
+        DateTime fechaInicio,
+        DateTime fechaFin)
+    {
+        try
+        {
+            var reporteResponse = await GetReporteRetencionesAsync(empresaId, fechaInicio, fechaFin);
+            if (!reporteResponse.WasSuccess || reporteResponse.Result == null)
+            {
+                return new ActionResponse<byte[]>
+                {
+                    WasSuccess = false,
+                    Message = reporteResponse.Message ?? "Error al generar reporte"
+                };
+            }
+
+            var reporte = reporteResponse.Result;
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("D-103 Retenciones");
+
+            // Header
+            ws.Cell("A1").Value = "Declaración D-103 - Retenciones de Renta";
+            ws.Cell("A1").Style.Font.Bold = true;
+            ws.Cell("A1").Style.Font.FontSize = 14;
+            ws.Range("A1:F1").Merge();
+
+            ws.Cell("A2").Value = $"Período: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}";
+            ws.Range("A2:F2").Merge();
+
+            // Column headers
+            int row = 4;
+            var headers = new[] { "Tipo ID", "Identificación", "Nombre Proveedor", "Base Imponible", "Tarifa %", "Retención Renta", "Retención IVA", "# Docs" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                ws.Cell(row, i + 1).Value = headers[i];
+                ws.Cell(row, i + 1).Style.Font.Bold = true;
+                ws.Cell(row, i + 1).Style.Fill.BackgroundColor = XLColor.FromArgb(0, 51, 102);
+                ws.Cell(row, i + 1).Style.Font.FontColor = XLColor.White;
+            }
+
+            // Data
+            row++;
+            foreach (var det in reporte.Detalles)
+            {
+                ws.Cell(row, 1).Value = det.TipoIdentificacion;
+                ws.Cell(row, 2).Value = det.ProveedorIdentificacion;
+                ws.Cell(row, 3).Value = det.ProveedorNombre;
+                ws.Cell(row, 4).Value = det.BaseImponible;
+                ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 5).Value = det.TarifaRetencion;
+                ws.Cell(row, 5).Style.NumberFormat.Format = "0.00";
+                ws.Cell(row, 6).Value = det.MontoRetencion;
+                ws.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 7).Value = det.MontoRetencionIVA;
+                ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 8).Value = det.CantidadDocumentos;
+                row++;
+            }
+
+            // Totals
+            ws.Cell(row, 3).Value = "TOTALES";
+            ws.Cell(row, 3).Style.Font.Bold = true;
+            ws.Cell(row, 4).Value = reporte.TotalBaseImponible;
+            ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 4).Style.Font.Bold = true;
+            ws.Cell(row, 6).Value = reporte.TotalRetencionRenta;
+            ws.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 6).Style.Font.Bold = true;
+            ws.Cell(row, 7).Value = reporte.TotalRetencionIVA;
+            ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 7).Style.Font.Bold = true;
+            ws.Cell(row, 8).Value = reporte.CantidadDocumentos;
+            ws.Cell(row, 8).Style.Font.Bold = true;
+
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+
+            return new ActionResponse<byte[]>
+            {
+                WasSuccess = true,
+                Result = ms.ToArray()
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ActionResponse<byte[]>
+            {
+                WasSuccess = false,
+                Message = $"Error al exportar retenciones a Excel: {ex.Message}"
             };
         }
     }

@@ -373,9 +373,9 @@
             columns: [
                 { data: 'numeroFactura' },
                 {
-                    data: 'proveedor',
+                    data: 'proveedorNombre',
                     render: function(data) {
-                        return data ? data.nombre : '<span class="text-muted">-</span>';
+                        return data ? data : '<span class="text-muted">-</span>';
                     }
                 },
                 {
@@ -506,9 +506,9 @@
                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
             },
             success: function(response) {
-                $('#cardTotalPendiente').text(formatCurrency(response.totalPendiente || 0));
-                $('#cardTotalVencido').text(formatCurrency(response.totalVencido || 0));
-                $('#cardPagosDelMes').text(formatCurrency(response.pagosDelMes || 0));
+                $('#cardTotalPendiente').html(renderMontosPorMoneda(response.pendientePorMoneda, formatCurrency(0)));
+                $('#cardTotalVencido').html(renderMontosPorMoneda(response.vencidoPorMoneda, formatCurrency(0)));
+                $('#cardPagosDelMes').html(renderMontosPorMoneda(response.pagosDelMesPorMoneda, formatCurrency(0)));
             }
         });
     }
@@ -618,7 +618,7 @@
 
         $('#Pago_CuentaId').val(id);
         $('#infoPagoNumFactura').text(cuenta.numeroFactura);
-        $('#infoPagoProveedor').text(cuenta.proveedor ? cuenta.proveedor.nombre : '-');
+        $('#infoPagoProveedor').text(cuenta.proveedorNombre || '-');
         $('#infoPagoSaldo').text(formatCurrency(cuenta.montoSaldo));
         $('#Pago_Monto').val(cuenta.montoSaldo).attr('max', cuenta.montoSaldo);
 

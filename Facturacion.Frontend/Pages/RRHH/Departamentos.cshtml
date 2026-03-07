@@ -186,14 +186,15 @@
                     }
                 },
                 {
-                    data: 'id',
+                    data: null,
                     orderable: false,
                     render: function(data) {
+                        const nombre = (data.nombre || '').replace(/'/g, "\\'");
                         return `
-                            <button class="btn btn-sm btn-info" onclick="edit('${data}')" title="Editar">
+                            <button class="btn btn-sm btn-info" onclick="edit('${data.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data.id}', '${nombre}')" title="Eliminar">
                                 <i class="fas fa-trash"></i>
                             </button>
                         `;
@@ -283,8 +284,8 @@
         });
     }
 
-    function deleteRecord(id) {
-        confirmDelete('Esta acción no se puede revertir', function() {
+    function deleteRecord(id, nombre) {
+        confirmDelete(`¿Está seguro de eliminar el departamento "${nombre || ''}"? Esta acción no se puede revertir.`, function() {
             $.ajax({
                 url: '?handler=Delete&id=' + id,
                 type: 'POST',

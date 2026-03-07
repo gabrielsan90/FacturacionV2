@@ -385,10 +385,24 @@
         isValidCedula
     };
 
+    /**
+     * Render monetary amounts grouped by currency for stats cards.
+     * Takes an array of {moneda, monto} objects and returns HTML lines.
+     * @param {Array} items - Array of {moneda: string, monto: number}
+     * @param {string} defaultText - Text to show when no items (default: '₡0.00')
+     * @returns {string} HTML string with amounts separated by <br>
+     */
+    function renderMontosPorMoneda(items, defaultText = '₡0.00') {
+        if (!items || !Array.isArray(items) || items.length === 0) return defaultText;
+        if (items.length === 1) return formatCurrency(items[0].monto, items[0].moneda);
+        return items.map(i => formatCurrency(i.monto, i.moneda)).join('<br>');
+    }
+
     // Also expose individual functions for backwards compatibility
     window.formatCurrency = formatCurrency;
     window.formatDate = formatDate;
     window.formatDateTime = formatDateTime;
     window.formatTime = formatTime;
+    window.renderMontosPorMoneda = renderMontosPorMoneda;
 
 })(window);

@@ -42,6 +42,7 @@ public class DepartamentoRepository : IDepartamentoRepository
             return await _context.Departamentos
                 .Include(d => d.Jefe)
                 .Include(d => d.DepartamentoPadre)
+                .Include(d => d.Empleados!.Where(e => !e.IsDeleted))
                 .Where(d => d.EmpresaId == empresaId && !d.IsDeleted)
                 .OrderBy(d => d.Codigo)
                 .ToListAsync();

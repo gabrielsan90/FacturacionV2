@@ -186,8 +186,8 @@
                 ajax: {
                     url: '?handler=Data',
                     dataSrc: function(json) {
-                        tiposData = json;
-                        return json;
+                        tiposData = json.data || json || [];
+                        return tiposData;
                     }
                 },
                 columns: [

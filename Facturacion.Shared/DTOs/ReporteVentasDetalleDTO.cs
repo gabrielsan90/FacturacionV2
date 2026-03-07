@@ -13,4 +13,5 @@ public class ReporteVentasDetalleDTO
     public decimal Impuestos { get; set; }
     public decimal Descuentos { get; set; }
     public decimal Total { get; set; }
+    public string Moneda { get; set; } = "CRC";
 }

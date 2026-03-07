@@ -47,7 +47,7 @@ public class PeriodosContablesModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrWhiteSpace(empresaId))
             {
-                return new JsonResult(new { data = new List<PeriodoContableDTO>() });
+                return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
             }
 
             var response = await client.GetAsync($"/api/PeriodosContables/empresa/{empresaId}");
@@ -55,21 +55,38 @@ public class PeriodosContablesModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
+
+                // Unwrap ActionResponse if needed
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
                 return new ContentResult
                 {
-                    Content = $"{{\"data\":{content}}}",
+                    Content = $"{{\"data\":{dataJson}}}",
                     ContentType = "application/json",
                     StatusCode = 200
                 };
             }
 
             _logger.LogWarning("Failed to load periodos contables. Status: {StatusCode}", response.StatusCode);
-            return new JsonResult(new { data = new List<object>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading periodos contables");
-            return new JsonResult(new { data = new List<PeriodoContableDTO>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -155,18 +172,7 @@ public class PeriodosContablesModel : PageModel
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value!.Errors.Count > 0)
-                    .Select(x => new
-                    {
-                        Field = x.Key,
-                        Message = x.Value!.Errors.First().ErrorMessage
-                    });
-
-                return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-            }
+            // No validar ModelState aquí: la validación real la hace el API backend.
 
             // Validate date range
             if (periodoData.FechaInicio >= periodoData.FechaFin)
@@ -188,8 +194,8 @@ public class PeriodosContablesModel : PageModel
                 return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
             }
 
-            // Ensure estado is ABT for new periods
-            periodoData.Estado = "ABT";
+            // Ensure estado is PND for new periods (user opens them later)
+            periodoData.Estado = "PND";
 
             var json = JsonSerializer.Serialize(periodoData);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -214,6 +220,39 @@ public class PeriodosContablesModel : PageModel
         {
             _logger.LogError(ex, "Error saving periodo contable");
             return new JsonResult(new { success = false, message = "Error al guardar el período contable" });
+        }
+    }
+
+    // Handler to open a period (auto-closes any currently open period)
+    public async Task<IActionResult> OnPostAbrirAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.PostAsync($"/api/PeriodosContables/{id}/abrir", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("Periodo contable opened successfully. ID: {Id}", id);
+                return new JsonResult(new { success = true, message = "Período abierto exitosamente" });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to open periodo contable with ID: {Id}. Error: {Error}", id, error);
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening periodo contable with ID: {Id}", id);
+            return new JsonResult(new { success = false, message = "Error al abrir el período contable" });
         }
     }
 
@@ -314,6 +353,38 @@ public class PeriodosContablesModel : PageModel
         }
     }
 
+    // Handler to delete a pending period
+    public async Task<IActionResult> OnPostEliminarAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.DeleteAsync($"/api/PeriodosContables/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Periodo contable deleted successfully. ID: {Id}", id);
+                return new JsonResult(new { success = true, message = "Período eliminado exitosamente" });
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to delete periodo contable with ID: {Id}. Error: {Error}", id, error);
+            return new JsonResult(new { success = false, message = error });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting periodo contable with ID: {Id}", id);
+            return new JsonResult(new { success = false, message = "Error al eliminar el período contable" });
+        }
+    }
+
     // DTO Classes
     public class PeriodoContableDTO
     {
@@ -323,7 +394,7 @@ public class PeriodosContablesModel : PageModel
         public string? Nombre { get; set; }
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
-        public string Estado { get; set; } = "ABT";
+        public string Estado { get; set; } = "PND";
         public DateTime? FechaCierre { get; set; }
         public string? CerradoPor { get; set; }
     }

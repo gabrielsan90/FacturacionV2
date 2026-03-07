@@ -231,6 +231,36 @@
             padding-left: 0;
         }
 
+        .input-group .form-control.has-toggle {
+            border-right: 0;
+            border-radius: 0;
+        }
+
+        .btn-toggle-password {
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-left: 0;
+            border-radius: 0 12px 12px 0;
+            color: var(--gray-600);
+            padding: 13px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-toggle-password:hover {
+            color: var(--primary-blue);
+        }
+
+        .input-group:hover .btn-toggle-password {
+            border-color: var(--gray-300);
+            background: white;
+        }
+
+        .input-group:focus-within .btn-toggle-password {
+            border-color: var(--primary-blue);
+            background: white;
+        }
+
         .input-group:hover .input-group-text {
             border-color: var(--gray-300);
             background: white;
@@ -467,7 +497,10 @@
                                 <span class="input-group-text">
                                     <i class="bi bi-lock"></i>
                                 </span>
-                                <input asp-for="Input.Password" class="form-control" placeholder="Ingrese su contraseña" type="password" />
+                                <input asp-for="Input.Password" class="form-control has-toggle" placeholder="Ingrese su contraseña" type="password" />
+                                <button type="button" class="btn-toggle-password" id="btnTogglePassword" tabindex="-1">
+                                    <i class="bi bi-eye" id="iconTogglePassword"></i>
+                                </button>
                             </div>
                             <span asp-validation-for="Input.Password" class="text-danger"></span>
                         </div>
@@ -541,6 +574,19 @@
             // Auto-focus on email field
             $('#Input_Email').focus();
 
+            // Toggle password visibility
+            $('#btnTogglePassword').on('click', function () {
+                const input = $('#Input_Password');
+                const icon = $('#iconTogglePassword');
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
+                }
+            });
+
             // Validate credentials (Step 1)
             $('#btnValidate').on('click', function () {
                 const email = $('#Input_Email').val().trim();
@@ -574,6 +620,11 @@
                 $('#btnValidateText').addClass('d-none');
                 $('#btnValidateSpinner').removeClass('d-none');
 
+                // Slow server feedback
+                var slowTimer = setTimeout(function() {
+                    $('#btnValidateSpinner').html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>El servidor está tardando, por favor espere...');
+                }, 5000);
+
                 // Validate credentials via AJAX
                 $.ajax({
                     url: '/Auth/Login?handler=ValidateCredentials',
@@ -589,9 +640,13 @@
                             validatedPassword = password;
                             validatedPreAuthToken = response.preAuthToken || '';
                             empresas = response.empresas || [];
+                            var isSuperUser = response.isSuperUser || false;
 
-                            if (empresas.length === 0) {
-                                // No empresas - show error
+                            if (empresas.length === 0 && isSuperUser) {
+                                // SuperUser sin empresas - login directo sin empresa
+                                submitLogin();
+                            } else if (empresas.length === 0) {
+                                // Usuario regular sin empresas - error
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Sin acceso',
@@ -624,9 +679,10 @@
                         });
                     },
                     complete: function () {
+                        clearTimeout(slowTimer);
                         $('#btnValidate').prop('disabled', false);
                         $('#btnValidateText').removeClass('d-none');
-                        $('#btnValidateSpinner').addClass('d-none');
+                        $('#btnValidateSpinner').addClass('d-none').html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Validando...');
                     }
                 });
             });
@@ -666,7 +722,8 @@
                 e.preventDefault();
 
                 const empresaId = $('#empresaSelect').val();
-                if (!empresaId) {
+                // Solo requerir empresa si hay empresas disponibles en el select
+                if (!empresaId && empresas.length > 0) {
                     $('#empresaError').text('Debe seleccionar una empresa');
                     $('#empresaSelect').addClass('is-invalid');
                     return false;
@@ -674,7 +731,6 @@
 
                 $('#empresaSelect').removeClass('is-invalid');
                 $('#empresaError').text('');
-                // El select ya tiene el valor correcto, no necesita copiarse
 
                 submitLogin();
             });
@@ -684,6 +740,11 @@
                 $('#btnLogin').prop('disabled', true);
                 $('#btnText').addClass('d-none');
                 $('#btnSpinner').removeClass('d-none');
+
+                // Slow server feedback for form submit
+                setTimeout(function() {
+                    $('#btnSpinner').html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Conectando, por favor espere...');
+                }, 5000);
 
                 // Set the email, password, and pre-auth token from validated values
                 $('#Input_Email').val(validatedEmail);

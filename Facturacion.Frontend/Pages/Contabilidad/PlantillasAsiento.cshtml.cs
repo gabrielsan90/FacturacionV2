@@ -160,19 +160,23 @@ public class PlantillasAsientoModel : PageModel
                 return new JsonResult(new { results = new List<object>() });
             }
 
-            var queryString = $"empresaId={empresaId}&aceptaMovimientos=true";
-            if (!string.IsNullOrEmpty(q))
-            {
-                queryString += $"&search={Uri.EscapeDataString(q)}";
-            }
-
-            var response = await client.GetAsync($"/api/cuentascontables?{queryString}");
+            var response = await client.GetAsync($"/api/cuentascontables/empresa/{empresaId}/movimiento");
 
             if (response.IsSuccessStatusCode)
             {
                 var cuentas = await response.Content.ReadFromJsonAsync<List<PlantillaCuentaDTO>>(_jsonOptions);
 
-                var results = cuentas?.Select(c => new
+                var filtered = cuentas;
+                if (!string.IsNullOrEmpty(q))
+                {
+                    var searchLower = q.ToLower();
+                    filtered = cuentas?.Where(c =>
+                        c.Codigo.ToLower().Contains(searchLower) ||
+                        c.Nombre.ToLower().Contains(searchLower)
+                    ).ToList();
+                }
+
+                var results = filtered?.Select(c => new
                 {
                     id = c.Id.ToString(),
                     text = $"{c.Codigo} - {c.Nombre}",
@@ -200,18 +204,7 @@ public class PlantillasAsientoModel : PageModel
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value!.Errors.Count > 0)
-                    .Select(x => new
-                    {
-                        Field = x.Key,
-                        Message = x.Value!.Errors.First().ErrorMessage
-                    });
-
-                return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-            }
+            // No validar ModelState aquí: la validación real la hace el API backend.
 
             // Validate template has lines
             if (plantillaData.Lineas == null || !plantillaData.Lineas.Any())
@@ -338,18 +331,7 @@ public class PlantillasAsientoModel : PageModel
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value!.Errors.Count > 0)
-                    .Select(x => new
-                    {
-                        Field = x.Key,
-                        Message = x.Value!.Errors.First().ErrorMessage
-                    });
-
-                return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-            }
+            // No validar ModelState aquí: la validación real la hace el API backend.
 
             var client = _httpClientFactory.CreateClient("FacturacionApi");
 
@@ -414,10 +396,10 @@ public class PlantillasAsientoModel : PageModel
             {
                 var periodos = await response.Content.ReadFromJsonAsync<List<PlantillaPeriodoDTO>>(_jsonOptions);
 
-                Periodos = periodos?.Where(p => p.Activo).Select(p => new SelectListItem
+                Periodos = periodos?.Where(p => p.EstaAbierto).Select(p => new SelectListItem
                 {
                     Value = p.Id.ToString(),
-                    Text = p.Nombre
+                    Text = p.PeriodoNombre ?? p.Nombre
                 }).ToList() ?? new List<SelectListItem>();
             }
             else
@@ -491,6 +473,8 @@ public class PlantillaPeriodoDTO
     public Guid Id { get; set; }
     public string Nombre { get; set; } = "";
     public bool Activo { get; set; }
+    public bool EstaAbierto { get; set; }
+    public string? PeriodoNombre { get; set; }
 }
 
 public class PlantillaCuentaDTO

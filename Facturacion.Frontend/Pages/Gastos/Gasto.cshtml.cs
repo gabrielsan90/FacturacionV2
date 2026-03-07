@@ -24,6 +24,7 @@ public class GastoModel : PageModel
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
@@ -113,7 +114,9 @@ public class GastoModel : PageModel
                     categoriaGastoId = gasto.CategoriaGastoId,
                     monto = gasto.MontoTotal,
                     descripcion = gasto.Descripcion,
-                    metodoPago = (int)gasto.FormaPago
+                    metodoPago = (int)gasto.FormaPago,
+                    montoRetencionRenta = gasto.MontoRetencionRenta,
+                    montoRetencionIVA = gasto.MontoRetencionIVA
                 });
             }
 
@@ -131,16 +134,20 @@ public class GastoModel : PageModel
     {
         if (gastoData == null)
         {
-            return new JsonResult(new { success = false, message = "Datos invalidos" });
+            return new JsonResult(new { success = false, message = "Datos del gasto son requeridos" });
         }
 
-        if (gastoData.CategoriaGastoId <= 0 || gastoData.Monto <= 0 ||
-            string.IsNullOrWhiteSpace(gastoData.NumeroDocumento) ||
-            string.IsNullOrWhiteSpace(gastoData.Descripcion) ||
-            gastoData.Fecha == default ||
-            gastoData.FormaPago <= 0)
+        var validationErrors = new List<string>();
+        if (gastoData.CategoriaGastoId <= 0) validationErrors.Add("Categoría es requerida");
+        if (gastoData.Monto <= 0) validationErrors.Add("Monto debe ser mayor a cero");
+        if (string.IsNullOrWhiteSpace(gastoData.NumeroDocumento)) validationErrors.Add("Número de documento es requerido");
+        if (string.IsNullOrWhiteSpace(gastoData.Descripcion)) validationErrors.Add("Descripción es requerida");
+        if (gastoData.Fecha == default) validationErrors.Add("Fecha es requerida");
+        if (gastoData.FormaPago <= 0) validationErrors.Add("Forma de pago es requerida");
+
+        if (validationErrors.Count > 0)
         {
-            return new JsonResult(new { success = false, message = "Datos invalidos" });
+            return new JsonResult(new { success = false, message = string.Join(". ", validationErrors) });
         }
 
         try
@@ -180,10 +187,12 @@ public class GastoModel : PageModel
                 FormaPago = (FormaPago)gastoData.FormaPago,
                 EstadoPago = EstadoPago.Pendiente,
                 MontoPagado = 0,
-                Comprobante = string.IsNullOrWhiteSpace(gastoData.TipoDocumento) ? null : gastoData.TipoDocumento
+                Comprobante = string.IsNullOrWhiteSpace(gastoData.TipoDocumento) ? null : gastoData.TipoDocumento,
+                MontoRetencionRenta = gastoData.MontoRetencionRenta,
+                MontoRetencionIVA = gastoData.MontoRetencionIVA
             };
 
-            var json = JsonSerializer.Serialize(dto);
+            var json = JsonSerializer.Serialize(dto, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;
@@ -198,6 +207,9 @@ public class GastoModel : PageModel
                 response = await client.PutAsync($"/api/Gastos/{gastoData.Id}", content);
             }
 
+            var responseBody = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Gasto API response: StatusCode={StatusCode}, Body={Body}", response.StatusCode, responseBody);
+
             if (response.IsSuccessStatusCode)
             {
                 return new JsonResult(new
@@ -207,14 +219,16 @@ public class GastoModel : PageModel
                 });
             }
 
-            var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to save gasto. Error: {Error}", error);
-            return new JsonResult(new { success = false, message = error });
+            _logger.LogWarning("Failed to save gasto. StatusCode: {StatusCode}, Error: {Error}", response.StatusCode, responseBody);
+
+            // Extract a human-readable error message from the API response
+            var errorMessage = ExtractErrorMessage(responseBody, response.StatusCode);
+            return new JsonResult(new { success = false, message = errorMessage });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving gasto");
-            return new JsonResult(new { success = false, message = "Error al guardar el gasto" });
+            return new JsonResult(new { success = false, message = "Error al guardar el gasto: " + ex.Message });
         }
     }
 
@@ -237,9 +251,10 @@ public class GastoModel : PageModel
                 return new JsonResult(new { success = true, message = "Gasto eliminado exitosamente" });
             }
 
-            var error = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to delete gasto. ID: {Id}, Error: {Error}", id, error);
-            return new JsonResult(new { success = false, message = error });
+            var errorBody = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Failed to delete gasto. ID: {Id}, StatusCode: {StatusCode}, Error: {Error}", id, response.StatusCode, errorBody);
+            var errorMessage = ExtractErrorMessage(errorBody, response.StatusCode);
+            return new JsonResult(new { success = false, message = errorMessage });
         }
         catch (Exception ex)
         {
@@ -318,6 +333,87 @@ public class GastoModel : PageModel
         }
     }
 
+    /// <summary>
+    /// Extracts a human-readable error message from an API error response.
+    /// Handles plain text, ValidationProblemDetails JSON, and empty bodies.
+    /// NEVER returns an empty string — always provides a meaningful message.
+    /// </summary>
+    private static string ExtractErrorMessage(string errorBody, System.Net.HttpStatusCode statusCode)
+    {
+        var fallbackMessage = statusCode switch
+        {
+            System.Net.HttpStatusCode.BadRequest => "Los datos enviados no son válidos",
+            System.Net.HttpStatusCode.Forbidden => "No tiene permisos para realizar esta acción",
+            System.Net.HttpStatusCode.Unauthorized => "Su sesión ha expirado. Por favor inicie sesión nuevamente",
+            System.Net.HttpStatusCode.NotFound => "El recurso solicitado no fue encontrado",
+            System.Net.HttpStatusCode.Conflict => "Conflicto: el registro ya existe o fue modificado",
+            _ => $"Error del servidor (código {(int)statusCode})"
+        };
+
+        if (string.IsNullOrWhiteSpace(errorBody))
+        {
+            return fallbackMessage;
+        }
+
+        // Try to parse as JSON (ValidationProblemDetails or similar)
+        try
+        {
+            using var doc = JsonDocument.Parse(errorBody);
+            var root = doc.RootElement;
+
+            // Check for ValidationProblemDetails format: { "title": "...", "errors": { ... } }
+            if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
+            {
+                var messages = new List<string>();
+                foreach (var field in errors.EnumerateObject())
+                {
+                    if (field.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var msg in field.Value.EnumerateArray())
+                        {
+                            var msgStr = msg.GetString();
+                            if (!string.IsNullOrWhiteSpace(msgStr))
+                            {
+                                messages.Add(msgStr);
+                            }
+                        }
+                    }
+                }
+                if (messages.Count > 0)
+                {
+                    return string.Join(". ", messages);
+                }
+            }
+
+            // Check for { "title": "..." } or { "message": "..." }
+            if (root.TryGetProperty("title", out var title) && title.GetString() is string t && !string.IsNullOrWhiteSpace(t))
+            {
+                return t;
+            }
+            if (root.TryGetProperty("message", out var message) && message.GetString() is string m && !string.IsNullOrWhiteSpace(m))
+            {
+                return m;
+            }
+
+            // If it's a simple JSON string value
+            if (root.ValueKind == JsonValueKind.String)
+            {
+                var str = root.GetString();
+                if (!string.IsNullOrWhiteSpace(str))
+                {
+                    return str;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Not JSON — try as plain text below
+        }
+
+        // Return plain text if non-empty, otherwise the fallback
+        return !string.IsNullOrWhiteSpace(errorBody) ? errorBody.Trim() : fallbackMessage;
+    }
+
     public sealed class GastoSaveRequest
     {
         public Guid? Id { get; set; }
@@ -329,6 +425,8 @@ public class GastoModel : PageModel
         public decimal Monto { get; set; }
         public string? Descripcion { get; set; }
         public int FormaPago { get; set; }
+        public decimal MontoRetencionRenta { get; set; }
+        public decimal MontoRetencionIVA { get; set; }
     }
 }
 

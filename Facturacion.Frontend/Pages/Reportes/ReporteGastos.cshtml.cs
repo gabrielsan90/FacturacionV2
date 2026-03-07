@@ -99,12 +99,24 @@ public class ReporteGastosModel : PageModel
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
+            // Per-currency breakdown
+            var gastosPorMoneda = reporte.Detalles
+                .GroupBy(d => d.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Sum(d => d.Total) })
+                .OrderByDescending(m => m.monto).ToList();
+            var promedioPorMoneda = reporte.Detalles
+                .GroupBy(d => d.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Count() > 0 ? g.Sum(d => d.Total) / g.Count() : 0m })
+                .OrderByDescending(m => m.monto).ToList();
+
             return new JsonResult(new
             {
                 totalGastos = reporte.TotalGastos,
                 totalDocumentos = reporte.CantidadGastos,
                 promedioGasto = promedio,
-                totalProveedores
+                totalProveedores,
+                gastosPorMoneda,
+                promedioPorMoneda
             });
         }
         catch (Exception ex)

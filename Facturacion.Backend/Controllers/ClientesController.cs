@@ -56,6 +56,140 @@ public class ClientesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Endpoint paginado para DataTables server-side processing.
+    /// </summary>
+    [HttpGet("empresa/{empresaId:guid}/paginado")]
+    public async Task<IActionResult> GetPaginadoAsync(
+        Guid empresaId,
+        [FromQuery] int start = 0,
+        [FromQuery] int length = 25,
+        [FromQuery(Name = "search[value]")] string? search = null,
+        [FromQuery(Name = "order[0][column]")] int orderColumn = 2,
+        [FromQuery(Name = "order[0][dir]")] string orderDir = "asc",
+        [FromQuery] int draw = 1)
+    {
+        try
+        {
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                return Forbid();
+            }
+
+            var query = _context.Clientes
+                .Where(c => c.EmpresaId == empresaId && !c.IsDeleted);
+
+            // Total sin filtros
+            var recordsTotal = await query.CountAsync();
+
+            // Aplicar búsqueda
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(c =>
+                    c.Nombre.ToLower().Contains(searchLower) ||
+                    c.NumeroIdentificacion.ToLower().Contains(searchLower) ||
+                    (c.EmailPrincipal != null && c.EmailPrincipal.ToLower().Contains(searchLower)) ||
+                    (c.TelefonoPrincipal != null && c.TelefonoPrincipal.ToLower().Contains(searchLower)) ||
+                    (c.NombreComercial != null && c.NombreComercial.ToLower().Contains(searchLower)));
+            }
+
+            var recordsFiltered = await query.CountAsync();
+
+            // Ordenamiento
+            query = orderColumn switch
+            {
+                0 => orderDir == "asc" ? query.OrderBy(c => c.TipoIdentificacion) : query.OrderByDescending(c => c.TipoIdentificacion),
+                1 => orderDir == "asc" ? query.OrderBy(c => c.NumeroIdentificacion) : query.OrderByDescending(c => c.NumeroIdentificacion),
+                2 => orderDir == "asc" ? query.OrderBy(c => c.Nombre) : query.OrderByDescending(c => c.Nombre),
+                3 => orderDir == "asc" ? query.OrderBy(c => c.EmailPrincipal) : query.OrderByDescending(c => c.EmailPrincipal),
+                4 => orderDir == "asc" ? query.OrderBy(c => c.TelefonoPrincipal) : query.OrderByDescending(c => c.TelefonoPrincipal),
+                5 => orderDir == "asc" ? query.OrderBy(c => c.Activo) : query.OrderByDescending(c => c.Activo),
+                _ => orderDir == "asc" ? query.OrderBy(c => c.Nombre) : query.OrderByDescending(c => c.Nombre)
+            };
+
+            // Paginación
+            var data = await query
+                .Skip(start)
+                .Take(length)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.TipoIdentificacion,
+                    c.NumeroIdentificacion,
+                    c.Nombre,
+                    c.NombreComercial,
+                    c.EmailPrincipal,
+                    c.TelefonoPrincipal,
+                    c.Activo,
+                    c.Provincia,
+                    c.Canton,
+                    c.Distrito,
+                    c.Barrio,
+                    c.OtrasSenas,
+                    c.SaldoActual,
+                    c.LimiteCredito,
+                    c.Moneda,
+                    c.TipoDocumento,
+                    c.TipoVenta,
+                    c.TipoPago,
+                    c.ActividadEconomicaCIIU4,
+                    c.ActividadEconomicaCIIU3
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                draw,
+                recordsTotal,
+                recordsFiltered,
+                data
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener clientes paginados de empresa {EmpresaId}", empresaId);
+            return StatusCode(500, new { draw, recordsTotal = 0, recordsFiltered = 0, data = new List<object>() });
+        }
+    }
+
+    /// <summary>
+    /// Lightweight endpoint for Select2/modal listings — returns only essential fields, no navigation properties
+    /// </summary>
+    [HttpGet("empresa/{empresaId:guid}/select")]
+    public async Task<IActionResult> GetForSelectAsync(Guid empresaId)
+    {
+        try
+        {
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+            {
+                return Forbid();
+            }
+
+            var clientes = await _context.Clientes
+                .Where(c => c.EmpresaId == empresaId && !c.IsDeleted)
+                .OrderBy(c => c.Nombre)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Nombre,
+                    c.NombreComercial,
+                    c.NumeroIdentificacion,
+                    c.TipoIdentificacion,
+                    c.EmailPrincipal,
+                    c.TelefonoPrincipal
+                })
+                .ToListAsync();
+
+            return Ok(clientes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener clientes (select) de empresa {EmpresaId}", empresaId);
+            return StatusCode(500, "Error interno al obtener clientes.");
+        }
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetAsync(Guid id)
     {
@@ -128,10 +262,18 @@ public class ClientesController : ControllerBase
 
             return Ok(nuevoCliente);
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Error de BD al crear cliente para empresa {EmpresaId}", cliente.EmpresaId);
+            var inner = dbEx.InnerException?.Message ?? "";
+            if (inner.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) || inner.Contains("duplicate", StringComparison.OrdinalIgnoreCase) || inner.Contains("IX_", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Ya existe un cliente registrado con esta identificación.");
+            return StatusCode(500, "Error al crear cliente. Intente nuevamente.");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear cliente para empresa {EmpresaId}", cliente.EmpresaId);
-            return StatusCode(500, "Error interno al crear cliente.");
+            return StatusCode(500, "Error al crear cliente. Intente nuevamente.");
         }
     }
 
@@ -194,10 +336,18 @@ public class ClientesController : ControllerBase
 
             return Ok(cliente);
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Error de BD al actualizar cliente {ClienteId}", id);
+            var inner = dbEx.InnerException?.Message ?? "";
+            if (inner.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) || inner.Contains("duplicate", StringComparison.OrdinalIgnoreCase) || inner.Contains("IX_", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Ya existe otro cliente registrado con esta identificación.");
+            return StatusCode(500, "Error al actualizar cliente. Intente nuevamente.");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar cliente {ClienteId}", id);
-            return StatusCode(500, "Error interno al actualizar cliente.");
+            return StatusCode(500, "Error al actualizar cliente. Intente nuevamente.");
         }
     }
 

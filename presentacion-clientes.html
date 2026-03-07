@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturación CR — Sistema ERP Integral</title>
+
+    <!-- Font: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           Neon Cyber colors + Poppins elegance
+           =========================================== */
+        :root {
+            --bg-primary: #0a0a1a;
+            --bg-secondary: #0f0f24;
+            --bg-card: rgba(255, 255, 255, 0.025);
+            --text-primary: #e8e4dc;
+            --text-secondary: rgba(232, 228, 220, 0.5);
+            --text-muted: rgba(232, 228, 220, 0.3);
+            --accent-cyan: #00ffcc;
+            --accent-purple: #7b2ffc;
+            --accent-pink: #ff006e;
+            --accent-glow-cyan: rgba(0, 255, 204, 0.3);
+            --accent-glow-purple: rgba(123, 47, 252, 0.3);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+
+            --font-display: 'Poppins', sans-serif;
+            --font-body: 'Poppins', sans-serif;
+
+            --title-size: clamp(2.2rem, 7vw, 5.5rem);
+            --h2-size: clamp(1.6rem, 4.5vw, 3.2rem);
+            --h3-size: clamp(1rem, 2.2vw, 1.5rem);
+            --body-size: clamp(0.75rem, 1.3vw, 1.05rem);
+            --small-size: clamp(0.6rem, 0.9vw, 0.8rem);
+            --eyebrow-size: clamp(0.55rem, 0.9vw, 0.75rem);
+
+            --slide-padding: clamp(1.5rem, 4vw, 5rem);
+            --content-gap: clamp(0.8rem, 2vw, 2rem);
+            --element-gap: clamp(0.3rem, 1vw, 1rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* ===========================================
+           BASE STYLES
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            height: 100%;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        /* ===========================================
+           SLIDE CONTAINER
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: var(--slide-padding);
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* ===========================================
+           BACKGROUND EFFECTS
+           =========================================== */
+        .slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            transition: transform 1.5s var(--ease-out-expo), opacity 1.5s;
+        }
+        .orb-cyan { background: var(--accent-cyan); opacity: 0.08; }
+        .orb-purple { background: var(--accent-purple); opacity: 0.08; }
+        .orb-pink { background: var(--accent-pink); opacity: 0.04; }
+
+        /* Orbs float when slide is visible */
+        .slide.visible .orb {
+            animation: orbFloat 6s ease-in-out infinite alternate;
+        }
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(15px, -20px) scale(1.08); }
+        }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--text-primary);
+        }
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 600;
+            line-height: 1.15;
+            color: var(--text-primary);
+        }
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .eyebrow {
+            font-family: var(--font-body);
+            font-size: var(--eyebrow-size);
+            font-weight: 500;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            margin-bottom: var(--content-gap);
+        }
+        .subtitle {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            font-weight: 300;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+        em, .italic {
+            font-style: italic;
+            color: var(--accent-cyan);
+        }
+
+        /* ===========================================
+           DECORATIVE ELEMENTS
+           =========================================== */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin: var(--content-gap) 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            width: 35px;
+            height: 1px;
+            background: rgba(0, 255, 204, 0.3);
+        }
+        .divider span {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            font-family: var(--font-body);
+        }
+
+        .accent-line {
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 1px;
+            margin: var(--element-gap) 0;
+            transition: width 0.8s var(--ease-out-expo);
+        }
+        /* Animate width when visible */
+        .accent-line.animated {
+            width: 50px;
+        }
+
+        /* ===========================================
+           CARDS & GRIDS
+           =========================================== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+            gap: clamp(0.6rem, 1.5vw, 1.2rem);
+            margin-top: var(--content-gap);
+        }
+        .card-grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: clamp(1rem, 2vw, 1.8rem);
+            backdrop-filter: blur(10px);
+            transition: border-color 0.4s, transform 0.4s var(--ease-out-expo),
+                        box-shadow 0.4s;
+        }
+        .card:hover {
+            border-color: rgba(0, 255, 204, 0.2);
+            transform: translateY(-4px) !important;
+            box-shadow: 0 8px 30px rgba(0, 255, 204, 0.08);
+        }
+        .card-icon {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            margin-bottom: var(--element-gap);
+            display: block;
+        }
+        .card h3 {
+            font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+            margin-bottom: clamp(0.2rem, 0.5vw, 0.5rem);
+        }
+        .card p {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ===========================================
+           FEATURE LISTS
+           =========================================== */
+        .feature-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vh, 0.8rem);
+        }
+        .feature-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.4;
+            padding-left: 1.5em;
+            position: relative;
+        }
+        .feature-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-glow-cyan);
+        }
+
+        /* ===========================================
+           STAT BARS
+           =========================================== */
+        .stats-row {
+            display: flex;
+            gap: clamp(1.5rem, 4vw, 4rem);
+            margin-top: var(--content-gap);
+            flex-wrap: wrap;
+        }
+        .stat { text-align: center; }
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 600;
+            line-height: 1;
+        }
+        .stat-number.cyan { color: var(--accent-cyan); }
+        .stat-number.purple { color: var(--accent-purple); }
+        .stat-number.pink { color: var(--accent-pink); }
+        .stat-label {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 0.4rem;
+        }
+
+        /* ===========================================
+           TWO-COLUMN LAYOUT
+           =========================================== */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(1.5rem, 4vw, 4rem);
+            align-items: center;
+        }
+        @media (max-width: 768px) {
+            .two-col { grid-template-columns: 1fr; gap: var(--content-gap); }
+        }
+
+        /* ===========================================
+           TAG / BADGE
+           =========================================== */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.9rem;
+            background: rgba(0, 255, 204, 0.08);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 6px;
+            font-size: var(--small-size);
+            font-weight: 500;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .tag::before {
+            content: '';
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-glow-cyan);
+        }
+
+        /* ===========================================
+           DOCUMENT TYPE PILLS
+           =========================================== */
+        .doc-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(0.3rem, 0.8vw, 0.6rem);
+            margin-top: var(--element-gap);
+        }
+        .pill {
+            padding: clamp(0.25rem, 0.5vw, 0.4rem) clamp(0.6rem, 1.2vw, 1rem);
+            border-radius: 20px;
+            font-size: var(--small-size);
+            font-weight: 500;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .pill.active {
+            border-color: rgba(0, 255, 204, 0.3);
+            color: var(--accent-cyan);
+            background: rgba(0, 255, 204, 0.06);
+        }
+
+        /* ===========================================
+           ANIMATION SYSTEM
+           Each [data-anim] element starts hidden,
+           gets .animated class added by JS sequentially
+           =========================================== */
+
+        /* --- Fade Up (default) --- */
+        [data-anim="fade-up"] {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s var(--ease-out-expo),
+                        transform 0.8s var(--ease-out-expo);
+        }
+        [data-anim="fade-up"].animated {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Fade Down --- */
+        [data-anim="fade-down"] {
+            opacity: 0;
+            transform: translateY(-30px);
+            transition: opacity 0.7s var(--ease-out-expo),
+                        transform 0.7s var(--ease-out-expo);
+        }
+        [data-anim="fade-down"].animated {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Fade Left --- */
+        [data-anim="fade-left"] {
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: opacity 0.8s var(--ease-out-expo),
+                        transform 0.8s var(--ease-out-expo);
+        }
+        [data-anim="fade-left"].animated {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* --- Fade Right --- */
+        [data-anim="fade-right"] {
+            opacity: 0;
+            transform: translateX(50px);
+            transition: opacity 0.8s var(--ease-out-expo),
+                        transform 0.8s var(--ease-out-expo);
+        }
+        [data-anim="fade-right"].animated {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* --- Scale Pop (for cards) --- */
+        [data-anim="scale-pop"] {
+            opacity: 0;
+            transform: scale(0.7) translateY(20px);
+            transition: opacity 0.6s var(--ease-out-expo),
+                        transform 0.6s var(--ease-spring);
+        }
+        [data-anim="scale-pop"].animated {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* --- Blur In --- */
+        [data-anim="blur-in"] {
+            opacity: 0;
+            filter: blur(15px);
+            transform: scale(0.95);
+            transition: opacity 0.9s var(--ease-out-expo),
+                        filter 0.9s var(--ease-out-expo),
+                        transform 0.9s var(--ease-out-expo);
+        }
+        [data-anim="blur-in"].animated {
+            opacity: 1;
+            filter: blur(0);
+            transform: scale(1);
+        }
+
+        /* --- Flip Up --- */
+        [data-anim="flip-up"] {
+            opacity: 0;
+            transform: perspective(600px) rotateX(15deg) translateY(30px);
+            transition: opacity 0.7s var(--ease-out-expo),
+                        transform 0.7s var(--ease-out-expo);
+        }
+        [data-anim="flip-up"].animated {
+            opacity: 1;
+            transform: perspective(600px) rotateX(0) translateY(0);
+        }
+
+        /* --- Pill Pop (small bounce) --- */
+        [data-anim="pill-pop"] {
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.4s var(--ease-out-expo),
+                        transform 0.5s var(--ease-spring);
+        }
+        [data-anim="pill-pop"].animated {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* --- Slide In Left (for workflow steps) --- */
+        [data-anim="slide-left"] {
+            opacity: 0;
+            transform: translateX(-30px) scale(0.9);
+            transition: opacity 0.5s var(--ease-out-expo),
+                        transform 0.5s var(--ease-spring);
+        }
+        [data-anim="slide-left"].animated {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+        }
+
+        /* --- Counter Zoom (for stat numbers) --- */
+        [data-anim="counter-zoom"] {
+            opacity: 0;
+            transform: scale(0.3);
+            transition: opacity 0.6s var(--ease-out-expo),
+                        transform 0.7s var(--ease-spring);
+        }
+        [data-anim="counter-zoom"].animated {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* --- Glow Reveal (for accent-line) --- */
+        [data-anim="glow-line"] {
+            width: 0;
+            transition: width 0.8s var(--ease-out-expo);
+        }
+        [data-anim="glow-line"].animated {
+            width: 50px;
+        }
+
+        /* --- Badge Cascade --- */
+        [data-anim="badge-pop"] {
+            opacity: 0;
+            transform: translateY(10px) scale(0.8);
+            transition: opacity 0.4s var(--ease-out-expo),
+                        transform 0.4s var(--ease-spring);
+        }
+        [data-anim="badge-pop"].animated {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* --- CTA Button Glow Pulse --- */
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 0 20px var(--accent-glow-cyan), 0 0 40px var(--accent-glow-purple); }
+            50% { box-shadow: 0 0 35px var(--accent-glow-cyan), 0 0 70px var(--accent-glow-purple); }
+        }
+        [data-anim="glow-button"] {
+            opacity: 0;
+            transform: translateY(20px) scale(0.9);
+            transition: opacity 0.7s var(--ease-out-expo),
+                        transform 0.7s var(--ease-spring);
+        }
+        [data-anim="glow-button"].animated {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            animation: glowPulse 2.5s ease-in-out infinite 0.8s;
+        }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            z-index: 1000;
+            transition: width 0.3s var(--ease-out-expo);
+            box-shadow: 0 0 10px var(--accent-glow-cyan);
+        }
+
+        /* ===========================================
+           NAVIGATION DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(0.8rem, 2vw, 2rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 0;
+        }
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-glow-cyan);
+            transform: scale(1.3);
+        }
+        .nav-dot:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        /* ===========================================
+           KEYBOARD HINT
+           =========================================== */
+        .keyboard-hint {
+            position: fixed;
+            bottom: clamp(0.8rem, 2vw, 2rem);
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 1s;
+        }
+        .keyboard-hint.hidden { opacity: 0; pointer-events: none; }
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px; height: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            font-size: 0.6rem;
+        }
+
+        /* ===========================================
+           SLIDE NUMBER
+           =========================================== */
+        .slide-number {
+            position: absolute;
+            bottom: clamp(0.8rem, 2vw, 2rem);
+            right: clamp(0.8rem, 2vw, 2rem);
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            letter-spacing: 1px;
+            z-index: 5;
+        }
+
+        /* ===========================================
+           SPECIFIC SLIDE STYLES
+           =========================================== */
+        .title-slide .slide-content { align-items: center; text-align: center; }
+        .problem-slide { background: linear-gradient(135deg, #0a0a1a 0%, #12061f 100%); }
+        .cta-slide .slide-content { align-items: center; text-align: center; }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: clamp(0.8rem, 1.5vw, 1rem) clamp(1.8rem, 3vw, 2.5rem);
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            border-radius: 12px;
+            color: #0a0a1a;
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: var(--content-gap);
+            transition: transform 0.3s var(--ease-out-expo);
+        }
+        .cta-button:hover {
+            transform: scale(1.08) !important;
+        }
+
+        .workflow {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1.5vw, 1.5rem);
+            flex-wrap: wrap;
+            margin-top: var(--content-gap);
+        }
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: clamp(0.4rem, 0.8vw, 0.6rem) clamp(0.8rem, 1.5vw, 1.2rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+        }
+        .workflow-arrow {
+            color: var(--accent-cyan);
+            font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+        }
+
+        .check-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.3rem, 0.8vh, 0.6rem);
+        }
+        .check-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+        }
+        .check-list li::before {
+            content: '✓';
+            color: var(--accent-cyan);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .role-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(0.3rem, 0.8vw, 0.6rem);
+            margin-top: var(--element-gap);
+        }
+        .role-badge {
+            padding: clamp(0.3rem, 0.5vw, 0.45rem) clamp(0.7rem, 1.2vw, 1rem);
+            border-radius: 8px;
+            font-size: var(--small-size);
+            font-weight: 500;
+            background: rgba(123, 47, 252, 0.08);
+            border: 1px solid rgba(123, 47, 252, 0.2);
+            color: #b794f6;
+        }
+
+        /* ===========================================
+           RESPONSIVE BREAKPOINTS
+           =========================================== */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2.5rem);
+                --content-gap: clamp(0.5rem, 1.5vw, 1.2rem);
+                --title-size: clamp(1.8rem, 6vw, 3.5rem);
+                --h2-size: clamp(1.3rem, 3.5vw, 2.2rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.4rem, 1vw, 0.8rem);
+                --title-size: clamp(1.5rem, 5vw, 2.5rem);
+                --body-size: clamp(0.65rem, 1.1vw, 0.9rem);
+            }
+            .nav-dots, .keyboard-hint { display: none; }
+        }
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2vw, 1rem);
+                --title-size: clamp(1.2rem, 4vw, 2rem);
+                --h2-size: clamp(1rem, 3vw, 1.5rem);
+                --body-size: clamp(0.6rem, 1vw, 0.8rem);
+            }
+        }
+        @media (max-width: 600px) {
+            :root { --title-size: clamp(1.8rem, 9vw, 3rem); }
+            .card-grid { grid-template-columns: 1fr 1fr; }
+            .stats-row { gap: clamp(1rem, 3vw, 2rem); }
+        }
+        @media (max-width: 400px) {
+            .card-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html { scroll-behavior: auto; }
+            [data-anim] { opacity: 1 !important; transform: none !important; filter: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation dots -->
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Keyboard hint -->
+    <div class="keyboard-hint" id="keyboardHint">
+        <span class="key">↑</span>
+        <span class="key">↓</span>
+        <span>o scroll para navegar</span>
+    </div>
+
+    <!-- ========================================
+         SLIDE 1: TITLE
+         ======================================== -->
+    <section class="slide title-slide" data-slide="0">
+        <div class="orb orb-cyan" style="width:400px;height:400px;top:-10%;left:15%;"></div>
+        <div class="orb orb-purple" style="width:350px;height:350px;bottom:-5%;right:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-down">Sistema ERP Integral</p>
+            <h1 data-anim="blur-in" style="margin-bottom:var(--content-gap);">
+                Facturación<br><em>Electrónica</em>
+            </h1>
+            <div class="divider" data-anim="fade-up"><span>v4.4 Costa Rica</span></div>
+            <p class="subtitle" data-anim="fade-up" style="text-align:center;margin:0 auto;">
+                La solución completa para gestionar su empresa con cumplimiento total ante Hacienda
+            </p>
+        </div>
+        <span class="slide-number">01 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 2: THE PROBLEM
+         ======================================== -->
+    <section class="slide problem-slide" data-slide="1">
+        <div class="orb orb-pink" style="width:300px;height:300px;top:20%;right:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">El desafío</p>
+            <h2 data-anim="fade-up">¿Su empresa enfrenta <em>estos problemas</em>?</h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+            <ul class="feature-list" style="margin-top:var(--content-gap);max-width:650px;">
+                <li data-anim="fade-left">Procesos manuales de facturación que consumen tiempo y generan errores</li>
+                <li data-anim="fade-left">Riesgo de sanciones por incumplimiento con los requisitos de Hacienda</li>
+                <li data-anim="fade-left">Información dispersa entre múltiples sistemas sin integración</li>
+                <li data-anim="fade-left">Falta de control sobre inventario, cuentas por cobrar y flujo de caja</li>
+                <li data-anim="fade-left">Incapacidad de tomar decisiones basadas en datos en tiempo real</li>
+            </ul>
+        </div>
+        <span class="slide-number">02 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 3: THE SOLUTION (OVERVIEW)
+         ======================================== -->
+    <section class="slide" data-slide="2">
+        <div class="orb orb-cyan" style="width:350px;height:350px;bottom:5%;left:5%;"></div>
+        <div class="orb orb-purple" style="width:250px;height:250px;top:10%;right:20%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">La solución</p>
+            <h2 data-anim="blur-in">Un solo sistema.<br><em>Todo bajo control.</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+            <p class="subtitle" data-anim="fade-up">Más de 15 módulos integrados que cubren cada área de su operación empresarial.</p>
+
+            <div class="stats-row">
+                <div class="stat" data-anim="counter-zoom" data-counter="15+" data-suffix="+">
+                    <div class="stat-number cyan">15+</div>
+                    <div class="stat-label">Módulos</div>
+                </div>
+                <div class="stat" data-anim="counter-zoom" data-counter="8">
+                    <div class="stat-number purple">8</div>
+                    <div class="stat-label">Tipos de Documento</div>
+                </div>
+                <div class="stat" data-anim="counter-zoom" data-counter="100%" data-suffix="%">
+                    <div class="stat-number cyan">100%</div>
+                    <div class="stat-label">Hacienda v4.4</div>
+                </div>
+                <div class="stat" data-anim="counter-zoom">
+                    <div class="stat-number purple">24/7</div>
+                    <div class="stat-label">Disponible</div>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">03 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 4: ELECTRONIC INVOICING
+         ======================================== -->
+    <section class="slide" data-slide="3">
+        <div class="orb orb-cyan" style="width:300px;height:300px;top:10%;right:5%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Módulo principal</p>
+            <h2 data-anim="fade-up">Facturación <em>Electrónica</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+            <p class="subtitle" data-anim="fade-up">Todos los documentos electrónicos que exige Hacienda, firmados digitalmente y enviados automáticamente.</p>
+
+            <div class="doc-pills" style="margin-top:var(--content-gap);">
+                <span class="pill active" data-anim="pill-pop">FE — Factura</span>
+                <span class="pill active" data-anim="pill-pop">TE — Tiquete</span>
+                <span class="pill active" data-anim="pill-pop">NC — Nota Crédito</span>
+                <span class="pill active" data-anim="pill-pop">ND — Nota Débito</span>
+                <span class="pill" data-anim="pill-pop">FEC — Compra</span>
+                <span class="pill" data-anim="pill-pop">FEE — Exportación</span>
+                <span class="pill" data-anim="pill-pop">MR — Mensaje Receptor</span>
+                <span class="pill" data-anim="pill-pop">REP — Recibo Pago</span>
+            </div>
+
+            <ul class="check-list" style="margin-top:var(--content-gap);">
+                <li data-anim="fade-left">Firma digital automática (XAdES-EPES)</li>
+                <li data-anim="fade-left">Envío automático a Hacienda con reintentos</li>
+                <li data-anim="fade-left">Email con XML + PDF al cliente</li>
+                <li data-anim="fade-left">Multi-moneda con tipo de cambio BCCR</li>
+            </ul>
+        </div>
+        <span class="slide-number">04 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 5: SALES CYCLE
+         ======================================== -->
+    <section class="slide" data-slide="4">
+        <div class="orb orb-purple" style="width:280px;height:280px;bottom:15%;left:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Ventas</p>
+            <h2 data-anim="fade-up">Ciclo de venta <em>completo</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="workflow">
+                <div class="workflow-step" data-anim="slide-left">📋 Cotización</div>
+                <span class="workflow-arrow" data-anim="fade-up">→</span>
+                <div class="workflow-step" data-anim="slide-left">📦 Pedido</div>
+                <span class="workflow-arrow" data-anim="fade-up">→</span>
+                <div class="workflow-step" data-anim="slide-left">🧾 Factura</div>
+                <span class="workflow-arrow" data-anim="fade-up">→</span>
+                <div class="workflow-step" data-anim="slide-left">💰 Cobro</div>
+            </div>
+
+            <ul class="check-list" style="margin-top:var(--content-gap);">
+                <li data-anim="fade-left">Cotizaciones con conversión directa a pedido o factura</li>
+                <li data-anim="fade-left">Historial de ventas con análisis y tendencias</li>
+                <li data-anim="fade-left">Top 10 clientes y productos más vendidos</li>
+                <li data-anim="fade-left">Cuentas por cobrar con estado de cuenta por cliente</li>
+            </ul>
+        </div>
+        <span class="slide-number">05 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 6: PURCHASING
+         ======================================== -->
+    <section class="slide" data-slide="5">
+        <div class="orb orb-cyan" style="width:260px;height:260px;top:15%;left:5%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Compras</p>
+            <h2 data-anim="fade-up">Gestión de <em>compras</em> inteligente</h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="workflow">
+                <div class="workflow-step" data-anim="slide-left">📝 Requisición</div>
+                <span class="workflow-arrow" data-anim="fade-up">→</span>
+                <div class="workflow-step" data-anim="slide-left">📊 Cotización</div>
+                <span class="workflow-arrow" data-anim="fade-up">→</span>
+                <div class="workflow-step" data-anim="slide-left">📄 Orden</div>
+                <span class="workflow-arrow" data-anim="fade-up">→</span>
+                <div class="workflow-step" data-anim="slide-left">📥 Recepción</div>
+            </div>
+
+            <ul class="check-list" style="margin-top:var(--content-gap);">
+                <li data-anim="fade-left">Requisiciones internas con flujo de aprobación</li>
+                <li data-anim="fade-left">Comparación de cotizaciones de proveedores</li>
+                <li data-anim="fade-left">Recepción automática de facturas electrónicas</li>
+                <li data-anim="fade-left">Procesamiento automático de Mensajes Receptor</li>
+                <li data-anim="fade-left">Cuentas por pagar con estado de cuenta por proveedor</li>
+            </ul>
+        </div>
+        <span class="slide-number">06 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 7: INVENTORY
+         ======================================== -->
+    <section class="slide" data-slide="6">
+        <div class="orb orb-purple" style="width:300px;height:300px;bottom:5%;right:5%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Inventario</p>
+            <h2 data-anim="fade-up">Control de <em>inventario</em> en tiempo real</h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="card-grid card-grid-3">
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📦</span>
+                    <h3>Bodegas</h3>
+                    <p>Gestión de múltiples bodegas y ubicaciones</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📋</span>
+                    <h3>Kardex</h3>
+                    <p>Historial detallado de movimientos por producto</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🔄</span>
+                    <h3>Traspasos</h3>
+                    <p>Transferencias entre bodegas con trazabilidad</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📊</span>
+                    <h3>Ajustes</h3>
+                    <p>Ajustes manuales con justificación y auditoría</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">⚠️</span>
+                    <h3>Alertas</h3>
+                    <p>Notificaciones de stock bajo automáticas</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">↩️</span>
+                    <h3>Devoluciones</h3>
+                    <p>Retorno automático al cancelar documentos</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">07 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 8: ACCOUNTING
+         ======================================== -->
+    <section class="slide" data-slide="7">
+        <div class="orb orb-cyan" style="width:350px;height:350px;top:5%;left:50%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Contabilidad</p>
+            <h2 data-anim="fade-up">Contabilidad <em>integrada</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="two-col">
+                <div>
+                    <ul class="check-list">
+                        <li data-anim="fade-left">Plan de cuentas configurable</li>
+                        <li data-anim="fade-left">Asientos manuales y automáticos</li>
+                        <li data-anim="fade-left">Mayores contables por periodo</li>
+                        <li data-anim="fade-left">Periodos contables con cierre</li>
+                        <li data-anim="fade-left">Plantillas para asientos recurrentes</li>
+                    </ul>
+                </div>
+                <div>
+                    <ul class="check-list">
+                        <li data-anim="fade-right">Integración automática con facturación</li>
+                        <li data-anim="fade-right">Integración con módulo de compras</li>
+                        <li data-anim="fade-right">Cuentas de integración configurables</li>
+                        <li data-anim="fade-right">Centros de costo y presupuestos</li>
+                        <li data-anim="fade-right">Ejecución presupuestal vs. real</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">08 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 9: BANKING
+         ======================================== -->
+    <section class="slide" data-slide="8">
+        <div class="orb orb-purple" style="width:250px;height:250px;top:20%;right:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Bancos & Finanzas</p>
+            <h2 data-anim="fade-up">Gestión <em>bancaria</em> centralizada</h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="card-grid">
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🏦</span>
+                    <h3>Cuentas Bancarias</h3>
+                    <p>Gestión de todas sus cuentas y bancos en un solo lugar</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📄</span>
+                    <h3>Extractos</h3>
+                    <p>Carga y procesamiento de extractos bancarios</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🔗</span>
+                    <h3>Conciliación</h3>
+                    <p>Conciliación bancaria automática con reglas configurables</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">💱</span>
+                    <h3>Tipo de Cambio</h3>
+                    <p>Consulta automática al BCCR para operaciones multi-moneda</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">09 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 10: HR & PAYROLL
+         ======================================== -->
+    <section class="slide" data-slide="9">
+        <div class="orb orb-cyan" style="width:280px;height:280px;bottom:10%;left:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Recursos Humanos</p>
+            <h2 data-anim="fade-up">RRHH y <em>Planillas</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="card-grid card-grid-3">
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">👤</span>
+                    <h3>Empleados</h3>
+                    <p>Expediente digital completo de cada colaborador</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">💰</span>
+                    <h3>Planillas</h3>
+                    <p>Cálculo y procesamiento de nómina</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🌴</span>
+                    <h3>Vacaciones</h3>
+                    <p>Control de acumulación y disfrute</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🏥</span>
+                    <h3>Incapacidades</h3>
+                    <p>Registro y seguimiento de licencias médicas</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🏢</span>
+                    <h3>Departamentos</h3>
+                    <p>Estructura organizacional de la empresa</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📌</span>
+                    <h3>Puestos</h3>
+                    <p>Definición de roles y funciones</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">10 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 11: FIXED ASSETS & BUDGETS
+         ======================================== -->
+    <section class="slide" data-slide="10">
+        <div class="orb orb-purple" style="width:300px;height:300px;top:10%;left:5%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Activos & Presupuestos</p>
+            <h2 data-anim="fade-up">Control de <em>activos</em> y presupuestos</h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="two-col">
+                <div>
+                    <h3 data-anim="fade-left" style="color:var(--accent-cyan);margin-bottom:var(--element-gap);">Activos Fijos</h3>
+                    <ul class="check-list">
+                        <li data-anim="fade-left">Registro y clasificación de activos</li>
+                        <li data-anim="fade-left">Cálculo automático de depreciación</li>
+                        <li data-anim="fade-left">Categorías configurables</li>
+                        <li data-anim="fade-left">Integración contable directa</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 data-anim="fade-right" style="color:var(--accent-purple);margin-bottom:var(--element-gap);">Presupuestos</h3>
+                    <ul class="check-list">
+                        <li data-anim="fade-right">Presupuestos por centro de costo</li>
+                        <li data-anim="fade-right">Ejecución presupuestal en tiempo real</li>
+                        <li data-anim="fade-right">Análisis de variaciones</li>
+                        <li data-anim="fade-right">Control por periodos contables</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">11 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 12: REPORTS
+         ======================================== -->
+    <section class="slide" data-slide="11">
+        <div class="orb orb-cyan" style="width:280px;height:280px;bottom:10%;right:5%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Reportes</p>
+            <h2 data-anim="fade-up">Decisiones basadas en <em>datos</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="card-grid">
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📊</span>
+                    <h3>Ventas</h3>
+                    <p>Por periodo, cliente, producto y usuario</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📑</span>
+                    <h3>Documentos</h3>
+                    <p>Emitidos y recibidos con filtros avanzados</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">💳</span>
+                    <h3>Gastos</h3>
+                    <p>Por categoría, proveedor y periodo</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📦</span>
+                    <h3>Inventario</h3>
+                    <p>Stock actual, valoración y movimientos</p>
+                </div>
+            </div>
+
+            <p data-anim="fade-up" style="margin-top:var(--content-gap);font-size:var(--small-size);color:var(--text-muted);">
+                Exportación a Excel y PDF &nbsp;•&nbsp; Filtrado avanzado por 9+ criterios &nbsp;•&nbsp; Dashboard con KPIs en tiempo real
+            </p>
+        </div>
+        <span class="slide-number">12 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 13: SECURITY & AUDIT
+         ======================================== -->
+    <section class="slide" data-slide="12">
+        <div class="orb orb-purple" style="width:300px;height:300px;top:5%;right:15%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Seguridad</p>
+            <h2 data-anim="fade-up">Seguridad y <em>auditoría</em> completa</h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="two-col">
+                <div>
+                    <h3 data-anim="fade-left" style="margin-bottom:var(--element-gap);">7 Roles predefinidos</h3>
+                    <div class="role-grid">
+                        <span class="role-badge" data-anim="badge-pop">SuperUser</span>
+                        <span class="role-badge" data-anim="badge-pop">Administrador</span>
+                        <span class="role-badge" data-anim="badge-pop">Contador</span>
+                        <span class="role-badge" data-anim="badge-pop">Facturador</span>
+                        <span class="role-badge" data-anim="badge-pop">Vendedor</span>
+                        <span class="role-badge" data-anim="badge-pop">Inventarista</span>
+                        <span class="role-badge" data-anim="badge-pop">Consultor</span>
+                    </div>
+                </div>
+                <div>
+                    <ul class="check-list">
+                        <li data-anim="fade-right">Control de privilegios por módulo (CRUD)</li>
+                        <li data-anim="fade-right">Auditoría completa de accesos</li>
+                        <li data-anim="fade-right">Historial de cambios (antes/después)</li>
+                        <li data-anim="fade-right">Bloqueo por intentos fallidos</li>
+                        <li data-anim="fade-right">Cifrado JWT + Cookies seguras</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">13 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 14: MULTI-TENANT
+         ======================================== -->
+    <section class="slide" data-slide="13">
+        <div class="orb orb-cyan" style="width:250px;height:250px;bottom:15%;left:15%;"></div>
+        <div class="orb orb-purple" style="width:200px;height:200px;top:20%;right:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Multi-empresa</p>
+            <h2 data-anim="blur-in">Una plataforma,<br><em>múltiples empresas</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+            <p class="subtitle" data-anim="fade-up">Gestione todas sus empresas desde un solo acceso. Cambie entre empresas al instante.</p>
+
+            <ul class="check-list" style="margin-top:var(--content-gap);">
+                <li data-anim="fade-left">Empresas ilimitadas por usuario</li>
+                <li data-anim="fade-left">Datos completamente aislados entre empresas</li>
+                <li data-anim="fade-left">Sucursales y terminales por empresa</li>
+                <li data-anim="fade-left">Certificado digital y credenciales Hacienda independientes</li>
+                <li data-anim="fade-left">Cambio instantáneo de empresa desde la barra superior</li>
+            </ul>
+        </div>
+        <span class="slide-number">14 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 15: TECHNOLOGY
+         ======================================== -->
+    <section class="slide" data-slide="14">
+        <div class="orb orb-cyan" style="width:300px;height:300px;top:10%;right:5%;"></div>
+        <div class="orb orb-purple" style="width:250px;height:250px;bottom:10%;left:10%;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-up">Tecnología</p>
+            <h2 data-anim="fade-up">Construido con tecnología <em>de punta</em></h2>
+            <div class="accent-line" data-anim="glow-line"></div>
+
+            <div class="card-grid card-grid-3">
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🏗️</span>
+                    <h3>Arquitectura Moderna</h3>
+                    <p>Framework empresarial de última generación con patrones de diseño probados</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🗄️</span>
+                    <h3>Base de Datos Robusta</h3>
+                    <p>Motor de base de datos empresarial con alta disponibilidad y escalabilidad</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">📱</span>
+                    <h3>Multiplataforma</h3>
+                    <p>Acceda desde escritorio, tablet o celular sin instalar nada</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🔐</span>
+                    <h3>Seguridad Avanzada</h3>
+                    <p>Cifrado de datos, autenticación segura y protección contra amenazas</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">☁️</span>
+                    <h3>Cloud Ready</h3>
+                    <p>Preparado para la nube con actualizaciones continuas y respaldos automáticos</p>
+                </div>
+                <div class="card" data-anim="scale-pop">
+                    <span class="card-icon">🇨🇷</span>
+                    <h3>Hecho para Costa Rica</h3>
+                    <p>Cumple 100% con la normativa fiscal y tributaria vigente</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">15 / 16</span>
+    </section>
+
+    <!-- ========================================
+         SLIDE 16: CTA
+         ======================================== -->
+    <section class="slide cta-slide" data-slide="15">
+        <div class="orb orb-cyan" style="width:400px;height:400px;top:20%;left:20%;opacity:0.1;"></div>
+        <div class="orb orb-purple" style="width:350px;height:350px;bottom:20%;right:20%;opacity:0.1;"></div>
+
+        <div class="slide-content">
+            <p class="eyebrow" data-anim="fade-down">Comencemos</p>
+            <h2 data-anim="blur-in" style="font-size:var(--title-size);">
+                ¿Listo para <em>transformar</em><br>su empresa?
+            </h2>
+            <div class="divider" data-anim="fade-up"><span>◆</span></div>
+            <p class="subtitle" data-anim="fade-up" style="text-align:center;margin:0 auto;">
+                Solicite una demostración personalizada y descubra cómo nuestro sistema puede optimizar cada área de su negocio.
+            </p>
+            <button class="cta-button" data-anim="glow-button" onclick="alert('¡Gracias por su interés! Lo contactaremos pronto.')">
+                Solicitar Demostración →
+            </button>
+        </div>
+        <span class="slide-number">16 / 16</span>
+    </section>
+
+    <!-- ===========================================
+         JAVASCRIPT: Animation Controller
+         Sequentially animates elements within each
+         slide as they scroll into view.
+         =========================================== -->
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.totalSlides = this.slides.length;
+                this.currentSlide = 0;
+                this.isScrolling = false;
+                this.scrollCooldown = 800;
+                this.animatedSlides = new Set(); // Track which slides have been animated
+
+                this.progressBar = document.getElementById('progressBar');
+                this.navDotsContainer = document.getElementById('navDots');
+                this.keyboardHint = document.getElementById('keyboardHint');
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.setupSlideObserver();
+                this.setupKeyboardNav();
+                this.setupWheelNav();
+                this.setupTouchNav();
+                this.updateProgress();
+                this.hideHintAfterDelay();
+            }
+
+            /* ===========================================
+               SEQUENTIAL ANIMATION ENGINE
+               When a slide enters the viewport, animate
+               each [data-anim] child one by one with
+               configurable delay between them.
+               =========================================== */
+            animateSlide(slide) {
+                const slideIndex = parseInt(slide.dataset.slide);
+
+                // Skip if already animated
+                if (this.animatedSlides.has(slideIndex)) return;
+                this.animatedSlides.add(slideIndex);
+
+                const elements = slide.querySelectorAll('[data-anim]');
+                let delay = 100; // Initial delay (ms)
+
+                elements.forEach((el, index) => {
+                    const animType = el.getAttribute('data-anim');
+
+                    // Determine delay increment based on animation type
+                    let increment;
+                    switch (animType) {
+                        case 'pill-pop':
+                        case 'badge-pop':
+                            increment = 70;  // Fast cascade for small items
+                            break;
+                        case 'scale-pop':
+                            increment = 120; // Cards pop in with noticeable stagger
+                            break;
+                        case 'fade-left':
+                        case 'fade-right':
+                            increment = 100; // List items slide in smoothly
+                            break;
+                        case 'slide-left':
+                            increment = 130; // Workflow steps cascade visibly
+                            break;
+                        case 'counter-zoom':
+                            increment = 200; // Stats zoom in dramatically
+                            break;
+                        case 'blur-in':
+                            increment = 150; // Blur reveals are slower/dramatic
+                            break;
+                        case 'glow-line':
+                            increment = 50;  // Line animates quickly after heading
+                            break;
+                        case 'glow-button':
+                            increment = 200; // Button appears last with drama
+                            break;
+                        default:
+                            increment = 120;
+                    }
+
+                    setTimeout(() => {
+                        el.classList.add('animated');
+
+                        // Trigger counter animation for stat numbers
+                        if (animType === 'counter-zoom') {
+                            this.animateCounter(el);
+                        }
+                    }, delay);
+
+                    delay += increment;
+                });
+            }
+
+            /* ===========================================
+               COUNTER ANIMATION
+               Animates stat numbers from 0 to target value
+               =========================================== */
+            animateCounter(statEl) {
+                const numberEl = statEl.querySelector('.stat-number');
+                if (!numberEl) return;
+
+                const finalText = numberEl.textContent.trim();
+
+                // Parse the number and suffix
+                const match = finalText.match(/^(\d+)(.*)/);
+                if (!match) return; // Skip non-numeric like "24/7"
+
+                const targetNum = parseInt(match[1]);
+                const suffix = match[2] || '';
+                const duration = 1200; // ms
+                const startTime = performance.now();
+
+                numberEl.textContent = '0' + suffix;
+
+                const animate = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    // Ease out cubic
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const currentVal = Math.round(eased * targetNum);
+
+                    numberEl.textContent = currentVal + suffix;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        numberEl.textContent = finalText;
+                    }
+                };
+
+                requestAnimationFrame(animate);
+            }
+
+            /* ===========================================
+               RESET SLIDE ANIMATION
+               Removes .animated from all children so the
+               slide can replay when revisited
+               =========================================== */
+            resetSlide(slide) {
+                const slideIndex = parseInt(slide.dataset.slide);
+                this.animatedSlides.delete(slideIndex);
+
+                const elements = slide.querySelectorAll('[data-anim]');
+                elements.forEach(el => el.classList.remove('animated'));
+
+                // Reset accent-line width
+                slide.querySelectorAll('.accent-line').forEach(line => {
+                    line.classList.remove('animated');
+                });
+            }
+
+            /* ===========================================
+               INTERSECTION OBSERVER
+               Observes slides entering/leaving viewport
+               =========================================== */
+            setupSlideObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        const slideIndex = parseInt(entry.target.dataset.slide);
+
+                        if (entry.isIntersecting) {
+                            // Slide entered viewport
+                            entry.target.classList.add('visible');
+                            this.currentSlide = slideIndex;
+                            this.updateNavDots();
+                            this.updateProgress();
+
+                            // Trigger sequential animations
+                            this.animateSlide(entry.target);
+                        } else {
+                            // Slide left viewport — reset for replay
+                            entry.target.classList.remove('visible');
+                            this.resetSlide(entry.target);
+                        }
+                    });
+                }, {
+                    threshold: 0.45
+                });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            /* --- Navigation Dots --- */
+            createNavDots() {
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Ir a diapositiva ${i + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    this.navDotsContainer.appendChild(dot);
+                }
+            }
+
+            updateNavDots() {
+                const dots = this.navDotsContainer.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => dot.classList.toggle('active', i === this.currentSlide));
+            }
+
+            /* --- Progress Bar --- */
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                this.progressBar.style.width = progress + '%';
+            }
+
+            /* --- Navigation --- */
+            goToSlide(index) {
+                if (index < 0 || index >= this.totalSlides) return;
+                this.currentSlide = index;
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                this.updateNavDots();
+                this.updateProgress();
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            /* --- Keyboard Navigation --- */
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    switch (e.key) {
+                        case 'ArrowDown': case 'ArrowRight': case ' ': case 'PageDown':
+                            e.preventDefault(); this.nextSlide(); break;
+                        case 'ArrowUp': case 'ArrowLeft': case 'PageUp':
+                            e.preventDefault(); this.prevSlide(); break;
+                        case 'Home':
+                            e.preventDefault(); this.goToSlide(0); break;
+                        case 'End':
+                            e.preventDefault(); this.goToSlide(this.totalSlides - 1); break;
+                    }
+                });
+            }
+
+            /* --- Mouse Wheel Navigation --- */
+            setupWheelNav() {
+                document.addEventListener('wheel', (e) => {
+                    if (this.isScrolling) return;
+                    this.isScrolling = true;
+                    if (e.deltaY > 0) this.nextSlide();
+                    else this.prevSlide();
+                    setTimeout(() => { this.isScrolling = false; }, this.scrollCooldown);
+                }, { passive: true });
+            }
+
+            /* --- Touch/Swipe Navigation --- */
+            setupTouchNav() {
+                let touchStartY = 0, touchStartX = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                }, { passive: true });
+                document.addEventListener('touchend', (e) => {
+                    const diffY = touchStartY - e.changedTouches[0].clientY;
+                    const diffX = touchStartX - e.changedTouches[0].clientX;
+                    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
+                        if (diffY > 0) this.nextSlide();
+                        else this.prevSlide();
+                    }
+                }, { passive: true });
+            }
+
+            /* --- Hide keyboard hint --- */
+            hideHintAfterDelay() {
+                const hide = () => { if (this.keyboardHint) this.keyboardHint.classList.add('hidden'); };
+                setTimeout(hide, 5000);
+                ['keydown', 'wheel', 'touchstart'].forEach(evt =>
+                    document.addEventListener(evt, hide, { once: true })
+                );
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => new SlidePresentation());
+    </script>
+
+</body>
+</html>

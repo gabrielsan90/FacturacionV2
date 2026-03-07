@@ -465,9 +465,14 @@ public class XmlParserService : IXmlParserService
             MontoTotalLinea = ParseDecimal(linea.Element(ns + "MontoTotalLinea")!.Value)
         };
 
-        // Impuestos
-        var impuesto = linea.Element(ns + "Impuesto")?.Element(ns + "Monto")?.Value;
-        detalle.MontoImpuesto = ParseDecimal(impuesto ?? "0");
+        // Impuestos - sumar TODOS los elementos Impuesto (puede haber múltiples por línea)
+        var impuestos = linea.Elements(ns + "Impuesto");
+        decimal totalImpuestoLinea = 0m;
+        foreach (var imp in impuestos)
+        {
+            totalImpuestoLinea += ParseDecimal(imp.Element(ns + "Monto")?.Value ?? "0");
+        }
+        detalle.MontoImpuesto = totalImpuestoLinea;
 
         return detalle;
     }

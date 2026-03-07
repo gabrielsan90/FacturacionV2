@@ -44,12 +44,12 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                           !a.IsDeleted);
     }
 
-    public async Task<AsientoContable?> GenerarAsientoVentaAsync(Documento documento, string userId)
+    public async Task<AsientoContable?> GenerarAsientoVentaAsync(Documento documento, string userId, bool forzar = false)
     {
         try
         {
             // 1. Verificar que está habilitado
-            if (!await EstaHabilitadoAsync(documento.EmpresaId))
+            if (!forzar && !await EstaHabilitadoAsync(documento.EmpresaId))
             {
                 _logger.LogDebug("Generación automática de asientos no habilitada para empresa {EmpresaId}", documento.EmpresaId);
                 return null;
@@ -128,10 +128,26 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
             decimal totalDebe = movimientos.Sum(m => m.Debe);
             decimal totalHaber = movimientos.Sum(m => m.Haber);
 
+            if (movimientos.Count == 0)
+            {
+                _logger.LogError("Sin movimientos para documento {DocumentoId}. " +
+                    "TotalGravado={TotalGravado}, TotalExento={TotalExento}, TotalExonerado={TotalExonerado}, " +
+                    "TotalImpuestos={TotalImpuestos}, TotalDescuentos={TotalDescuentos}, TotalVenta={TotalVenta}",
+                    documento.Id, documento.TotalGravado, documento.TotalExento, documento.TotalExonerado,
+                    documento.TotalImpuestos, documento.TotalDescuentos, documento.TotalVenta);
+                return null;
+            }
+
             if (Math.Abs(totalDebe - totalHaber) > 0.01m)
             {
-                _logger.LogError("Asiento desbalanceado para documento {DocumentoId}: Debe={Debe}, Haber={Haber}",
-                    documento.Id, totalDebe, totalHaber);
+                var detalleMovimientos = string.Join(", ", movimientos.Select(m =>
+                    $"[{m.Descripcion}: D={m.Debe} H={m.Haber}]"));
+                _logger.LogError("Asiento desbalanceado para documento {DocumentoId}: Debe={Debe}, Haber={Haber}. " +
+                    "Movimientos: {Movimientos}. Documento: TotalGravado={TotalGravado}, TotalExento={TotalExento}, " +
+                    "TotalExonerado={TotalExonerado}, TotalImpuestos={TotalImpuestos}, TotalDescuentos={TotalDescuentos}, TotalVenta={TotalVenta}",
+                    documento.Id, totalDebe, totalHaber, detalleMovimientos,
+                    documento.TotalGravado, documento.TotalExento, documento.TotalExonerado,
+                    documento.TotalImpuestos, documento.TotalDescuentos, documento.TotalVenta);
                 return null;
             }
 
@@ -150,6 +166,7 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                 asiento.Estado = "APR";
                 asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
                 asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
             }
 
             // Actualizar consecutivo del período
@@ -172,11 +189,11 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
         }
     }
 
-    public async Task<AsientoContable?> GenerarAsientoCompraAsync(Gasto gasto, string userId)
+    public async Task<AsientoContable?> GenerarAsientoCompraAsync(Gasto gasto, string userId, bool forzar = false)
     {
         try
         {
-            if (!await EstaHabilitadoAsync(gasto.EmpresaId))
+            if (!forzar && !await EstaHabilitadoAsync(gasto.EmpresaId))
                 return null;
 
             if (await ExisteAsientoParaDocumentoAsync(gasto.EmpresaId, ModulosContables.Compras, gasto.Id))
@@ -251,6 +268,7 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                 asiento.Estado = "APR";
                 asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
                 asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
             }
 
             periodo.UltimoNumeroAsiento = asiento.Numero;
@@ -270,11 +288,11 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
         }
     }
 
-    public async Task<AsientoContable?> GenerarAsientoPagoGastoAsync(Gasto gasto, decimal montoPago, string userId)
+    public async Task<AsientoContable?> GenerarAsientoPagoGastoAsync(Gasto gasto, decimal montoPago, string userId, bool forzar = false)
     {
         try
         {
-            if (!await EstaHabilitadoAsync(gasto.EmpresaId))
+            if (!forzar && !await EstaHabilitadoAsync(gasto.EmpresaId))
                 return null;
 
             // Para pagos usamos un ID compuesto: GastoId + fecha para permitir múltiples pagos
@@ -342,6 +360,7 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                 asiento.Estado = "APR";
                 asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
                 asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
             }
 
             periodo.UltimoNumeroAsiento = asiento.Numero;
@@ -361,11 +380,11 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
         }
     }
 
-    public async Task<AsientoContable?> GenerarAsientoCobroAsync(CuentaPorCobrar cuenta, AbonoCobranza abono, string userId)
+    public async Task<AsientoContable?> GenerarAsientoCobroAsync(CuentaPorCobrar cuenta, AbonoCobranza abono, string userId, bool forzar = false)
     {
         try
         {
-            if (!await EstaHabilitadoAsync(cuenta.EmpresaId))
+            if (!forzar && !await EstaHabilitadoAsync(cuenta.EmpresaId))
                 return null;
 
             // Usamos el ID del abono como documento origen para permitir múltiples cobros
@@ -435,6 +454,7 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                 asiento.Estado = "APR";
                 asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
                 asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
             }
 
             periodo.UltimoNumeroAsiento = asiento.Numero;
@@ -454,11 +474,11 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
         }
     }
 
-    public async Task<AsientoContable?> GenerarAsientoMovimientoBancarioAsync(MovimientoBancario movimiento, string userId)
+    public async Task<AsientoContable?> GenerarAsientoMovimientoBancarioAsync(MovimientoBancario movimiento, string userId, bool forzar = false)
     {
         try
         {
-            if (!await EstaHabilitadoAsync(movimiento.EmpresaId))
+            if (!forzar && !await EstaHabilitadoAsync(movimiento.EmpresaId))
                 return null;
 
             if (await ExisteAsientoParaDocumentoAsync(movimiento.EmpresaId, ModulosContables.Bancos, movimiento.Id))
@@ -543,6 +563,7 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                 asiento.Estado = "APR";
                 asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
                 asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
             }
 
             periodo.UltimoNumeroAsiento = asiento.Numero;
@@ -563,11 +584,11 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
         }
     }
 
-    public async Task<AsientoContable?> GenerarAsientoPlanillaAsync(Planilla planilla, string userId)
+    public async Task<AsientoContable?> GenerarAsientoPlanillaAsync(Planilla planilla, string userId, bool forzar = false)
     {
         try
         {
-            if (!await EstaHabilitadoAsync(planilla.EmpresaId))
+            if (!forzar && !await EstaHabilitadoAsync(planilla.EmpresaId))
                 return null;
 
             if (await ExisteAsientoParaDocumentoAsync(planilla.EmpresaId, ModulosContables.Nomina, planilla.Id))
@@ -637,6 +658,7 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
                 asiento.Estado = "APR";
                 asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
                 asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
             }
 
             periodo.UltimoNumeroAsiento = asiento.Numero;
@@ -655,6 +677,340 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
             return null;
         }
     }
+
+    // ========== NOTA DE CRÉDITO DE VENTA ==========
+
+    public async Task<AsientoContable?> GenerarAsientoNotaCreditoVentaAsync(Documento documento, string userId, bool forzar = false)
+    {
+        try
+        {
+            if (!forzar && !await EstaHabilitadoAsync(documento.EmpresaId))
+                return null;
+
+            if (await ExisteAsientoParaDocumentoAsync(documento.EmpresaId, ModulosContables.Ventas, documento.Id))
+                return null;
+
+            var cuentasIntegracion = await _contabilidadUoW.CuentaIntegracionRepository
+                .GetByModuloYTipoOperacionAsync(documento.EmpresaId, ModulosContables.Ventas, TiposOperacionContable.NotaCreditoVenta);
+
+            if (!cuentasIntegracion.Any())
+            {
+                _logger.LogWarning("No hay cuentas de integración para NOTA_CREDITO_VENTA en empresa {EmpresaId}", documento.EmpresaId);
+                return null;
+            }
+
+            var periodo = await _contabilidadUoW.PeriodoContableRepository.GetAbiertoAsync(documento.EmpresaId);
+            if (periodo == null) return null;
+
+            var asiento = await CrearAsientoBaseAsync(
+                documento.EmpresaId, periodo,
+                $"Nota de Crédito - {documento.NumeroConsecutivo}",
+                documento.NumeroConsecutivo,
+                ModulosContables.Ventas, documento.Id,
+                documento.FechaEmision, userId);
+
+            var movimientos = new List<MovimientoContable>();
+            int numeroLinea = 1;
+
+            foreach (var cuentaInt in cuentasIntegracion.OrderBy(c => c.Orden))
+            {
+                decimal monto = CalcularMontoNotaCredito(documento, cuentaInt.ConceptoContable);
+                if (monto == 0) continue;
+
+                movimientos.Add(new MovimientoContable
+                {
+                    Id = Guid.NewGuid(),
+                    AsientoContableId = asiento.Id,
+                    CuentaContableId = cuentaInt.CuentaContableId,
+                    NumeroLinea = numeroLinea++,
+                    Descripcion = $"{cuentaInt.Descripcion ?? cuentaInt.ConceptoContable} - NC {documento.ReceptorNombre}",
+                    Debe = cuentaInt.TipoMovimiento == "D" ? monto : 0,
+                    Haber = cuentaInt.TipoMovimiento == "H" ? monto : 0,
+                    Tercero = documento.ReceptorNombre,
+                    ClienteId = documento.ClienteId,
+                    DocumentoReferencia = documento.NumeroConsecutivo
+                });
+            }
+
+            decimal totalDebe = movimientos.Sum(m => m.Debe);
+            decimal totalHaber = movimientos.Sum(m => m.Haber);
+
+            if (movimientos.Count == 0)
+            {
+                _logger.LogError("NC sin movimientos para documento {DocumentoId}. " +
+                    "TotalGravado={TotalGravado}, TotalExento={TotalExento}, TotalExonerado={TotalExonerado}, " +
+                    "TotalImpuestos={TotalImpuestos}, TotalDescuentos={TotalDescuentos}, TotalVenta={TotalVenta}",
+                    documento.Id, documento.TotalGravado, documento.TotalExento, documento.TotalExonerado,
+                    documento.TotalImpuestos, documento.TotalDescuentos, documento.TotalVenta);
+                return null;
+            }
+
+            if (Math.Abs(totalDebe - totalHaber) > 0.01m)
+            {
+                var detalleMovimientos = string.Join(", ", movimientos.Select(m =>
+                    $"[{m.Descripcion}: D={m.Debe} H={m.Haber}]"));
+                _logger.LogError("Asiento NC desbalanceado para documento {DocumentoId}: Debe={Debe}, Haber={Haber}. " +
+                    "Movimientos: {Movimientos}. Documento: TotalGravado={TotalGravado}, TotalExento={TotalExento}, " +
+                    "TotalExonerado={TotalExonerado}, TotalImpuestos={TotalImpuestos}, TotalDescuentos={TotalDescuentos}, TotalVenta={TotalVenta}",
+                    documento.Id, totalDebe, totalHaber, detalleMovimientos,
+                    documento.TotalGravado, documento.TotalExento, documento.TotalExonerado,
+                    documento.TotalImpuestos, documento.TotalDescuentos, documento.TotalVenta);
+                return null;
+            }
+
+            asiento.TotalDebe = totalDebe;
+            asiento.TotalHaber = totalHaber;
+            asiento.Movimientos = movimientos;
+
+            _context.AsientosContables.Add(asiento);
+            _context.MovimientosContables.AddRange(movimientos);
+
+            if (await _contabilidadUoW.ConfiguracionContableRepository.EstaHabilitadaAprobacionAutomaticaAsync(documento.EmpresaId))
+            {
+                asiento.Estado = "APR";
+                asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
+                asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
+            }
+
+            periodo.UltimoNumeroAsiento = asiento.Numero;
+            periodo.CantidadAsientos++;
+            periodo.TotalDebe += totalDebe;
+            periodo.TotalHaber += totalHaber;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Asiento NC {AsientoId} generado para documento {DocumentoId}", asiento.Id, documento.Id);
+            return asiento;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando asiento NC para documento {DocumentoId}", documento.Id);
+            return null;
+        }
+    }
+
+    // ========== NOTA DE DÉBITO DE VENTA ==========
+
+    public async Task<AsientoContable?> GenerarAsientoNotaDebitoVentaAsync(Documento documento, string userId, bool forzar = false)
+    {
+        try
+        {
+            if (!forzar && !await EstaHabilitadoAsync(documento.EmpresaId))
+                return null;
+
+            if (await ExisteAsientoParaDocumentoAsync(documento.EmpresaId, ModulosContables.Ventas, documento.Id))
+                return null;
+
+            var cuentasIntegracion = await _contabilidadUoW.CuentaIntegracionRepository
+                .GetByModuloYTipoOperacionAsync(documento.EmpresaId, ModulosContables.Ventas, TiposOperacionContable.NotaDebitoVenta);
+
+            if (!cuentasIntegracion.Any())
+            {
+                _logger.LogWarning("No hay cuentas de integración para NOTA_DEBITO_VENTA en empresa {EmpresaId}", documento.EmpresaId);
+                return null;
+            }
+
+            var periodo = await _contabilidadUoW.PeriodoContableRepository.GetAbiertoAsync(documento.EmpresaId);
+            if (periodo == null) return null;
+
+            var asiento = await CrearAsientoBaseAsync(
+                documento.EmpresaId, periodo,
+                $"Nota de Débito - {documento.NumeroConsecutivo}",
+                documento.NumeroConsecutivo,
+                ModulosContables.Ventas, documento.Id,
+                documento.FechaEmision, userId);
+
+            var movimientos = new List<MovimientoContable>();
+            int numeroLinea = 1;
+
+            foreach (var cuentaInt in cuentasIntegracion.OrderBy(c => c.Orden))
+            {
+                // ND usa los mismos montos que una venta (cargo adicional al cliente)
+                decimal monto = CalcularMontoVenta(documento, cuentaInt.ConceptoContable);
+                if (monto == 0) continue;
+
+                movimientos.Add(new MovimientoContable
+                {
+                    Id = Guid.NewGuid(),
+                    AsientoContableId = asiento.Id,
+                    CuentaContableId = cuentaInt.CuentaContableId,
+                    NumeroLinea = numeroLinea++,
+                    Descripcion = $"{cuentaInt.Descripcion ?? cuentaInt.ConceptoContable} - ND {documento.ReceptorNombre}",
+                    Debe = cuentaInt.TipoMovimiento == "D" ? monto : 0,
+                    Haber = cuentaInt.TipoMovimiento == "H" ? monto : 0,
+                    Tercero = documento.ReceptorNombre,
+                    ClienteId = documento.ClienteId,
+                    DocumentoReferencia = documento.NumeroConsecutivo
+                });
+            }
+
+            decimal totalDebe = movimientos.Sum(m => m.Debe);
+            decimal totalHaber = movimientos.Sum(m => m.Haber);
+
+            if (Math.Abs(totalDebe - totalHaber) > 0.01m)
+            {
+                _logger.LogError("Asiento ND desbalanceado para documento {DocumentoId}", documento.Id);
+                return null;
+            }
+
+            asiento.TotalDebe = totalDebe;
+            asiento.TotalHaber = totalHaber;
+            asiento.Movimientos = movimientos;
+
+            _context.AsientosContables.Add(asiento);
+            _context.MovimientosContables.AddRange(movimientos);
+
+            if (await _contabilidadUoW.ConfiguracionContableRepository.EstaHabilitadaAprobacionAutomaticaAsync(documento.EmpresaId))
+            {
+                asiento.Estado = "APR";
+                asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
+                asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
+            }
+
+            periodo.UltimoNumeroAsiento = asiento.Numero;
+            periodo.CantidadAsientos++;
+            periodo.TotalDebe += totalDebe;
+            periodo.TotalHaber += totalHaber;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Asiento ND {AsientoId} generado para documento {DocumentoId}", asiento.Id, documento.Id);
+            return asiento;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando asiento ND para documento {DocumentoId}", documento.Id);
+            return null;
+        }
+    }
+
+    // ========== COSTO DE VENTAS ==========
+
+    public async Task<AsientoContable?> GenerarAsientoCostoVentaAsync(Documento documento, decimal costoTotal, string userId, bool forzar = false)
+    {
+        try
+        {
+            if (!forzar && !await EstaHabilitadoAsync(documento.EmpresaId))
+                return null;
+
+            if (costoTotal <= 0)
+                return null;
+
+            // Usar módulo INV + DocumentoId para idempotencia
+            if (await ExisteAsientoParaDocumentoAsync(documento.EmpresaId, ModulosContables.Inventario, documento.Id))
+                return null;
+
+            var cuentasIntegracion = await _contabilidadUoW.CuentaIntegracionRepository
+                .GetByModuloYTipoOperacionAsync(documento.EmpresaId, ModulosContables.Inventario, TiposOperacionContable.SalidaInventario);
+
+            if (!cuentasIntegracion.Any())
+            {
+                _logger.LogWarning("No hay cuentas de integración para SALIDA inventario en empresa {EmpresaId}", documento.EmpresaId);
+                return null;
+            }
+
+            var periodo = await _contabilidadUoW.PeriodoContableRepository.GetAbiertoAsync(documento.EmpresaId);
+            if (periodo == null) return null;
+
+            var asiento = await CrearAsientoBaseAsync(
+                documento.EmpresaId, periodo,
+                $"Costo de Ventas - {documento.NumeroConsecutivo}",
+                documento.NumeroConsecutivo,
+                ModulosContables.Inventario, documento.Id,
+                documento.FechaEmision, userId);
+
+            var movimientos = new List<MovimientoContable>();
+            int numeroLinea = 1;
+
+            foreach (var cuentaInt in cuentasIntegracion.OrderBy(c => c.Orden))
+            {
+                movimientos.Add(new MovimientoContable
+                {
+                    Id = Guid.NewGuid(),
+                    AsientoContableId = asiento.Id,
+                    CuentaContableId = cuentaInt.CuentaContableId,
+                    NumeroLinea = numeroLinea++,
+                    Descripcion = $"{cuentaInt.Descripcion ?? cuentaInt.ConceptoContable} - {documento.NumeroConsecutivo}",
+                    Debe = cuentaInt.TipoMovimiento == "D" ? costoTotal : 0,
+                    Haber = cuentaInt.TipoMovimiento == "H" ? costoTotal : 0,
+                    Tercero = documento.ReceptorNombre,
+                    ClienteId = documento.ClienteId,
+                    DocumentoReferencia = documento.NumeroConsecutivo
+                });
+            }
+
+            decimal totalDebe = movimientos.Sum(m => m.Debe);
+            decimal totalHaber = movimientos.Sum(m => m.Haber);
+
+            if (Math.Abs(totalDebe - totalHaber) > 0.01m)
+            {
+                _logger.LogError("Asiento Costo Ventas desbalanceado para documento {DocumentoId}", documento.Id);
+                return null;
+            }
+
+            asiento.TotalDebe = totalDebe;
+            asiento.TotalHaber = totalHaber;
+            asiento.Movimientos = movimientos;
+
+            _context.AsientosContables.Add(asiento);
+            _context.MovimientosContables.AddRange(movimientos);
+
+            if (await _contabilidadUoW.ConfiguracionContableRepository.EstaHabilitadaAprobacionAutomaticaAsync(documento.EmpresaId))
+            {
+                asiento.Estado = "APR";
+                asiento.FechaAprobacion = FechaCostaRicaHelper.Ahora;
+                asiento.AprobadoPorId = userId;
+                await ActualizarSaldosCuentasAsync(movimientos);
+            }
+
+            periodo.UltimoNumeroAsiento = asiento.Numero;
+            periodo.CantidadAsientos++;
+            periodo.TotalDebe += totalDebe;
+            periodo.TotalHaber += totalHaber;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Asiento Costo Ventas {AsientoId} generado para documento {DocumentoId}, Costo={Costo}",
+                asiento.Id, documento.Id, costoTotal);
+            return asiento;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando asiento de costo de ventas para documento {DocumentoId}", documento.Id);
+            return null;
+        }
+    }
+
+    #region Métodos de Actualización de Saldos
+
+    /// <summary>
+    /// Actualiza los saldos de las cuentas contables cuando un asiento se auto-aprueba.
+    /// Replica la lógica de AsientosContablesController.AprobarAsync.
+    /// </summary>
+    private async Task ActualizarSaldosCuentasAsync(List<MovimientoContable> movimientos)
+    {
+        foreach (var mov in movimientos)
+        {
+            var cuenta = await _context.CuentasContables
+                .FirstOrDefaultAsync(c => c.Id == mov.CuentaContableId);
+
+            if (cuenta != null)
+            {
+                if (cuenta.Naturaleza == "D") // Naturaleza deudora
+                {
+                    cuenta.SaldoActual += mov.Debe - mov.Haber;
+                }
+                else // Naturaleza acreedora
+                {
+                    cuenta.SaldoActual += mov.Haber - mov.Debe;
+                }
+            }
+        }
+    }
+
+    #endregion
 
     #region Métodos Auxiliares
 
@@ -690,15 +1046,41 @@ public class ContabilidadIntegracionService : IContabilidadIntegracionService
 
     private decimal CalcularMontoVenta(Documento documento, string conceptoContable)
     {
+        // Subtotal bruto = TotalGravado + TotalExento + TotalExonerado
+        // Venta neta = Subtotal bruto - Descuentos (ingreso contable)
+        // TotalComprobante = Venta neta + Impuestos + OtrosCargos (lo que paga el cliente)
+        // NOTA: Documento.TotalVenta sigue el estándar Hacienda = pre-impuestos
+        var subtotalBruto = documento.TotalGravado + documento.TotalExento + documento.TotalExonerado;
+        var ventaNeta = subtotalBruto - documento.TotalDescuentos;
+        var totalComprobante = ventaNeta + documento.TotalImpuestos + documento.TotalOtrosCargos;
+
         return conceptoContable switch
         {
-            ConceptosContables.CuentaVentas => documento.TotalGravado + documento.TotalExento,
-            ConceptosContables.CuentaVentasExentas => documento.TotalExento,
+            ConceptosContables.CuentaVentas => ventaNeta,
+            ConceptosContables.CuentaVentasExentas => documento.TotalExento + documento.TotalExonerado,
             ConceptosContables.CuentaIvaDebito => documento.TotalImpuestos,
-            ConceptosContables.CuentaClientes => documento.TotalVenta,
-            ConceptosContables.CuentaCaja => documento.CondicionVenta == "01" ? documento.TotalVenta : 0,
-            ConceptosContables.CuentaBancos => documento.CondicionVenta == "01" ? documento.TotalVenta : 0,
+            ConceptosContables.CuentaClientes => totalComprobante,
+            ConceptosContables.CuentaCaja => documento.CondicionVenta == "01" ? totalComprobante : 0,
+            ConceptosContables.CuentaBancos => documento.CondicionVenta == "01" ? totalComprobante : 0,
             ConceptosContables.CuentaDescuentos => documento.TotalDescuentos,
+            _ => 0
+        };
+    }
+
+    private decimal CalcularMontoNotaCredito(Documento documento, string conceptoContable)
+    {
+        var subtotalBruto = documento.TotalGravado + documento.TotalExento + documento.TotalExonerado;
+        var ventaNeta = subtotalBruto - documento.TotalDescuentos;
+        var totalComprobante = ventaNeta + documento.TotalImpuestos + documento.TotalOtrosCargos;
+
+        return conceptoContable switch
+        {
+            ConceptosContables.CuentaDevoluciones => ventaNeta,
+            ConceptosContables.CuentaVentas => ventaNeta,
+            ConceptosContables.CuentaIvaDebito => documento.TotalImpuestos,
+            ConceptosContables.CuentaClientes => totalComprobante,
+            ConceptosContables.CuentaCaja => totalComprobante,
+            ConceptosContables.CuentaBancos => totalComprobante,
             _ => 0
         };
     }

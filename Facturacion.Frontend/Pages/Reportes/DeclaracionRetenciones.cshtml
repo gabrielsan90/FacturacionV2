@@ -1,0 +1,236 @@
+@page
+@model Facturacion.Frontend.Pages.Reportes.DeclaracionRetencionesModel
+@{
+    ViewData["Title"] = "Declaraci\u00f3n D-103 Retenciones";
+    ViewData["Breadcrumb"] = "Declaraci\u00f3n D-103 Retenciones";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-hand-holding-usd me-2"></i>Declaraci&oacute;n D-103: Retenciones de Renta
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Filtros -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Per&iacute;odo Fiscal - Mes</label>
+                <input type="month" class="form-control" id="periodoMes" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary" onclick="generarReporte()">
+                    <i class="fas fa-calculator me-1"></i> Generar
+                </button>
+            </div>
+            <div class="col-md-7 d-flex align-items-end justify-content-end">
+                <button class="btn btn-outline-success me-2" onclick="exportarExcel()" id="btnExportar" disabled>
+                    <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                </button>
+                <button class="btn btn-outline-secondary" onclick="window.print()" id="btnImprimir" disabled>
+                    <i class="fas fa-print me-1"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Calculando retenciones...</p>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultados" class="d-none">
+            <!-- Resumen -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-percentage me-1"></i>Retenci&oacute;n Renta</h6>
+                            <h4 class="mb-0" id="totalRetencionRenta">&#8353;0.00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-percentage me-1"></i>Retenci&oacute;n IVA</h6>
+                            <h4 class="mb-0" id="totalRetencionIVA">&#8353;0.00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-money-bill-wave me-1"></i>Base Imponible</h6>
+                            <h4 class="mb-0" id="totalBase">&#8353;0.00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-users me-1"></i>Proveedores / Docs</h6>
+                            <h4 class="mb-0"><span id="cantProveedores">0</span> / <span id="cantDocumentos">0</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Detalle -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-list me-2"></i>Detalle por Proveedor</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Tipo ID</th>
+                                    <th>Identificaci&oacute;n</th>
+                                    <th>Proveedor</th>
+                                    <th class="text-end">Base Imponible</th>
+                                    <th class="text-end">Tarifa %</th>
+                                    <th class="text-end">Ret. Renta</th>
+                                    <th class="text-end">Ret. IVA</th>
+                                    <th class="text-end"># Docs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyDetalles">
+                            </tbody>
+                            <tfoot class="table-secondary fw-bold">
+                                <tr>
+                                    <td colspan="3">TOTALES</td>
+                                    <td class="text-end" id="footBase">&#8353;0.00</td>
+                                    <td></td>
+                                    <td class="text-end" id="footRetRenta">&#8353;0.00</td>
+                                    <td class="text-end" id="footRetIVA">&#8353;0.00</td>
+                                    <td class="text-end" id="footDocs">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5">
+            <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Seleccione un per&iacute;odo fiscal y presione "Generar" para calcular la declaraci&oacute;n D-103.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        const now = new Date();
+        const mes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        $('#periodoMes').val(mes);
+    });
+
+    function formatMoney(amount) {
+        return '\u20A1' + new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
+    }
+
+    let currentFechaInicio = '';
+    let currentFechaFin = '';
+
+    function generarReporte() {
+        const periodoMes = $('#periodoMes').val();
+        if (!periodoMes) {
+            showWarning('Seleccione un per\u00edodo fiscal.');
+            return;
+        }
+
+        const [year, month] = periodoMes.split('-').map(Number);
+        currentFechaInicio = `${year}-${String(month).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        currentFechaFin = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+        $('#emptyState').addClass('d-none');
+        $('#resultados').addClass('d-none');
+        $('#loader').removeClass('d-none');
+
+        $.ajax({
+            url: `?handler=Reporte&fechaInicio=${currentFechaInicio}&fechaFin=${currentFechaFin}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                $('#loader').addClass('d-none');
+
+                if (!response.success) {
+                    showError(response.message || 'Error al generar el reporte');
+                    $('#emptyState').removeClass('d-none');
+                    return;
+                }
+
+                renderReporte(response.data);
+                $('#resultados').removeClass('d-none');
+                $('#btnExportar, #btnImprimir').prop('disabled', false);
+            },
+            error: function (xhr) {
+                $('#loader').addClass('d-none');
+                $('#emptyState').removeClass('d-none');
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function renderReporte(data) {
+        $('#totalRetencionRenta').text(formatMoney(data.totalRetencionRenta));
+        $('#totalRetencionIVA').text(formatMoney(data.totalRetencionIVA));
+        $('#totalBase').text(formatMoney(data.totalBaseImponible));
+        $('#cantProveedores').text(data.cantidadProveedores || 0);
+        $('#cantDocumentos').text(data.cantidadDocumentos || 0);
+
+        const detalles = data.detalles || [];
+        let tbody = '';
+        let sumBase = 0, sumRenta = 0, sumIVA = 0, sumDocs = 0;
+
+        detalles.forEach(d => {
+            sumBase += d.baseImponible;
+            sumRenta += d.montoRetencion;
+            sumIVA += d.montoRetencionIVA || 0;
+            sumDocs += d.cantidadDocumentos;
+
+            tbody += `<tr>
+                <td>${d.tipoIdentificacion || '-'}</td>
+                <td>${d.proveedorIdentificacion || '-'}</td>
+                <td>${d.proveedorNombre}</td>
+                <td class="text-end">${formatMoney(d.baseImponible)}</td>
+                <td class="text-end">${(d.tarifaRetencion || 0).toFixed(2)}%</td>
+                <td class="text-end">${formatMoney(d.montoRetencion)}</td>
+                <td class="text-end">${formatMoney(d.montoRetencionIVA || 0)}</td>
+                <td class="text-end">${d.cantidadDocumentos}</td>
+            </tr>`;
+        });
+
+        if (detalles.length === 0) {
+            tbody = '<tr><td colspan="8" class="text-center text-muted">No se encontraron retenciones en el per\u00edodo</td></tr>';
+        }
+
+        $('#tbodyDetalles').html(tbody);
+        $('#footBase').text(formatMoney(sumBase));
+        $('#footRetRenta').text(formatMoney(sumRenta));
+        $('#footRetIVA').text(formatMoney(sumIVA));
+        $('#footDocs').text(sumDocs);
+    }
+
+    function exportarExcel() {
+        if (!currentFechaInicio || !currentFechaFin) {
+            showWarning('Primero genere el reporte.');
+            return;
+        }
+        window.location.href = `?handler=ExportarExcel&fechaInicio=${currentFechaInicio}&fechaFin=${currentFechaFin}`;
+    }
+</script>
+}

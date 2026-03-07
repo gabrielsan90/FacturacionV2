@@ -5,6 +5,28 @@
     ViewData["Breadcrumb"] = "Plan de Cuentas";
 }
 
+<style>
+    .tree-table { width: 100%; border-collapse: collapse; }
+    .tree-table thead th { background: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 10px 12px; font-size: 0.85rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; }
+    .tree-table tbody tr { border-bottom: 1px solid #eee; transition: background-color 0.15s; }
+    .tree-table tbody tr:hover { background-color: #f0f4ff; }
+    .tree-table tbody td { padding: 7px 12px; vertical-align: middle; font-size: 0.875rem; }
+    .tree-table .tree-cell { white-space: nowrap; }
+    .tree-toggle { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; cursor: pointer; color: #6c757d; transition: transform 0.2s; border: none; background: none; padding: 0; margin-right: 4px; }
+    .tree-toggle:hover { color: #0d6efd; }
+    .tree-toggle.expanded i { transform: rotate(90deg); }
+    .tree-toggle-placeholder { display: inline-block; width: 24px; }
+    .tree-level-1 td:first-child { font-weight: 700; font-size: 0.9rem; }
+    .tree-level-1 { background-color: #f0f4ff; }
+    .tree-level-2 td:first-child { font-weight: 600; }
+    .tree-level-2 { background-color: #f8f9fc; }
+    .tree-level-3 td:first-child { font-weight: 500; }
+    .tree-level-4 { color: #555; }
+    .tree-codigo { font-family: 'SFMono-Regular', Consolas, monospace; margin-right: 8px; }
+    .tree-nombre { color: #333; }
+    .tree-search { max-width: 250px; }
+</style>
+
 <!-- Page Header -->
 <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -77,19 +99,29 @@
 
 <!-- Table Card -->
 <div class="card shadow-custom">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-            <i class="fas fa-table me-2 text-primary"></i>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-sitemap me-2 text-primary"></i>
             <strong>Catálogo de Cuentas</strong>
             <span class="badge bg-secondary ms-2" id="badgeTotal">0</span>
         </div>
-        <div class="btn-group btn-group-sm">
-            <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
-                <i class="fas fa-file-excel"></i>
-            </button>
-            <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar">
-                <i class="fas fa-sync-alt"></i>
-            </button>
+        <div class="d-flex align-items-center gap-2">
+            <input type="text" class="form-control form-control-sm tree-search" id="txtBuscar"
+                   placeholder="Buscar cuenta..." oninput="filtrarTabla()">
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-success" onclick="expandAll()" title="Expandir todo">
+                    <i class="fas fa-expand-alt"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="collapseAll()" title="Colapsar todo">
+                    <i class="fas fa-compress-alt"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="exportarExcel()" title="Exportar a Excel">
+                    <i class="fas fa-file-excel"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="refrescarTabla()" title="Refrescar">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
         </div>
     </div>
     <div class="card-body">
@@ -99,20 +131,18 @@
         </div>
 
         <div class="table-responsive" id="tableContainer" style="display:none;">
-            <table id="tableCuentas" class="table table-hover">
+            <table class="tree-table" id="tableCuentas">
                 <thead>
                     <tr>
-                        <th>Código</th>
-                        <th>Nombre</th>
-                        <th>Tipo</th>
-                        <th>Naturaleza</th>
-                        <th>Nivel</th>
-                        <th>Acepta Mov.</th>
-                        <th>Estado</th>
-                        <th style="width: 120px;">Acciones</th>
+                        <th>Cuenta</th>
+                        <th style="width:100px;">Tipo</th>
+                        <th style="width:100px;">Naturaleza</th>
+                        <th style="width:100px;" class="text-center">Acepta Mov.</th>
+                        <th style="width:90px;">Estado</th>
+                        <th style="width:100px;">Acciones</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody id="treeBody"></tbody>
             </table>
         </div>
 
@@ -250,12 +280,21 @@
 
 @section Scripts {
 <script>
-    let table;
     let cuentasData = [];
+    let childrenMap = {};
+    let expandedNodes = new Set();
     const modal = new bootstrap.Modal(document.getElementById('modalCuenta'));
 
+    const tipoBadges = {
+        'ACT': '<span class="badge bg-primary">Activo</span>',
+        'PAS': '<span class="badge bg-danger">Pasivo</span>',
+        'CAP': '<span class="badge bg-success">Capital</span>',
+        'ING': '<span class="badge bg-info">Ingreso</span>',
+        'GAS': '<span class="badge bg-warning text-dark">Gasto</span>',
+        'COS': '<span class="badge bg-secondary">Costo</span>'
+    };
+
     $(document).ready(function() {
-        initDataTable();
         cargarDatos();
 
         $('#formCuenta').on('submit', function(e) {
@@ -263,7 +302,6 @@
             guardarCuenta();
         });
 
-        // Auto-set naturaleza based on tipo
         $('#Cuenta_TipoCuenta').on('change', function() {
             const tipo = $(this).val();
             if (['ACT', 'GAS', 'COS'].includes(tipo)) {
@@ -274,83 +312,223 @@
         });
     });
 
-    function initDataTable() {
-        table = $('#tableCuentas').DataTable({
-            data: [],
-            columns: [
-                { data: 'codigo', className: 'fw-bold' },
-                { data: 'nombre' },
-                {
-                    data: 'tipoCuenta',
-                    render: function(data) {
-                        const tipos = {
-                            'ACT': '<span class="badge bg-primary">Activo</span>',
-                            'PAS': '<span class="badge bg-danger">Pasivo</span>',
-                            'CAP': '<span class="badge bg-success">Capital</span>',
-                            'ING': '<span class="badge bg-info">Ingreso</span>',
-                            'GAS': '<span class="badge bg-warning text-dark">Gasto</span>',
-                            'COS': '<span class="badge bg-secondary">Costo</span>'
-                        };
-                        return tipos[data] || data;
-                    }
-                },
-                {
-                    data: 'naturaleza',
-                    render: function(data) {
-                        return data === 'D' ? 'Deudora' : 'Acreedora';
-                    }
-                },
-                {
-                    data: 'nivel',
-                    render: function(data) {
-                        const niveles = { 1: 'Grupo', 2: 'Subgrupo', 3: 'Cuenta', 4: 'Subcuenta' };
-                        return niveles[data] || `Nivel ${data}`;
-                    }
-                },
-                {
-                    data: 'aceptaMovimientos',
-                    render: function(data) {
-                        return data
-                            ? '<i class="fas fa-check text-success"></i>'
-                            : '<i class="fas fa-times text-muted"></i>';
-                    },
-                    className: 'text-center'
-                },
-                {
-                    data: 'activo',
-                    render: function(data) {
-                        return data
-                            ? '<span class="badge bg-success">Activa</span>'
-                            : '<span class="badge bg-secondary">Inactiva</span>';
-                    }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    render: function(data, type, row) {
-                        return `
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" onclick="editarCuenta('${row.id}')" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="eliminarCuenta('${row.id}')" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        `;
-                    }
+    // ========== TREE RENDERING ==========
+
+    function buildTree() {
+        childrenMap = {};
+        cuentasData.forEach(c => {
+            const parentId = c.cuentaPadreId || '__root__';
+            if (!childrenMap[parentId]) childrenMap[parentId] = [];
+            childrenMap[parentId].push(c);
+        });
+    }
+
+    function getFilterValues() {
+        return {
+            tipo: $('#filtroTipo').val(),
+            nivel: $('#filtroNivel').val(),
+            activo: $('#filtroActivo').val(),
+            texto: ($('#txtBuscar').val() || '').toLowerCase().trim()
+        };
+    }
+
+    function cuentaMatchesFilter(c, filters) {
+        if (filters.tipo && c.tipoCuenta !== filters.tipo) return false;
+        if (filters.nivel && c.nivel !== parseInt(filters.nivel)) return false;
+        if (filters.activo !== '' && filters.activo !== undefined) {
+            const isActivo = filters.activo === '1';
+            if (c.activo !== isActivo) return false;
+        }
+        if (filters.texto) {
+            const searchStr = ((c.codigo || '') + ' ' + (c.nombre || '')).toLowerCase();
+            if (!searchStr.includes(filters.texto)) return false;
+        }
+        return true;
+    }
+
+    // Check if a node or any of its descendants matches the filter
+    function nodeOrDescendantMatches(nodeId, filters) {
+        const node = cuentasData.find(c => c.id === nodeId);
+        if (node && cuentaMatchesFilter(node, filters)) return true;
+        const children = childrenMap[nodeId] || [];
+        return children.some(child => nodeOrDescendantMatches(child.id, filters));
+    }
+
+    function hasActiveFilters(filters) {
+        return filters.tipo || filters.nivel || filters.activo !== '1' || filters.texto;
+    }
+
+    function renderTree() {
+        buildTree();
+        const tbody = document.getElementById('treeBody');
+        tbody.innerHTML = '';
+
+        const filters = getFilterValues();
+        const isFiltered = hasActiveFilters(filters);
+        const roots = childrenMap['__root__'] || [];
+        let visibleCount = 0;
+
+        function renderNode(cuenta, depth) {
+            const children = childrenMap[cuenta.id] || [];
+            const hasChildren = children.length > 0;
+
+            // When filtering, skip nodes that don't match AND have no matching descendants
+            if (isFiltered && !nodeOrDescendantMatches(cuenta.id, filters)) return;
+
+            const selfMatches = cuentaMatchesFilter(cuenta, filters);
+            visibleCount++;
+
+            const tr = document.createElement('tr');
+            tr.dataset.id = cuenta.id;
+            tr.dataset.parentId = cuenta.cuentaPadreId || '';
+            tr.dataset.level = cuenta.nivel;
+            tr.className = `tree-level-${cuenta.nivel}`;
+
+            // Determine visibility: root nodes always visible; children visible if parent expanded or if filtered
+            const isRoot = !cuenta.cuentaPadreId;
+            if (!isRoot && !isFiltered) {
+                tr.style.display = expandedNodes.has(cuenta.cuentaPadreId) ? '' : 'none';
+            }
+
+            // When filtered, auto-expand to show matching nodes
+            if (isFiltered && hasChildren) {
+                expandedNodes.add(cuenta.id);
+            }
+
+            const indent = depth * 28;
+            const isExpanded = expandedNodes.has(cuenta.id);
+
+            let toggleHtml;
+            if (hasChildren) {
+                toggleHtml = `<button class="tree-toggle ${isExpanded ? 'expanded' : ''}" onclick="toggleNode('${cuenta.id}', event)"><i class="fas fa-chevron-right"></i></button>`;
+            } else {
+                toggleHtml = '<span class="tree-toggle-placeholder"></span>';
+            }
+
+            const opacityClass = selfMatches || !isFiltered ? '' : ' opacity-50';
+
+            tr.innerHTML = `
+                <td class="tree-cell">
+                    <span style="padding-left:${indent}px; display:inline-flex; align-items:center;" class="${opacityClass}">
+                        ${toggleHtml}
+                        <span class="tree-codigo">${escapeHtml(cuenta.codigo)}</span>
+                        <span class="tree-nombre">${escapeHtml(cuenta.nombre)}</span>
+                    </span>
+                </td>
+                <td>${tipoBadges[cuenta.tipoCuenta] || cuenta.tipoCuenta}</td>
+                <td>${cuenta.naturaleza === 'D' ? 'Deudora' : 'Acreedora'}</td>
+                <td class="text-center">${cuenta.aceptaMovimientos
+                    ? '<i class="fas fa-check text-success"></i>'
+                    : '<i class="fas fa-times text-muted"></i>'}</td>
+                <td>${cuenta.activo
+                    ? '<span class="badge bg-success">Activa</span>'
+                    : '<span class="badge bg-secondary">Inactiva</span>'}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="editarCuenta('${cuenta.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="eliminarCuenta('${cuenta.id}')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            children.forEach(child => renderNode(child, depth + 1));
+        }
+
+        roots.forEach(root => renderNode(root, 0));
+        $('#badgeTotal').text(visibleCount);
+
+        if (visibleCount === 0 && cuentasData.length > 0) {
+            $('#tableContainer').show();
+            $('#emptyState').hide();
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function toggleNode(id, event) {
+        if (event) event.stopPropagation();
+
+        if (expandedNodes.has(id)) {
+            // Collapse: remove from expanded and recursively collapse descendants
+            collapseNodeAndDescendants(id);
+        } else {
+            expandedNodes.add(id);
+        }
+        updateTreeVisibility();
+    }
+
+    function collapseNodeAndDescendants(id) {
+        expandedNodes.delete(id);
+        const children = childrenMap[id] || [];
+        children.forEach(child => collapseNodeAndDescendants(child.id));
+    }
+
+    function updateTreeVisibility() {
+        const tbody = document.getElementById('treeBody');
+        const rows = tbody.querySelectorAll('tr');
+        const filters = getFilterValues();
+        const isFiltered = hasActiveFilters(filters);
+
+        rows.forEach(row => {
+            const parentId = row.dataset.parentId;
+            const id = row.dataset.id;
+
+            if (!parentId) {
+                // Root node — always visible
+                row.style.display = '';
+            } else if (isFiltered) {
+                // When filtering, all rendered rows stay visible
+                row.style.display = '';
+            } else {
+                // Check if all ancestors are expanded
+                row.style.display = isAncestorChainExpanded(parentId) ? '' : 'none';
+            }
+
+            // Update toggle icon
+            const toggle = row.querySelector('.tree-toggle');
+            if (toggle) {
+                if (expandedNodes.has(id)) {
+                    toggle.classList.add('expanded');
+                } else {
+                    toggle.classList.remove('expanded');
                 }
-            ],
-            order: [[0, 'asc']],
-            pageLength: 25,
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-            },
-            drawCallback: function() {
-                $('#badgeTotal').text(this.api().rows({ filter: 'applied' }).count());
             }
         });
     }
+
+    function isAncestorChainExpanded(parentId) {
+        if (!parentId) return true;
+        if (!expandedNodes.has(parentId)) return false;
+        const parent = cuentasData.find(c => c.id === parentId);
+        if (!parent) return true;
+        return isAncestorChainExpanded(parent.cuentaPadreId);
+    }
+
+    function expandAll() {
+        cuentasData.forEach(c => {
+            if ((childrenMap[c.id] || []).length > 0) {
+                expandedNodes.add(c.id);
+            }
+        });
+        updateTreeVisibility();
+    }
+
+    function collapseAll() {
+        expandedNodes.clear();
+        updateTreeVisibility();
+    }
+
+    // ========== DATA LOADING ==========
 
     function cargarDatos() {
         $.ajax({
@@ -361,11 +539,14 @@
                 $('#tableLoader').hide();
                 if (response && response.length > 0) {
                     cuentasData = response;
-                    table.clear().rows.add(response).draw();
+                    // Sort by codigo to ensure tree order
+                    cuentasData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+                    renderTree();
                     $('#tableContainer').show();
                     $('#emptyState').hide();
                     cargarCuentasPadre();
                 } else {
+                    cuentasData = [];
                     $('#tableContainer').hide();
                     $('#emptyState').show();
                 }
@@ -380,8 +561,6 @@
     function cargarCuentasPadre() {
         const select = $('#Cuenta_CuentaPadreId');
         select.find('option:not(:first)').remove();
-
-        // Solo cuentas que NO aceptan movimientos o de nivel < 4
         const cuentasValidas = cuentasData.filter(c => c.nivel < 4);
         cuentasValidas.forEach(c => {
             select.append(`<option value="${c.id}">${c.codigo} - ${c.nombre}</option>`);
@@ -389,29 +568,19 @@
     }
 
     function filtrarTabla() {
-        const tipo = $('#filtroTipo').val();
-        const nivel = $('#filtroNivel').val();
-        const activo = $('#filtroActivo').val();
-
-        table.column(2).search(tipo);
-        table.column(4).search(nivel ? (nivel == 1 ? 'Grupo' : nivel == 2 ? 'Subgrupo' : nivel == 3 ? 'Cuenta' : 'Subcuenta') : '');
-
-        if (activo !== '') {
-            table.column(6).search(activo === '1' ? 'Activa' : 'Inactiva');
-        } else {
-            table.column(6).search('');
-        }
-
-        table.draw();
+        renderTree();
     }
 
     function limpiarFiltros() {
         $('#filtroTipo').val('');
         $('#filtroNivel').val('');
         $('#filtroActivo').val('1');
-        table.search('').columns().search('').draw();
-        filtrarTabla();
+        $('#txtBuscar').val('');
+        expandedNodes.clear();
+        renderTree();
     }
+
+    // ========== CRUD ==========
 
     function openCreateModal() {
         $('#modalTitle').text('Nueva Cuenta');
@@ -530,27 +699,23 @@
     }
 
     function exportarExcel() {
-        table.button('.buttons-excel').trigger();
+        window.location.href = '?handler=DescargarPlantilla';
     }
 
     // ========== FUNCIONES DE EXCEL E IMPORTACIÓN ==========
 
-    // Descargar plantilla Excel
     function descargarPlantilla() {
         window.location.href = '?handler=DescargarPlantilla';
     }
 
-    // Abrir selector de archivo Excel
     function cargarExcel() {
         $('#fileExcel').click();
     }
 
-    // Procesar archivo Excel seleccionado
     function procesarExcel(input) {
         if (input.files && input.files[0]) {
             var file = input.files[0];
 
-            // Validar extensión
             var ext = file.name.split('.').pop().toLowerCase();
             if (ext !== 'xlsx' && ext !== 'xls') {
                 Swal.fire('Error', 'Solo se permiten archivos Excel (.xlsx o .xls)', 'error');
@@ -609,7 +774,6 @@
                     $('#resultadoImportacion').html(html);
                     new bootstrap.Modal('#modalResultadoImportacion').show();
 
-                    // Recargar tabla
                     cargarDatos();
                 },
                 error: function(xhr) {
@@ -617,12 +781,10 @@
                 }
             });
 
-            // Limpiar input
             input.value = '';
         }
     }
 
-    // Generar plan de cuentas estándar para Costa Rica
     function generarPlanDefecto() {
         Swal.fire({
             title: 'Generar Plan de Cuentas',

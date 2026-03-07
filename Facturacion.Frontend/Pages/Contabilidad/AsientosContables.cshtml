@@ -14,9 +14,14 @@
             <h2><i class="fas fa-book"></i> Asientos Contables</h2>
             <p class="mb-0">Registro y consulta de asientos contables</p>
         </div>
-        <button class="btn btn-primary" onclick="openCreateModal()">
-            <i class="fas fa-plus me-2"></i>Nuevo Asiento
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success d-none" id="btnAprobarMasivo" onclick="aprobarMasivo()">
+                <i class="fas fa-check-double me-2"></i>Aprobar Seleccionados (<span id="countSeleccionados">0</span>)
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Nuevo Asiento
+            </button>
+        </div>
     </div>
 </div>
 
@@ -42,9 +47,9 @@
                 <label class="form-label">Estado</label>
                 <select id="filtroEstado" class="form-select">
                     <option value="todos">Todos los estados</option>
-                    <option value="Borrador">Borrador</option>
-                    <option value="Aprobado">Aprobado</option>
-                    <option value="Anulado">Anulado</option>
+                    <option value="BOR">Borrador</option>
+                    <option value="APR">Aprobado</option>
+                    <option value="ANU">Anulado</option>
                 </select>
             </div>
             <div class="col-md-4 d-flex align-items-end">
@@ -78,6 +83,7 @@
             <table id="tableAsientos" class="table table-hover table-sm">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll" title="Seleccionar todos los borradores" /></th>
                         <th>ID</th>
                         <th>Número</th>
                         <th>Fecha</th>
@@ -308,6 +314,17 @@
                 }
             },
             columns: [
+                {
+                    data: null,
+                    orderable: false,
+                    className: 'text-center',
+                    render: function(data, type, row) {
+                        if (row.estado === 'BOR') {
+                            return `<input type="checkbox" class="row-check" value="${row.id}" />`;
+                        }
+                        return '';
+                    }
+                },
                 { data: 'id', visible: false },
                 { data: 'numero' },
                 {
@@ -353,9 +370,9 @@
                     data: 'estado',
                     render: function(data) {
                         const estados = {
-                            'Borrador': '<span class="badge bg-secondary">Borrador</span>',
-                            'Aprobado': '<span class="badge bg-success">Aprobado</span>',
-                            'Anulado': '<span class="badge bg-danger">Anulado</span>'
+                            'BOR': '<span class="badge bg-secondary">Borrador</span>',
+                            'APR': '<span class="badge bg-success">Aprobado</span>',
+                            'ANU': '<span class="badge bg-danger">Anulado</span>'
                         };
                         return estados[data] || data;
                     }
@@ -370,7 +387,7 @@
                             </button>
                         `;
 
-                        if (row.estado === 'Borrador') {
+                        if (row.estado === 'BOR') {
                             buttons += `
                                 <button class="btn btn-sm btn-warning" onclick="edit('${row.id}')" title="Editar">
                                     <i class="fas fa-edit"></i>
@@ -382,7 +399,7 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             `;
-                        } else if (row.estado === 'Aprobado') {
+                        } else if (row.estado === 'APR') {
                             buttons += `
                                 <button class="btn btn-sm btn-danger" onclick="anular('${row.id}')" title="Anular">
                                     <i class="fas fa-ban"></i>
@@ -537,11 +554,7 @@
             $('#rowDiferencia').show();
             $('#rowCuadrado').hide();
 
-            if (totalDebe === 0 && totalHaber === 0) {
-                $('#btnGuardar').prop('disabled', true);
-            } else {
-                $('#btnGuardar').prop('disabled', false);
-            }
+            $('#btnGuardar').prop('disabled', true);
         }
     }
 
@@ -569,6 +582,28 @@
         return movimientos;
     }
 
+    function validarFechaPeriodo() {
+        const periodoText = $('#Asiento_PeriodoContableId option:selected').text().trim();
+        const fecha = $('#Asiento_Fecha').val();
+        if (!periodoText || !fecha) return true;
+
+        const meses = { 'Enero':1,'Febrero':2,'Marzo':3,'Abril':4,'Mayo':5,'Junio':6,
+                        'Julio':7,'Agosto':8,'Septiembre':9,'Octubre':10,'Noviembre':11,'Diciembre':12 };
+        const parts = periodoText.split(' ');
+        if (parts.length < 2) return true;
+        const mesNum = meses[parts[0]];
+        const anio = parseInt(parts[1]);
+        if (!mesNum || !anio) return true;
+
+        const fechaDate = new Date(fecha + 'T00:00:00');
+        if (fechaDate.getMonth() + 1 !== mesNum || fechaDate.getFullYear() !== anio) {
+            showError(`La fecha ${fecha} no corresponde al período "${periodoText}". Seleccione una fecha dentro del mes del período.`);
+            $('#Asiento_Fecha').focus();
+            return false;
+        }
+        return true;
+    }
+
     function save() {
         const movimientos = collectMovimientos();
 
@@ -576,6 +611,8 @@
             showError('Debe agregar al menos un movimiento con monto mayor a cero');
             return;
         }
+
+        if (!validarFechaPeriodo()) return;
 
         const data = {
             id: $('#Asiento_Id').val() || '00000000-0000-0000-0000-000000000000',
@@ -814,6 +851,71 @@
                 }
             });
         });
+    }
+
+    // Checkbox selection handling
+    $(document).on('change', '#selectAll', function() {
+        var checked = $(this).prop('checked');
+        $('.row-check').prop('checked', checked);
+        updateSelectionCount();
+    });
+
+    $(document).on('change', '.row-check', function() {
+        var total = $('.row-check').length;
+        var selected = $('.row-check:checked').length;
+        $('#selectAll').prop('checked', total > 0 && total === selected);
+        updateSelectionCount();
+    });
+
+    function updateSelectionCount() {
+        var count = $('.row-check:checked').length;
+        $('#countSeleccionados').text(count);
+        if (count > 0) {
+            $('#btnAprobarMasivo').removeClass('d-none');
+        } else {
+            $('#btnAprobarMasivo').addClass('d-none');
+        }
+    }
+
+    function aprobarMasivo() {
+        var ids = [];
+        $('.row-check:checked').each(function() {
+            ids.push($(this).val());
+        });
+
+        if (ids.length === 0) {
+            showWarning('No hay asientos seleccionados');
+            return;
+        }
+
+        confirmDialog(
+            `¿Está seguro de aprobar ${ids.length} asiento(s) contable(s)? Una vez aprobados no podrán ser modificados.`,
+            '¿Aprobar Masivamente?',
+            function() {
+                $.ajax({
+                    url: '?handler=AprobarMasivo',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(ids),
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess(response.message);
+                        } else {
+                            showError(response.message || 'Error al aprobar masivamente');
+                        }
+                        $('#selectAll').prop('checked', false);
+                        updateSelectionCount();
+                        table.ajax.reload();
+                    },
+                    error: function(xhr) {
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        );
     }
 
     function deleteRecord(id, numero) {

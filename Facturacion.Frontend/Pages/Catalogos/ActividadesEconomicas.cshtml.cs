@@ -61,19 +61,19 @@ public class ActividadesEconomicasModel : PageModel
                 if (result.TryGetProperty("data", out var dataProperty))
                 {
                     var actividades = JsonSerializer.Deserialize<List<ActividadEconomica>>(dataProperty.GetRawText(), _jsonOptions);
-                    return new JsonResult(actividades ?? new List<ActividadEconomica>());
+                    return new JsonResult(new { data = actividades ?? new List<ActividadEconomica>() });
                 }
 
-                return new JsonResult(new List<ActividadEconomica>());
+                return new JsonResult(new { data = new List<ActividadEconomica>() });
             }
 
             _logger.LogWarning("Failed to load actividades económicas: {StatusCode}", response.StatusCode);
-            return new JsonResult(new List<ActividadEconomica>());
+            return new JsonResult(new { data = new List<ActividadEconomica>() });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading actividades económicas data");
-            return new JsonResult(new List<ActividadEconomica>());
+            return new JsonResult(new { data = new List<ActividadEconomica>() });
         }
     }
 

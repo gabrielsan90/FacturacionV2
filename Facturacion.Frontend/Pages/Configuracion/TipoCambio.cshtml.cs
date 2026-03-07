@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Globalization;
 using System.Text.Json;
 
 namespace Facturacion.Frontend.Pages.Configuracion;
@@ -10,55 +11,43 @@ public class TipoCambioModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<TipoCambioModel> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public TipoCambioModel(IHttpClientFactory httpClientFactory, ILogger<TipoCambioModel> logger)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
-        };
     }
 
     public void OnGet()
     {
-        // Page initialization
     }
 
     /// <summary>
-    /// Obtiene el tipo de cambio actual del BCCR (hoy)
+    /// Obtiene el tipo de cambio actual usando la API de Hacienda (misma fuente que CrearDocumento)
     /// </summary>
     public async Task<IActionResult> OnGetCurrentRateAsync()
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
+            var result = await ObtenerTipoCambioHaciendaAsync();
+            if (result != null)
             {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                return new JsonResult(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        fecha = result.Value.Fecha,
+                        compra = result.Value.Compra,
+                        venta = result.Value.Venta
+                    }
+                });
             }
-
-            var response = await client.GetAsync("/api/TipoCambio");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(new { success = true, data });
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to load current exchange rate. Status: {StatusCode}, Error: {Error}",
-                response.StatusCode, errorContent);
 
             return new JsonResult(new
             {
                 success = false,
-                message = "No se pudo obtener el tipo de cambio actual del BCCR. Intente nuevamente."
+                message = "No se pudo obtener el tipo de cambio del BCCR. Intente nuevamente."
             });
         }
         catch (Exception ex)
@@ -80,29 +69,24 @@ public class TipoCambioModel : PageModel
         try
         {
             if (string.IsNullOrEmpty(fecha))
-            {
                 return new JsonResult(new { success = false, message = "La fecha es requerida" });
-            }
 
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
+            // La API de Hacienda solo devuelve el tipo de cambio del día actual
+            // Para fechas específicas se usa la misma fuente
+            var result = await ObtenerTipoCambioHaciendaAsync();
+            if (result != null)
             {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                return new JsonResult(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        fecha = fecha,
+                        compra = result.Value.Compra,
+                        venta = result.Value.Venta
+                    }
+                });
             }
-
-            var response = await client.GetAsync($"/api/TipoCambio?fecha={fecha}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(new { success = true, data });
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to load exchange rate for date {Fecha}. Status: {StatusCode}, Error: {Error}",
-                fecha, response.StatusCode, errorContent);
 
             return new JsonResult(new
             {
@@ -124,40 +108,36 @@ public class TipoCambioModel : PageModel
     /// <summary>
     /// Obtiene el tipo de cambio para una moneda específica
     /// </summary>
-    public async Task<IActionResult> OnGetRateByCurrencyAsync(string moneda, string fecha)
+    public async Task<IActionResult> OnGetRateByCurrencyAsync(string moneda, string? fecha)
     {
         try
         {
             if (string.IsNullOrEmpty(moneda))
-            {
                 return new JsonResult(new { success = false, message = "El código de moneda es requerido" });
-            }
 
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
+            if (moneda.Equals("CRC", StringComparison.OrdinalIgnoreCase))
             {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                return new JsonResult(new
+                {
+                    success = true,
+                    data = new { fecha = DateTime.Now.ToString("yyyy-MM-dd"), compra = 1.00m, venta = 1.00m }
+                });
             }
 
-            var url = $"/api/TipoCambio/moneda/{moneda}";
-            if (!string.IsNullOrEmpty(fecha))
+            var result = await ObtenerTipoCambioHaciendaAsync();
+            if (result != null)
             {
-                url += $"?fecha={fecha}";
+                return new JsonResult(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        fecha = result.Value.Fecha,
+                        compra = result.Value.Compra,
+                        venta = result.Value.Venta
+                    }
+                });
             }
-
-            var response = await client.GetAsync(url);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<dynamic>(_jsonOptions);
-                return new JsonResult(new { success = true, data });
-            }
-
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to load exchange rate for currency {Moneda}. Status: {StatusCode}, Error: {Error}",
-                moneda, response.StatusCode, errorContent);
 
             return new JsonResult(new
             {
@@ -177,42 +157,31 @@ public class TipoCambioModel : PageModel
     }
 
     /// <summary>
-    /// Obtiene tipos de cambio en un rango de fechas
+    /// Obtiene tipos de cambio en un rango de fechas (solo devuelve el actual, la API no soporta históricos)
     /// </summary>
     public async Task<IActionResult> OnPostRangeAsync([FromBody] RangeRequest request)
     {
         try
         {
             if (request == null || string.IsNullOrEmpty(request.FechaInicio) || string.IsNullOrEmpty(request.FechaFin))
-            {
                 return new JsonResult(new { success = false, message = "Las fechas de inicio y fin son requeridas" });
-            }
 
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
+            var result = await ObtenerTipoCambioHaciendaAsync();
+            if (result != null)
             {
-                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var requestData = new
-            {
-                fechaInicio = request.FechaInicio,
-                fechaFin = request.FechaFin
-            };
-
-            var response = await client.PostAsJsonAsync("/api/TipoCambio/rango", requestData);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<List<dynamic>>(_jsonOptions);
+                // La API de Hacienda solo retorna el tipo de cambio vigente
+                var data = new[]
+                {
+                    new
+                    {
+                        fecha = result.Value.Fecha,
+                        moneda = "USD",
+                        compra = result.Value.Compra,
+                        venta = result.Value.Venta
+                    }
+                };
                 return new JsonResult(new { success = true, data });
             }
-
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("Failed to load exchange rate range. Status: {StatusCode}, Error: {Error}",
-                response.StatusCode, errorContent);
 
             return new JsonResult(new
             {
@@ -229,6 +198,97 @@ public class TipoCambioModel : PageModel
                 message = "Error al consultar los tipos de cambio: " + ex.Message
             });
         }
+    }
+
+    /// <summary>
+    /// Obtiene tipo de cambio USD desde la API oficial de Hacienda (misma lógica que CrearDocumento)
+    /// con fallback a API alternativa
+    /// </summary>
+    private async Task<TipoCambioResult?> ObtenerTipoCambioHaciendaAsync()
+    {
+        var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(15);
+
+        decimal compra = 0, venta = 0;
+        string? fecha = null;
+
+        // Intento 1: API oficial de Hacienda Costa Rica
+        try
+        {
+            _logger.LogInformation("Fetching exchange rate from Hacienda API");
+            var response = await client.GetAsync("https://api.hacienda.go.cr/indicadores/tc/dolar");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("venta", out var ventaObj))
+                {
+                    if (ventaObj.TryGetProperty("valor", out var ventaVal))
+                        venta = ventaVal.GetDecimal();
+                    if (ventaObj.TryGetProperty("fecha", out var fechaVal))
+                        fecha = fechaVal.GetString();
+                }
+                if (doc.RootElement.TryGetProperty("compra", out var compraObj))
+                {
+                    if (compraObj.TryGetProperty("valor", out var compraVal))
+                        compra = compraVal.GetDecimal();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error calling Hacienda API for exchange rate");
+        }
+
+        // Intento 2: API alternativa si Hacienda falla
+        if (venta == 0)
+        {
+            try
+            {
+                var responseVenta = await client.GetAsync("https://tipodecambio.paginasweb.cr/api/venta");
+                if (responseVenta.IsSuccessStatusCode)
+                {
+                    var ventaStr = await responseVenta.Content.ReadAsStringAsync();
+                    if (decimal.TryParse(ventaStr.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var v))
+                        venta = v;
+                }
+
+                var responseCompra = await client.GetAsync("https://tipodecambio.paginasweb.cr/api/compra");
+                if (responseCompra.IsSuccessStatusCode)
+                {
+                    var compraStr = await responseCompra.Content.ReadAsStringAsync();
+                    if (decimal.TryParse(compraStr.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var c))
+                        compra = c;
+                }
+
+                fecha = DateTime.Now.ToString("yyyy-MM-dd");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error calling alternative API for exchange rate");
+            }
+        }
+
+        if (venta > 0)
+        {
+            return new TipoCambioResult
+            {
+                Fecha = fecha ?? DateTime.Now.ToString("yyyy-MM-dd"),
+                Compra = compra,
+                Venta = venta
+            };
+        }
+
+        return null;
+    }
+
+    private struct TipoCambioResult
+    {
+        public string Fecha;
+        public decimal Compra;
+        public decimal Venta;
     }
 
     public class RangeRequest

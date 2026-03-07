@@ -45,11 +45,11 @@ public class ReglasConciliacionModel : PageModel
 
                 if (actionResponse?.WasSuccess == true && actionResponse.Result != null)
                 {
-                    return new JsonResult(actionResponse.Result);
+                    return new JsonResult(new { data = actionResponse.Result });
                 }
             }
 
-            return new JsonResult(new List<ReglaConciliacion>());
+            return new JsonResult(new { data = new List<ReglaConciliacion>() });
         }
         catch (Exception ex)
         {

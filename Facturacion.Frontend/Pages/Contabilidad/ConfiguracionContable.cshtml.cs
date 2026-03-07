@@ -27,6 +27,7 @@ public class ConfiguracionContableModel : PageModel
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
@@ -213,7 +214,7 @@ public class ConfiguracionContableModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var json = JsonSerializer.Serialize(configData);
+            var json = JsonSerializer.Serialize(configData, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;

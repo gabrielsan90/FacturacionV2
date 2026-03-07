@@ -41,7 +41,7 @@ public class MovimientosBancariosModel : PageModel
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var movimientos = JsonSerializer.Deserialize<List<MovimientoBancario>>(content, _jsonOptions);
-                return new JsonResult(movimientos);
+                return new JsonResult(new { data = movimientos });
             }
 
             return BadRequest("Error al obtener los movimientos bancarios.");

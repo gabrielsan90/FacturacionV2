@@ -55,6 +55,7 @@
                 <thead>
                     <tr>
                         <th>Código</th>
+                        <th>CAByS</th>
                         <th>Tipo</th>
                         <th>Nombre</th>
                         <th>Categoría</th>
@@ -141,7 +142,7 @@
                     <!-- Código CAByS -->
                     <div class="row">
                         <div class="col-md-12 mb-3">
-                            <label class="form-label">Código CAByS <span class="text-danger">*</span></label>
+                            <label class="form-label">Código CAByS</label>
                             <input type="hidden" id="Producto_CabysId" />
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -391,9 +392,15 @@
             columns: [
                 { data: 'codigo' },
                 {
+                    data: 'cabys',
+                    render: function(data) {
+                        return data ? data.codigo : '<span class="text-muted">-</span>';
+                    }
+                },
+                {
                     data: 'tipo',
                     render: function(data) {
-                        return data === 0
+                        return (data === 0 || data === 'Producto')
                             ? '<span class="badge bg-primary">Producto</span>'
                             : '<span class="badge bg-info">Servicio</span>';
                     }
@@ -652,6 +659,9 @@
     }
 
     function save() {
+        const $btnSave = $('#formProducto button[type="submit"]');
+        $btnSave.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Guardando...');
+
         const tipo = parseInt($('#Producto_Tipo').val());
         let controlarInventario = $('#Producto_ControlarInventario').is(':checked');
         let stockMinimo = $('#Producto_StockMinimo').val();
@@ -700,6 +710,9 @@
             },
             error: function(xhr) {
                 handleAjaxError(xhr);
+            },
+            complete: function() {
+                $btnSave.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Guardar');
             }
         });
     }

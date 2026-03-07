@@ -102,7 +102,7 @@ public class AuthService : IAuthService
             // Set authToken cookie for JavaScript access (e.g., DataTables Ajax calls)
             httpContext.Response.Cookies.Append("authToken", loginResponse.Token, new CookieOptions
             {
-                HttpOnly = false, // Allow JavaScript access
+                HttpOnly = true, // Prevent XSS token theft
                 Secure = true, // Only send over HTTPS
                 SameSite = SameSiteMode.Strict,
                 Expires = loginResponse.ExpiresAt
@@ -247,7 +247,7 @@ public class AuthService : IAuthService
             // Update authToken cookie
             httpContext.Response.Cookies.Append("authToken", loginResponse.Token, new CookieOptions
             {
-                HttpOnly = false, // Allow JavaScript access
+                HttpOnly = true, // Prevent XSS token theft
                 Secure = true, // Only send over HTTPS
                 SameSite = SameSiteMode.Strict,
                 Expires = loginResponse.ExpiresAt

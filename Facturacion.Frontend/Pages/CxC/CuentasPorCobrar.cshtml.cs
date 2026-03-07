@@ -92,42 +92,48 @@ public class CuentasPorCobrarModel : PageModel
 
             // Get pendientes
             var pendientesResponse = await client.GetAsync($"/api/cuentasporcobrar/empresa/{empresaId}/pendientes");
-            var totalPendiente = 0m;
+            var pendientes = new List<CuentaPorCobrarDto>();
             if (pendientesResponse.IsSuccessStatusCode)
             {
                 var pendientesContent = await pendientesResponse.Content.ReadAsStringAsync();
-                var pendientes = JsonSerializer.Deserialize<List<CuentaPorCobrarDto>>(pendientesContent, _jsonOptions);
-                totalPendiente = pendientes?.Sum(c => c.Saldo) ?? 0;
+                pendientes = JsonSerializer.Deserialize<List<CuentaPorCobrarDto>>(pendientesContent, _jsonOptions) ?? new();
             }
 
             // Get vencidas
             var vencidasResponse = await client.GetAsync($"/api/cuentasporcobrar/empresa/{empresaId}/vencidas");
-            var totalVencido = 0m;
+            var vencidas = new List<CuentaPorCobrarDto>();
             if (vencidasResponse.IsSuccessStatusCode)
             {
                 var vencidasContent = await vencidasResponse.Content.ReadAsStringAsync();
-                var vencidas = JsonSerializer.Deserialize<List<CuentaPorCobrarDto>>(vencidasContent, _jsonOptions);
-                totalVencido = vencidas?.Sum(c => c.Saldo) ?? 0;
+                vencidas = JsonSerializer.Deserialize<List<CuentaPorCobrarDto>>(vencidasContent, _jsonOptions) ?? new();
             }
 
             // Calculate total collected this month (from all receivables)
             var allResponse = await client.GetAsync($"/api/cuentasporcobrar/empresa/{empresaId}");
-            var totalCobradoMes = 0m;
+            var all = new List<CuentaPorCobrarDto>();
             if (allResponse.IsSuccessStatusCode)
             {
                 var allContent = await allResponse.Content.ReadAsStringAsync();
-                var all = JsonSerializer.Deserialize<List<CuentaPorCobrarDto>>(allContent, _jsonOptions);
-                var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-                totalCobradoMes = all?
-                    .Where(c => c.Estado == "Pagado" && c.FechaEmision >= firstDayOfMonth)
-                    .Sum(c => c.MontoOriginal) ?? 0;
+                all = JsonSerializer.Deserialize<List<CuentaPorCobrarDto>>(allContent, _jsonOptions) ?? new();
             }
+
+            var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var cobradosMes = all.Where(c => c.Estado == "Pagado" && c.FechaEmision >= firstDayOfMonth).ToList();
 
             return new JsonResult(new
             {
-                totalPendiente,
-                totalVencido,
-                totalCobradoMes
+                totalPendiente = pendientes.Sum(c => c.MontoSaldo),
+                totalVencido = vencidas.Sum(c => c.MontoSaldo),
+                totalCobradoMes = cobradosMes.Sum(c => c.MontoOriginal),
+                pendientePorMoneda = pendientes.GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoSaldo) })
+                    .OrderByDescending(m => m.monto).ToList(),
+                vencidoPorMoneda = vencidas.GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoSaldo) })
+                    .OrderByDescending(m => m.monto).ToList(),
+                cobradoMesPorMoneda = cobradosMes.GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoOriginal) })
+                    .OrderByDescending(m => m.monto).ToList()
             });
         }
         catch (Exception ex)
@@ -217,14 +223,15 @@ public class CuentasPorCobrarModel : PageModel
     public sealed class CuentaPorCobrarDto
     {
         public string Id { get; set; } = null!;
-        public string NumeroDocumento { get; set; } = null!;
+        public string NumeroConsecutivo { get; set; } = "";
         public string ClienteId { get; set; } = null!;
-        public string ClienteNombre { get; set; } = null!;
+        public string NombreCliente { get; set; } = "";
         public DateTime FechaEmision { get; set; }
         public DateTime FechaVencimiento { get; set; }
         public decimal MontoOriginal { get; set; }
-        public decimal Saldo { get; set; }
+        public decimal MontoSaldo { get; set; }
         public string Estado { get; set; } = null!;
+        public string Moneda { get; set; } = "CRC";
     }
 
     public sealed class AplicarPagoRequest

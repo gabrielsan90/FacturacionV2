@@ -24,6 +24,11 @@ public interface IReciboPagoService
     Task<ResultadoREP> GenerarREPAsync(ReciboPagoDTO dto, Guid empresaId, Guid terminalId, string userId);
 
     /// <summary>
+    /// Genera un REP que aplica pago a múltiples facturas del mismo cliente
+    /// </summary>
+    Task<ResultadoREP> GenerarREPMultiAsync(ReciboPagoMultiDTO dto, Guid empresaId, Guid terminalId, string userId);
+
+    /// <summary>
     /// Obtiene documentos pendientes de pago (cuentas por cobrar)
     /// </summary>
     /// <param name="empresaId">ID de la empresa</param>

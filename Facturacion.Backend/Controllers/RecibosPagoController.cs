@@ -83,6 +83,57 @@ public class RecibosPagoController : ControllerBase
     }
 
     /// <summary>
+    /// Genera un REP que aplica pago a múltiples facturas del mismo cliente
+    /// </summary>
+    [HttpPost("generar-multi")]
+    [ProducesResponseType(typeof(ResultadoREP), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ResultadoREP>> GenerarREPMulti(
+        [FromBody] ReciboPagoMultiDTO dto,
+        [FromQuery] Guid empresaId,
+        [FromQuery] Guid terminalId)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ResultadoREP
+                {
+                    Exitoso = false,
+                    Mensaje = "Datos inválidos",
+                    Errores = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new UnauthorizedAccessException("Usuario no autenticado");
+
+            _logger.LogInformation("Usuario {UserId} generando REP multi-factura para {Count} documentos",
+                userId, dto.Documentos.Count);
+
+            var resultado = await _reciboPagoService.GenerarREPMultiAsync(dto, empresaId, terminalId, userId);
+
+            if (!resultado.Exitoso)
+            {
+                return BadRequest(resultado);
+            }
+
+            return Ok(resultado);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al generar REP multi-factura");
+            return StatusCode(500, new ResultadoREP
+            {
+                Exitoso = false,
+                Mensaje = "Error interno del servidor",
+                Errores = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    /// <summary>
     /// Obtiene documentos pendientes de pago (cuentas por cobrar)
     /// </summary>
     /// <param name="empresaId">ID de la empresa</param>

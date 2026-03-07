@@ -112,12 +112,14 @@ public abstract class BasePdfDocument : IDocument
     /// </summary>
     protected void ComposeClaveSection(IContainer container)
     {
+        if (string.IsNullOrWhiteSpace(Documento.Clave)) return;
+
         container.Background(HeaderBgColor).Padding(5).Row(row =>
         {
             row.RelativeItem().Column(col =>
             {
                 col.Item().Text("Clave:").FontSize(SmallFontSize).Bold().FontColor(LightTextColor);
-                col.Item().Text(Documento.Clave ?? "").FontSize(SmallFontSize).FontColor(TextColor);
+                col.Item().Text(Documento.Clave).FontSize(SmallFontSize).FontColor(TextColor);
             });
         });
     }
@@ -148,8 +150,11 @@ public abstract class BasePdfDocument : IDocument
                 content.Item().Text($"Identificación: {PdfFormatHelper.GetTipoIdentificacion(Documento.Empresa?.TipoIdentificacion)} - {PdfFormatHelper.FormatIdentificacion(Documento.Empresa?.NumeroIdentificacion, Documento.Empresa?.TipoIdentificacion)}")
                     .FontSize(SmallFontSize).FontColor(TextColor);
 
-                content.Item().Text($"Actividad Económica: {Documento.ActividadEconomica}")
-                    .FontSize(SmallFontSize).FontColor(TextColor);
+                if (!string.IsNullOrWhiteSpace(Documento.ActividadEconomica))
+                {
+                    content.Item().Text($"Actividad Económica: {Documento.ActividadEconomica}")
+                        .FontSize(SmallFontSize).FontColor(TextColor);
+                }
 
                 // Address from Empresa
                 if (Documento.Empresa != null && !string.IsNullOrWhiteSpace(Documento.Empresa.OtrasSenas))

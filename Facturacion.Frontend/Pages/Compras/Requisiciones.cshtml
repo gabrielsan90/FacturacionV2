@@ -31,7 +31,7 @@
                 <select class="form-select" id="filterEstado">
                     <option value="">Todos</option>
                     <option value="BOR">Borrador</option>
-                    <option value="ENV">Enviada</option>
+                    <option value="PEN">Pendiente de Aprobación</option>
                     <option value="APR">Aprobada</option>
                     <option value="REC">Rechazada</option>
                     <option value="COT">En Cotización</option>
@@ -125,6 +125,7 @@
                 <div class="modal-body">
                     <input type="hidden" id="Requisicion_Id" value="00000000-0000-0000-0000-000000000000" />
                     <input type="hidden" id="Requisicion_Estado" value="BOR" />
+                    <input type="hidden" id="Requisicion_SolicitanteId" value="" />
 
                     <!-- Información General -->
                     <div class="row">
@@ -405,10 +406,13 @@
                             `;
                         }
 
-                        if (row.estado === 'ENV') {
+                        if (row.estado === 'PEN') {
                             buttons += `
                                 <button class="btn btn-sm btn-primary" onclick="aprobar('${data}')" title="Aprobar">
                                     <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="rechazar('${data}')" title="Rechazar">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             `;
                         }
@@ -499,6 +503,8 @@
         $('#formRequisicion').removeClass('was-validated');
         $('#Requisicion_Id').val('00000000-0000-0000-0000-000000000000');
         $('#Requisicion_Estado').val('BOR');
+        $('#Requisicion_SolicitanteId').val('');
+        $('#Requisicion_Numero').val('');
         $('#Requisicion_Moneda').val('CRC');
         $('#Requisicion_Prioridad').val('MED');
         detalles = [];
@@ -574,12 +580,15 @@
         const moneda = $('#Requisicion_Moneda').val() || 'CRC';
 
         detalles.forEach((detalle, index) => {
+            const cant = parseFloat(detalle.cantidad || 0);
+            const precio = parseFloat(detalle.precioEstimado || 0);
+            const total = parseFloat(detalle.total || 0);
             tbody.append(`
                 <tr>
-                    <td>${detalle.productoNombre}</td>
-                    <td class="text-end">${detalle.cantidad.toFixed(3)}</td>
-                    <td class="text-end">${formatCurrency(detalle.precioEstimado, moneda)}</td>
-                    <td class="text-end">${formatCurrency(detalle.total, moneda)}</td>
+                    <td>${detalle.productoNombre || '-'}</td>
+                    <td class="text-end">${cant.toFixed(3)}</td>
+                    <td class="text-end">${formatCurrency(precio, moneda)}</td>
+                    <td class="text-end">${formatCurrency(total, moneda)}</td>
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-danger" onclick="removeDetalle(${index})">
                             <i class="fas fa-trash"></i>
@@ -685,6 +694,7 @@
                     const req = response.data;
                     $('#Requisicion_Id').val(req.id);
                     $('#Requisicion_Numero').val(req.numero);
+                    $('#Requisicion_SolicitanteId').val(req.solicitanteId || '');
                     $('#Requisicion_Fecha').val(req.fecha.split('T')[0]);
                     $('#Requisicion_FechaRequerida').val(req.fechaRequerida.split('T')[0]);
                     $('#Requisicion_Prioridad').val(req.prioridad);
@@ -697,13 +707,16 @@
                     detalles = [];
                     if (req.detalles && req.detalles.length > 0) {
                         req.detalles.forEach(detalle => {
+                            const cant = parseFloat(detalle.cantidadSolicitada != null ? detalle.cantidadSolicitada : (detalle.cantidad || 0));
+                            const precio = parseFloat(detalle.precioEstimado != null ? detalle.precioEstimado : 0);
+                            const subtotal = detalle.subtotalEstimado != null ? parseFloat(detalle.subtotalEstimado) : (cant * precio);
                             detalles.push({
                                 id: detalle.id,
                                 productoId: detalle.productoId,
-                                productoNombre: detalle.producto ? detalle.producto.nombre : 'Producto',
-                                cantidad: detalle.cantidad,
-                                precioEstimado: detalle.precioEstimado,
-                                total: detalle.total,
+                                productoNombre: detalle.producto ? detalle.producto.nombre : (detalle.descripcion || 'Producto'),
+                                cantidad: cant,
+                                precioEstimado: precio,
+                                total: subtotal,
                                 numeroLinea: detalle.numeroLinea
                             });
                         });
@@ -726,9 +739,21 @@
             montoEstimado += detalle.total;
         });
 
+        // Map local detalle fields to entity property names
+        const detallesApi = detalles.map(d => ({
+            id: d.id,
+            productoId: d.productoId,
+            cantidadSolicitada: d.cantidad,
+            precioEstimado: d.precioEstimado,
+            subtotalEstimado: d.total,
+            numeroLinea: d.numeroLinea
+        }));
+
         const reqData = {
             id: $('#Requisicion_Id').val() === '00000000-0000-0000-0000-000000000000' ? '00000000-0000-0000-0000-000000000000' : $('#Requisicion_Id').val(),
             empresaId: empresaId,
+            numero: $('#Requisicion_Numero').val() || null,
+            solicitanteId: $('#Requisicion_SolicitanteId').val() || null,
             fecha: $('#Requisicion_Fecha').val() + 'T00:00:00',
             fechaRequerida: $('#Requisicion_FechaRequerida').val() + 'T00:00:00',
             prioridad: $('#Requisicion_Prioridad').val(),
@@ -738,7 +763,7 @@
             justificacion: $('#Requisicion_Justificacion').val() || null,
             montoEstimado: montoEstimado,
             estado: $('#Requisicion_Estado').val() || 'BOR',
-            detalles: detalles
+            detalles: detallesApi
         };
 
         $.ajax({
@@ -801,6 +826,43 @@
         });
     }
 
+    function rechazar(id) {
+        Swal.fire({
+            title: '¿Rechazar requisición?',
+            input: 'textarea',
+            inputLabel: 'Motivo del rechazo',
+            inputPlaceholder: 'Ingrese el motivo del rechazo...',
+            inputAttributes: { required: true },
+            showCancelButton: true,
+            confirmButtonText: 'Rechazar',
+            confirmButtonColor: '#dc3545',
+            cancelButtonText: 'Cancelar',
+            inputValidator: (value) => {
+                if (!value) return 'Debe ingresar un motivo';
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '?handler=Rechazar&id=' + id,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(result.value),
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showSuccess(response.message);
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
     function deleteRecord(id) {
         confirmDelete('Esta acción no se puede revertir', function() {
             $.ajax({
@@ -838,7 +900,7 @@
     function getBadgeEstado(estado) {
         const badges = {
             'BOR': '<span class="badge bg-secondary">Borrador</span>',
-            'ENV': '<span class="badge bg-warning text-dark">Enviada</span>',
+            'PEN': '<span class="badge bg-warning text-dark">Pendiente Aprobación</span>',
             'APR': '<span class="badge bg-success">Aprobada</span>',
             'REC': '<span class="badge bg-danger">Rechazada</span>',
             'COT': '<span class="badge bg-info">En Cotización</span>',

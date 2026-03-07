@@ -1,0 +1,169 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.LibroDiarioModel
+@{
+    ViewData["Title"] = "Libro Diario";
+}
+
+<style>
+    .asiento-header { background: #e8f0fe; padding: 0.5rem 0.75rem; border-left: 4px solid #0d6efd; margin-bottom: 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 4px 4px 0 0; }
+    .asiento-header:hover { background: #d0e2fc; }
+    .asiento-header .info { font-weight: 600; }
+    .asiento-header .totals { font-size: 0.85rem; }
+    .asiento-body { border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 4px 4px; margin-bottom: 1rem; }
+    .asiento-body table { margin-bottom: 0; }
+    .asiento-body td, .asiento-body th { font-size: 0.85rem; padding: 0.3rem 0.5rem !important; }
+    .badge-tipo { font-size: 0.7rem; }
+    .badge-modulo { font-size: 0.7rem; }
+    .totals-row { font-weight: 700; background: #fff3cd !important; }
+    .summary-card { text-align: center; padding: 0.75rem; }
+    .summary-card .value { font-size: 1.5rem; font-weight: 700; }
+    @@media print { .no-print { display: none !important; } }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <div>
+        <h4 class="mb-0"><i class="fas fa-book me-2"></i>Libro Diario</h4>
+        <small class="text-muted">Asientos contables aprobados en orden cronológico</small>
+    </div>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label mb-1">Fecha Desde</label>
+                <input type="date" id="fechaDesde" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">Fecha Hasta</label>
+                <input type="date" id="fechaHasta" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-8 text-end">
+                <button class="btn btn-primary btn-sm" onclick="generarReporte()"><i class="fas fa-play me-1"></i>Generar</button>
+                <button class="btn btn-success btn-sm" onclick="exportarExcel()" id="btnExcel" disabled><i class="fas fa-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="window.print()"><i class="fas fa-print me-1"></i>Imprimir</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="expandirTodos()"><i class="fas fa-expand-arrows-alt me-1"></i>Expandir</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="colapsarTodos()"><i class="fas fa-compress-arrows-alt me-1"></i>Colapsar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row g-2 mb-3" id="summaryRow" style="display:none;">
+    <div class="col-md-4">
+        <div class="card summary-card">
+            <small class="text-muted">Total Asientos</small>
+            <div class="value text-primary" id="totalAsientos">0</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card summary-card">
+            <small class="text-muted">Total Debe</small>
+            <div class="value text-success" id="totalDebe">0.00</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card summary-card">
+            <small class="text-muted">Total Haber</small>
+            <div class="value text-danger" id="totalHaber">0.00</div>
+        </div>
+    </div>
+</div>
+
+<div id="asientosContainer"></div>
+
+<div id="emptyState" class="text-center text-muted py-5">
+    <i class="fas fa-book fa-3x mb-3"></i>
+    <p>Seleccione las fechas y haga clic en Generar</p>
+</div>
+
+@section Scripts {
+<script>
+    const fmt = n => new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    const fmtDate = d => new Date(d).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
+
+    const tipoColors = { 'DIA': 'primary', 'AJU': 'warning', 'CIE': 'danger', 'APE': 'success' };
+    const moduloColors = { 'VEN': 'success', 'COM': 'warning', 'BAN': 'info', 'INV': 'secondary', 'CXC': 'primary', 'CXP': 'danger', 'NOM': 'dark', 'MAN': 'light' };
+
+    $(function () {
+        const hoy = new Date();
+        $('#fechaDesde').val(new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]);
+        $('#fechaHasta').val(hoy.toISOString().split('T')[0]);
+    });
+
+    function generarReporte() {
+        const fechaDesde = $('#fechaDesde').val();
+        const fechaHasta = $('#fechaHasta').val();
+        if (!fechaDesde || !fechaHasta) { showError('Seleccione ambas fechas.'); return; }
+
+        $('#emptyState').hide();
+        $('#asientosContainer').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>');
+
+        $.ajax({
+            url: `?handler=Generar&fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`,
+            type: 'GET',
+            success: function (data) { renderReport(data); },
+            error: function (xhr) { handleAjaxError(xhr); }
+        });
+    }
+
+    function renderReport(data) {
+        $('#totalAsientos').text(data.totalAsientos || 0);
+        $('#totalDebe').text(fmt(data.totalDebe || 0));
+        $('#totalHaber').text(fmt(data.totalHaber || 0));
+        $('#summaryRow').show();
+        $('#btnExcel').prop('disabled', false);
+
+        let html = '';
+        if (!data.asientos || data.asientos.length === 0) {
+            html = '<div class="text-center text-muted py-4">No se encontraron asientos en el período seleccionado</div>';
+        } else {
+            data.asientos.forEach((a, idx) => {
+                const tc = tipoColors[a.tipoAsiento] || 'secondary';
+                const mc = moduloColors[a.moduloOrigen] || 'secondary';
+                html += `
+                <div class="asiento-header" onclick="$('#body-${idx}').toggle(); $(this).find('.chevron').toggleClass('fa-chevron-down fa-chevron-right');">
+                    <div class="info">
+                        <i class="fas fa-chevron-down chevron me-2"></i>
+                        <span class="badge bg-${tc} badge-tipo me-1">${a.tipoAsientoDescripcion || a.tipoAsiento}</span>
+                        ${a.moduloOrigen ? `<span class="badge bg-${mc} badge-modulo me-1">${a.moduloOrigenDescripcion || a.moduloOrigen}</span>` : ''}
+                        #${a.numero} | ${fmtDate(a.fecha)} | ${a.concepto || ''}
+                        ${a.referencia ? `<small class="text-muted ms-2">Ref: ${a.referencia}</small>` : ''}
+                    </div>
+                    <div class="totals">
+                        <span class="text-success me-2">D: ${fmt(a.totalDebe)}</span>
+                        <span class="text-danger">H: ${fmt(a.totalHaber)}</span>
+                    </div>
+                </div>
+                <div class="asiento-body" id="body-${idx}">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Cuenta</th><th>Nombre</th><th>Descripción</th><th class="text-end">Debe</th><th class="text-end">Haber</th></tr>
+                        </thead>
+                        <tbody>`;
+                if (a.movimientos) {
+                    a.movimientos.forEach(m => {
+                        html += `<tr>
+                            <td>${m.cuentaCodigo}</td>
+                            <td>${m.cuentaNombre}</td>
+                            <td>${m.descripcion || ''}</td>
+                            <td class="text-end">${m.debe ? fmt(m.debe) : ''}</td>
+                            <td class="text-end">${m.haber ? fmt(m.haber) : ''}</td>
+                        </tr>`;
+                    });
+                }
+                html += `</tbody></table></div>`;
+            });
+        }
+        $('#asientosContainer').html(html);
+    }
+
+    function expandirTodos() { $('.asiento-body').show(); $('.chevron').removeClass('fa-chevron-right').addClass('fa-chevron-down'); }
+    function colapsarTodos() { $('.asiento-body').hide(); $('.chevron').removeClass('fa-chevron-down').addClass('fa-chevron-right'); }
+
+    function exportarExcel() {
+        window.location.href = `?handler=ExportarExcel&fechaDesde=${$('#fechaDesde').val()}&fechaHasta=${$('#fechaHasta').val()}`;
+    }
+</script>
+}

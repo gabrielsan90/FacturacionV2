@@ -215,11 +215,20 @@ public class OrdenesCompraModel : PageModel
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
+        bool isNew = ordenData.Id == Guid.Empty;
+
+        if (isNew)
+        {
+            // Set placeholders for server-generated fields to pass API model validation
+            // The backend controller will overwrite these with real values
+            if (string.IsNullOrWhiteSpace(ordenData.Numero))
+                ordenData.Numero = "AUTO";
+        }
+
         var json = JsonSerializer.Serialize(ordenData, _jsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
-        bool isNew = ordenData.Id == Guid.Empty;
 
         if (isNew)
         {

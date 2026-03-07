@@ -68,6 +68,8 @@ public class GastoService : IGastoService
             MontoPagado = dto.MontoPagado,
             FechaPago = dto.FechaPago,
             Comprobante = dto.Comprobante,
+            MontoRetencionRenta = dto.MontoRetencionRenta,
+            MontoRetencionIVA = dto.MontoRetencionIVA,
             Aprobado = false, // Por defecto no aprobado
             UsuarioCreacionId = userId,
             FechaCreacion = FechaCostaRicaHelper.Ahora
@@ -121,6 +123,8 @@ public class GastoService : IGastoService
         gasto.MontoPagado = dto.MontoPagado;
         gasto.FechaPago = dto.FechaPago;
         gasto.Comprobante = dto.Comprobante;
+        gasto.MontoRetencionRenta = dto.MontoRetencionRenta;
+        gasto.MontoRetencionIVA = dto.MontoRetencionIVA;
         gasto.UsuarioModificacionId = userId;
 
         await _gastoRepository.UpdateAsync(gasto);

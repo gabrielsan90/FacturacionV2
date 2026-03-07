@@ -39,6 +39,21 @@ public class PeriodoContableRepository : IPeriodoContableRepository
 
     public async Task<PeriodoContable?> GetAbiertoAsync(Guid empresaId)
     {
+        var hoy = FechaCostaRicaHelper.Hoy;
+
+        // 1. Buscar período abierto que corresponda a la fecha actual
+        var periodoActual = await _context.PeriodosContables
+            .Where(p => p.EmpresaId == empresaId &&
+                       p.Estado == "ABT" &&
+                       !p.IsDeleted &&
+                       p.Anio == hoy.Year &&
+                       p.Mes == hoy.Month)
+            .FirstOrDefaultAsync();
+
+        if (periodoActual != null)
+            return periodoActual;
+
+        // 2. Fallback: período abierto más cercano a la fecha actual (hacia atrás)
         return await _context.PeriodosContables
             .Where(p => p.EmpresaId == empresaId &&
                        p.Estado == "ABT" &&

@@ -113,6 +113,41 @@ public class ReporteDocumentosRecibidosModel : PageModel
         return client;
     }
 
+    /// <summary>
+    /// Reads the API response, unwraps ActionResponse wrapper if present, and
+    /// deserializes the array payload to the specified type.
+    /// </summary>
+    private async Task<List<T>> ReadAndDeserializeListAsync<T>(HttpResponseMessage response)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+        string arrayJson;
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                arrayJson = content;
+            }
+            else if (doc.RootElement.TryGetProperty("result", out var resultProp) &&
+                     resultProp.ValueKind == JsonValueKind.Array)
+            {
+                arrayJson = resultProp.GetRawText();
+            }
+            else
+            {
+                _logger.LogWarning("Unexpected response format. ValueKind: {ValueKind}", doc.RootElement.ValueKind);
+                return new List<T>();
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse API response");
+            return new List<T>();
+        }
+
+        return JsonSerializer.Deserialize<List<T>>(arrayJson, _jsonOptions) ?? new List<T>();
+    }
+
     private async Task<List<DocumentoRecibidoItem>> GetDocumentosRecibidosAsync(
         HttpClient client,
         Guid empresaId,
@@ -126,8 +161,7 @@ public class ReporteDocumentosRecibidosModel : PageModel
             return new List<DocumentoRecibidoItem>();
         }
 
-        var documentos = await response.Content.ReadFromJsonAsync<List<DocumentoRecibidoItem>>(_jsonOptions)
-            ?? new List<DocumentoRecibidoItem>();
+        var documentos = await ReadAndDeserializeListAsync<DocumentoRecibidoItem>(response);
 
         if (DateTime.TryParse(fechaInicio, out var inicio))
         {
@@ -152,8 +186,7 @@ public class ReporteDocumentosRecibidosModel : PageModel
             var response = await client.GetAsync($"/api/MensajesReceptor/documento/{doc.Id}");
             if (response.IsSuccessStatusCode)
             {
-                var mensajes = await response.Content.ReadFromJsonAsync<List<MensajeReceptorItem>>(_jsonOptions)
-                    ?? new List<MensajeReceptorItem>();
+                var mensajes = await ReadAndDeserializeListAsync<MensajeReceptorItem>(response);
                 var ultimo = mensajes
                     .Where(m => m.FechaEnvio.HasValue)
                     .OrderByDescending(m => m.FechaEnvio)

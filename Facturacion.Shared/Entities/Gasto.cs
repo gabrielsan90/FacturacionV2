@@ -97,6 +97,16 @@ public class Gasto
     [MaxLength(500, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     public string? NotasAprobacion { get; set; }
 
+    [Display(Name = "Retención Renta")]
+    [DisplayFormat(DataFormatString = "{0:C2}")]
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal MontoRetencionRenta { get; set; }
+
+    [Display(Name = "Retención IVA")]
+    [DisplayFormat(DataFormatString = "{0:C2}")]
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal MontoRetencionIVA { get; set; }
+
     [Display(Name = "Comprobante")]
     public string? Comprobante { get; set; }
 

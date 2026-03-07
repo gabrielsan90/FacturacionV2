@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Facturacion.Backend.Data;
 using Facturacion.Backend.Services.Interfaces;
 using Facturacion.Backend.UnitsOfWork.Interfaces;
@@ -102,7 +103,8 @@ public class PlanillasController : ControllerBase
                     AprobadoPor = p.AprobadoPor?.FullName,
                     p.PeriodoDescripcion,
                     p.CostoTotal,
-                    p.FechaCreacion
+                    p.FechaCreacion,
+                    CantidadEmpleados = p.Detalles != null ? p.Detalles.Count : 0
                 })
                 .ToList();
 
@@ -440,6 +442,131 @@ public class PlanillasController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Exporta planilla en formato CCSS (SICERE) a Excel.
+    /// Solo incluye empleados con AportaCCSS = true.
+    /// </summary>
+    [HttpGet("{id:guid}/exportar-ccss")]
+    public async Task<IActionResult> ExportarCCSSAsync(Guid id)
+    {
+        try
+        {
+            var planilla = await _context.Planillas
+                .Include(p => p.Detalles!)
+                    .ThenInclude(d => d.Empleado)
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (planilla == null)
+            {
+                return NotFound();
+            }
+
+            if (!await TieneAccesoEmpresaAsync(planilla.EmpresaId))
+            {
+                return Forbid();
+            }
+
+            var detalles = (planilla.Detalles ?? new List<DetallePlanilla>())
+                .Where(d => d.Empleado != null && d.Empleado.AportaCCSS)
+                .OrderBy(d => d.Empleado!.PrimerApellido)
+                .ThenBy(d => d.Empleado!.Nombre)
+                .ToList();
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("CCSS_SICERE");
+
+            // Header
+            ws.Cell("A1").Value = "Planilla CCSS - Formato SICERE";
+            ws.Cell("A1").Style.Font.Bold = true;
+            ws.Cell("A1").Style.Font.FontSize = 14;
+            ws.Range("A1:I1").Merge();
+
+            ws.Cell("A2").Value = $"Período: {planilla.Anio}-{planilla.Mes:D2} P{planilla.Periodo} | {planilla.TipoPlanillaDescripcion}";
+            ws.Range("A2:I2").Merge();
+
+            // Column headers
+            int row = 4;
+            var headers = new[]
+            {
+                "Tipo ID", "Identificación", "Nombre Completo",
+                "Días Laborados", "Salario Bruto",
+                "CCSS Obrero (9.67%)", "CCSS Patronal (14.50%)",
+                "Otras Instituciones (7.25%)", "Banco Popular (1%)"
+            };
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                ws.Cell(row, i + 1).Value = headers[i];
+                ws.Cell(row, i + 1).Style.Font.Bold = true;
+                ws.Cell(row, i + 1).Style.Fill.BackgroundColor = XLColor.FromArgb(0, 102, 51);
+                ws.Cell(row, i + 1).Style.Font.FontColor = XLColor.White;
+            }
+
+            // Data
+            row++;
+            decimal sumBruto = 0, sumCCSSObrero = 0, sumCCSSPatronal = 0, sumOtrasInst = 0, sumBP = 0;
+
+            foreach (var det in detalles)
+            {
+                var emp = det.Empleado!;
+                ws.Cell(row, 1).Value = emp.TipoIdentificacion;
+                ws.Cell(row, 2).Value = emp.Identificacion;
+                ws.Cell(row, 3).Value = emp.NombreCompleto;
+                ws.Cell(row, 4).Value = det.DiasLaborados;
+                ws.Cell(row, 4).Style.NumberFormat.Format = "0.00";
+                ws.Cell(row, 5).Value = det.SalarioBruto;
+                ws.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 6).Value = det.DeduccionCCSS;
+                ws.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 7).Value = det.CargaCCSSPatronal;
+                ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 8).Value = det.CargaOtrasInstituciones;
+                ws.Cell(row, 8).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, 9).Value = det.DeduccionBancoPopular;
+                ws.Cell(row, 9).Style.NumberFormat.Format = "#,##0.00";
+
+                sumBruto += det.SalarioBruto;
+                sumCCSSObrero += det.DeduccionCCSS;
+                sumCCSSPatronal += det.CargaCCSSPatronal;
+                sumOtrasInst += det.CargaOtrasInstituciones;
+                sumBP += det.DeduccionBancoPopular;
+                row++;
+            }
+
+            // Totals
+            ws.Cell(row, 3).Value = "TOTALES";
+            ws.Cell(row, 3).Style.Font.Bold = true;
+            ws.Cell(row, 5).Value = sumBruto;
+            ws.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 5).Style.Font.Bold = true;
+            ws.Cell(row, 6).Value = sumCCSSObrero;
+            ws.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 6).Style.Font.Bold = true;
+            ws.Cell(row, 7).Value = sumCCSSPatronal;
+            ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 7).Style.Font.Bold = true;
+            ws.Cell(row, 8).Value = sumOtrasInst;
+            ws.Cell(row, 8).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 8).Style.Font.Bold = true;
+            ws.Cell(row, 9).Value = sumBP;
+            ws.Cell(row, 9).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, 9).Style.Font.Bold = true;
+
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+
+            var fileName = $"CCSS_Planilla_{planilla.Anio}{planilla.Mes:D2}_P{planilla.Periodo}.xlsx";
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting CCSS for planilla {PlanillaId}", id);
+            return StatusCode(500, "Error al exportar la planilla CCSS");
+        }
     }
 
     #region Métodos privados de cálculo

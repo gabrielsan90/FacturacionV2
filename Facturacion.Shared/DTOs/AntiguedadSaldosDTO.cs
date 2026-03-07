@@ -32,6 +32,8 @@ public class CuentaPorPagarResumenDTO
 {
     public Guid Id { get; set; }
     public string NumeroFactura { get; set; } = null!;
+    public Guid ProveedorId { get; set; }
+    public string ProveedorNombre { get; set; } = "";
     public DateTime FechaFactura { get; set; }
     public DateTime FechaVencimiento { get; set; }
     public decimal MontoOriginal { get; set; }
@@ -40,6 +42,8 @@ public class CuentaPorPagarResumenDTO
     public string EstadoDescripcion { get; set; } = null!;
     public int DiasVencido { get; set; }
     public decimal MontoAbonado { get; set; }
+    public bool EstaVencida { get; set; }
+    public string? Moneda { get; set; }
 }
 
 /// <summary>

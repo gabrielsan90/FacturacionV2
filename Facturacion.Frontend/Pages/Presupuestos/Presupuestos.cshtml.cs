@@ -40,7 +40,7 @@ public class PresupuestosModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return new ContentResult { Content = content, ContentType = "application/json", StatusCode = 200 };
+                return new ContentResult { Content = $"{{\"data\":{content}}}", ContentType = "application/json", StatusCode = 200 };
             }
 
             return new JsonResult(new { data = new List<object>() });

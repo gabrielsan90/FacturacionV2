@@ -5,6 +5,8 @@
     ViewData["Breadcrumb"] = "Centros de Costo";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
@@ -197,8 +199,8 @@
                 ajax: {
                     url: '?handler=Data',
                     dataSrc: function(json) {
-                        centrosData = json;
-                        return json;
+                        centrosData = json.data || json || [];
+                        return centrosData;
                     }
                 },
                 columns: [

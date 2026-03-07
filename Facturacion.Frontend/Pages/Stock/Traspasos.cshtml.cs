@@ -207,11 +207,17 @@ public class TraspasosModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
-            // Add EmpresaId to the traspaso data
+            // Add EmpresaId and Numero placeholder to the traspaso data
             var traspasoDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(traspasoData.GetRawText());
             if (traspasoDict != null)
             {
                 traspasoDict["empresaId"] = JsonDocument.Parse($"\"{empresaId}\"").RootElement;
+                // Set placeholder for server-generated Numero to pass API model validation
+                if (!traspasoDict.ContainsKey("numero") || traspasoDict["numero"].ValueKind == JsonValueKind.Null
+                    || (traspasoDict["numero"].ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(traspasoDict["numero"].GetString())))
+                {
+                    traspasoDict["numero"] = JsonDocument.Parse("\"AUTO\"").RootElement;
+                }
             }
             var json = JsonSerializer.Serialize(traspasoDict);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -314,6 +320,81 @@ public class TraspasosModel : PageModel
         {
             _logger.LogError(ex, "Error receiving traspaso {Id}", id);
             return new JsonResult(new { success = false, message = "Ocurrió un error al recibir el traspaso" });
+        }
+    }
+
+    /// <summary>
+    /// Handler to get stock for a product in a specific bodega (via its sucursal)
+    /// </summary>
+    public async Task<IActionResult> OnGetStockAsync(Guid productoId, Guid bodegaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // Get bodega to find its sucursalId
+            var bodegaResponse = await client.GetAsync($"/api/bodegas/{bodegaId}");
+            if (!bodegaResponse.IsSuccessStatusCode)
+            {
+                return new JsonResult(new { success = false, stock = 0m });
+            }
+
+            var bodegaContent = await bodegaResponse.Content.ReadAsStringAsync();
+            var bodega = JsonSerializer.Deserialize<JsonElement>(bodegaContent, _jsonOptions);
+            var sucursalId = bodega.TryGetProperty("sucursalId", out var sId) ? sId.GetString() : null;
+            if (string.IsNullOrEmpty(sucursalId))
+            {
+                return new JsonResult(new { success = false, stock = 0m });
+            }
+
+            // Get inventory for the empresa and find matching product+sucursal
+            var empresaId = User.FindFirstValue("EmpresaId");
+            var invResponse = await client.GetAsync($"/api/inventarios/empresa/{empresaId}");
+            if (!invResponse.IsSuccessStatusCode)
+            {
+                return new JsonResult(new { success = false, stock = 0m });
+            }
+
+            var invContent = await invResponse.Content.ReadAsStringAsync();
+            var inventarios = JsonSerializer.Deserialize<JsonElement>(invContent, _jsonOptions);
+
+            decimal stock = 0;
+            if (inventarios.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var inv in inventarios.EnumerateArray())
+                {
+                    var pId = inv.TryGetProperty("productoId", out var p) ? p.GetString() : null;
+                    var bId = inv.TryGetProperty("bodegaId", out var b) && b.ValueKind == JsonValueKind.String ? b.GetString() : null;
+                    var sIdInv = inv.TryGetProperty("sucursalId", out var s) ? s.GetString() : null;
+
+                    // Match by bodegaId first, fallback to sucursalId
+                    if (pId == productoId.ToString())
+                    {
+                        if (bId == bodegaId.ToString())
+                        {
+                            stock = inv.TryGetProperty("cantidadActual", out var c) ? c.GetDecimal() : 0;
+                            break;
+                        }
+                        if (bId == null && sIdInv == sucursalId)
+                        {
+                            stock = inv.TryGetProperty("cantidadActual", out var c) ? c.GetDecimal() : 0;
+                            // Don't break — keep looking for exact bodega match
+                        }
+                    }
+                }
+            }
+
+            return new JsonResult(new { success = true, stock });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock for producto {ProductoId} bodega {BodegaId}", productoId, bodegaId);
+            return new JsonResult(new { success = false, stock = 0m });
         }
     }
 

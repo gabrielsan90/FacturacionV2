@@ -34,33 +34,41 @@ public class ClientesModel : PageModel
         EmpresaId = User.FindFirstValue("EmpresaId") ?? "";
     }
 
-    // Handler for DataTable - Load all clients for the current empresa
-    public async Task<IActionResult> OnGetDataAsync()
+    // Handler for DataTable with server-side pagination
+    public async Task<IActionResult> OnGetDataAsync(
+        int draw = 1, int start = 0, int length = 25,
+        [FromQuery(Name = "search[value]")] string? search = null,
+        [FromQuery(Name = "order[0][column]")] int orderColumn = 2,
+        [FromQuery(Name = "order[0][dir]")] string? orderDir = "asc")
     {
         var empresaId = User.FindFirstValue("EmpresaId");
         if (string.IsNullOrEmpty(empresaId))
         {
-            return new JsonResult(new List<Cliente>());
+            return new JsonResult(new { draw, recordsTotal = 0, recordsFiltered = 0, data = new List<object>() });
         }
 
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 
-        // Get JWT token from user claims
         var token = User.FindFirst("Token")?.Value;
         if (!string.IsNullOrEmpty(token))
         {
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
 
-        var response = await client.GetAsync($"/api/clientes/empresa/{empresaId}");
+        var url = $"/api/clientes/empresa/{empresaId}/paginado?draw={draw}&start={start}&length={length}";
+        if (!string.IsNullOrEmpty(search))
+            url += $"&search[value]={Uri.EscapeDataString(search)}";
+        url += $"&order[0][column]={orderColumn}&order[0][dir]={Uri.EscapeDataString(orderDir ?? "asc")}";
+
+        var response = await client.GetAsync(url);
 
         if (response.IsSuccessStatusCode)
         {
-            var clientes = await response.Content.ReadFromJsonAsync<List<Cliente>>(_jsonOptions);
-            return new JsonResult(clientes ?? new List<Cliente>());
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult { Content = content, ContentType = "application/json", StatusCode = 200 };
         }
 
-        return new JsonResult(new List<Cliente>());
+        return new JsonResult(new { draw, recordsTotal = 0, recordsFiltered = 0, data = new List<object>() });
     }
 
     // Handler to get a single client by ID

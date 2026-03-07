@@ -322,6 +322,13 @@
                         </div>
                     </div>
 
+                    <!-- Alert for manual mode -->
+                    <div id="alerta-mayorizacion" class="alert alert-info mt-2" style="display:none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Modo Manual:</strong> Los asientos contables no se crearán automáticamente al procesar documentos.
+                        Utilice la pantalla de <a href="/Contabilidad/Mayorizacion"><strong>Mayorización</strong></a> para generar asientos en lote para los documentos pendientes.
+                    </div>
+
                     <hr />
 
                     <!-- Módulos Integrados -->
@@ -652,6 +659,7 @@
             const enabled = $(this).is(':checked');
             $('#Config_FrecuenciaGeneracion').prop('disabled', !enabled);
             $('#Config_AprobarAsientosAutomaticos').prop('disabled', !enabled);
+            $('#alerta-mayorizacion').toggle(!enabled);
         });
 
         // Enable/disable approval fields
@@ -854,6 +862,7 @@
 
         // Integration tab
         $('#Config_GenerarAsientosAutomaticos').prop('checked', config.generarAsientosAutomaticos !== false);
+        $('#alerta-mayorizacion').toggle(config.generarAsientosAutomaticos === false);
         $('#Config_FrecuenciaGeneracion').val(config.frecuenciaGeneracion || 'INM');
         $('#Config_AprobarAsientosAutomaticos').prop('checked', config.aprobarAsientosAutomaticos || false);
         $('#Config_IntegracionVentas').prop('checked', config.integracionVentas !== false);

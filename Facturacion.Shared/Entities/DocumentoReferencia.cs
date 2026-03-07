@@ -34,10 +34,10 @@ public class DocumentoReferencia
     public string TipoDocumentoReferenciado { get; set; } = null!;
 
     /// <summary>
-    /// Número del documento referenciado (formato: XXX-YYYYY-ZZ-AAAAAAAAAA)
+    /// Número del documento referenciado (Clave de 50 dígitos o consecutivo de 20)
     /// </summary>
     [Display(Name = "Número Documento Referenciado")]
-    [MaxLength(20, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
+    [MaxLength(50, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public string NumeroDocumentoReferenciado { get; set; } = null!;
 

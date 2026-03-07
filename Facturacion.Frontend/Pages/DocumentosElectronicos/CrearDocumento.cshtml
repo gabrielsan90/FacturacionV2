@@ -62,6 +62,7 @@
                                     <option value="2">Nota Débito Electrónica (ND)</option>
                                     <option value="3">Nota Crédito Electrónica (NC)</option>
                                     <option value="9">Factura Exportación (FEE)</option>
+                                    <option value="6">Factura Electrónica de Compra (FEC)</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -681,7 +682,7 @@
                         <!-- Resumen de validacion inline (opcional) -->
                         <div id="validationSummaryInline" class="mt-3" style="display: none;">
                             <div class="alert alert-danger mb-0">
-                                <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Errores de Validacion</h6>
+                                <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Errores de Validación</h6>
                                 <hr class="my-2">
                                 <ul id="listaErroresInline" class="mb-0 small"></ul>
                             </div>
@@ -1190,6 +1191,23 @@
         let sucursales = [];
         let terminales = [];
         let currentTipoDocumento = null;
+        let previousTipoDocumento = null;
+        let empresaRequiereFE = true; // default: empresa requires facturacion electronica
+
+        // Mapeo de nombres de enum TipoTransaccion a códigos de 2 dígitos
+        const tipoTransaccionMap = {
+            'VentaBienes': '01', 'VentaServicios': '02',
+            'ImportacionBienes': '03', 'ImportacionServicios': '04',
+            'ExportacionBienes': '05', 'ExportacionServicios': '06',
+            'ComprasLocalesBienes': '07', 'ComprasLocalesServicios': '08',
+            'DevolucionMercancias': '09', 'DescuentosBonificaciones': '10',
+            'Anticipos': '11', 'Arrendamiento': '12', 'Otros': '13'
+        };
+        function mapTipoTransaccion(val) {
+            if (!val) return null;
+            if (/^\d{2}$/.test(val)) return val; // Already a 2-digit code
+            return tipoTransaccionMap[val] || '01';
+        }
 
         // Estructura global de línea actual (para edición en modal)
         let currentLine = {
@@ -1330,30 +1348,30 @@
                 return true;
             },
 
-            // Valida actividad economica (6 caracteres: puede ser 6 digitos o formato XXXX.X)
+            // Valida actividad económica (6 caracteres: puede ser 6 dígitos o formato XXXX.X)
             validarActividadEconomica: function(selector, nombreCampo) {
                 const valor = $(selector).val();
                 if (!valor) {
-                    this.marcarCampoInvalido(selector, 'La actividad economica es obligatoria');
-                    this.agregarError(nombreCampo, 'Actividad economica es obligatoria');
+                    this.marcarCampoInvalido(selector, 'La actividad económica es obligatoria');
+                    this.agregarError(nombreCampo, 'Actividad económica es obligatoria');
                     return false;
                 }
-                // Acepta: 620900 (6 digitos) o 6202.0, 7020.0 (formato con punto)
+                // Acepta: 620900 (6 dígitos) o 6202.0, 7020.0 (formato con punto)
                 if (!/^(\d{6}|\d{4}\.\d|\d{5}\.\d?)$/.test(valor)) {
-                    this.marcarCampoInvalido(selector, 'Formato: 6 digitos o con punto (ej: 620900, 6202.0)');
-                    this.agregarError(nombreCampo, 'Formato invalido: debe ser 6 caracteres (ej: 620900 o 6202.0)');
+                    this.marcarCampoInvalido(selector, 'Formato: 6 dígitos o con punto (ej: 620900, 6202.0)');
+                    this.agregarError(nombreCampo, 'Formato inválido: debe ser 6 caracteres (ej: 620900 o 6202.0)');
                     return false;
                 }
                 this.marcarCampoValido(selector);
                 return true;
             },
 
-            // Valida condicion de venta
+            // Valida condición de venta
             validarCondicionVenta: function() {
                 const condicion = $('#CondicionVenta').val();
                 if (!condicion) {
-                    this.marcarCampoInvalido('#CondicionVenta', 'Seleccione una condicion de venta');
-                    this.agregarError('CondicionVenta', 'Condicion de venta es obligatoria');
+                    this.marcarCampoInvalido('#CondicionVenta', 'Seleccione una condición de venta');
+                    this.agregarError('CondicionVenta', 'Condición de venta es obligatoria');
                     return false;
                 }
                 this.marcarCampoValido('#CondicionVenta');
@@ -1387,8 +1405,8 @@
 
                 if (condicion === '02') { // Credito
                     if (!plazo || parseInt(plazo) < 1) {
-                        this.marcarCampoInvalido('#PlazoCreditoDias', 'Ingrese el plazo de credito en dias');
-                        this.agregarError('PlazoCreditoDias', 'Plazo de credito obligatorio para ventas a credito');
+                        this.marcarCampoInvalido('#PlazoCreditoDias', 'Ingrese el plazo de crédito en días');
+                        this.agregarError('PlazoCreditoDias', 'Plazo de crédito obligatorio para ventas a crédito');
                         return false;
                     }
                     this.marcarCampoValido('#PlazoCreditoDias');
@@ -1414,7 +1432,7 @@
                 }
 
                 if (nombre.length > 200) {
-                    this.marcarCampoInvalido('#ClienteNombre', 'Maximo 200 caracteres');
+                    this.marcarCampoInvalido('#ClienteNombre', 'Máximo 200 caracteres');
                     this.agregarError('ClienteNombre', 'Nombre excede 200 caracteres');
                     return false;
                 }
@@ -1423,7 +1441,7 @@
                 return true;
             },
 
-            // Valida numero de identificacion segun tipo
+            // Valida número de identificación segun tipo
             validarReceptorIdentificacion: function() {
                 const tipoDoc = $('#TipoDocumento').val();
                 const tipoId = $('#ClienteTipoIdentificacion').val();
@@ -1436,8 +1454,8 @@
                 }
 
                 if (!numero) {
-                    this.marcarCampoInvalido('#ClienteIdentificacion', 'El numero de identificacion es obligatorio');
-                    this.agregarError('ClienteIdentificacion', 'Numero de identificacion es obligatorio');
+                    this.marcarCampoInvalido('#ClienteIdentificacion', 'El número de identificación es obligatorio');
+                    this.agregarError('ClienteIdentificacion', 'Número de identificación es obligatorio');
                     return false;
                 }
 
@@ -1450,11 +1468,11 @@
                 if (!config.regex.test(numero)) {
                     let mensaje = '';
                     if (Array.isArray(config.digitos)) {
-                        mensaje = `${config.nombre} debe tener ${config.digitos[0]}-${config.digitos[1]} digitos`;
+                        mensaje = `${config.nombre} debe tener ${config.digitos[0]}-${config.digitos[1]} dígitos`;
                     } else if (config.digitos) {
-                        mensaje = `${config.nombre} debe tener exactamente ${config.digitos} digitos`;
+                        mensaje = `${config.nombre} debe tener exactamente ${config.digitos} dígitos`;
                     } else {
-                        mensaje = `Formato invalido para ${config.nombre}`;
+                        mensaje = `Formato inválido para ${config.nombre}`;
                     }
                     this.marcarCampoInvalido('#ClienteIdentificacion', mensaje);
                     this.agregarError('ClienteIdentificacion', mensaje);
@@ -1465,7 +1483,7 @@
                 return true;
             },
 
-            // Valida actividad economica del receptor (obligatoria en v4.4 para Facturas)
+            // Valida actividad económica del receptor (obligatoria en v4.4 para Facturas)
             validarReceptorActividadEconomica: function() {
                 const tipoDoc = $('#TipoDocumento').val();
                 const actividad = $('#ClienteActividadEconomica').val();
@@ -1476,7 +1494,7 @@
                     return true;
                 }
 
-                // En v4.4, la actividad economica del receptor es recomendada pero no bloqueante
+                // En v4.4, la actividad económica del receptor es recomendada pero no bloqueante
                 // Marcamos advertencia pero no error
                 if (!actividad || actividad.trim() === '') {
                     // Solo advertencia, no error
@@ -1484,10 +1502,10 @@
                     return true;
                 }
 
-                // Acepta: 620900 (6 digitos) o 6202.0, 7020.0 (formato con punto)
+                // Acepta: 620900 (6 dígitos) o 6202.0, 7020.0 (formato con punto)
                 if (!/^(\d{6}|\d{4}\.\d|\d{5}\.\d?)$/.test(actividad)) {
-                    this.marcarCampoInvalido('#ClienteActividadEconomica', 'Formato: 6 digitos o con punto (ej: 6202.0)');
-                    this.agregarError('ClienteActividadEconomica', 'Formato invalido de actividad economica del receptor');
+                    this.marcarCampoInvalido('#ClienteActividadEconomica', 'Formato: 6 dígitos o con punto (ej: 6202.0)');
+                    this.agregarError('ClienteActividadEconomica', 'Formato inválido de actividad económica del receptor');
                     return false;
                 }
 
@@ -1498,7 +1516,7 @@
             // Valida que haya al menos una linea
             validarLineasMinimo: function() {
                 if (documentLines.length === 0) {
-                    this.agregarError('Lineas', 'Debe agregar al menos una linea de detalle');
+                    this.agregarError('Lineas', 'Debe agregar al menos una línea de detalle');
                     return false;
                 }
                 return true;
@@ -1509,30 +1527,30 @@
                 let valida = true;
                 const numeroLinea = index + 1;
 
-                // Codigo CABYS obligatorio (13 digitos)
+                // Código CABYS obligatorio (13 dígitos)
                 if (!linea.codigoCabys) {
-                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Codigo CABYS es obligatorio`);
+                    this.agregarError(`Linea${numeroLinea}`, `Línea ${numeroLinea}: Código CABYS es obligatorio`);
                     valida = false;
                 } else if (!/^\d{13}$/.test(linea.codigoCabys)) {
-                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Codigo CABYS debe tener 13 digitos`);
+                    this.agregarError(`Linea${numeroLinea}`, `Línea ${numeroLinea}: Código CABYS debe tener 13 dígitos`);
                     valida = false;
                 }
 
                 // Cantidad > 0
                 if (!linea.cantidad || linea.cantidad <= 0) {
-                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Cantidad debe ser mayor a 0`);
+                    this.agregarError(`Linea${numeroLinea}`, `Línea ${numeroLinea}: Cantidad debe ser mayor a 0`);
                     valida = false;
                 }
 
                 // Precio unitario >= 0
                 if (linea.precioUnitario === undefined || linea.precioUnitario === null || linea.precioUnitario < 0) {
-                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Precio unitario debe ser mayor o igual a 0`);
+                    this.agregarError(`Linea${numeroLinea}`, `Línea ${numeroLinea}: Precio unitario debe ser mayor o igual a 0`);
                     valida = false;
                 }
 
                 // Descripcion obligatoria
                 if (!linea.descripcion || linea.descripcion.trim() === '') {
-                    this.agregarError(`Linea${numeroLinea}`, `Linea ${numeroLinea}: Descripcion es obligatoria`);
+                    this.agregarError(`Linea${numeroLinea}`, `Línea ${numeroLinea}: Descripción es obligatoria`);
                     valida = false;
                 }
 
@@ -1597,15 +1615,15 @@
 
                 // Codigo de referencia obligatorio
                 if (!codigoRef) {
-                    this.marcarCampoInvalido('#RazonReferencia', 'Seleccione una razon');
-                    this.agregarError('RazonReferencia', 'Razon de referencia es obligatoria para NC/ND');
+                    this.marcarCampoInvalido('#RazonReferencia', 'Seleccione una razón');
+                    this.agregarError('RazonReferencia', 'Razón de referencia es obligatoria para NC/ND');
                     return false;
                 }
 
                 // Validar que el codigo sea valido
                 if (!this.codigosReferencia.includes(codigoRef)) {
-                    this.marcarCampoInvalido('#RazonReferencia', 'Codigo de referencia invalido');
-                    this.agregarError('RazonReferencia', 'Codigo de referencia debe ser: 01-05, 11 o 99');
+                    this.marcarCampoInvalido('#RazonReferencia', 'Código de referencia inválido');
+                    this.agregarError('RazonReferencia', 'Código de referencia debe ser: 01-05, 11 o 99');
                     return false;
                 }
 
@@ -1626,15 +1644,15 @@
 
                 if (!$('#Incoterm').val()) {
                     this.marcarCampoInvalido('#Incoterm', 'Seleccione un Incoterm');
-                    this.agregarError('Incoterm', 'Incoterm es obligatorio para Facturas de Exportacion');
+                    this.agregarError('Incoterm', 'Incoterm es obligatorio para Facturas de Exportación');
                     valido = false;
                 } else {
                     this.marcarCampoValido('#Incoterm');
                 }
 
                 if (!$('#PaisDestino').val()) {
-                    this.marcarCampoInvalido('#PaisDestino', 'Seleccione un pais de destino');
-                    this.agregarError('PaisDestino', 'Pais de destino es obligatorio para Facturas de Exportacion');
+                    this.marcarCampoInvalido('#PaisDestino', 'Seleccione un país de destino');
+                    this.agregarError('PaisDestino', 'País de destino es obligatorio para Facturas de Exportación');
                     valido = false;
                 } else {
                     this.marcarCampoValido('#PaisDestino');
@@ -1666,8 +1684,8 @@
                     }
 
                     if (!$('#ClienteCanton').val()) {
-                        this.marcarCampoInvalido('#ClienteCanton', 'Seleccione un canton');
-                        this.agregarError('ClienteCanton', 'Canton es obligatorio');
+                        this.marcarCampoInvalido('#ClienteCanton', 'Seleccione un cantón');
+                        this.agregarError('ClienteCanton', 'Cantón es obligatorio');
                         valido = false;
                     } else {
                         this.marcarCampoValido('#ClienteCanton');
@@ -1684,8 +1702,8 @@
 
                 // Otras senas siempre obligatorio segun v4.4
                 if (!$('#ClienteOtrasSenas').val()) {
-                    this.marcarCampoInvalido('#ClienteOtrasSenas', 'Direccion exacta es obligatoria segun Hacienda v4.4');
-                    this.agregarError('ClienteOtrasSenas', 'Otras senas (direccion) es obligatorio');
+                    this.marcarCampoInvalido('#ClienteOtrasSenas', 'Dirección exacta es obligatoria según Hacienda v4.4');
+                    this.agregarError('ClienteOtrasSenas', 'Otras señas (dirección) es obligatorio');
                     valido = false;
                 } else {
                     this.marcarCampoValido('#ClienteOtrasSenas');
@@ -1705,7 +1723,7 @@
 
                 // 1. Datos del documento
                 if (!this.validarTipoDocumento()) esValido = false;
-                if (!this.validarActividadEconomica('#EmisorActividadEconomica', 'ActividadEconomica')) esValido = false;
+                if (empresaRequiereFE && !this.validarActividadEconomica('#EmisorActividadEconomica', 'ActividadEconomica')) esValido = false;
                 if (!this.validarCondicionVenta()) esValido = false;
                 if (!this.validarMedioPago()) esValido = false;
                 if (!this.validarPlazoCredito()) esValido = false;
@@ -1742,7 +1760,7 @@
                 if (esValido) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Validacion Exitosa',
+                        title: 'Validación Exitosa',
                         text: 'El documento cumple con todas las validaciones requeridas por Hacienda v4.4',
                         confirmButtonText: 'Excelente',
                         timer: 3000
@@ -1761,7 +1779,7 @@
 
                     Swal.fire({
                         icon: 'error',
-                        title: 'Errores de Validacion',
+                        title: 'Errores de Validación',
                         html: htmlErrores,
                         confirmButtonText: 'Corregir Errores',
                         width: '600px'
@@ -1783,12 +1801,12 @@
                 const codigo = $('#Linea_CodigoCabys').val();
 
                 if (!codigo) {
-                    ValidacionesFE.marcarCampoInvalido('#Linea_CodigoCabys', 'Codigo CABYS es obligatorio (13 digitos)');
+                    ValidacionesFE.marcarCampoInvalido('#Linea_CodigoCabys', 'Código CABYS es obligatorio (13 dígitos)');
                     return false;
                 }
 
                 if (!/^\d{13}$/.test(codigo)) {
-                    ValidacionesFE.marcarCampoInvalido('#Linea_CodigoCabys', 'Debe tener exactamente 13 digitos numericos');
+                    ValidacionesFE.marcarCampoInvalido('#Linea_CodigoCabys', 'Debe tener exactamente 13 dígitos numéricos');
                     return false;
                 }
 
@@ -1824,12 +1842,12 @@
                 const descripcion = $('#Linea_Descripcion').val();
 
                 if (!descripcion || descripcion.trim() === '') {
-                    ValidacionesFE.marcarCampoInvalido('#Linea_Descripcion', 'Descripcion es obligatoria');
+                    ValidacionesFE.marcarCampoInvalido('#Linea_Descripcion', 'Descripción es obligatoria');
                     return false;
                 }
 
                 if (descripcion.length > 500) {
-                    ValidacionesFE.marcarCampoInvalido('#Linea_Descripcion', 'Maximo 500 caracteres');
+                    ValidacionesFE.marcarCampoInvalido('#Linea_Descripcion', 'Máximo 500 caracteres');
                     return false;
                 }
 
@@ -1871,13 +1889,13 @@
                 actualizarContadorErrores();
             });
 
-            // Validacion de actividad economica del emisor
+            // Validacion de actividad económica del emisor (solo si requiere FE)
             $('#EmisorActividadEconomica').on('blur input', function() {
-                ValidacionesFE.validarActividadEconomica('#EmisorActividadEconomica', 'ActividadEconomica');
+                if (empresaRequiereFE) ValidacionesFE.validarActividadEconomica('#EmisorActividadEconomica', 'ActividadEconomica');
                 actualizarContadorErrores();
             });
 
-            // Validacion de condicion de venta
+            // Validacion de condición de venta
             $('#CondicionVenta').on('change', function() {
                 ValidacionesFE.validarCondicionVenta();
                 ValidacionesFE.validarMedioPago();
@@ -1909,13 +1927,13 @@
                 actualizarContadorErrores();
             });
 
-            // Validacion de numero de identificacion
+            // Validacion de número de identificación
             $('#ClienteIdentificacion').on('blur input', function() {
                 ValidacionesFE.validarReceptorIdentificacion();
                 actualizarContadorErrores();
             });
 
-            // Validacion de actividad economica del receptor
+            // Validacion de actividad económica del receptor
             $('#ClienteActividadEconomica').on('blur input', function() {
                 ValidacionesFE.validarReceptorActividadEconomica();
                 actualizarContadorErrores();
@@ -2075,10 +2093,14 @@
                 handleTipoDocumentoChange($(this).val());
             });
 
-            // Cliente selection
+            // Cliente/Proveedor selection
             $('#ClienteId').on('select2:select', function (e) {
                 const data = e.params.data.data;
-                loadClienteData(data.id);
+                if (currentTipoDocumento === '6') {
+                    loadProveedorData(data.id);
+                } else {
+                    loadClienteData(data.id);
+                }
             });
 
             $('#ClienteId').on('select2:clear', function () {
@@ -2383,6 +2405,36 @@
             $('#sectionReferencia, #sectionExportacion').hide();
             $('#DocumentoReferenciaId, #RazonReferencia, #Incoterm, #PaisDestino').prop('required', false);
 
+            // Tiquete Electrónico (04): receptor no es obligatorio (ventas rápidas)
+            const esTiquete = tipo === '4';
+            $('#ClienteId').prop('required', !esTiquete);
+            $('#ClienteNombre, #ClienteTipoIdentificacion, #ClienteIdentificacion').prop('required', !esTiquete);
+            $('#ClienteProvincia, #ClienteCanton, #ClienteDistrito, #ClienteOtrasSenas').prop('required', !esTiquete);
+
+            // Update visual indicator
+            const clienteLabel = $('label[for="ClienteId"]');
+            if (esTiquete) {
+                clienteLabel.html('Cliente <span class="text-muted">(opcional para Tiquetes)</span>');
+            } else {
+                clienteLabel.html('Cliente <span class="text-danger">*</span>');
+            }
+
+            // FEC (06): receptor es un Proveedor, no un Cliente
+            const esFEC = tipo === '6';
+            if (esFEC) {
+                $('label[for="ClienteId"]').html('Proveedor <span class="text-danger">*</span>');
+                $('#ClienteId').prop('required', true);
+                // Recargar Select2 con proveedores en lugar de clientes
+                reloadSelect2AsProveedores();
+            } else if (!esTiquete) {
+                $('label[for="ClienteId"]').html('Cliente <span class="text-danger">*</span>');
+                // Recargar Select2 con clientes si venía de FEC
+                if (previousTipoDocumento === '6') {
+                    reloadSelect2AsClientes();
+                }
+            }
+            previousTipoDocumento = tipo;
+
             // Show specific sections based on document type
             if (tipo === '2' || tipo === '3') {
                 // Nota Débito or Nota Crédito
@@ -2396,6 +2448,66 @@
                 $('#sectionExportacion').show();
                 $('#Incoterm, #PaisDestino').prop('required', true);
             }
+        }
+
+        function reloadSelect2AsProveedores() {
+            $('#ClienteId').val(null).trigger('change');
+            $('#ClienteId').select2('destroy');
+            $('#ClienteId').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Buscar proveedor...',
+                allowClear: true,
+                ajax: {
+                    url: '?handler=Proveedores&empresaId=' + empresaId,
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataType: 'json',
+                    delay: 250,
+                    processResults: function (data) {
+                        return {
+                            results: data.map(function (item) {
+                                return {
+                                    id: item.id,
+                                    text: `${item.numeroIdentificacion} - ${item.nombre}`,
+                                    data: item
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            });
+        }
+
+        function reloadSelect2AsClientes() {
+            $('#ClienteId').val(null).trigger('change');
+            $('#ClienteId').select2('destroy');
+            $('#ClienteId').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Buscar cliente...',
+                allowClear: true,
+                ajax: {
+                    url: '?handler=Clientes&empresaId=' + empresaId,
+                    headers: {
+                        "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    dataType: 'json',
+                    delay: 250,
+                    processResults: function (data) {
+                        return {
+                            results: data.map(function (item) {
+                                return {
+                                    id: item.id,
+                                    text: `${item.numeroIdentificacion} - ${item.nombre}`,
+                                    data: item
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            });
         }
 
         function loadSucursales() {
@@ -2859,7 +2971,7 @@
                         render: function(data) {
                             if (!data) return '-';
                             const date = new Date(data);
-                            return date.toLocaleDateString('es-CR');
+                            return date.toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                         }
                     },
                     {
@@ -2921,7 +3033,7 @@
 
                     // Actualizar los campos de referencia
                     $('#DocumentoReferenciaId').val(documento.id);
-                    $('#DocumentoReferenciaNumero').val(documento.numeroConsecutivo);
+                    $('#DocumentoReferenciaNumero').val(documento.clave || documento.numeroConsecutivo);
 
                     // Actualizar mensaje de referencia
                     updateMensajeReferencia(documento);
@@ -2942,7 +3054,7 @@
                     const docBasico = todosLosDocumentos.find(d => d.id === documentoId);
                     if (docBasico) {
                         $('#DocumentoReferenciaId').val(docBasico.id);
-                        $('#DocumentoReferenciaNumero').val(docBasico.numeroConsecutivo);
+                        $('#DocumentoReferenciaNumero').val(docBasico.clave || docBasico.numeroConsecutivo);
                         updateMensajeReferencia(docBasico);
                         cargarDatosReceptorDesdeDocumento(docBasico);
                     }
@@ -3044,7 +3156,7 @@
 
             // Cargar condición de venta
             if (documento.condicionVenta) {
-                $('#CondicionVenta').val(documento.condicionVenta);
+                $('#CondicionVenta').val(documento.condicionVenta).trigger('change');
             }
 
             // Cargar medio de pago
@@ -3053,8 +3165,17 @@
             }
 
             // Cargar plazo de crédito si aplica
-            if (documento.plazoCredito) {
-                $('#PlazoCredito').val(documento.plazoCredito);
+            if (documento.plazoCreditoDias) {
+                $('#PlazoCreditoDias').val(documento.plazoCreditoDias);
+                $('#divPlazoCreditoDias').show();
+            }
+
+            // Cargar moneda y tipo de cambio del documento de referencia
+            if (documento.moneda) {
+                $('#Moneda').val(documento.moneda).trigger('change');
+            }
+            if (documento.tipoCambio) {
+                $('#TipoCambio').val(documento.tipoCambio);
             }
 
             // Verificar que el documento tenga detalles
@@ -3125,6 +3246,12 @@
                 // Obtener código CABYS
                 const codigoCabys = detalle.codigoCabys || detalle.cabys || '';
 
+                // Sumar montoImpuesto de todos los impuestos de la línea
+                let montoImpuestoLinea = 0;
+                impuestos.forEach(imp => {
+                    montoImpuestoLinea += imp.montoImpuesto || 0;
+                });
+
                 const linea = {
                     index: index,
                     productoId: detalle.productoId || null,
@@ -3135,11 +3262,13 @@
                     unidadMedida: unidadMedidaCodigo,
                     unidadMedidaDescripcion: detalle.unidadMedida?.descripcion || 'Unidad',
                     tipoProducto: detalle.esServicio ? '02' : '01',
-                    tipoTransaccion: detalle.tipoTransaccion || '01',
+                    tipoTransaccion: mapTipoTransaccion(detalle.tipoTransaccion) || '01',
                     codigoCabys: codigoCabys,
-                    subtotal: subtotal,
+                    montoTotal: cantidad * precioUnitario,
+                    subtotal: (cantidad * precioUnitario) - montoDescuento,
                     montoDescuento: montoDescuento,
-                    montoTotalLinea: detalle.montoTotalLinea || detalle.totalLinea || 0,
+                    montoImpuesto: montoImpuestoLinea,
+                    montoTotalLinea: detalle.montoTotalLinea || detalle.totalLinea || ((cantidad * precioUnitario) - montoDescuento + montoImpuestoLinea),
                     descuentos: descuentos,
                     impuestos: impuestos
                 };
@@ -3281,6 +3410,57 @@
                 error: function (xhr) {
                     console.error('Error loading cliente:', xhr);
                     Swal.fire('Error', 'No se pudieron cargar los datos del cliente.', 'error');
+                }
+            });
+        }
+
+        function loadProveedorData(proveedorId) {
+            $.ajax({
+                url: '?handler=ProveedorDetails&id=' + proveedorId,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function (prov) {
+                    clienteSeleccionado = prov;
+
+                    $('#ClienteNombre').val(prov.nombre);
+
+                    var tipoIdMap = { 'Fisica': '1', 'Juridica': '2', 'DIMEX': '3', 'NITE': '4', 'Pasaporte': '5', 'Extranjera': '6' };
+                    var tipoIdVal = prov.tipoIdentificacion;
+                    if (typeof tipoIdVal === 'string' && tipoIdMap[tipoIdVal]) {
+                        tipoIdVal = tipoIdMap[tipoIdVal];
+                    }
+                    $('#ClienteTipoIdentificacion').val(String(tipoIdVal)).trigger('change');
+                    $('#ClienteIdentificacion').val(prov.numeroIdentificacion);
+
+                    $('#ClienteEmail').val(prov.emailPrincipal || '');
+                    $('#ClienteTelefono').val(prov.telefonoPrincipal || '');
+                    $('#ClienteOtrasSenas').val(prov.otrasSenas || '');
+
+                    if (prov.provincia) {
+                        $('#ClienteProvincia').val(prov.provincia).trigger('change');
+                        if (prov.canton) {
+                            setTimeout(function() {
+                                $('#ClienteCanton').val(prov.canton).trigger('change');
+                                if (prov.distrito) {
+                                    setTimeout(function() {
+                                        $('#ClienteDistrito').val(prov.distrito);
+                                    }, 300);
+                                }
+                            }, 300);
+                        }
+                    }
+
+                    // FEC: condición de venta por defecto "01" (contado)
+                    $('#CondicionVenta').val('01').trigger('change');
+
+                    $('#clienteInfoSection').show();
+                    $('#btnEditarCliente').prop('disabled', false);
+                },
+                error: function (xhr) {
+                    console.error('Error loading proveedor:', xhr);
+                    Swal.fire('Error', 'No se pudieron cargar los datos del proveedor.', 'error');
                 }
             });
         }
@@ -3773,7 +3953,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Datos incompletos',
-                    text: 'Por favor complete todos los campos obligatorios de la linea',
+                    text: 'Por favor complete todos los campos obligatorios de la línea',
                     confirmButtonText: 'Entendido'
                 });
                 return;
@@ -3939,7 +4119,7 @@
             documentLines.forEach(function (line) {
                 const montoTotal = line.cantidad * line.precioUnitario;
                 const descuento = line.montoDescuento || 0;
-                const subtotalLinea = montoTotal - descuento; // SubTotal de la linea (despues de descuento)
+                const subtotalLinea = montoTotal - descuento; // SubTotal de la línea (despues de descuento)
                 const impuesto = line.montoImpuesto || 0;
 
                 totalDescuentos += descuento;
@@ -4125,47 +4305,48 @@
 
             // Validaciones basicas que no estan en el sistema de validaciones
             if (!currentTipoDocumento) {
-                Swal.fire('Validacion', 'Seleccione un tipo de documento.', 'warning');
+                Swal.fire('Validación', 'Seleccione un tipo de documento.', 'warning');
                 return false;
             }
 
             if (!$('#SucursalId').val()) {
-                Swal.fire('Validacion', 'Seleccione una sucursal.', 'warning');
+                Swal.fire('Validación', 'Seleccione una sucursal.', 'warning');
                 ValidacionesFE.marcarCampoInvalido('#SucursalId', 'Seleccione una sucursal');
                 return false;
             }
             ValidacionesFE.marcarCampoValido('#SucursalId');
 
             if (!$('#TerminalId').val()) {
-                Swal.fire('Validacion', 'Seleccione una terminal.', 'warning');
+                Swal.fire('Validación', 'Seleccione una terminal.', 'warning');
                 ValidacionesFE.marcarCampoInvalido('#TerminalId', 'Seleccione una terminal');
                 return false;
             }
             ValidacionesFE.marcarCampoValido('#TerminalId');
 
-            if (!$('#EmisorActividadEconomica').val()) {
-                Swal.fire('Validacion', 'La actividad economica del emisor es obligatoria.', 'warning');
-                ValidacionesFE.marcarCampoInvalido('#EmisorActividadEconomica', 'Actividad economica obligatoria');
+            if (empresaRequiereFE && !$('#EmisorActividadEconomica').val()) {
+                Swal.fire('Validación', 'La actividad económica del emisor es obligatoria.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#EmisorActividadEconomica', 'Actividad económica obligatoria');
                 return false;
             }
 
-            if (!$('#ClienteId').val()) {
-                Swal.fire('Validacion', 'Seleccione un cliente.', 'warning');
+            // Cliente/receptor es obligatorio para Facturas, opcional para Tiquetes (ventas rápidas)
+            if (currentTipoDocumento !== '4' && !$('#ClienteId').val()) {
+                Swal.fire('Validación', 'Seleccione un cliente.', 'warning');
                 return false;
             }
 
             // Validar nombre del receptor (obligatorio para Facturas, no para Tiquetes)
             if (currentTipoDocumento !== '4') { // No es Tiquete
                 if (!$('#ClienteNombre').val()) {
-                    Swal.fire('Validacion', 'El nombre del cliente es obligatorio para Facturas.', 'warning');
+                    Swal.fire('Validación', 'El nombre del cliente es obligatorio para Facturas.', 'warning');
                     ValidacionesFE.marcarCampoInvalido('#ClienteNombre', 'Nombre obligatorio');
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#ClienteNombre');
 
                 if (!$('#ClienteIdentificacion').val()) {
-                    Swal.fire('Validacion', 'El numero de identificacion del cliente es obligatorio.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#ClienteIdentificacion', 'Identificacion obligatoria');
+                    Swal.fire('Validación', 'El número de identificación del cliente es obligatorio.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteIdentificacion', 'Identificación obligatoria');
                     return false;
                 }
             }
@@ -4178,60 +4359,64 @@
                 if (configTipo && !configTipo.regex.test(numId)) {
                     let msgFormato = '';
                     if (Array.isArray(configTipo.digitos)) {
-                        msgFormato = `${configTipo.nombre} debe tener ${configTipo.digitos[0]}-${configTipo.digitos[1]} digitos`;
+                        msgFormato = `${configTipo.nombre} debe tener ${configTipo.digitos[0]}-${configTipo.digitos[1]} dígitos`;
                     } else if (configTipo.digitos) {
-                        msgFormato = `${configTipo.nombre} debe tener ${configTipo.digitos} digitos`;
+                        msgFormato = `${configTipo.nombre} debe tener ${configTipo.digitos} dígitos`;
                     }
-                    Swal.fire('Validacion', msgFormato, 'warning');
+                    Swal.fire('Validación', msgFormato, 'warning');
                     ValidacionesFE.marcarCampoInvalido('#ClienteIdentificacion', msgFormato);
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#ClienteIdentificacion');
             }
 
-            // Validar direccion para clientes nacionales
-            if (tipoId !== '6') { // Not Extranjera
-                if (!$('#ClienteProvincia').val()) {
-                    Swal.fire('Validacion', 'La provincia es obligatoria para clientes nacionales.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#ClienteProvincia', 'Provincia obligatoria');
-                    return false;
-                }
-                ValidacionesFE.marcarCampoValido('#ClienteProvincia');
+            // Validar direccion y OtrasSenas solo cuando hay cliente seleccionado
+            // Para Tiquetes sin cliente (venta rapida), se omiten todas las validaciones de ubicacion
+            if (currentTipoDocumento !== '4' || $('#ClienteId').val()) {
+                // Validar direccion para clientes nacionales
+                if (tipoId !== '6') { // Not Extranjera
+                    if (!$('#ClienteProvincia').val()) {
+                        Swal.fire('Validación', 'La provincia es obligatoria para clientes nacionales.', 'warning');
+                        ValidacionesFE.marcarCampoInvalido('#ClienteProvincia', 'Provincia obligatoria');
+                        return false;
+                    }
+                    ValidacionesFE.marcarCampoValido('#ClienteProvincia');
 
-                if (!$('#ClienteCanton').val()) {
-                    Swal.fire('Validacion', 'El canton es obligatorio para clientes nacionales.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#ClienteCanton', 'Canton obligatorio');
-                    return false;
-                }
-                ValidacionesFE.marcarCampoValido('#ClienteCanton');
+                    if (!$('#ClienteCanton').val()) {
+                        Swal.fire('Validación', 'El cantón es obligatorio para clientes nacionales.', 'warning');
+                        ValidacionesFE.marcarCampoInvalido('#ClienteCanton', 'Cantón obligatorio');
+                        return false;
+                    }
+                    ValidacionesFE.marcarCampoValido('#ClienteCanton');
 
-                if (!$('#ClienteDistrito').val()) {
-                    Swal.fire('Validacion', 'El distrito es obligatorio para clientes nacionales.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#ClienteDistrito', 'Distrito obligatorio');
+                    if (!$('#ClienteDistrito').val()) {
+                        Swal.fire('Validación', 'El distrito es obligatorio para clientes nacionales.', 'warning');
+                        ValidacionesFE.marcarCampoInvalido('#ClienteDistrito', 'Distrito obligatorio');
+                        return false;
+                    }
+                    ValidacionesFE.marcarCampoValido('#ClienteDistrito');
+                } else {
+                    // Foreign client - require country code
+                    if (!$('#ClienteCodigoPais').val()) {
+                        Swal.fire('Validación', 'El código de país es obligatorio para clientes extranjeros.', 'warning');
+                        ValidacionesFE.marcarCampoInvalido('#ClienteCodigoPais', 'Código de país obligatorio');
+                        return false;
+                    }
+                    ValidacionesFE.marcarCampoValido('#ClienteCodigoPais');
+                }
+
+                // Validar OtrasSenas (OBLIGATORIO segun XSD v4.4: minOccurs=1, maxLength=250)
+                if (!$('#ClienteOtrasSenas').val()) {
+                    Swal.fire('Validación', 'Las otras señas (dirección exacta) son obligatorias según Hacienda v4.4.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#ClienteOtrasSenas', 'Dirección exacta obligatoria');
                     return false;
                 }
-                ValidacionesFE.marcarCampoValido('#ClienteDistrito');
-            } else {
-                // Foreign client - require country code
-                if (!$('#ClienteCodigoPais').val()) {
-                    Swal.fire('Validacion', 'El codigo de pais es obligatorio para clientes extranjeros.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#ClienteCodigoPais', 'Codigo de pais obligatorio');
-                    return false;
-                }
-                ValidacionesFE.marcarCampoValido('#ClienteCodigoPais');
+                ValidacionesFE.marcarCampoValido('#ClienteOtrasSenas');
             }
-
-            // Validar OtrasSenas (OBLIGATORIO segun XSD v4.4: minOccurs=1, maxLength=250)
-            if (!$('#ClienteOtrasSenas').val()) {
-                Swal.fire('Validacion', 'Las otras senas (direccion exacta) son obligatorias segun Hacienda v4.4.', 'warning');
-                ValidacionesFE.marcarCampoInvalido('#ClienteOtrasSenas', 'Direccion exacta obligatoria');
-                return false;
-            }
-            ValidacionesFE.marcarCampoValido('#ClienteOtrasSenas');
 
             if (!$('#CondicionVenta').val()) {
-                Swal.fire('Validacion', 'Seleccione una condicion de venta.', 'warning');
-                ValidacionesFE.marcarCampoInvalido('#CondicionVenta', 'Condicion de venta obligatoria');
+                Swal.fire('Validación', 'Seleccione una condición de venta.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#CondicionVenta', 'Condición de venta obligatoria');
                 return false;
             }
             ValidacionesFE.marcarCampoValido('#CondicionVenta');
@@ -4240,7 +4425,7 @@
             const condicionVenta = $('#CondicionVenta').val();
             if (!ValidacionesFE.condicionesCredito.includes(condicionVenta)) {
                 if (!$('#MedioPago').val()) {
-                    Swal.fire('Validacion', 'Seleccione un medio de pago (obligatorio para ventas de contado).', 'warning');
+                    Swal.fire('Validación', 'Seleccione un medio de pago (obligatorio para ventas de contado).', 'warning');
                     ValidacionesFE.marcarCampoInvalido('#MedioPago', 'Medio de pago obligatorio');
                     return false;
                 }
@@ -4251,16 +4436,43 @@
             if (condicionVenta === '02') {
                 const plazo = $('#PlazoCreditoDias').val();
                 if (!plazo || parseInt(plazo) < 1) {
-                    Swal.fire('Validacion', 'Ingrese el plazo de credito en dias.', 'warning');
+                    Swal.fire('Validación', 'Ingrese el plazo de crédito en días.', 'warning');
                     ValidacionesFE.marcarCampoInvalido('#PlazoCreditoDias', 'Plazo obligatorio');
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#PlazoCreditoDias');
             }
 
+            // Validar límite de crédito del cliente si es venta a crédito
+            if (ValidacionesFE.condicionesCredito.includes(condicionVenta) && clienteSeleccionado) {
+                const limiteCredito = parseFloat(clienteSeleccionado.limiteCredito || 0);
+                if (limiteCredito > 0) {
+                    const saldoActual = parseFloat(clienteSeleccionado.saldoActual || 0);
+                    const totalComprobante = window.totalesCalculados ? window.totalesCalculados.totalComprobante : 0;
+                    const nuevoSaldo = saldoActual + totalComprobante;
+
+                    if (nuevoSaldo > limiteCredito) {
+                        const moneda = $('#Moneda').val() || 'CRC';
+                        Swal.fire({
+                            title: 'Límite de Crédito Excedido',
+                            icon: 'error',
+                            html: `El cliente <b>${clienteSeleccionado.nombre}</b> excede su límite de crédito.<br><br>` +
+                                  `<table class="table table-sm table-borderless mb-0" style="max-width:350px;margin:auto;">` +
+                                  `<tr><td>Límite de crédito:</td><td class="text-end fw-bold">${formatCurrency(limiteCredito, moneda)}</td></tr>` +
+                                  `<tr><td>Saldo actual:</td><td class="text-end">${formatCurrency(saldoActual, moneda)}</td></tr>` +
+                                  `<tr><td>Total documento:</td><td class="text-end">${formatCurrency(totalComprobante, moneda)}</td></tr>` +
+                                  `<tr class="border-top"><td>Nuevo saldo:</td><td class="text-end fw-bold">${formatCurrency(nuevoSaldo, moneda)}</td></tr>` +
+                                  `<tr><td>Excede por:</td><td class="text-end text-danger fw-bold">${formatCurrency(nuevoSaldo - limiteCredito, moneda)}</td></tr>` +
+                                  `</table>`
+                        });
+                        return false;
+                    }
+                }
+            }
+
             // Validate Moneda
             if (!$('#Moneda').val()) {
-                Swal.fire('Validacion', 'Seleccione una moneda.', 'warning');
+                Swal.fire('Validación', 'Seleccione una moneda.', 'warning');
                 ValidacionesFE.marcarCampoInvalido('#Moneda', 'Moneda obligatoria');
                 return false;
             }
@@ -4269,8 +4481,8 @@
             // Validate Tipo de Cambio
             const tipoCambio = parseFloat($('#TipoCambio').val());
             if (!tipoCambio || tipoCambio <= 0) {
-                Swal.fire('Validacion', 'El tipo de cambio debe ser mayor a 0.', 'warning');
-                ValidacionesFE.marcarCampoInvalido('#TipoCambio', 'Tipo de cambio invalido');
+                Swal.fire('Validación', 'El tipo de cambio debe ser mayor a 0.', 'warning');
+                ValidacionesFE.marcarCampoInvalido('#TipoCambio', 'Tipo de cambio inválido');
                 return false;
             }
             ValidacionesFE.marcarCampoValido('#TipoCambio');
@@ -4278,7 +4490,7 @@
             // Validate Tipo de Cambio for non-CRC currencies
             const moneda = $('#Moneda').val();
             if (moneda !== 'CRC' && !$('#TipoCambio').val()) {
-                Swal.fire('Validacion', 'Debe ingresar el tipo de cambio para la moneda seleccionada.', 'warning');
+                Swal.fire('Validación', 'Debe ingresar el tipo de cambio para la moneda seleccionada.', 'warning');
                 ValidacionesFE.marcarCampoInvalido('#TipoCambio', 'Ingrese tipo de cambio');
                 return false;
             }
@@ -4286,15 +4498,15 @@
             // Validate NC/ND specific fields
             if ((currentTipoDocumento === '2' || currentTipoDocumento === '3')) {
                 if (!$('#DocumentoReferenciaId').val()) {
-                    Swal.fire('Validacion', 'Seleccione un documento de referencia.', 'warning');
+                    Swal.fire('Validación', 'Seleccione un documento de referencia.', 'warning');
                     ValidacionesFE.marcarCampoInvalido('#DocumentoReferenciaNumero', 'Documento de referencia obligatorio');
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#DocumentoReferenciaNumero');
 
                 if (!$('#RazonReferencia').val()) {
-                    Swal.fire('Validacion', 'Seleccione una razon para la NC/ND.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#RazonReferencia', 'Razon obligatoria');
+                    Swal.fire('Validación', 'Seleccione una razón para la NC/ND.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#RazonReferencia', 'Razón obligatoria');
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#RazonReferencia');
@@ -4302,8 +4514,8 @@
                 // Validar codigo de referencia
                 const codigoRef = $('#RazonReferencia').val();
                 if (!ValidacionesFE.codigosReferencia.includes(codigoRef)) {
-                    Swal.fire('Validacion', 'Codigo de referencia invalido. Valores permitidos: 01-05, 11, 99', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#RazonReferencia', 'Codigo invalido');
+                    Swal.fire('Validación', 'Código de referencia inválido. Valores permitidos: 01-05, 11, 99', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#RazonReferencia', 'Código inválido');
                     return false;
                 }
             }
@@ -4311,15 +4523,15 @@
             // Validate FEE specific fields
             if (currentTipoDocumento === '9') {
                 if (!$('#Incoterm').val()) {
-                    Swal.fire('Validacion', 'Seleccione un Incoterm.', 'warning');
+                    Swal.fire('Validación', 'Seleccione un Incoterm.', 'warning');
                     ValidacionesFE.marcarCampoInvalido('#Incoterm', 'Incoterm obligatorio');
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#Incoterm');
 
                 if (!$('#PaisDestino').val()) {
-                    Swal.fire('Validacion', 'Seleccione un pais de destino.', 'warning');
-                    ValidacionesFE.marcarCampoInvalido('#PaisDestino', 'Pais destino obligatorio');
+                    Swal.fire('Validación', 'Seleccione un país de destino.', 'warning');
+                    ValidacionesFE.marcarCampoInvalido('#PaisDestino', 'País destino obligatorio');
                     return false;
                 }
                 ValidacionesFE.marcarCampoValido('#PaisDestino');
@@ -4327,7 +4539,7 @@
 
             // Validar lineas de detalle
             if (documentLines.length === 0) {
-                Swal.fire('Validacion', 'Debe agregar al menos una linea de detalle.', 'warning');
+                Swal.fire('Validación', 'Debe agregar al menos una línea de detalle.', 'warning');
                 return false;
             }
 
@@ -4336,29 +4548,29 @@
                 const linea = documentLines[i];
                 const numLinea = i + 1;
 
-                // Validar codigo CABYS (obligatorio, 13 digitos)
+                // Validar codigo CABYS (obligatorio, 13 dígitos)
                 if (!linea.codigoCabys) {
-                    Swal.fire('Validacion', `Linea ${numLinea}: Codigo CABYS es obligatorio.`, 'warning');
+                    Swal.fire('Validación', `Línea ${numLinea}: Código CABYS es obligatorio.`, 'warning');
                     $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
                     return false;
                 }
 
                 if (!/^\d{13}$/.test(linea.codigoCabys)) {
-                    Swal.fire('Validacion', `Linea ${numLinea}: Codigo CABYS debe tener exactamente 13 digitos.`, 'warning');
+                    Swal.fire('Validación', `Línea ${numLinea}: Código CABYS debe tener exactamente 13 dígitos.`, 'warning');
                     $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
                     return false;
                 }
 
                 // Validar cantidad
                 if (!linea.cantidad || linea.cantidad <= 0) {
-                    Swal.fire('Validacion', `Linea ${numLinea}: Cantidad debe ser mayor a 0.`, 'warning');
+                    Swal.fire('Validación', `Línea ${numLinea}: Cantidad debe ser mayor a 0.`, 'warning');
                     $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
                     return false;
                 }
 
                 // Validar descripcion
                 if (!linea.descripcion || linea.descripcion.trim() === '') {
-                    Swal.fire('Validacion', `Linea ${numLinea}: Descripcion es obligatoria.`, 'warning');
+                    Swal.fire('Validación', `Línea ${numLinea}: Descripción es obligatoria.`, 'warning');
                     $(`#tbodyLineas tr:eq(${i})`).addClass('linea-con-error shake');
                     return false;
                 }
@@ -4378,7 +4590,8 @@
                 terminalId: $('#TerminalId').val(),
                 fecha: $('#FechaDocumentoISO').val(), // Fecha en formato ISO
                 actividadEconomica: $('#EmisorActividadEconomica').val(),
-                clienteId: $('#ClienteId').val(),
+                clienteId: currentTipoDocumento === '6' ? null : ($('#ClienteId').val() || null),
+                proveedorId: currentTipoDocumento === '6' ? ($('#ClienteId').val() || null) : null,
                 condicionVenta: $('#CondicionVenta').val(),
                 medioPago: $('#MedioPago').val(),
                 plazoCreditoDias: $('#PlazoCreditoDias').val() ? parseInt($('#PlazoCreditoDias').val()) : null,
@@ -4414,7 +4627,7 @@
                         unidadMedida: line.unidadMedida || 'Unid', // Código de unidad para clasificación
                         precioUnitario: line.precioUnitario,
                         // Campos v4.4
-                        tipoTransaccion: line.tipoTransaccion || null,
+                        tipoTransaccion: mapTipoTransaccion(line.tipoTransaccion),
                         detalleSurtido: line.detalleSurtido || null,
                         formaFarmaceutica: line.formaFarmaceutica || null
                     };
@@ -4647,6 +4860,18 @@
                             ambienteIndicador.show();
                         }
 
+                        // Detectar si la empresa requiere facturación electrónica
+                        empresaRequiereFE = empresa.requiereFacturacionElectronica !== false;
+
+                        // Ajustar UI de actividad económica según RequiereFacturacionElectronica
+                        if (!empresaRequiereFE) {
+                            $('#EmisorActividadEconomica').removeAttr('required').val('');
+                            $('#EmisorActividadEconomica').closest('.col-md-8').hide();
+                        } else {
+                            $('#EmisorActividadEconomica').attr('required', 'required');
+                            $('#EmisorActividadEconomica').closest('.col-md-8').show();
+                        }
+
                         // Cargar actividad económica principal
                         let actividadEconomica = '';
 
@@ -4666,8 +4891,8 @@
                         }
 
                         // Si no se encontró ninguna actividad económica, usar un valor por defecto
-                        if (!actividadEconomica) {
-                            actividadEconomica = '620900'; // Valor por defecto
+                        if (!actividadEconomica && empresaRequiereFE) {
+                            actividadEconomica = '620900'; // Valor por defecto solo si requiere FE
                         }
 
                         $('#EmisorActividadEconomica').val(actividadEconomica);
@@ -4848,10 +5073,13 @@
                                     descripcion: detalle.descripcion || '',
                                     cantidad: detalle.cantidad || 1,
                                     precioUnitario: detalle.precioUnitario || 0,
-                                    tipoTransaccion: detalle.tipoTransaccion || '01',
+                                    tipoTransaccion: mapTipoTransaccion(detalle.tipoTransaccion) || '01',
                                     codigoCabys: detalle.codigoCabys || '',
                                     formaFarmaceutica: detalle.formaFarmaceutica || null,
                                     detalleSurtido: detalle.detalleSurtido || null,
+                                    unidadMedida: (detalle.unidadMedida && detalle.unidadMedida.codigo)
+                                        ? detalle.unidadMedida.codigo
+                                        : (detalle.unidadMedidaComercial || 'Unid'),
                                     descuentos: [],
                                     impuestos: [],
                                     montoTotal: 0,

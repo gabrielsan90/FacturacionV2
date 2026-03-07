@@ -56,12 +56,12 @@ public class PeriodoContable
     // Estado
     // =====================================================
     /// <summary>
-    /// Estado: ABT=Abierto, CER=Cerrado
+    /// Estado: PND=Pendiente, ABT=Abierto, CER=Cerrado
     /// </summary>
     [Display(Name = "Estado")]
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     [MaxLength(3, ErrorMessage = "El campo {0} no puede tener más de {1} caracteres.")]
-    public string Estado { get; set; } = "ABT";
+    public string Estado { get; set; } = "PND";
 
     [Display(Name = "Fecha Cierre")]
     public DateTime? FechaCierre { get; set; }
@@ -125,6 +125,7 @@ public class PeriodoContable
     [NotMapped]
     public string EstadoDescripcion => Estado switch
     {
+        "PND" => "Pendiente",
         "ABT" => "Abierto",
         "CER" => "Cerrado",
         _ => Estado
@@ -135,6 +136,9 @@ public class PeriodoContable
 
     [NotMapped]
     public bool PuedeCerrar => Estado == "ABT";
+
+    [NotMapped]
+    public bool PuedeAbrir => Estado == "PND";
 
     [NotMapped]
     public string NombreMes => Mes switch

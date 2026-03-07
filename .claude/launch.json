@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Backend API",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "Facturacion.Backend/Facturacion.Backend.csproj", "--launch-profile", "http"],
+      "port": 5193
+    },
+    {
+      "name": "Frontend",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "Facturacion.Frontend/Facturacion.Frontend.csproj", "--launch-profile", "http"],
+      "port": 5207
+    }
+  ]
+}

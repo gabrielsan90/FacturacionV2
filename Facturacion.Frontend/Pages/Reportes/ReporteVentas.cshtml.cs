@@ -65,12 +65,24 @@ public class ReporteVentasModel : PageModel
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
+            // Per-currency breakdown
+            var ventasPorMoneda = reporte.Detalles
+                .GroupBy(d => d.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Sum(d => d.Total) })
+                .OrderByDescending(m => m.monto).ToList();
+            var promedioPorMoneda = reporte.Detalles
+                .GroupBy(d => d.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Count() > 0 ? g.Sum(d => d.Total) / g.Count() : 0m })
+                .OrderByDescending(m => m.monto).ToList();
+
             return new JsonResult(new
             {
                 totalVentas = reporte.TotalVentas,
                 totalDocumentos = reporte.CantidadDocumentos,
                 promedioVenta = promedio,
-                clientesUnicos
+                clientesUnicos,
+                ventasPorMoneda,
+                promedioPorMoneda
             });
         }
         catch (Exception ex)
@@ -203,6 +215,36 @@ public class ReporteVentasModel : PageModel
         return client;
     }
 
+    /// <summary>
+    /// Reads the API response and unwraps ActionResponse wrapper if present.
+    /// Returns the raw JSON string of the actual payload (the result object/array).
+    /// </summary>
+    private async Task<string?> ReadAndUnwrapAsync(HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        var content = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("API response length: {Length} chars", content.Length);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            // Check if wrapped in ActionResponse { wasSuccess, result }
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("result", out var resultProp))
+            {
+                return resultProp.GetRawText();
+            }
+            // Direct response (not wrapped)
+            return content;
+        }
+        catch
+        {
+            return content;
+        }
+    }
+
     private async Task<ReporteVentasDTO?> GetReporteVentasAsync(HttpClient client, Guid empresaId, DateTime inicio, DateTime fin)
     {
         var url = $"/api/Reportes/ventas?empresaId={empresaId}&fechaInicio={FormatDate(inicio)}&fechaFin={FormatDate(fin)}";
@@ -216,10 +258,11 @@ public class ReporteVentasModel : PageModel
             return null;
         }
 
-        var content = await response.Content.ReadAsStringAsync();
-        _logger.LogInformation("API response length: {Length} chars", content.Length);
+        var json = await ReadAndUnwrapAsync(response);
+        if (string.IsNullOrEmpty(json))
+            return null;
 
-        return JsonSerializer.Deserialize<ReporteVentasDTO>(content, _jsonOptions);
+        return JsonSerializer.Deserialize<ReporteVentasDTO>(json, _jsonOptions);
     }
 
     private async Task<ReporteProductosDTO?> GetReporteProductosAsync(HttpClient client, Guid empresaId, DateTime inicio, DateTime fin)
@@ -232,7 +275,11 @@ public class ReporteVentasModel : PageModel
             return null;
         }
 
-        return await response.Content.ReadFromJsonAsync<ReporteProductosDTO>(_jsonOptions);
+        var json = await ReadAndUnwrapAsync(response);
+        if (string.IsNullOrEmpty(json))
+            return null;
+
+        return JsonSerializer.Deserialize<ReporteProductosDTO>(json, _jsonOptions);
     }
 
     private async Task<ReporteClientesDTO?> GetReporteClientesAsync(HttpClient client, Guid empresaId, DateTime inicio, DateTime fin)
@@ -245,7 +292,11 @@ public class ReporteVentasModel : PageModel
             return null;
         }
 
-        return await response.Content.ReadFromJsonAsync<ReporteClientesDTO>(_jsonOptions);
+        var json = await ReadAndUnwrapAsync(response);
+        if (string.IsNullOrEmpty(json))
+            return null;
+
+        return JsonSerializer.Deserialize<ReporteClientesDTO>(json, _jsonOptions);
     }
 
     private static string GetGroupingKey(DateTime fecha, string? agruparPor)

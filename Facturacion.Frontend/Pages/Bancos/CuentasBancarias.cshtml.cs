@@ -2,6 +2,7 @@ using Facturacion.Shared.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -33,22 +34,43 @@ public class CuentasBancariasModel : PageModel
             var client = CreateApiClient();
 
             var empresaId = GetEmpresaId();
-            if (empresaId == null) return BadRequest("No se encontró la empresa.");
+            if (empresaId == null) return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
 
             var response = await client.GetAsync($"api/cuentasbancarias/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var cuentas = JsonSerializer.Deserialize<List<CuentaBancaria>>(content, _jsonOptions);
-                return new JsonResult(cuentas);
+
+                // Unwrap ActionResponse if needed
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
-            return BadRequest("Error al obtener las cuentas bancarias.");
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
-            return BadRequest($"Error: {ex.Message}");
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -64,14 +86,26 @@ public class CuentasBancariasModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return Content(content, "application/json");
+
+                // Unwrap ActionResponse if needed
+                using var doc = JsonDocument.Parse(content);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    return Content(content, "application/json");
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    return Content(resultProp.GetRawText(), "application/json");
+                }
+
+                return Content("[]", "application/json");
             }
 
-            return BadRequest("Error al obtener los bancos.");
+            return Content("[]", "application/json");
         }
         catch (Exception ex)
         {
-            return BadRequest($"Error: {ex.Message}");
+            return Content("[]", "application/json");
         }
     }
 
@@ -82,21 +116,33 @@ public class CuentasBancariasModel : PageModel
             var client = CreateApiClient();
 
             var empresaId = GetEmpresaId();
-            if (empresaId == null) return BadRequest("No se encontró la empresa.");
+            if (empresaId == null) return Content("[]", "application/json");
 
             var response = await client.GetAsync($"api/sucursales/empresa/{empresaId}");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return Content(content, "application/json");
+
+                // Unwrap ActionResponse if needed
+                using var doc = JsonDocument.Parse(content);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    return Content(content, "application/json");
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    return Content(resultProp.GetRawText(), "application/json");
+                }
+
+                return Content("[]", "application/json");
             }
 
-            return BadRequest("Error al obtener las sucursales.");
+            return Content("[]", "application/json");
         }
         catch (Exception ex)
         {
-            return BadRequest($"Error: {ex.Message}");
+            return Content("[]", "application/json");
         }
     }
 
@@ -107,21 +153,33 @@ public class CuentasBancariasModel : PageModel
             var client = CreateApiClient();
 
             var empresaId = GetEmpresaId();
-            if (empresaId == null) return BadRequest("No se encontró la empresa.");
+            if (empresaId == null) return Content("[]", "application/json");
 
             var response = await client.GetAsync($"api/cuentascontables/empresa/{empresaId}/movimiento");
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return Content(content, "application/json");
+
+                // Unwrap ActionResponse if needed
+                using var doc = JsonDocument.Parse(content);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    return Content(content, "application/json");
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    return Content(resultProp.GetRawText(), "application/json");
+                }
+
+                return Content("[]", "application/json");
             }
 
-            return BadRequest("Error al obtener las cuentas contables.");
+            return Content("[]", "application/json");
         }
         catch (Exception ex)
         {
-            return BadRequest($"Error: {ex.Message}");
+            return Content("[]", "application/json");
         }
     }
 

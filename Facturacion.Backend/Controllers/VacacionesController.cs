@@ -531,6 +531,39 @@ public class VacacionesController : ControllerBase
         return Ok(vacacion);
     }
 
+    /// <summary>
+    /// Elimina una solicitud de vacaciones (solo en estado Solicitada).
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> DeleteAsync(Guid id)
+    {
+        try
+        {
+            var vacacion = await _context.Vacaciones
+                .Include(v => v.Empleado)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (vacacion == null)
+                return NotFound("Solicitud de vacaciones no encontrada.");
+
+            if (!await TieneAccesoEmpresaAsync(vacacion.Empleado!.EmpresaId))
+                return Forbid();
+
+            if (vacacion.Estado != "SOL")
+                return BadRequest("Solo se pueden eliminar solicitudes en estado Solicitada.");
+
+            _context.Vacaciones.Remove(vacacion);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Solicitud de vacaciones eliminada exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar solicitud de vacaciones {Id}", id);
+            return StatusCode(500, $"Error al eliminar la solicitud: {ex.Message}");
+        }
+    }
+
     #region Métodos privados
 
     /// <summary>

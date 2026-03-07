@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Facturacion.Shared.DTOs;
 using Facturacion.Shared.Entities;
 using System.Security.Claims;
 using System.Text.Json;
@@ -80,8 +81,83 @@ public class EstadoCuentaProveedorModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var estadoCuenta = await response.Content.ReadFromJsonAsync<EstadoCuentaResponse>(_jsonOptions);
-            return new JsonResult(estadoCuenta);
+            var dto = await response.Content.ReadFromJsonAsync<EstadoCuentaProveedorDTO>(_jsonOptions);
+            if (dto != null)
+            {
+                // Transform CuentasPorPagar into Transacciones for the frontend
+                var transacciones = new List<TransaccionEstadoCuenta>();
+                foreach (var c in dto.CuentasPorPagar)
+                {
+                    // Add the invoice as a FACTURA transaction
+                    transacciones.Add(new TransaccionEstadoCuenta
+                    {
+                        Fecha = c.FechaFactura,
+                        Tipo = "FACTURA",
+                        NumeroDocumento = c.NumeroFactura,
+                        Descripcion = c.Observaciones,
+                        Cargo = c.MontoOriginal,
+                        Abono = 0,
+                        Saldo = c.MontoSaldo,
+                        Estado = c.Estado,
+                        Moneda = c.Moneda ?? "CRC"
+                    });
+
+                    // Add each payment as a PAGO transaction
+                    foreach (var a in c.Abonos)
+                    {
+                        transacciones.Add(new TransaccionEstadoCuenta
+                        {
+                            Fecha = a.FechaPago,
+                            Tipo = "PAGO",
+                            NumeroDocumento = a.NumeroReferencia ?? "-",
+                            Descripcion = a.Notas ?? $"Pago {a.MetodoPagoDescripcion}",
+                            Cargo = 0,
+                            Abono = a.Monto,
+                            Saldo = 0,
+                            Estado = "PAG",
+                            Moneda = c.Moneda ?? "CRC"
+                        });
+                    }
+                }
+
+                // Per-currency breakdowns
+                var facturadoPorMoneda = dto.CuentasPorPagar
+                    .GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoOriginal) })
+                    .OrderByDescending(m => m.monto).ToList();
+                var pagadoPorMoneda = dto.CuentasPorPagar
+                    .GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoAbonado) })
+                    .OrderByDescending(m => m.monto).ToList();
+                var pendientePorMoneda = dto.CuentasPorPagar
+                    .GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoSaldo) })
+                    .Where(m => m.monto > 0)
+                    .OrderByDescending(m => m.monto).ToList();
+                var vencidoPorMoneda = dto.CuentasPorPagar
+                    .Where(c => c.EstaVencida)
+                    .GroupBy(c => c.Moneda ?? "CRC")
+                    .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoSaldo) })
+                    .Where(m => m.monto > 0)
+                    .OrderByDescending(m => m.monto).ToList();
+
+                return new JsonResult(new
+                {
+                    transacciones = transacciones.OrderBy(t => t.Fecha).ToList(),
+                    resumen = new
+                    {
+                        totalFacturado = dto.TotalFacturas,
+                        totalPagado = dto.TotalPagado,
+                        saldoPendiente = dto.TotalPendiente,
+                        saldoVencido = dto.CuentasPorPagar.Where(c => c.EstaVencida).Sum(c => c.MontoSaldo),
+                        saldoTotal = dto.TotalPendiente,
+                        facturadoPorMoneda,
+                        pagadoPorMoneda,
+                        pendientePorMoneda,
+                        vencidoPorMoneda
+                    }
+                });
+            }
         }
 
         return new JsonResult(new
@@ -131,13 +207,6 @@ public class EstadoCuentaProveedorModel : PageModel
     }
 }
 
-// DTOs for Estado de Cuenta response
-public class EstadoCuentaResponse
-{
-    public List<TransaccionEstadoCuenta> Transacciones { get; set; } = new();
-    public ResumenEstadoCuenta Resumen { get; set; } = new();
-}
-
 public class TransaccionEstadoCuenta
 {
     public DateTime Fecha { get; set; }
@@ -148,13 +217,6 @@ public class TransaccionEstadoCuenta
     public decimal Abono { get; set; }
     public decimal Saldo { get; set; }
     public string Estado { get; set; } = null!;
+    public string Moneda { get; set; } = "CRC";
 }
 
-public class ResumenEstadoCuenta
-{
-    public decimal TotalFacturado { get; set; }
-    public decimal TotalPagado { get; set; }
-    public decimal SaldoPendiente { get; set; }
-    public decimal SaldoVencido { get; set; }
-    public decimal SaldoTotal { get; set; }
-}

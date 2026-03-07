@@ -66,7 +66,7 @@ public class DocumentoRepository : IDocumentoRepository
             .ToListAsync();
     }
 
-    public async Task<(IEnumerable<Documento> Data, int TotalCount)> GetByEmpresaPagedAsync(
+    public async Task<(IEnumerable<object> Data, int TotalCount)> GetByEmpresaPagedAsync(
         Guid empresaId,
         int skip,
         int take,
@@ -80,10 +80,6 @@ public class DocumentoRepository : IDocumentoRepository
         bool? esDocumentoRecibido = null)
     {
         var query = _context.Documentos
-            .Include(d => d.Sucursal)
-            .Include(d => d.Terminal)
-            .Include(d => d.Cliente)
-            .Include(d => d.Proveedor)
             .Where(d => d.EmpresaId == empresaId && !d.IsDeleted);
 
         if (esDocumentoRecibido.HasValue)
@@ -112,11 +108,32 @@ public class DocumentoRepository : IDocumentoRepository
 
         var totalCount = await query.CountAsync();
 
+        // Use Select projection to avoid loading heavy XML fields
         var data = await query
             .OrderByDescending(d => d.FechaCreacion)
             .Skip(skip)
             .Take(take)
             .AsNoTracking()
+            .Select(d => new
+            {
+                d.Id,
+                d.Ambiente,
+                d.TipoDocumento,
+                d.NumeroConsecutivo,
+                d.Clave,
+                d.FechaEmision,
+                d.FechaCreacion,
+                d.Estado,
+                d.MensajeHacienda,
+                d.FechaEnvioHacienda,
+                d.Moneda,
+                d.TotalVenta,
+                d.TotalImpuestos,
+                d.TotalOtrosCargos,
+                d.ClienteId,
+                ReceptorNombre = d.Cliente != null ? d.Cliente.Nombre : d.ReceptorNombre,
+                XmlRespuestaHacienda = d.XmlRespuestaHacienda != null ? "1" : null // Only presence flag, not full XML
+            })
             .ToListAsync();
 
         return (data, totalCount);

@@ -625,6 +625,90 @@ public class ActivosFijosController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene todas las depreciaciones de una empresa con filtros opcionales
+    /// </summary>
+    [HttpGet("empresa/{empresaId:guid}/depreciaciones")]
+    public async Task<IActionResult> GetDepreciacionesByEmpresaAsync(
+        Guid empresaId,
+        [FromQuery] Guid? activoId,
+        [FromQuery] int? anio,
+        [FromQuery] int? mes,
+        [FromQuery] string? estado)
+    {
+        try
+        {
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+                return Forbid();
+
+            var query = _context.DepreciacionesActivo
+                .Include(d => d.ActivoFijo)
+                .Where(d => d.ActivoFijo != null && d.ActivoFijo.EmpresaId == empresaId && !d.ActivoFijo.IsDeleted)
+                .AsNoTracking();
+
+            if (activoId.HasValue && activoId != Guid.Empty)
+                query = query.Where(d => d.ActivoFijoId == activoId);
+
+            if (anio.HasValue)
+                query = query.Where(d => d.Anio == anio);
+
+            if (mes.HasValue)
+                query = query.Where(d => d.Mes == mes);
+
+            if (!string.IsNullOrEmpty(estado))
+                query = query.Where(d => d.Estado == estado);
+
+            var depreciaciones = await query
+                .OrderByDescending(d => d.Fecha)
+                .ToListAsync();
+
+            return Ok(depreciaciones);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener depreciaciones para empresa: {EmpresaId}", empresaId);
+            return StatusCode(500, $"Error al obtener depreciaciones: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Genera depreciaciones masivas para todos los activos activos de una empresa
+    /// </summary>
+    [HttpPost("empresa/{empresaId:guid}/generar-depreciacion")]
+    public async Task<IActionResult> GenerarDepreciacionMasivaAsync(Guid empresaId, [FromBody] GenerarDepreciacionMasivaRequest request)
+    {
+        try
+        {
+            if (!await TieneAccesoEmpresaAsync(empresaId))
+                return Forbid();
+
+            var result = await _unitOfWork.DepreciacionActivoRepository
+                .GenerarDepreciacionesMasivasAsync(empresaId, request.Anio, request.Mes);
+
+            if (!result.WasSuccess)
+            {
+                _logger.LogError("Error al generar depreciaciones masivas: {Message}", result.Message);
+                return BadRequest(result.Message);
+            }
+
+            await _unitOfWork.SaveAsync();
+
+            var depreciaciones = result.Result?.ToList() ?? new List<DepreciacionActivo>();
+            _logger.LogInformation("Generadas {Count} depreciaciones para empresa {EmpresaId}", depreciaciones.Count, empresaId);
+
+            return Ok(new
+            {
+                activosProcesados = depreciaciones.Select(d => d.ActivoFijoId).Distinct().Count(),
+                depreciacionesGeneradas = depreciaciones.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al generar depreciaciones masivas para empresa: {EmpresaId}", empresaId);
+            return StatusCode(500, $"Error al generar depreciaciones: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Obtiene resumen de activos por categoría para una empresa
     /// </summary>
     [HttpGet("empresa/{empresaId:guid}/resumen-por-categoria")]
@@ -754,4 +838,14 @@ public class BajaActivoRequest
 
     public DateTime? FechaBaja { get; set; }
     public decimal? ValorVenta { get; set; }
+}
+
+/// <summary>
+/// Modelo de request para generar depreciaciones masivas
+/// </summary>
+public class GenerarDepreciacionMasivaRequest
+{
+    public int Anio { get; set; }
+    public int Mes { get; set; }
+    public string? Observaciones { get; set; }
 }

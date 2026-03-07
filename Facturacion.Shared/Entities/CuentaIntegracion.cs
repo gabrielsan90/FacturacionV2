@@ -222,9 +222,21 @@ public static class TiposOperacionContable
 /// </summary>
 public static class ConceptosContables
 {
-    public const string CuentaVentas = "CUENTA_VENTAS";
+    public const string CuentaVentas13 = "CUENTA_VENTAS_13";
+    public const string CuentaVentas4 = "CUENTA_VENTAS_4";
+    public const string CuentaVentas2 = "CUENTA_VENTAS_2";
+    public const string CuentaVentas1 = "CUENTA_VENTAS_1";
     public const string CuentaVentasExentas = "CUENTA_VENTAS_EXENTAS";
+    public const string CuentaVentas = "CUENTA_VENTAS";
+    public const string CuentaIvaDebito13 = "CUENTA_IVA_DEBITO_13";
+    public const string CuentaIvaDebito4 = "CUENTA_IVA_DEBITO_4";
+    public const string CuentaIvaDebito2 = "CUENTA_IVA_DEBITO_2";
+    public const string CuentaIvaDebito1 = "CUENTA_IVA_DEBITO_1";
     public const string CuentaIvaDebito = "CUENTA_IVA_DEBITO";
+    public const string CuentaIvaCredito13 = "CUENTA_IVA_CREDITO_13";
+    public const string CuentaIvaCredito4 = "CUENTA_IVA_CREDITO_4";
+    public const string CuentaIvaCredito2 = "CUENTA_IVA_CREDITO_2";
+    public const string CuentaIvaCredito1 = "CUENTA_IVA_CREDITO_1";
     public const string CuentaIvaCredito = "CUENTA_IVA_CREDITO";
     public const string CuentaClientes = "CUENTA_CLIENTES";
     public const string CuentaProveedores = "CUENTA_PROVEEDORES";

@@ -140,11 +140,11 @@
 
 /* === GLOBAL STYLES === */
 * {
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     font-weight: 400;
     color: var(--text-primary);
@@ -153,7 +153,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -903,7 +903,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* === BUTTONS === */
 .btn {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 500;
     padding: 0.5rem 1rem;
     border-radius: var(--radius-md);
@@ -1224,6 +1224,37 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--gray-700);
 }
 
+[data-theme="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.06);
+    --bs-table-color: var(--text-primary);
+}
+
+[data-theme="dark"] .table > :not(caption) > * > * {
+    background-color: var(--content-bg);
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+    background-color: var(--sidebar-hover-bg);
+}
+
+[data-theme="dark"] .table thead th {
+    background: var(--gray-50);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .table tfoot td,
+[data-theme="dark"] .table tfoot th {
+    background: var(--gray-50);
+}
+
 /* === DATATABLE CUSTOMIZATION === */
 .dataTables_wrapper {
     color: var(--text-primary);
@@ -1389,6 +1420,47 @@ h1, h2, h3, h4, h5, h6 {
     .metric-card .metric-value {
         font-size: 1.5rem;
     }
+
+    /* Modals: full-width on tablet/mobile */
+    .modal-lg,
+    .modal-xl {
+        max-width: calc(100vw - 1rem);
+    }
+
+    /* Card headers: stack vertically */
+    .card-header.d-flex {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+
+    /* Page headers: reduce heading size, stack buttons */
+    .page-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .page-header .d-flex {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Table cells: compact */
+    .table td,
+    .table th {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.5rem;
+    }
+
+    /* Action button groups in tables: compact */
+    .table .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    /* Badge inside tables */
+    .table .badge {
+        font-size: 0.7rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -1409,6 +1481,49 @@ h1, h2, h3, h4, h5, h6 {
     .btn {
         font-size: 0.8125rem;
         padding: 0.4rem 0.8rem;
+    }
+
+    /* Modals: near full-screen on phone */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-body {
+        padding: 0.75rem;
+    }
+
+    /* Page header button: full width on phone */
+    .page-header > .d-flex > .btn,
+    .page-header > .d-flex > .btn-group {
+        width: 100%;
+    }
+
+    .page-header > .d-flex > .btn-group .btn {
+        flex: 1;
+    }
+
+    /* Body: tighter padding */
+    .body {
+        padding: 0.75rem;
+    }
+
+    /* Card body: tighter padding */
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    /* Form labels: slightly smaller */
+    .form-label {
+        font-size: 0.85rem;
+    }
+
+    /* Empty state: compact */
+    .empty-state-icon {
+        font-size: 2.5rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.1rem;
     }
 }
 

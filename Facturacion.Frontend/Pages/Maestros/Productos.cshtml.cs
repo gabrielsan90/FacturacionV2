@@ -27,6 +27,7 @@ public class ProductosModel : PageModel
         _logger = logger;        _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
@@ -111,6 +112,11 @@ public class ProductosModel : PageModel
         // Nota: No validar ModelState aquí porque incluye errores del BindProperty vacío.
         // La validación real la hace el API backend.
 
+        if (productoData == null)
+        {
+            return new JsonResult(new { success = false, message = "No se recibieron los datos del producto. Verifique que todos los campos tengan un formato válido." });
+        }
+
         try
         {
             var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -121,7 +127,7 @@ public class ProductosModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var json = JsonSerializer.Serialize(productoData);
+            var json = JsonSerializer.Serialize(productoData, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;

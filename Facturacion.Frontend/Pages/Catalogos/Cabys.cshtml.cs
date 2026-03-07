@@ -65,19 +65,19 @@ public class CabysModel : PageModel
                 if (result.TryGetProperty("data", out var dataProperty))
                 {
                     var cabys = JsonSerializer.Deserialize<List<CAByS>>(dataProperty.GetRawText(), _jsonOptions);
-                    return new JsonResult(cabys ?? new List<CAByS>());
+                    return new JsonResult(new { data = cabys ?? new List<CAByS>() });
                 }
 
-                return new JsonResult(new List<CAByS>());
+                return new JsonResult(new { data = new List<CAByS>() });
             }
 
             _logger.LogWarning("Failed to load códigos CABYS: {StatusCode}", response.StatusCode);
-            return new JsonResult(new List<CAByS>());
+            return new JsonResult(new { data = new List<CAByS>() });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading códigos CABYS data");
-            return new JsonResult(new List<CAByS>());
+            return new JsonResult(new { data = new List<CAByS>() });
         }
     }
 

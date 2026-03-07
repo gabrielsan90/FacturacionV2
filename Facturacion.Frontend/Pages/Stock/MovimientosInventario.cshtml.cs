@@ -62,26 +62,26 @@ public class MovimientosInventarioModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
-            // Build query string with filters
-            var queryParams = new List<string> { $"empresaId={empresaId}" };
+            // Build query string with filters matching backend param names
+            var queryParams = new List<string>();
 
             if (!string.IsNullOrEmpty(productoId))
                 queryParams.Add($"productoId={productoId}");
 
             if (!string.IsNullOrEmpty(bodegaId))
-                queryParams.Add($"bodegaId={bodegaId}");
+                queryParams.Add($"sucursalId={bodegaId}");
 
             if (!string.IsNullOrEmpty(tipoMovimiento))
                 queryParams.Add($"tipoMovimiento={tipoMovimiento}");
 
             if (!string.IsNullOrEmpty(fechaDesde))
-                queryParams.Add($"fechaDesde={fechaDesde}");
+                queryParams.Add($"fechaInicio={fechaDesde}");
 
             if (!string.IsNullOrEmpty(fechaHasta))
-                queryParams.Add($"fechaHasta={fechaHasta}");
+                queryParams.Add($"fechaFin={fechaHasta}");
 
-            var queryString = string.Join("&", queryParams);
-            var response = await client.GetAsync($"/api/movimientosinventario?{queryString}");
+            var qs = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
+            var response = await client.GetAsync($"/api/movimientosinventario/empresa/{empresaId}{qs}");
 
             if (response.IsSuccessStatusCode)
             {

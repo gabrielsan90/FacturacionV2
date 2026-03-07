@@ -128,6 +128,11 @@
                             <i class="fas fa-list"></i> Documentos Pendientes de Pago (Cuentas por Cobrar)
                         </h5>
                         <div>
+                            <button class="btn btn-sm btn-primary me-2" id="btnGenerarREPSeleccionados"
+                                    onclick="openGenerarREPMultiModal()" disabled>
+                                <i class="fas fa-money-check-alt"></i> Generar REP Seleccionados
+                                (<span id="countSeleccionados">0</span>)
+                            </button>
                             <button class="btn btn-sm btn-outline-secondary" onclick="loadDocumentosPendientes()">
                                 <i class="fas fa-sync"></i> Actualizar
                             </button>
@@ -144,6 +149,7 @@
                     <table id="tablePendientes" class="table table-hover table-striped">
                         <thead>
                             <tr>
+                                <th style="width: 30px;"><input type="checkbox" id="checkAll" title="Seleccionar todo"></th>
                                 <th>Consecutivo</th>
                                 <th>Tipo</th>
                                 <th>Cliente</th>
@@ -200,7 +206,7 @@
 
 <!-- Modal: Generar REP -->
 <div class="modal fade" id="modalGenerarREP" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">
@@ -210,23 +216,50 @@
             </div>
             <form id="formGenerarREP">
                 <div class="modal-body">
-                    <input type="hidden" id="REP_DocumentoOriginalId" />
 
-                    <!-- Información del Documento Original -->
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading"><i class="fas fa-info-circle"></i> Documento a Pagar</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Consecutivo:</strong> <span id="REP_Info_Consecutivo">-</span><br>
-                                <strong>Cliente:</strong> <span id="REP_Info_Cliente">-</span><br>
-                                <strong>Fecha Emisión:</strong> <span id="REP_Info_FechaEmision">-</span>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Total Venta:</strong> <span id="REP_Info_Total">-</span><br>
-                                <strong>Total Pagado:</strong> <span id="REP_Info_Pagado">-</span><br>
-                                <strong>Saldo Pendiente:</strong> <span id="REP_Info_Saldo" class="fw-bold text-danger">-</span>
-                            </div>
+                    <!-- Sucursal y Terminal -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-building"></i> Sucursal y Terminal</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sucursal <span class="text-danger">*</span></label>
+                            <select class="form-select" id="REP_SucursalId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una sucursal.</div>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Terminal <span class="text-danger">*</span></label>
+                            <select class="form-select" id="REP_TerminalId" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione una terminal.</div>
+                        </div>
+                    </div>
+
+                    <!-- Documentos a Pagar -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-file-invoice-dollar"></i> Documentos a Pagar</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered" id="tableDocumentosREP">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Consecutivo</th>
+                                    <th>Cliente</th>
+                                    <th>Total</th>
+                                    <th>Saldo Pendiente</th>
+                                    <th>Monto a Aplicar</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentosREPBody">
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-warning fw-bold">
+                                    <td colspan="4" class="text-end">Total Pago:</td>
+                                    <td id="REP_TotalPago">₡0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
 
                     <!-- Datos del Pago -->
@@ -239,17 +272,13 @@
                             <div class="invalid-feedback">La fecha de pago es obligatoria.</div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Monto a Pagar <span class="text-danger">*</span></label>
+                            <label class="form-label">Monto Total del Pago</label>
                             <div class="input-group">
-                                <span class="input-group-text">₡</span>
+                                <span class="input-group-text" id="REP_MonedaSymbol">₡</span>
                                 <input type="number" class="form-control" id="REP_MontoPagado"
-                                       min="0.01" step="0.01" required />
-                                <button class="btn btn-outline-secondary" type="button"
-                                        onclick="pagarSaldoCompleto()" title="Pagar saldo completo">
-                                    <i class="fas fa-percentage"></i> Total
-                                </button>
+                                       min="0.01" step="0.01" readonly />
                             </div>
-                            <div class="invalid-feedback">El monto debe ser mayor a cero.</div>
+                            <small class="text-muted">Se calcula automáticamente de los montos aplicados.</small>
                         </div>
                     </div>
 
@@ -417,15 +446,18 @@
 @section Scripts {
 <script>
     let tablePendientes, tableRecibos;
-    let documentoSeleccionado = null;
+    let documentosSeleccionados = []; // Array of document detail objects
     let medioPagoCounter = 1;
     let empresaId = '@Model.EmpresaId';
-    let terminalId = '@Model.TerminalId';
+    let sucursales = [];
+    let terminales = [];
 
     $(document).ready(function() {
         // Initialize
         loadDataTables();
         loadEstadisticas();
+        loadSucursales();
+        loadTerminales();
         setupFormSubmit();
         setupEventHandlers();
 
@@ -449,6 +481,19 @@
                 dataSrc: ''
             },
             columns: [
+                {
+                    data: 'documentoId',
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `<input type="checkbox" class="doc-check" value="${data}"
+                                    data-consecutivo="${row.numeroConsecutivo}"
+                                    data-cliente="${row.clienteNombre}"
+                                    data-total="${row.totalVenta}"
+                                    data-saldo="${row.saldoPendiente}"
+                                    data-moneda="${row.moneda}"
+                                    data-cliente-id="${row.clienteIdentificacion || ''}" />`;
+                    }
+                },
                 { data: 'numeroConsecutivo' },
                 {
                     data: 'tipoDocumento',
@@ -465,7 +510,7 @@
                 {
                     data: 'fechaEmision',
                     render: function(data) {
-                        return new Date(data).toLocaleDateString('es-CR');
+                        return new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                     }
                 },
                 {
@@ -475,7 +520,7 @@
                         const fechaVenc = new Date(data);
                         const diasVencido = row.diasVencido;
                         let badge = diasVencido > 0 ? 'bg-danger' : 'bg-success';
-                        return `<span class="badge ${badge}">${fechaVenc.toLocaleDateString('es-CR')}</span>`;
+                        return `<span class="badge ${badge}">${fechaVenc.toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'})}</span>`;
                     }
                 },
                 {
@@ -487,7 +532,11 @@
                 {
                     data: 'totalPagado',
                     render: function(data, type, row) {
-                        return formatCurrency(data, row.moneda);
+                        let html = formatCurrency(data, row.moneda);
+                        if (row.cantidadPagos > 0) {
+                            html += ` <span class="badge bg-info">${row.cantidadPagos} REP${row.cantidadPagos > 1 ? 's' : ''}</span>`;
+                        }
+                        return html;
                     }
                 },
                 {
@@ -513,7 +562,7 @@
                     orderable: false,
                     render: function(data, type, row) {
                         return `
-                            <button class="btn btn-sm btn-primary" onclick="openGenerarREPModal('${data}')" title="Generar REP">
+                            <button class="btn btn-sm btn-primary" onclick="openGenerarREPSingle('${data}')" title="Generar REP">
                                 <i class="fas fa-money-check-alt"></i>
                             </button>
                             <button class="btn btn-sm btn-info" onclick="verDetallePagos('${data}')" title="Ver pagos">
@@ -523,7 +572,7 @@
                     }
                 }
             ],
-            order: [[4, 'asc']] // Order by fecha vencimiento
+            order: [[5, 'asc']] // Order by fecha vencimiento (shifted by 1 due to checkbox)
         });
 
         // Recibos Generados Table
@@ -549,7 +598,7 @@
                 {
                     data: 'fechaPago',
                     render: function(data) {
-                        return new Date(data).toLocaleDateString('es-CR');
+                        return new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                     }
                 },
                 {
@@ -600,6 +649,30 @@
         $('#filtroSoloVencidos').on('change', function() {
             tablePendientes.ajax.reload();
         });
+
+        // Check All checkbox
+        $('#checkAll').on('change', function() {
+            const checked = $(this).is(':checked');
+            $('#tablePendientes .doc-check').prop('checked', checked);
+            updateSelectionCount();
+        });
+
+        // Individual checkbox change
+        $('#tablePendientes').on('change', '.doc-check', function() {
+            updateSelectionCount();
+        });
+
+        // Sucursal change → cascade terminales
+        $('#REP_SucursalId').on('change', function() {
+            loadTerminalesBySucursal($(this).val());
+        });
+    }
+
+    function updateSelectionCount() {
+        const checked = $('#tablePendientes .doc-check:checked');
+        const count = checked.length;
+        $('#countSeleccionados').text(count);
+        $('#btnGenerarREPSeleccionados').prop('disabled', count === 0);
     }
 
     function setupFormSubmit() {
@@ -627,105 +700,279 @@
             if (response.ok) {
                 const stats = await response.json();
 
-                $('#statTotalPorCobrar').text(formatCurrency(stats.totalPorCobrar, 'CRC'));
                 $('#statDocsAlDia').text(stats.documentosAlDia);
                 $('#statDocsVencidos').text(stats.documentosVencidos);
-                $('#statMontoVencido').text(formatCurrency(stats.montoVencido, 'CRC'));
+
+                // Show per-currency breakdown for monetary amounts
+                if (stats.porMoneda && stats.porMoneda.length > 0) {
+                    const porCobrarHtml = stats.porMoneda
+                        .map(m => formatCurrency(m.totalPorCobrar, m.moneda))
+                        .join('<br>');
+                    const vencidoHtml = stats.porMoneda
+                        .filter(m => m.montoVencido > 0)
+                        .map(m => formatCurrency(m.montoVencido, m.moneda))
+                        .join('<br>');
+                    $('#statTotalPorCobrar').html(porCobrarHtml);
+                    $('#statMontoVencido').html(vencidoHtml || formatCurrency(0, 'CRC'));
+                } else {
+                    $('#statTotalPorCobrar').text(formatCurrency(0, 'CRC'));
+                    $('#statMontoVencido').text(formatCurrency(0, 'CRC'));
+                }
             }
         } catch (error) {
             console.error('Error loading statistics:', error);
         }
     }
 
-    async function openGenerarREPModal(documentoId) {
+    // Open modal for a SINGLE document (from action button)
+    async function openGenerarREPSingle(documentoId) {
         try {
-            // Obtener detalles del documento
             const response = await fetch(`?handler=DocumentoDetalle&documentoId=${documentoId}`, {
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 }
             });
 
-            if (!response.ok) {
-                throw new Error('Error al obtener documento');
-            }
+            if (!response.ok) throw new Error('Error al obtener documento');
 
             const doc = await response.json();
-            documentoSeleccionado = doc;
 
-            // Llenar información del documento
-            $('#REP_DocumentoOriginalId').val(doc.documentoId);
-            $('#REP_Info_Consecutivo').text(doc.numeroConsecutivo);
-            $('#REP_Info_Cliente').text(doc.clienteNombre);
-            $('#REP_Info_FechaEmision').text(new Date(doc.fechaEmision).toLocaleDateString('es-CR'));
-            $('#REP_Info_Total').text(formatCurrency(doc.totalVenta, doc.moneda));
-            $('#REP_Info_Pagado').text(formatCurrency(doc.totalPagado, doc.moneda));
-            $('#REP_Info_Saldo').text(formatCurrency(doc.saldoPendiente, doc.moneda));
+            // Set as single document selection
+            documentosSeleccionados = [{
+                documentoId: doc.documentoId,
+                consecutivo: doc.numeroConsecutivo,
+                cliente: doc.clienteNombre,
+                totalVenta: doc.totalVenta,
+                saldoPendiente: doc.saldoPendiente,
+                moneda: doc.moneda,
+                tipoCambio: doc.tipoCambio
+            }];
 
-            // Reset form
-            $('#formGenerarREP')[0].reset();
-            $('#formGenerarREP').removeClass('was-validated');
-            $('#REP_MontoPagado').val(doc.saldoPendiente.toFixed(2));
-
-            // Reset medios de pago
-            $('#mediosPagoContainer').html(`
-                <div class="medio-pago-item border rounded p-3 mb-2" data-index="0">
-                    <div class="row">
-                        <div class="col-md-4 mb-2">
-                            <label class="form-label">Medio de Pago <span class="text-danger">*</span></label>
-                            <select class="form-select medio-pago-select" required>
-                                <option value="">Seleccione...</option>
-                                <option value="01" selected>01 - Efectivo</option>
-                                <option value="02">02 - Tarjeta</option>
-                                <option value="03">03 - Cheque</option>
-                                <option value="04">04 - Transferencia</option>
-                                <option value="05">05 - Recaudado por terceros</option>
-                                <option value="06">06 - SINPE Móvil</option>
-                                <option value="99">99 - Otros</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <label class="form-label">Monto <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control medio-pago-monto"
-                                   value="${doc.saldoPendiente.toFixed(2)}" min="0.01" step="0.01" required />
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label class="form-label">Referencia</label>
-                            <input type="text" class="form-control medio-pago-ref"
-                                   maxlength="100" placeholder="Núm. autorización, cheque, etc." />
-                        </div>
-                        <div class="col-md-1 mb-2">
-                            <label class="form-label">&nbsp;</label>
-                            <button type="button" class="btn btn-danger w-100"
-                                    onclick="eliminarMedioPago(0)" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `);
-            medioPagoCounter = 1;
-
-            // Set default date
-            const today = new Date().toISOString().split('T')[0];
-            $('#REP_FechaPago').val(today);
-
-            // Show modal
-            new bootstrap.Modal(document.getElementById('modalGenerarREP')).show();
+            openREPModal();
         } catch (error) {
             console.error('Error:', error);
             Swal.fire('Error', 'No se pudo cargar la información del documento', 'error');
         }
     }
 
-    function pagarSaldoCompleto() {
-        if (documentoSeleccionado) {
-            const saldo = documentoSeleccionado.saldoPendiente;
-            $('#REP_MontoPagado').val(saldo.toFixed(2));
+    // Open modal for MULTIPLE documents (from selection button)
+    function openGenerarREPMultiModal() {
+        const checked = $('#tablePendientes .doc-check:checked');
 
-            // Update first medio pago
-            $('.medio-pago-monto').first().val(saldo.toFixed(2));
+        if (checked.length === 0) {
+            Swal.fire('Advertencia', 'Seleccione al menos un documento', 'warning');
+            return;
         }
+
+        // Validate all belong to same client
+        let clienteId = null;
+        let moneda = null;
+        let valid = true;
+
+        documentosSeleccionados = [];
+
+        checked.each(function() {
+            const $cb = $(this);
+            const docClienteId = $cb.data('cliente-id');
+            const docMoneda = $cb.data('moneda');
+
+            if (clienteId === null) {
+                clienteId = docClienteId;
+                moneda = docMoneda;
+            } else if (docClienteId && docClienteId !== clienteId) {
+                valid = false;
+                return false; // break
+            } else if (docMoneda !== moneda) {
+                valid = false;
+                Swal.fire('Error', 'Todos los documentos seleccionados deben tener la misma moneda', 'error');
+                return false;
+            }
+
+            documentosSeleccionados.push({
+                documentoId: $cb.val(),
+                consecutivo: $cb.data('consecutivo'),
+                cliente: $cb.data('cliente'),
+                totalVenta: parseFloat($cb.data('total')),
+                saldoPendiente: parseFloat($cb.data('saldo')),
+                moneda: docMoneda
+            });
+        });
+
+        if (!valid) {
+            if (clienteId !== null) {
+                Swal.fire('Error', 'Todos los documentos seleccionados deben ser del mismo cliente', 'error');
+            }
+            return;
+        }
+
+        openREPModal();
+    }
+
+    // Common modal opener
+    function openREPModal() {
+        // Reset form
+        $('#formGenerarREP')[0].reset();
+        $('#formGenerarREP').removeClass('was-validated');
+
+        // Build documents table
+        const tbody = $('#documentosREPBody');
+        tbody.empty();
+
+        let totalSaldo = 0;
+        const moneda = documentosSeleccionados[0]?.moneda || 'CRC';
+        const simbolo = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : '₡';
+        $('#REP_MonedaSymbol').text(simbolo);
+
+        documentosSeleccionados.forEach((doc, idx) => {
+            totalSaldo += doc.saldoPendiente;
+            tbody.append(`
+                <tr data-doc-id="${doc.documentoId}">
+                    <td>${doc.consecutivo}</td>
+                    <td>${doc.cliente}</td>
+                    <td class="text-end">${formatCurrency(doc.totalVenta, doc.moneda)}</td>
+                    <td class="text-end">${formatCurrency(doc.saldoPendiente, doc.moneda)}</td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm monto-aplicar"
+                               data-doc-id="${doc.documentoId}" data-saldo="${doc.saldoPendiente}"
+                               value="${doc.saldoPendiente.toFixed(2)}" min="0.01"
+                               max="${doc.saldoPendiente.toFixed(2)}" step="0.01" required />
+                    </td>
+                    <td>
+                        ${documentosSeleccionados.length > 1
+                            ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDocFromREP('${doc.documentoId}')" title="Quitar"><i class="fas fa-times"></i></button>`
+                            : ''}
+                    </td>
+                </tr>
+            `);
+        });
+
+        // Update total
+        recalcularTotalREP();
+
+        // Attach change events for monto inputs
+        tbody.find('.monto-aplicar').on('input', function() {
+            const max = parseFloat($(this).data('saldo'));
+            let val = parseFloat($(this).val()) || 0;
+            if (val > max) {
+                $(this).val(max.toFixed(2));
+            }
+            recalcularTotalREP();
+        });
+
+        // Reset medios de pago with total amount
+        resetMediosPago(totalSaldo);
+
+        // Attach change events for medio de pago montos (reverse sync)
+        $(document).off('input.medioPago').on('input.medioPago', '.medio-pago-monto', function() {
+            sincronizarDesdemediosPago();
+        });
+
+        // Set default date
+        const today = new Date().toISOString().split('T')[0];
+        $('#REP_FechaPago').val(today);
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('modalGenerarREP')).show();
+    }
+
+    function removeDocFromREP(documentoId) {
+        documentosSeleccionados = documentosSeleccionados.filter(d => d.documentoId !== documentoId);
+        $(`#documentosREPBody tr[data-doc-id="${documentoId}"]`).remove();
+        recalcularTotalREP();
+
+        if (documentosSeleccionados.length === 0) {
+            bootstrap.Modal.getInstance(document.getElementById('modalGenerarREP')).hide();
+        }
+    }
+
+    function recalcularTotalREP() {
+        let total = 0;
+        $('#documentosREPBody .monto-aplicar').each(function() {
+            total += parseFloat($(this).val()) || 0;
+        });
+
+        const moneda = documentosSeleccionados[0]?.moneda || 'CRC';
+        $('#REP_TotalPago').text(formatCurrency(total, moneda));
+        $('#REP_MontoPagado').val(total.toFixed(2));
+
+        // Update first medio pago amount
+        $('.medio-pago-monto').first().val(total.toFixed(2));
+    }
+
+    // Reverse sync: when user changes medio de pago amounts, adjust monto-aplicar
+    function sincronizarDesdemediosPago() {
+        let sumaMedios = 0;
+        $('.medio-pago-monto').each(function() {
+            sumaMedios += parseFloat($(this).val()) || 0;
+        });
+
+        const montoInputs = $('#documentosREPBody .monto-aplicar');
+
+        // Single document: set monto-aplicar = sumaMedios (capped at saldo)
+        if (montoInputs.length === 1) {
+            const input = montoInputs.first();
+            const saldo = parseFloat(input.data('saldo'));
+            const nuevoMonto = Math.min(sumaMedios, saldo);
+            input.val(nuevoMonto > 0 ? nuevoMonto.toFixed(2) : '');
+        } else {
+            // Multiple documents: distribute proportionally, capped per saldo
+            let restante = sumaMedios;
+            montoInputs.each(function() {
+                const saldo = parseFloat($(this).data('saldo'));
+                const aplicar = Math.min(restante, saldo);
+                $(this).val(aplicar > 0 ? aplicar.toFixed(2) : '0.00');
+                restante -= aplicar;
+            });
+        }
+
+        // Update total display (without triggering medio-pago sync back)
+        let total = 0;
+        montoInputs.each(function() {
+            total += parseFloat($(this).val()) || 0;
+        });
+        const moneda = documentosSeleccionados[0]?.moneda || 'CRC';
+        $('#REP_TotalPago').text(formatCurrency(total, moneda));
+        $('#REP_MontoPagado').val(total.toFixed(2));
+    }
+
+    function resetMediosPago(totalAmount) {
+        medioPagoCounter = 1;
+        $('#mediosPagoContainer').html(`
+            <div class="medio-pago-item border rounded p-3 mb-2" data-index="0">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Medio de Pago <span class="text-danger">*</span></label>
+                        <select class="form-select medio-pago-select" required>
+                            <option value="">Seleccione...</option>
+                            <option value="01" selected>01 - Efectivo</option>
+                            <option value="02">02 - Tarjeta</option>
+                            <option value="03">03 - Cheque</option>
+                            <option value="04">04 - Transferencia</option>
+                            <option value="05">05 - Recaudado por terceros</option>
+                            <option value="06">06 - SINPE Móvil</option>
+                            <option value="99">99 - Otros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <label class="form-label">Monto <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control medio-pago-monto"
+                               value="${totalAmount.toFixed(2)}" min="0.01" step="0.01" required />
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Referencia</label>
+                        <input type="text" class="form-control medio-pago-ref"
+                               maxlength="100" placeholder="Núm. autorización, cheque, etc." />
+                    </div>
+                    <div class="col-md-1 mb-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-danger w-100"
+                                onclick="eliminarMedioPago(0)" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `);
     }
 
     function agregarMedioPago() {
@@ -780,6 +1027,37 @@
 
     async function generarREP() {
         try {
+            // Validar sucursal y terminal
+            const terminalId = $('#REP_TerminalId').val();
+            const sucursalId = $('#REP_SucursalId').val();
+
+            if (!sucursalId) {
+                Swal.fire('Validación', 'Seleccione una sucursal', 'warning');
+                return;
+            }
+            if (!terminalId) {
+                Swal.fire('Validación', 'Seleccione una terminal', 'warning');
+                return;
+            }
+
+            // Recolectar documentos y montos
+            const documentos = [];
+            $('#documentosREPBody .monto-aplicar').each(function() {
+                const docId = $(this).data('doc-id');
+                const monto = parseFloat($(this).val()) || 0;
+                if (docId && monto > 0) {
+                    documentos.push({
+                        documentoId: docId,
+                        montoAplicado: monto
+                    });
+                }
+            });
+
+            if (documentos.length === 0) {
+                Swal.fire('Error', 'No hay documentos para pagar', 'error');
+                return;
+            }
+
             // Recolectar medios de pago
             const mediosPago = [];
             $('.medio-pago-item').each(function() {
@@ -796,7 +1074,6 @@
                 }
             });
 
-            // Validar que haya al menos un medio de pago
             if (mediosPago.length === 0) {
                 Swal.fire('Error', 'Debe agregar al menos un medio de pago', 'error');
                 return;
@@ -805,21 +1082,21 @@
             // Validar suma de medios de pago
             const montoPagado = parseFloat($('#REP_MontoPagado').val());
             const sumaMedios = mediosPago.reduce((sum, m) => sum + m.monto, 0);
+            const moneda = documentosSeleccionados[0]?.moneda || 'CRC';
 
             if (Math.abs(sumaMedios - montoPagado) > 0.01) {
                 Swal.fire('Error',
-                    `La suma de los medios de pago (${formatCurrency(sumaMedios, 'CRC')}) no coincide con el monto a pagar (${formatCurrency(montoPagado, 'CRC')})`,
+                    `La suma de los medios de pago (${formatCurrency(sumaMedios, moneda)}) no coincide con el monto a pagar (${formatCurrency(montoPagado, moneda)})`,
                     'error');
                 return;
             }
 
-            // Preparar datos del REP
+            // Preparar datos del REP multi-factura
             const repData = {
-                documentoOriginalId: $('#REP_DocumentoOriginalId').val(),
+                documentos: documentos,
                 fechaPago: $('#REP_FechaPago').val(),
-                montoPagado: montoPagado,
-                moneda: documentoSeleccionado.moneda,
-                tipoCambio: documentoSeleccionado.tipoCambio || null,
+                moneda: moneda,
+                tipoCambio: documentosSeleccionados[0]?.tipoCambio || null,
                 observaciones: $('#REP_Observaciones').val() || null,
                 mediosPago: mediosPago
             };
@@ -827,15 +1104,15 @@
             // Mostrar loading
             Swal.fire({
                 title: 'Generando REP...',
-                html: 'Generando XML, firmando y enviando a Hacienda...',
+                html: `Generando REP para ${documentos.length} factura(s)...<br>Generando XML, firmando y enviando a Hacienda...`,
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
 
-            // Enviar a la API
-            const response = await fetch(`?handler=GenerarREP&empresaId=${empresaId}&terminalId=${terminalId}`, {
+            // Enviar a la API (multi-document endpoint)
+            const response = await fetch(`?handler=GenerarREPMulti&empresaId=${empresaId}&terminalId=${terminalId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -847,14 +1124,18 @@
             const result = await response.json();
 
             if (result.exitoso) {
+                const esPagoFinal = result.saldoPendiente <= 0;
                 Swal.fire({
-                    icon: 'success',
-                    title: 'REP Generado',
+                    icon: esPagoFinal ? 'success' : 'info',
+                    title: esPagoFinal ? 'Documento Completamente Pagado' : 'Pago Parcial Registrado',
                     html: `
                         <p>${result.mensaje}</p>
                         <p><strong>Clave REP:</strong> <small>${result.claveREP}</small></p>
-                        <p><strong>Monto Pagado:</strong> ${formatCurrency(result.montoPagado, 'CRC')}</p>
-                        <p><strong>Saldo Restante:</strong> ${formatCurrency(result.saldoPendiente, 'CRC')}</p>
+                        <p><strong>Monto Pagado:</strong> ${formatCurrency(result.montoPagado, moneda)}</p>
+                        ${esPagoFinal
+                            ? '<p class="text-success fw-bold">Saldo: 0.00 - Completamente pagado</p>'
+                            : `<p><strong>Saldo Restante:</strong> <span class="text-warning">${formatCurrency(result.saldoPendiente, moneda)}</span></p>`
+                        }
                     `,
                     confirmButtonText: 'Aceptar'
                 });
@@ -864,6 +1145,9 @@
                 tablePendientes.ajax.reload();
                 tableRecibos.ajax.reload();
                 loadEstadisticas();
+                // Uncheck all
+                $('#checkAll').prop('checked', false);
+                updateSelectionCount();
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -910,7 +1194,7 @@
                 detalle.pagos.forEach(pago => {
                     const row = `
                         <tr>
-                            <td>${new Date(pago.fechaPago).toLocaleDateString('es-CR')}</td>
+                            <td>${new Date(pago.fechaPago).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'})}</td>
                             <td>${pago.numeroConsecutivoREP}</td>
                             <td><small>${pago.claveREP}</small></td>
                             <td class="text-end">${formatCurrency(pago.montoPagado, 'CRC')}</td>
@@ -999,6 +1283,74 @@
 
     function loadRecibosGenerados() {
         tableRecibos.ajax.reload();
+    }
+
+    // ========================
+    // Sucursal / Terminal
+    // ========================
+
+    function loadSucursales() {
+        $.ajax({
+            url: '?handler=Sucursales&empresaId=' + empresaId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                sucursales = data;
+                const select = $('#REP_SucursalId');
+                select.empty().append('<option value="">Seleccione...</option>');
+
+                data.forEach(function(item) {
+                    select.append(`<option value="${item.id}">${item.nombre}</option>`);
+                });
+
+                // Auto-select if only one
+                if (data.length === 1) {
+                    select.val(data[0].id).trigger('change');
+                }
+            },
+            error: function(xhr) {
+                console.error('Error loading sucursales:', xhr);
+            }
+        });
+    }
+
+    function loadTerminales() {
+        $.ajax({
+            url: '?handler=Terminales&empresaId=' + empresaId,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(data) {
+                terminales = data;
+            },
+            error: function(xhr) {
+                console.error('Error loading terminales:', xhr);
+            }
+        });
+    }
+
+    function loadTerminalesBySucursal(sucursalId) {
+        const select = $('#REP_TerminalId');
+        select.empty().append('<option value="">Seleccione...</option>');
+
+        if (!sucursalId) return;
+
+        const sucursalIdLower = sucursalId.toLowerCase();
+        const filteredTerminales = terminales.filter(t =>
+            t.sucursalId && t.sucursalId.toLowerCase() === sucursalIdLower
+        );
+
+        filteredTerminales.forEach(function(item) {
+            select.append(`<option value="${item.id}">${item.codigo} - ${item.nombre || item.descripcion}</option>`);
+        });
+
+        // Auto-select if only one
+        if (filteredTerminales.length === 1) {
+            select.val(filteredTerminales[0].id);
+        }
     }
 
     function formatCurrency(amount, currency) {

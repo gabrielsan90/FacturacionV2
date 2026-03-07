@@ -376,6 +376,92 @@ public class ExtractosBancariosController : ControllerBase
     }
 
     /// <summary>
+    /// Actualiza un extracto bancario existente.
+    /// </summary>
+    /// <param name="id">ID del extracto bancario</param>
+    /// <param name="extracto">Datos actualizados del extracto</param>
+    /// <returns>Extracto bancario actualizado</returns>
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> PutAsync(Guid id, [FromBody] ExtractoBancario extracto)
+    {
+        try
+        {
+            if (id != extracto.Id)
+            {
+                return BadRequest(new ActionResponse<ExtractoBancario>
+                {
+                    WasSuccess = false,
+                    Message = "El ID de la URL no coincide con el ID del extracto."
+                });
+            }
+
+            var existente = await _context.ExtractosBancarios
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (existente == null)
+            {
+                return NotFound(new ActionResponse<ExtractoBancario>
+                {
+                    WasSuccess = false,
+                    Message = "Extracto bancario no encontrado."
+                });
+            }
+
+            if (!await TieneAccesoEmpresaAsync(existente.EmpresaId))
+            {
+                return Forbid();
+            }
+
+            if (existente.Estado == EstadosExtractoBancario.Cerrado)
+            {
+                return BadRequest(new ActionResponse<ExtractoBancario>
+                {
+                    WasSuccess = false,
+                    Message = "No se puede modificar un extracto cerrado."
+                });
+            }
+
+            // Update fields
+            existente.Numero = extracto.Numero;
+            existente.FechaInicio = extracto.FechaInicio;
+            existente.FechaFin = extracto.FechaFin;
+            existente.SaldoInicial = extracto.SaldoInicial;
+            existente.SaldoFinal = extracto.SaldoFinal;
+            existente.FechaModificacion = DateTime.UtcNow;
+            existente.ModificadoPorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Extracto bancario {ExtractoId} actualizado", id);
+
+            return Ok(new ActionResponse<ExtractoBancario>
+            {
+                WasSuccess = true,
+                Result = existente,
+                Message = "Extracto bancario actualizado exitosamente."
+            });
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Error de base de datos al actualizar extracto {ExtractoId}", id);
+            return StatusCode(500, new ActionResponse<ExtractoBancario>
+            {
+                WasSuccess = false,
+                Message = $"Error al actualizar el extracto: {ex.InnerException?.Message ?? ex.Message}"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error actualizando extracto {ExtractoId}", id);
+            return StatusCode(500, new ActionResponse<ExtractoBancario>
+            {
+                WasSuccess = false,
+                Message = $"Error interno del servidor: {ex.Message}"
+            });
+        }
+    }
+
+    /// <summary>
     /// Elimina un extracto bancario (soft delete si tiene conciliaciones, hard delete si no).
     /// </summary>
     /// <param name="id">ID del extracto bancario</param>

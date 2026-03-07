@@ -5,6 +5,7 @@ using Facturacion.Shared.Entities;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Facturacion.Frontend.Pages.Maestros;
 
@@ -51,7 +52,7 @@ public class CategoriasModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrWhiteSpace(empresaId))
             {
-                return new JsonResult(new List<Categoria>());
+                return new JsonResult(new { data = new List<Categoria>() });
             }
 
             var response = await client.GetAsync($"/api/Categorias/empresa/{empresaId}");
@@ -59,16 +60,16 @@ public class CategoriasModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var categorias = await response.Content.ReadFromJsonAsync<List<Categoria>>(_jsonOptions);
-                return new JsonResult(categorias ?? new List<Categoria>());
+                return new JsonResult(new { data = categorias ?? new List<Categoria>() });
             }
 
             _logger.LogWarning("Failed to load categorias. Status: {StatusCode}", response.StatusCode);
-            return new JsonResult(new List<Categoria>());
+            return new JsonResult(new { data = new List<Categoria>() });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading categorias");
-            return new JsonResult(new List<Categoria>());
+            return new JsonResult(new { data = new List<Categoria>() });
         }
     }
 
@@ -104,24 +105,10 @@ public class CategoriasModel : PageModel
     }
 
     // Handler to save (create or update) a categoria
-    public async Task<IActionResult> OnPostSaveAsync([FromBody] Categoria categoriaData)
+    public async Task<IActionResult> OnPostSaveAsync([FromBody] JsonElement categoriaElement)
     {
         try
         {
-            // Note: Using [FromBody] to receive JSON data from JavaScript
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value!.Errors.Count > 0)
-                    .Select(x => new
-                    {
-                        Field = x.Key,
-                        Message = x.Value!.Errors.First().ErrorMessage
-                    });
-
-                return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-            }
-
             var client = _httpClientFactory.CreateClient("FacturacionApi");
 
             var token = User.FindFirst("Token")?.Value;
@@ -136,16 +123,33 @@ public class CategoriasModel : PageModel
                 return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
             }
 
-            if (categoriaData.EmpresaId == Guid.Empty)
+            // Use JsonNode to manipulate the JSON: inject empresaId, normalize id
+            var node = JsonNode.Parse(categoriaElement.GetRawText())?.AsObject();
+            if (node == null)
             {
-                categoriaData.EmpresaId = empresaGuid;
+                return new JsonResult(new { success = false, message = "No se recibieron los datos de la categoría." });
             }
 
-            var json = JsonSerializer.Serialize(categoriaData);
+            // Determine if new or update
+            var idStr = node["id"]?.GetValue<string>() ?? "";
+            bool isNew = !Guid.TryParse(idStr, out var idGuid) || idGuid == Guid.Empty;
+
+            if (isNew)
+            {
+                node["id"] = Guid.Empty.ToString();
+            }
+
+            // Inject empresaId if missing
+            var existingEmpresa = node["empresaId"]?.GetValue<string>() ?? "";
+            if (!Guid.TryParse(existingEmpresa, out var existingEmpresaGuid) || existingEmpresaGuid == Guid.Empty)
+            {
+                node["empresaId"] = empresaGuid.ToString();
+            }
+
+            var json = node.ToJsonString();
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;
-            bool isNew = categoriaData.Id == Guid.Empty;
 
             if (isNew)
             {
@@ -153,12 +157,12 @@ public class CategoriasModel : PageModel
             }
             else
             {
-                response = await client.PutAsync($"/api/categorias/{categoriaData.Id}", content);
+                response = await client.PutAsync($"/api/categorias/{idGuid}", content);
             }
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Categoria {Action} successfully. ID: {Id}", isNew ? "created" : "updated", categoriaData.Id);
+                _logger.LogInformation("Categoria {Action} successfully", isNew ? "created" : "updated");
                 return new JsonResult(new
                 {
                     success = true,
@@ -168,13 +172,62 @@ public class CategoriasModel : PageModel
 
             var error = await response.Content.ReadAsStringAsync();
             _logger.LogWarning("Failed to save categoria. Status: {StatusCode}, Error: {Error}", response.StatusCode, error);
-            return new JsonResult(new { success = false, message = error });
+            var mensajeError = ExtraerMensajeError(error, (int)response.StatusCode);
+            return new JsonResult(new { success = false, message = mensajeError });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving categoria");
             return new JsonResult(new { success = false, message = "Error al guardar la categoría" });
         }
+    }
+
+    /// <summary>
+    /// Extrae un mensaje de error legible de la respuesta del API
+    /// </summary>
+    private static string ExtraerMensajeError(string responseBody, int statusCode)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return statusCode switch
+            {
+                400 => "Datos inválidos. Verifique los campos e intente de nuevo.",
+                403 => "No tiene permisos para realizar esta acción.",
+                404 => "Recurso no encontrado.",
+                _ => $"Error del servidor (código {statusCode})."
+            };
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("errors", out var errors))
+            {
+                var mensajes = new List<string>();
+                foreach (var field in errors.EnumerateObject())
+                {
+                    foreach (var msg in field.Value.EnumerateArray())
+                    {
+                        mensajes.Add(msg.GetString() ?? field.Name);
+                    }
+                }
+                if (mensajes.Count > 0) return string.Join(" | ", mensajes);
+            }
+
+            if (root.TryGetProperty("message", out var message))
+                return message.GetString() ?? responseBody;
+
+            if (root.ValueKind == JsonValueKind.String)
+                return root.GetString() ?? responseBody;
+        }
+        catch { /* Not JSON */ }
+
+        if (responseBody.Contains("An error occurred while saving"))
+            return "Error al guardar los datos. Verifique que todos los campos requeridos estén completos y no existan duplicados.";
+
+        return responseBody;
     }
 
     // Handler to delete a categoria

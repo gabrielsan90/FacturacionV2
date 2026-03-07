@@ -18,15 +18,18 @@ namespace Facturacion.Backend.Controllers;
 public class MensajesReceptorController : ControllerBase
 {
     private readonly IMensajeReceptorService _mensajeReceptorService;
+    private readonly IHaciendaApiService _haciendaApiService;
     private readonly ILogger<MensajesReceptorController> _logger;
     private readonly DataContext _context;
 
     public MensajesReceptorController(
         IMensajeReceptorService mensajeReceptorService,
+        IHaciendaApiService haciendaApiService,
         ILogger<MensajesReceptorController> logger,
         DataContext context)
     {
         _mensajeReceptorService = mensajeReceptorService;
+        _haciendaApiService = haciendaApiService;
         _logger = logger;
         _context = context;
     }
@@ -155,6 +158,64 @@ public class MensajesReceptorController : ControllerBase
         {
             _logger.LogError(ex, "Error al reenviar Mensaje Receptor");
             return StatusCode(500, new { mensaje = "Error interno del servidor", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Verifica el estado de un MR en Procesando consultando a Hacienda
+    /// POST /api/mensajesreceptor/{id}/verificar-estado
+    /// </summary>
+    [HttpPost("{id}/verificar-estado")]
+    public async Task<IActionResult> VerificarEstado(Guid id)
+    {
+        try
+        {
+            var mensaje = await _context.DocumentoReceptorMensajes
+                .Include(m => m.DocumentoOriginal)
+                .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted);
+
+            if (mensaje == null)
+                return NotFound(new { mensaje = "Mensaje receptor no encontrado" });
+
+            if (mensaje.Estado != "Procesando")
+                return Ok(new { mensaje = $"El mensaje ya tiene estado final: {mensaje.Estado}", estado = mensaje.Estado });
+
+            if (string.IsNullOrEmpty(mensaje.ClaveMensaje))
+                return BadRequest(new { mensaje = "El mensaje no tiene clave asignada" });
+
+            var empresaId = mensaje.DocumentoOriginal?.EmpresaId ?? Guid.Empty;
+            if (empresaId == Guid.Empty)
+                return BadRequest(new { mensaje = "No se pudo determinar la empresa del documento" });
+
+            var respuesta = await _haciendaApiService.ConsultarEstadoConTokenAsync(
+                mensaje.ClaveMensaje, empresaId, "stag");
+
+            if (respuesta != null && !string.IsNullOrEmpty(respuesta.IndEstado))
+            {
+                var indEstado = respuesta.IndEstado.ToLower().Trim();
+                if (indEstado == "aceptado")
+                {
+                    mensaje.Estado = "Aceptado";
+                    mensaje.MensajeHacienda = respuesta.RespuestaXml ?? "Aceptado por Hacienda";
+                    mensaje.FechaRespuestaHacienda = Helpers.FechaCostaRicaHelper.Ahora;
+                }
+                else if (indEstado == "rechazado")
+                {
+                    mensaje.Estado = "Rechazado";
+                    mensaje.MensajeHacienda = respuesta.RespuestaXml ?? "Rechazado por Hacienda";
+                    mensaje.FechaRespuestaHacienda = Helpers.FechaCostaRicaHelper.Ahora;
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { mensaje = $"Estado actualizado: {mensaje.Estado}", estado = mensaje.Estado });
+            }
+
+            return Ok(new { mensaje = "Hacienda aún no tiene respuesta. El mensaje sigue en procesamiento.", estado = "Procesando" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar estado de Mensaje Receptor {Id}", id);
+            return StatusCode(500, new { mensaje = "Error al consultar Hacienda", error = ex.Message });
         }
     }
 

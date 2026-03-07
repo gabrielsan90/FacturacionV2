@@ -171,7 +171,23 @@ public class RequisicionesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> PostAsync([FromBody] Requisicion requisicion)
     {
-        if (!ModelState.IsValid)
+        // Set server-generated fields BEFORE model validation
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        requisicion.Id = Guid.NewGuid();
+        requisicion.SolicitanteId = userId!;
+        requisicion.UsuarioCreacionId = userId;
+        requisicion.FechaCreacion = DateTime.Now;
+        requisicion.Estado = string.IsNullOrWhiteSpace(requisicion.Estado) ? "BOR" : requisicion.Estado;
+
+        if (string.IsNullOrWhiteSpace(requisicion.Numero) || requisicion.Numero == "AUTO")
+        {
+            requisicion.Numero = await GenerarNumeroRequisicionAsync(requisicion.EmpresaId);
+        }
+
+        // Clear model state errors for server-generated fields and re-validate
+        ModelState.Remove("Numero");
+        ModelState.Remove("SolicitanteId");
+        if (!TryValidateModel(requisicion))
         {
             return BadRequest(ModelState);
         }
@@ -180,14 +196,6 @@ public class RequisicionesController : ControllerBase
         {
             return Forbid();
         }
-
-        // Establecer valores de auditoría
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        requisicion.Id = Guid.NewGuid();
-        requisicion.SolicitanteId = userId;
-        requisicion.UsuarioCreacionId = userId;
-        requisicion.FechaCreacion = DateTime.Now;
-        requisicion.Estado = string.IsNullOrWhiteSpace(requisicion.Estado) ? "BOR" : requisicion.Estado;
 
         // Asignar IDs a los detalles
         if (requisicion.Detalles != null)
@@ -246,6 +254,47 @@ public class RequisicionesController : ControllerBase
         // Establecer usuario de modificación
         requisicion.UsuarioModificacionId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         requisicion.FechaModificacion = DateTime.Now;
+
+        var response = await _unitOfWork.UpdateAsync(requisicion);
+
+        if (!response.WasSuccess)
+        {
+            return BadRequest(response.Message);
+        }
+
+        return Ok(response.Result);
+    }
+
+    /// <summary>
+    /// Envía una requisición para aprobación.
+    /// Cambia el estado de Borrador (BOR) a Pendiente (PEN).
+    /// </summary>
+    /// <param name="id">ID de la requisición</param>
+    /// <returns>Requisición enviada</returns>
+    [HttpPost("{id:guid}/enviar")]
+    public async Task<IActionResult> EnviarAsync(Guid id)
+    {
+        var requisicionTemp = await _unitOfWork.GetAsync(id);
+        if (!requisicionTemp.WasSuccess)
+        {
+            return NotFound(requisicionTemp.Message);
+        }
+
+        if (!await TieneAccesoEmpresaAsync(requisicionTemp.Result!.EmpresaId))
+        {
+            return Forbid();
+        }
+
+        var requisicion = requisicionTemp.Result;
+
+        if (requisicion.Estado != "BOR" && requisicion.Estado != "PEN")
+        {
+            return BadRequest("Solo se pueden enviar requisiciones en estado Borrador o Pendiente.");
+        }
+
+        requisicion.Estado = "PEN";
+        requisicion.FechaModificacion = DateTime.UtcNow;
+        requisicion.UsuarioModificacionId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var response = await _unitOfWork.UpdateAsync(requisicion);
 
@@ -395,6 +444,30 @@ public class RequisicionesController : ControllerBase
         }
 
         return Ok(new { message = "Requisición eliminada correctamente." });
+    }
+
+    private async Task<string> GenerarNumeroRequisicionAsync(Guid empresaId)
+    {
+        var year = DateTime.Now.Year;
+        var month = DateTime.Now.Month;
+        var prefix = $"REQ-{year:D4}-{month:D2}-";
+
+        var lastNumero = await _context.Requisiciones
+            .IgnoreQueryFilters()
+            .Where(r => r.EmpresaId == empresaId && r.Numero.StartsWith(prefix))
+            .OrderByDescending(r => r.Numero)
+            .Select(r => r.Numero)
+            .FirstOrDefaultAsync();
+
+        int nextNumber = 1;
+        if (lastNumero != null)
+        {
+            var lastPart = lastNumero.Substring(prefix.Length);
+            if (int.TryParse(lastPart, out int last))
+                nextNumber = last + 1;
+        }
+
+        return $"{prefix}{nextNumber:D4}";
     }
 
     /// <summary>

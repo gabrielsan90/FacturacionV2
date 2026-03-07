@@ -503,8 +503,9 @@
                 selectFilter.empty().append('<option value="">Todas</option>');
 
                 data.forEach(item => {
-                    selectForm.append(`<option value="${item.id}">${item.numero}</option>`);
-                    selectFilter.append(`<option value="${item.id}">${item.numero}</option>`);
+                    const label = item.estadoLabel ? `${item.numero} (${item.estadoLabel})` : item.numero;
+                    selectForm.append(`<option value="${item.id}">${label}</option>`);
+                    selectFilter.append(`<option value="${item.id}">${label}</option>`);
                 });
             }
         });
@@ -552,12 +553,13 @@
                     detalles = [];
                     if (requisicionActual.detalles && requisicionActual.detalles.length > 0) {
                         requisicionActual.detalles.forEach(detalle => {
+                            const cant = detalle.cantidadSolicitada != null ? parseFloat(detalle.cantidadSolicitada) : parseFloat(detalle.cantidad || 0);
                             detalles.push({
                                 requisicionDetalleId: detalle.id,
                                 productoId: detalle.productoId,
                                 productoNombre: detalle.producto ? detalle.producto.nombre : 'Producto',
-                                cantidad: detalle.cantidad,
-                                precioEstimado: detalle.precioEstimado
+                                cantidad: cant,
+                                precioEstimado: parseFloat(detalle.precioEstimado || 0)
                             });
                         });
                     }
@@ -588,11 +590,13 @@
         const moneda = $('#Cotizacion_Moneda').val() || 'CRC';
 
         detalles.forEach(detalle => {
+            const cant = parseFloat(detalle.cantidad || 0);
+            const precio = parseFloat(detalle.precioEstimado || 0);
             tbody.append(`
                 <tr>
                     <td>${detalle.productoNombre}</td>
-                    <td class="text-end">${detalle.cantidad.toFixed(3)}</td>
-                    <td class="text-end">${formatCurrency(detalle.precioEstimado, moneda)}</td>
+                    <td class="text-end">${cant.toFixed(3)}</td>
+                    <td class="text-end">${formatCurrency(precio, moneda)}</td>
                 </tr>
             `);
         });

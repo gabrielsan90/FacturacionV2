@@ -10,7 +10,12 @@
         <h5 class="mb-0">
             <i class="fas fa-percentage me-2"></i>Códigos de Tarifas IVA - Catálogo Ministerio de Hacienda
         </h5>
-        <span class="badge bg-info">Solo Lectura</span>
+        <div>
+            <button class="btn btn-sm btn-outline-success me-2" onclick="poblarCatalogo()" title="Poblar catálogo con tarifas oficiales de Hacienda">
+                <i class="fas fa-magic me-1"></i>Poblar Catálogo
+            </button>
+            <span class="badge bg-info">Solo Lectura</span>
+        </div>
     </div>
     <div class="card-body">
         <div class="alert alert-info" role="alert">
@@ -37,6 +42,29 @@
     $(document).ready(function() {
         loadDataTable();
     });
+
+    function poblarCatalogo() {
+        confirmAction('Poblar Catálogo', '¿Desea poblar el catálogo con las tarifas oficiales de Hacienda?', function() {
+            $.ajax({
+                url: '?handler=PoblarCatalogo',
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(res) {
+                    if (res.success) {
+                        showSuccess(res.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(res.message || 'Error al poblar catálogo');
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
 
     function loadDataTable() {
         table = initDataTable('#tableCodigosTarifasIVA', {

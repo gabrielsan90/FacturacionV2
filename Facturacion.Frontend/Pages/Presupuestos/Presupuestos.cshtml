@@ -399,7 +399,7 @@
                 type: 'GET',
                 headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
                 dataSrc: function (json) {
-                    presupuestosData = json || [];
+                    presupuestosData = json.data || json || [];
                     $('#badgeTotal').text(presupuestosData.length);
                     return presupuestosData;
                 },

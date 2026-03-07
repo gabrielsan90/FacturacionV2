@@ -88,33 +88,78 @@ public class EstadoCuentaModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            // Build URL with optional date filters
             var url = $"/api/cuentasporcobrar/cliente/{clienteId}/estado";
-            var queryParams = new List<string>();
-
-            if (!string.IsNullOrEmpty(fechaDesde))
-            {
-                queryParams.Add($"fechaDesde={Uri.EscapeDataString(fechaDesde)}");
-            }
-
-            if (!string.IsNullOrEmpty(fechaHasta))
-            {
-                queryParams.Add($"fechaHasta={Uri.EscapeDataString(fechaHasta)}");
-            }
-
-            if (queryParams.Any())
-            {
-                url += "?" + string.Join("&", queryParams);
-            }
-
             var response = await client.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var movimientos = JsonSerializer.Deserialize<List<MovimientoCuentaDto>>(content, _jsonOptions);
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
 
-                return new JsonResult(new { data = movimientos ?? new List<MovimientoCuentaDto>() });
+                // API returns CuentaPorCobrar[] - transform to movimientos
+                var movimientos = new List<MovimientoCuentaDto>();
+
+                // Handle both array and ActionResponse wrapper
+                JsonElement cuentasArray;
+                if (root.ValueKind == JsonValueKind.Array)
+                    cuentasArray = root;
+                else if (root.TryGetProperty("result", out var resultProp) && resultProp.ValueKind == JsonValueKind.Array)
+                    cuentasArray = resultProp;
+                else
+                {
+                    return new JsonResult(new { data = movimientos });
+                }
+
+                foreach (var cuenta in cuentasArray.EnumerateArray())
+                {
+                    var fechaEmision = cuenta.TryGetProperty("fechaEmision", out var fe) ? fe.GetDateTime() : DateTime.MinValue;
+                    var numeroConsecutivo = cuenta.TryGetProperty("numeroConsecutivo", out var nc) ? nc.GetString() ?? "" : "";
+                    var montoOriginal = cuenta.TryGetProperty("montoOriginal", out var mo) ? mo.GetDecimal() : 0;
+                    var montoSaldo = cuenta.TryGetProperty("montoSaldo", out var ms) ? ms.GetDecimal() : 0;
+                    var estado = cuenta.TryGetProperty("estado", out var est) ? est.ToString() : "";
+
+                    // Apply date filters
+                    if (!string.IsNullOrEmpty(fechaDesde) && DateTime.TryParse(fechaDesde, out var desde) && fechaEmision < desde)
+                        continue;
+                    if (!string.IsNullOrEmpty(fechaHasta) && DateTime.TryParse(fechaHasta, out var hasta) && fechaEmision > hasta.AddDays(1))
+                        continue;
+
+                    // Add the invoice as a debit entry
+                    movimientos.Add(new MovimientoCuentaDto
+                    {
+                        Fecha = fechaEmision,
+                        Tipo = "Factura",
+                        NumeroDocumento = numeroConsecutivo,
+                        Descripcion = estado == "Pagada" ? "Factura (Pagada)" : estado == "Vencida" ? "Factura (Vencida)" : "Factura a crédito",
+                        Debito = montoOriginal,
+                        Credito = 0
+                    });
+
+                    // If there are payments (montoOriginal - montoSaldo > 0), add as credit
+                    var montoPagado = montoOriginal - montoSaldo;
+                    if (montoPagado > 0)
+                    {
+                        var fechaUltimoPago = cuenta.TryGetProperty("fechaUltimoPago", out var fup) && fup.ValueKind != JsonValueKind.Null
+                            ? fup.GetDateTime()
+                            : fechaEmision;
+
+                        movimientos.Add(new MovimientoCuentaDto
+                        {
+                            Fecha = fechaUltimoPago,
+                            Tipo = "Pago",
+                            NumeroDocumento = numeroConsecutivo,
+                            Descripcion = "Abono/Pago aplicado",
+                            Debito = 0,
+                            Credito = montoPagado
+                        });
+                    }
+                }
+
+                // Sort by date
+                movimientos = movimientos.OrderBy(m => m.Fecha).ThenBy(m => m.Tipo == "Factura" ? 0 : 1).ToList();
+
+                return new JsonResult(new { data = movimientos });
             }
 
             _logger.LogWarning("Failed to load estado de cuenta. Status code: {StatusCode}", response.StatusCode);
@@ -130,16 +175,11 @@ public class EstadoCuentaModel : PageModel
     // Handler to get summary statistics for client
     public async Task<IActionResult> OnGetSummaryAsync(string clienteId)
     {
+        var emptyResult = new { totalFacturado = 0m, totalPagado = 0m, saldoPendiente = 0m, facturasVencidas = 0,
+            facturadoPorMoneda = new List<object>(), pagadoPorMoneda = new List<object>(), pendientePorMoneda = new List<object>() };
+
         if (string.IsNullOrEmpty(clienteId))
-        {
-            return new JsonResult(new
-            {
-                totalFacturado = 0,
-                totalPagado = 0,
-                saldoPendiente = 0,
-                facturasVencidas = 0
-            });
-        }
+            return new JsonResult(emptyResult);
 
         try
         {
@@ -156,57 +196,115 @@ public class EstadoCuentaModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var movimientos = JsonSerializer.Deserialize<List<MovimientoCuentaDto>>(content, _jsonOptions);
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
 
-                var totalFacturado = movimientos?
-                    .Where(m => m.Tipo == "Factura" || m.Tipo == "Nota de Débito")
-                    .Sum(m => m.Debito) ?? 0;
+                JsonElement cuentasArray;
+                if (root.ValueKind == JsonValueKind.Array)
+                    cuentasArray = root;
+                else if (root.TryGetProperty("result", out var resultProp) && resultProp.ValueKind == JsonValueKind.Array)
+                    cuentasArray = resultProp;
+                else
+                    return new JsonResult(emptyResult);
 
-                var totalPagado = movimientos?
-                    .Where(m => m.Tipo == "Pago" || m.Tipo == "Nota de Crédito")
-                    .Sum(m => m.Credito) ?? 0;
+                decimal totalFacturado = 0;
+                decimal totalPagado = 0;
+                int facturasVencidas = 0;
 
-                var saldoPendiente = totalFacturado - totalPagado;
+                // Per-currency accumulators
+                var facturadoPorMonedaDict = new Dictionary<string, decimal>();
+                var pagadoPorMonedaDict = new Dictionary<string, decimal>();
+                var pendientePorMonedaDict = new Dictionary<string, decimal>();
 
-                // Count overdue invoices
-                var empresaId = User.FindFirstValue("EmpresaId");
-                var vencidasResponse = await client.GetAsync($"/api/cuentasporcobrar/empresa/{empresaId}/vencidas");
-                var facturasVencidas = 0;
-
-                if (vencidasResponse.IsSuccessStatusCode)
+                foreach (var cuenta in cuentasArray.EnumerateArray())
                 {
-                    var vencidasContent = await vencidasResponse.Content.ReadAsStringAsync();
-                    var vencidas = JsonSerializer.Deserialize<List<CuentasPorCobrarModel.CuentaPorCobrarDto>>(vencidasContent, _jsonOptions);
-                    facturasVencidas = vencidas?.Count(c => c.ClienteId == clienteId) ?? 0;
+                    var montoOriginal = cuenta.TryGetProperty("montoOriginal", out var mo) ? mo.GetDecimal() : 0;
+                    var montoSaldo = cuenta.TryGetProperty("montoSaldo", out var ms) ? ms.GetDecimal() : 0;
+                    var estado = cuenta.TryGetProperty("estado", out var est) ? est.ToString() : "";
+                    var moneda = cuenta.TryGetProperty("moneda", out var mon) ? mon.ToString() : "CRC";
+
+                    totalFacturado += montoOriginal;
+                    var pagado = montoOriginal - montoSaldo;
+                    totalPagado += pagado;
+
+                    // Accumulate per currency
+                    if (!facturadoPorMonedaDict.ContainsKey(moneda)) facturadoPorMonedaDict[moneda] = 0;
+                    if (!pagadoPorMonedaDict.ContainsKey(moneda)) pagadoPorMonedaDict[moneda] = 0;
+                    if (!pendientePorMonedaDict.ContainsKey(moneda)) pendientePorMonedaDict[moneda] = 0;
+
+                    facturadoPorMonedaDict[moneda] += montoOriginal;
+                    pagadoPorMonedaDict[moneda] += pagado;
+                    pendientePorMonedaDict[moneda] += montoSaldo;
+
+                    if (estado == "Vencida" || estado == "1")
+                        facturasVencidas++;
                 }
+
+                var facturadoPorMoneda = facturadoPorMonedaDict
+                    .Select(kv => new { moneda = kv.Key, monto = kv.Value })
+                    .OrderByDescending(m => m.monto).ToList();
+                var pagadoPorMoneda = pagadoPorMonedaDict
+                    .Select(kv => new { moneda = kv.Key, monto = kv.Value })
+                    .OrderByDescending(m => m.monto).ToList();
+                var pendientePorMoneda = pendientePorMonedaDict
+                    .Where(kv => kv.Value > 0)
+                    .Select(kv => new { moneda = kv.Key, monto = kv.Value })
+                    .OrderByDescending(m => m.monto).ToList();
 
                 return new JsonResult(new
                 {
                     totalFacturado,
                     totalPagado,
-                    saldoPendiente,
-                    facturasVencidas
+                    saldoPendiente = totalFacturado - totalPagado,
+                    facturasVencidas,
+                    facturadoPorMoneda,
+                    pagadoPorMoneda,
+                    pendientePorMoneda
                 });
             }
 
-            return new JsonResult(new
-            {
-                totalFacturado = 0,
-                totalPagado = 0,
-                saldoPendiente = 0,
-                facturasVencidas = 0
-            });
+            return new JsonResult(emptyResult);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading summary for cliente: {ClienteId}", clienteId);
-            return new JsonResult(new
+            return new JsonResult(emptyResult);
+        }
+    }
+
+    // Handler to get clients list for selection modal
+    public async Task<IActionResult> OnGetClientesAsync()
+    {
+        var empresaId = User.FindFirstValue("EmpresaId");
+        if (string.IsNullOrEmpty(empresaId))
+        {
+            return new JsonResult(new { data = new List<object>() });
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
             {
-                totalFacturado = 0,
-                totalPagado = 0,
-                saldoPendiente = 0,
-                facturasVencidas = 0
-            });
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/clientes/empresa/{empresaId}/select");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult { Content = content, ContentType = "application/json", StatusCode = 200 };
+            }
+
+            return new JsonResult(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading clientes list");
+            return new JsonResult(new List<object>());
         }
     }
 

@@ -166,21 +166,22 @@
             },
             columns: [
                 {
-                    data: 'empleado',
+                    data: 'empleadoNombre',
+                    defaultContent: '-',
                     render: function(data) {
-                        return data ? data.nombreCompleto : '-';
+                        return data || '-';
                     }
                 },
                 {
                     data: 'fechaInicio',
                     render: function(data) {
-                        return new Date(data).toLocaleDateString('es-CR');
+                        return new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                     }
                 },
                 {
                     data: 'fechaFin',
                     render: function(data) {
-                        return new Date(data).toLocaleDateString('es-CR');
+                        return new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                     }
                 },
                 {

@@ -5,10 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Sistema de Facturación Electrónica</title>
 
-    <!-- Google Fonts - Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Poppins font - local system font fallback (no external CDN dependency) -->
+    <style>
+        @@font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 300;
+            font-display: swap;
+            src: local('Poppins Light'), local('Poppins-Light');
+        }
+        @@font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Poppins Regular'), local('Poppins-Regular');
+        }
+        @@font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: local('Poppins Medium'), local('Poppins-Medium');
+        }
+        @@font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: local('Poppins SemiBold'), local('Poppins-SemiBold');
+        }
+        @@font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: local('Poppins Bold'), local('Poppins-Bold');
+        }
+    </style>
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -449,6 +483,50 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/Mayorizacion">
+                            <i class="fas fa-layer-group"></i>
+                            Mayorización
+                        </a>
+                    </li>
+                    <!-- Reportes Financieros -->
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/BalanzaComprobacion">
+                            <i class="fas fa-balance-scale-right"></i>
+                            Balanza de Comprobación
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/BalanceGeneral">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Balance General
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/EstadoResultados">
+                            <i class="fas fa-chart-line"></i>
+                            Estado de Resultados
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/LibroDiario">
+                            <i class="fas fa-book-open"></i>
+                            Libro Diario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/FlujoEfectivo">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Flujo de Efectivo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Contabilidad/BalanceSumasySaldos">
+                            <i class="fas fa-table"></i>
+                            Sumas y Saldos
+                        </a>
+                    </li>
+                    <!-- Configuración -->
+                    <li class="nav-item">
                         <a class="nav-link" asp-page="/Contabilidad/PlantillasAsiento">
                             <i class="fas fa-file-alt"></i>
                             Plantillas de Asientos
@@ -768,6 +846,18 @@
                             Reporte de Gastos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Reportes/DeclaracionIVA">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Declaración D-104 IVA
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-page="/Reportes/DeclaracionRetenciones">
+                            <i class="fas fa-hand-holding-usd"></i>
+                            Declaración D-103 Retenciones
+                        </a>
+                    </li>
                 </ul>
             </li>
 
@@ -905,6 +995,44 @@
                                 <i class="fas fa-home me-1"></i>Inicio
                             </a>
                         </li>
+                        @{
+                            // Derive the module name from the request path or ViewData override
+                            var breadcrumbModule = ViewData["BreadcrumbModule"] as string;
+                            if (string.IsNullOrEmpty(breadcrumbModule))
+                            {
+                                var pathSegments = Context.Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                                if (pathSegments != null && pathSegments.Length >= 2)
+                                {
+                                    var folderName = pathSegments[0];
+                                    // Map folder names to user-friendly display names
+                                    var moduleDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                                    {
+                                        { "DocumentosElectronicos", "Documentos Electrónicos" },
+                                        { "ActivosFijos", "Activos Fijos" },
+                                        { "CxC", "Cuentas por Cobrar" },
+                                        { "CxP", "Cuentas por Pagar" },
+                                        { "RRHH", "Recursos Humanos" },
+                                        { "Configuracion", "Configuración" },
+                                        { "Auth", "" },
+                                        { "Shared", "" }
+                                    };
+
+                                    if (moduleDisplayNames.TryGetValue(folderName, out var displayName))
+                                    {
+                                        breadcrumbModule = displayName;
+                                    }
+                                    else
+                                    {
+                                        // Split PascalCase into separate words (e.g., "CentrosCosto" -> "Centros Costo")
+                                        breadcrumbModule = System.Text.RegularExpressions.Regex.Replace(folderName, "(?<!^)([A-Z])", " $1");
+                                    }
+                                }
+                            }
+                        }
+                        @if (!string.IsNullOrEmpty(breadcrumbModule))
+                        {
+                            <li class="breadcrumb-item">@breadcrumbModule</li>
+                        }
                         @if (ViewData["Breadcrumb"] != null)
                         {
                             <li class="breadcrumb-item active" aria-current="page">@ViewData["Breadcrumb"]</li>
@@ -1059,7 +1187,7 @@
         <!-- Footer -->
         <footer class="footer">
             <div>
-                Sistema de Facturación Electrónica v4.4 - Costa Rica &copy; 2025
+                Sistema de Facturación Electrónica v4.4 - Costa Rica &copy; @DateTime.Now.Year
             </div>
             <div class="mt-1">
                 <small class="text-muted">Desarrollado con <i class="fas fa-heart text-danger"></i> por su equipo de desarrollo</small>

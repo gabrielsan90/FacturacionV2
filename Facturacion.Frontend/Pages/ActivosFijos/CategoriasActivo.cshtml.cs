@@ -5,6 +5,7 @@ using Facturacion.Shared.Entities;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Facturacion.Frontend.Pages.ActivosFijos;
 
@@ -103,7 +104,7 @@ public class CategoriasActivoModel : PageModel
     }
 
     // Handler to save (create or update) a categoria activo
-    public async Task<IActionResult> OnPostSaveAsync([FromBody] CategoriaActivo categoriaData)
+    public async Task<IActionResult> OnPostSaveAsync([FromBody] JsonElement categoriaElement)
     {
         try
         {
@@ -121,16 +122,32 @@ public class CategoriasActivoModel : PageModel
                 return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
             }
 
-            if (categoriaData.EmpresaId == Guid.Empty)
+            var node = JsonNode.Parse(categoriaElement.GetRawText())?.AsObject();
+            if (node == null)
             {
-                categoriaData.EmpresaId = empresaGuid;
+                return new JsonResult(new { success = false, message = "No se recibieron los datos de la categoría." });
             }
 
-            var json = JsonSerializer.Serialize(categoriaData);
+            // Determine if new or update
+            var idStr = node["id"]?.GetValue<string>() ?? "";
+            bool isNew = !Guid.TryParse(idStr, out var idGuid) || idGuid == Guid.Empty;
+
+            if (isNew)
+            {
+                node["id"] = Guid.Empty.ToString();
+            }
+
+            // Inject empresaId if missing
+            var existingEmpresa = node["empresaId"]?.GetValue<string>() ?? "";
+            if (!Guid.TryParse(existingEmpresa, out var existingEmpresaGuid) || existingEmpresaGuid == Guid.Empty)
+            {
+                node["empresaId"] = empresaGuid.ToString();
+            }
+
+            var json = node.ToJsonString();
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;
-            bool isNew = categoriaData.Id == Guid.Empty;
 
             if (isNew)
             {
@@ -138,12 +155,12 @@ public class CategoriasActivoModel : PageModel
             }
             else
             {
-                response = await client.PutAsync($"/api/categoriasactivo/{categoriaData.Id}", content);
+                response = await client.PutAsync($"/api/categoriasactivo/{idGuid}", content);
             }
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Categoria activo {Action} successfully. ID: {Id}", isNew ? "created" : "updated", categoriaData.Id);
+                _logger.LogInformation("Categoria activo {Action} successfully", isNew ? "created" : "updated");
                 return new JsonResult(new
                 {
                     success = true,
@@ -191,6 +208,87 @@ public class CategoriasActivoModel : PageModel
         {
             _logger.LogError(ex, "Error deleting categoria activo with ID: {Id}", id);
             return new JsonResult(new { success = false, message = "Error al eliminar la categoría" });
+        }
+    }
+
+    // Handler to generate a generic catalog of asset categories
+    public async Task<IActionResult> OnPostGenerarCatalogoAsync()
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var empresaId = User.FindFirstValue("EmpresaId");
+            if (string.IsNullOrWhiteSpace(empresaId) || !Guid.TryParse(empresaId, out var empresaGuid))
+            {
+                return new JsonResult(new { success = false, message = "Empresa no definida para el usuario" });
+            }
+
+            var catalogoGenerico = new[]
+            {
+                new { Codigo = "EDI", Nombre = "Edificios y Construcciones", Descripcion = "Edificios, locales comerciales y construcciones", VidaUtilAnios = 50, PorcentajeDepreciacionAnual = 2.00m },
+                new { Codigo = "MAQ", Nombre = "Maquinaria y Equipo", Descripcion = "Maquinaria industrial y equipo de producción", VidaUtilAnios = 10, PorcentajeDepreciacionAnual = 10.00m },
+                new { Codigo = "VEH", Nombre = "Vehículos", Descripcion = "Automóviles, camiones y vehículos de trabajo", VidaUtilAnios = 10, PorcentajeDepreciacionAnual = 10.00m },
+                new { Codigo = "MOB", Nombre = "Mobiliario y Equipo de Oficina", Descripcion = "Escritorios, sillas, archivadores y equipo de oficina", VidaUtilAnios = 10, PorcentajeDepreciacionAnual = 10.00m },
+                new { Codigo = "EQC", Nombre = "Equipo de Cómputo", Descripcion = "Computadoras, laptops, servidores y periféricos", VidaUtilAnios = 4, PorcentajeDepreciacionAnual = 25.00m },
+                new { Codigo = "HER", Nombre = "Herramientas", Descripcion = "Herramientas manuales y eléctricas", VidaUtilAnios = 5, PorcentajeDepreciacionAnual = 20.00m },
+                new { Codigo = "EQT", Nombre = "Equipo de Transporte", Descripcion = "Montacargas, carretillas y equipo de transporte interno", VidaUtilAnios = 10, PorcentajeDepreciacionAnual = 10.00m },
+                new { Codigo = "EQM", Nombre = "Equipo Médico y Laboratorio", Descripcion = "Instrumentos médicos, de laboratorio y científicos", VidaUtilAnios = 10, PorcentajeDepreciacionAnual = 10.00m },
+                new { Codigo = "SOF", Nombre = "Software y Licencias", Descripcion = "Licencias de software, sistemas y aplicaciones", VidaUtilAnios = 3, PorcentajeDepreciacionAnual = 33.33m },
+                new { Codigo = "INS", Nombre = "Instalaciones y Mejoras", Descripcion = "Mejoras a propiedades arrendadas e instalaciones", VidaUtilAnios = 20, PorcentajeDepreciacionAnual = 5.00m },
+                new { Codigo = "COM", Nombre = "Equipo de Comunicación", Descripcion = "Teléfonos, centrales telefónicas y equipo de redes", VidaUtilAnios = 5, PorcentajeDepreciacionAnual = 20.00m },
+            };
+
+            int creados = 0;
+            var errores = new List<string>();
+
+            foreach (var cat in catalogoGenerico)
+            {
+                var categoriaJson = JsonSerializer.Serialize(new
+                {
+                    id = Guid.Empty,
+                    empresaId = empresaGuid,
+                    codigo = cat.Codigo,
+                    nombre = cat.Nombre,
+                    descripcion = cat.Descripcion,
+                    vidaUtilAnios = cat.VidaUtilAnios,
+                    porcentajeDepreciacionAnual = cat.PorcentajeDepreciacionAnual,
+                    activo = true
+                });
+
+                var content = new StringContent(categoriaJson, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync("/api/categoriasactivo", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    creados++;
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    errores.Add($"{cat.Codigo} - {cat.Nombre}: {error}");
+                }
+            }
+
+            return new JsonResult(new
+            {
+                success = true,
+                message = $"Catálogo generado: {creados} categorías creadas.",
+                creados,
+                totalErrores = errores.Count,
+                errores
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating generic catalog");
+            return new JsonResult(new { success = false, message = "Error al generar el catálogo genérico" });
         }
     }
 

@@ -22,10 +22,9 @@ public class CreateDocumentoDTO
     [Required(ErrorMessage = "El campo {0} es obligatorio.")]
     public DocumentoTipo TipoDocumento { get; set; }
 
-    // Actividad económica
-    [Required(ErrorMessage = "El campo {0} es obligatorio.")]
+    // Actividad económica (opcional para empresas sin facturación electrónica)
     [MaxLength(6)]
-    public string ActividadEconomica { get; set; } = null!;
+    public string? ActividadEconomica { get; set; }
 
     // Fecha de emisión
     public DateTime? FechaEmision { get; set; } // Si no se proporciona, se usa DateTime.Now

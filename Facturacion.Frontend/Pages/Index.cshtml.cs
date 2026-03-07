@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace Facturacion.Frontend.Pages;
 
@@ -22,6 +23,64 @@ public class IndexModel : PageModel
         // Page initialization - no JWT token needed in view anymore
     }
 
+    private HttpClient CreateApiClient()
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+        return client;
+    }
+
+    /// <summary>
+    /// Extracts the data payload from an API response that may be a direct object/array
+    /// or wrapped in ActionResponse {wasSuccess, result}.
+    /// For object responses (resumen), returns the raw JSON of the object itself.
+    /// </summary>
+    private static string ExtractObjectJson(string content)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            // If it has a "result" property (ActionResponse wrapper), extract it
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("result", out var resultProp))
+            {
+                return resultProp.GetRawText();
+            }
+            // Otherwise return as-is (direct object)
+            return content;
+        }
+        catch
+        {
+            return "{}";
+        }
+    }
+
+    /// <summary>
+    /// Extracts an array from an API response that may be a direct array
+    /// or wrapped in ActionResponse {wasSuccess, result: [...]}.
+    /// </summary>
+    private static string ExtractArrayJson(string content)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(content);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                return content;
+            if (doc.RootElement.TryGetProperty("result", out var resultProp) &&
+                resultProp.ValueKind == JsonValueKind.Array)
+                return resultProp.GetRawText();
+            return "[]";
+        }
+        catch
+        {
+            return "[]";
+        }
+    }
+
     /// <summary>
     /// Handler for dashboard summary data (metrics)
     /// </summary>
@@ -29,30 +88,38 @@ public class IndexModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            // Get JWT from claims
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateApiClient();
             var response = await client.GetAsync("/api/dashboard/resumen");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<object>();
-                return new JsonResult(data);
+                var content = await response.Content.ReadAsStringAsync();
+                var dataJson = ExtractObjectJson(content);
+                return new ContentResult
+                {
+                    Content = dataJson,
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Dashboard resumen API returned status code: {StatusCode}", response.StatusCode);
-            return new JsonResult(null);
+            return new ContentResult
+            {
+                Content = "{\"totalVentasHoy\":0,\"documentosPendientesEnvio\":0,\"productosBajoStock\":0,\"pagosPendientes\":0}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading dashboard resumen");
-            return new JsonResult(null);
+            return new ContentResult
+            {
+                Content = "{\"totalVentasHoy\":0,\"documentosPendientesEnvio\":0,\"productosBajoStock\":0,\"pagosPendientes\":0}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
     }
 
@@ -63,29 +130,28 @@ public class IndexModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateApiClient();
             var response = await client.GetAsync($"/api/dashboard/ventas-dia?fechaInicio={fechaInicio}&fechaFin={fechaFin}");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<object>();
-                return new JsonResult(data);
+                var content = await response.Content.ReadAsStringAsync();
+                var dataJson = ExtractArrayJson(content);
+                return new ContentResult
+                {
+                    Content = dataJson,
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Dashboard ventas-dia API returned status code: {StatusCode}", response.StatusCode);
-            return new JsonResult(new List<object>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading ventas por dia");
-            return new JsonResult(new List<object>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -96,29 +162,28 @@ public class IndexModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateApiClient();
             var response = await client.GetAsync($"/api/dashboard/ventas-tipo?fechaInicio={fechaInicio}&fechaFin={fechaFin}");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<object>();
-                return new JsonResult(data);
+                var content = await response.Content.ReadAsStringAsync();
+                var dataJson = ExtractArrayJson(content);
+                return new ContentResult
+                {
+                    Content = dataJson,
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Dashboard ventas-tipo API returned status code: {StatusCode}", response.StatusCode);
-            return new JsonResult(new List<object>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading documentos por tipo");
-            return new JsonResult(new List<object>());
+            return new ContentResult { Content = "[]", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -129,14 +194,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            // Get JWT from claims
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
+            var client = CreateApiClient();
 
             // Build query string with pagination parameters
             var queryString = $"?pageSize={pageSize}&pageNumber={pageNumber}";
@@ -144,17 +202,33 @@ public class IndexModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<object>();
-                return new JsonResult(new { data });
+                var content = await response.Content.ReadAsStringAsync();
+                var dataJson = ExtractArrayJson(content);
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Documentos API returned status code: {StatusCode}", response.StatusCode);
-            return new JsonResult(new { data = new List<object>() });
+            return new ContentResult
+            {
+                Content = "{\"data\":[]}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading recent documents");
-            return new JsonResult(new { data = new List<object>() });
+            return new ContentResult
+            {
+                Content = "{\"data\":[]}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
     }
 
@@ -165,15 +239,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("FacturacionApi");
-
-            // Get JWT from claims
-            var token = User.FindFirst("Token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-
+            var client = CreateApiClient();
             var response = await client.GetAsync($"/api/Documentos/{id}/descargar-pdf");
 
             if (response.IsSuccessStatusCode)

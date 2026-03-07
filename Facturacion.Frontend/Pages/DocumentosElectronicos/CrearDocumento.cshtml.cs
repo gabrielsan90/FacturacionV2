@@ -85,12 +85,17 @@ public class CrearDocumentoModel : PageModel
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
-            var response = await client.GetAsync($"/api/Clientes/empresa/{empresaId}");
+            var response = await client.GetAsync($"/api/Clientes/empresa/{empresaId}/select");
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
-                return new JsonResult(data ?? new List<object>());
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = content,
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load clientes. Status code: {StatusCode}", response.StatusCode);
@@ -99,6 +104,42 @@ public class CrearDocumentoModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading clientes");
+            return new JsonResult(new List<object>());
+        }
+    }
+
+    // Handler to get proveedores for Select2 (used in FEC - Factura Electrónica de Compra)
+    public async Task<IActionResult> OnGetProveedoresAsync(string empresaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/Proveedores/empresa/{empresaId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return new ContentResult
+                {
+                    Content = content,
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
+            }
+
+            _logger.LogWarning("Failed to load proveedores. Status code: {StatusCode}", response.StatusCode);
+            return new JsonResult(new List<object>());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading proveedores");
             return new JsonResult(new List<object>());
         }
     }
@@ -131,6 +172,37 @@ public class CrearDocumentoModel : PageModel
         {
             _logger.LogError(ex, "Error loading cliente details. ID: {Id}", id);
             return new JsonResult(new { error = "Error al cargar los datos del cliente" });
+        }
+    }
+
+    // Handler to get single proveedor details (used in FEC)
+    public async Task<IActionResult> OnGetProveedorDetailsAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await client.GetAsync($"/api/Proveedores/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<object>(_jsonOptions);
+                return new JsonResult(data);
+            }
+
+            _logger.LogWarning("Proveedor not found. ID: {Id}, Status code: {StatusCode}", id, response.StatusCode);
+            return new JsonResult(new { error = "Proveedor no encontrado" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading proveedor details. ID: {Id}", id);
+            return new JsonResult(new { error = "Error al cargar los datos del proveedor" });
         }
     }
 

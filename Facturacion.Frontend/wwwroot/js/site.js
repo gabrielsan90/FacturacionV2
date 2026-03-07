@@ -524,4 +524,23 @@ $(document).ready(function() {
     setTimeout(function() {
         $('.alert:not(.alert-permanent)').fadeOut('slow');
     }, 5000);
+
+    // BUG #14: Warn before leaving page if a modal with a dirty form is open
+    window.addEventListener('beforeunload', function(e) {
+        const openModal = document.querySelector('.modal.show');
+        if (openModal) {
+            const form = openModal.querySelector('form');
+            if (form) {
+                const inputs = form.querySelectorAll('input:not([type="hidden"]), textarea, select');
+                const hasData = Array.from(inputs).some(function(el) {
+                    if (el.type === 'checkbox' || el.type === 'radio') return false;
+                    return el.value && el.value.trim() !== '' && el.value !== el.defaultValue;
+                });
+                if (hasData) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            }
+        }
+    });
 });

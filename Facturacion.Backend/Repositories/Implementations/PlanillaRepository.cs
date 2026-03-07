@@ -44,6 +44,7 @@ public class PlanillaRepository : IPlanillaRepository
         try
         {
             return await _context.Planillas
+                .Include(p => p.Detalles!)
                 .Where(p => p.EmpresaId == empresaId && !p.IsDeleted)
                 .OrderByDescending(p => p.Anio)
                 .ThenByDescending(p => p.Mes)

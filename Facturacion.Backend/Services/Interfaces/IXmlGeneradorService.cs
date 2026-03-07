@@ -24,11 +24,11 @@ public interface IXmlGeneradorService
 
     /// <summary>
     /// Genera el XML de un Recibo Electrónico de Pago (REP) - tipo 10
-    /// NUEVO en v4.4
+    /// NUEVO en v4.4. Soporta single y multi-documento.
     /// </summary>
     /// <param name="documentoREP">Documento REP a convertir en XML</param>
-    /// <param name="reciboPago">Información del recibo de pago</param>
-    /// <returns>XML del REP sin firmar</returns>
+    /// <param name="reciboPago">Información del recibo de pago (primer recibo)</param>
+    /// <returns>XML del REP sin firmar, conforme al XSD ReciboElectronicoPago_V4.4</returns>
     Task<string> GenerarREPAsync(Documento documentoREP, ReciboPago reciboPago);
 
     /// <summary>

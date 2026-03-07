@@ -37,4 +37,5 @@ public class ValidateCredentialsResponseDto
     public List<EmpresaLoginDto> Empresas { get; set; } = new();
     public bool RequiresEmpresaSelection { get; set; }
     public string? PreAuthToken { get; set; }
+    public bool IsSuperUser { get; set; }
 }

@@ -123,7 +123,8 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Nombre Comercial</label>
-                            <input type="text" class="form-control" id="Cliente_NombreComercial" maxlength="200" />
+                            <input type="text" class="form-control" id="Cliente_NombreComercial" maxlength="200" oninput="$('#charCountNombreComercial').text(this.value.length + '/200')" />
+                            <small class="text-muted float-end" id="charCountNombreComercial">0/200</small>
                         </div>
                     </div>
 
@@ -131,6 +132,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email Principal</label>
                             <input type="email" class="form-control" id="Cliente_EmailPrincipal" maxlength="100" />
+                            <div class="invalid-feedback">Ingrese un email válido (ej: usuario@dominio.com)</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Teléfono Principal</label>
@@ -188,7 +190,8 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Límite de Crédito</label>
-                            <input type="number" step="0.01" class="form-control" id="Cliente_LimiteCredito" value="0" />
+                            <input type="number" step="0.01" min="0" class="form-control" id="Cliente_LimiteCredito" value="0" />
+                            <div class="invalid-feedback">El valor debe ser mayor o igual a 0</div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Moneda</label>
@@ -236,7 +239,7 @@
                                 <option value="3">Cheque</option>
                                 <option value="4">Transferencia - depósito bancario</option>
                                 <option value="5">Recaudado por terceros</option>
-                                <option value="6">Otros</option>
+                                <option value="6">SINPE Móvil</option>
                                 <option value="99">Otros</option>
                             </select>
                             <small class="text-muted">Medio de pago según catálogo de Hacienda</small>
@@ -302,25 +305,29 @@
     });
 
     function loadDataTable() {
-        table = initDataTable('#tableClientes', {
+        table = $('#tableClientes').DataTable({
+            serverSide: true,
+            processing: true,
             ajax: {
                 url: '?handler=Data',
                 type: 'GET',
                 headers: {
                     "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
                 },
+                data: function(d) {
+                    return d;
+                },
                 dataSrc: function(json) {
                     // Hide loader
                     $('#tableClientesLoader').hide();
 
-                    // Get data array
-                    const data = json.data || json || [];
+                    const data = json.data || [];
 
-                    // Update badge count
-                    $('#badgeTotalClientes').text(data.length);
+                    // Update badge count with total records
+                    $('#badgeTotalClientes').text(json.recordsTotal || data.length);
 
                     // Show appropriate state
-                    if (data.length > 0) {
+                    if (json.recordsTotal > 0) {
                         $('#tableClientesContainer').show();
                         $('#emptyStateClientes').hide();
                     } else {
@@ -383,7 +390,17 @@
                     }
                 }
             ],
-            order: [[2, 'asc']]
+            order: [[2, 'asc']],
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json'
+            },
+            responsive: true,
+            autoWidth: false,
+            dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
         });
     }
 
@@ -422,8 +439,11 @@
             const identificacion = $(this).val().trim();
             const tipoId = $('#Cliente_TipoIdentificacion').val();
 
-            // Solo consultar si hay identificacion y es tipo Fisica (1) o Juridica (2)
-            if (identificacion && identificacion.length >= 9 && (tipoId === '1' || tipoId === '2')) {
+            // Solo consultar si la identificación es numérica y tiene longitud válida
+            if (!identificacion || !/^\d+$/.test(identificacion)) return;
+
+            if ((tipoId === '1' && identificacion.length === 9) ||
+                (tipoId === '2' && identificacion.length === 10)) {
                 consultarHacienda(identificacion);
             }
         });
@@ -717,7 +737,10 @@
             },
             success: function(data) {
                 $('#Cliente_Id').val(data.id);
-                $('#Cliente_TipoIdentificacion').val(data.tipoIdentificacion);
+                // TipoIdentificacion may be enum string or number
+                const tipoIdMap = {'Fisica': 1, 'Juridica': 2, 'DIMEX': 3, 'NITE': 4, 'Pasaporte': 5, 'Extranjera': 6};
+                const tipoIdVal = typeof data.tipoIdentificacion === 'string' ? (tipoIdMap[data.tipoIdentificacion] || data.tipoIdentificacion) : data.tipoIdentificacion;
+                $('#Cliente_TipoIdentificacion').val(tipoIdVal);
                 $('#Cliente_NumeroIdentificacion').val(data.numeroIdentificacion);
                 $('#Cliente_Nombre').val(data.nombre);
                 $('#Cliente_NombreComercial').val(data.nombreComercial || '');
@@ -775,7 +798,71 @@
         });
     }
 
+    function validarIdentificacion() {
+        const tipo = parseInt($('#Cliente_TipoIdentificacion').val());
+        const numero = $('#Cliente_NumeroIdentificacion').val().trim();
+
+        if (!numero) return true; // required lo maneja HTML5
+
+        // Tipo 1 = Física: solo números, 9 dígitos
+        if (tipo === 1) {
+            if (!/^\d+$/.test(numero)) {
+                showError('La cédula física debe contener solo números.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+            if (numero.length !== 9) {
+                showError('La cédula física debe tener exactamente 9 dígitos.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+        }
+        // Tipo 2 = Jurídica: solo números, 10 dígitos
+        else if (tipo === 2) {
+            if (!/^\d+$/.test(numero)) {
+                showError('La cédula jurídica debe contener solo números.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+            if (numero.length !== 10) {
+                showError('La cédula jurídica debe tener exactamente 10 dígitos.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+        }
+        // Tipo 3 = DIMEX: solo números, 11-12 dígitos
+        else if (tipo === 3) {
+            if (!/^\d+$/.test(numero)) {
+                showError('El DIMEX debe contener solo números.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+            if (numero.length < 11 || numero.length > 12) {
+                showError('El DIMEX debe tener entre 11 y 12 dígitos.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+        }
+        // Tipo 4 = NITE: solo números, 10 dígitos
+        else if (tipo === 4) {
+            if (!/^\d+$/.test(numero)) {
+                showError('El NITE debe contener solo números.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+            if (numero.length !== 10) {
+                showError('El NITE debe tener exactamente 10 dígitos.');
+                $('#Cliente_NumeroIdentificacion').focus();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function save() {
+        if (!validarIdentificacion()) return;
+
         // Preparar emails para enviar
         const emailsToSend = clienteEmails
             .filter(e => e.direccionEmail && e.direccionEmail.trim() !== '')
@@ -813,6 +900,9 @@
             emails: emailsToSend
         };
 
+        const $btnSave = $('#formCliente button[type="submit"]');
+        $btnSave.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Guardando...');
+
         $.ajax({
             url: '?handler=Save',
             type: 'POST',
@@ -832,6 +922,9 @@
             },
             error: function(xhr) {
                 handleAjaxError(xhr);
+            },
+            complete: function() {
+                $btnSave.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Guardar');
             }
         });
     }

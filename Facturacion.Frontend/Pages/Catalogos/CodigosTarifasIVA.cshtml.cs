@@ -56,4 +56,30 @@ public class CodigosTarifasIVAModel : PageModel
             return new JsonResult(new { data = new List<dynamic>() });
         }
     }
+
+    public async Task<IActionResult> OnPostPoblarCatalogoAsync()
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.PostAsync("/api/catalogos/codigos-tarifas-iva/poblar", null);
+            var content = await response.Content.ReadAsStringAsync();
+
+            return new ContentResult
+            {
+                Content = content,
+                ContentType = "application/json",
+                StatusCode = (int)response.StatusCode
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al poblar catálogo de tarifas IVA");
+            return new JsonResult(new { success = false, message = "Error al comunicarse con el servidor" }) { StatusCode = 500 };
+        }
+    }
 }

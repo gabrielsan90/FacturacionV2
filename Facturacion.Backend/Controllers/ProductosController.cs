@@ -172,7 +172,8 @@ public class ProductosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear producto para empresa {EmpresaId}", producto.EmpresaId);
-            return StatusCode(500, "Error interno al crear producto.");
+            var detalle = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al crear producto: {detalle}");
         }
     }
 
@@ -282,7 +283,8 @@ public class ProductosController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar producto {ProductoId}", id);
-            return StatusCode(500, "Error interno al actualizar producto.");
+            var detalle = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al actualizar producto: {detalle}");
         }
     }
 

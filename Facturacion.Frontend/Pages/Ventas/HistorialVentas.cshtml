@@ -2,7 +2,7 @@
 @model Facturacion.Frontend.Pages.Ventas.HistorialVentasModel
 @{
     ViewData["Title"] = "Historial de Ventas";
-    ViewData["Breadcrumb"] = "Ventas > Historial";
+    ViewData["Breadcrumb"] = "Historial";
 }
 
 @Html.AntiForgeryToken()
@@ -72,8 +72,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-muted mb-2">Clientes Únicos</h6>
-                        <h3 class="mb-0" id="clientesUnicos">0</h3>
+                        <h6 class="text-muted mb-2">Docs. Aceptados</h6>
+                        <h3 class="mb-0" id="docsAceptados">0</h3>
                     </div>
                     <div class="text-warning fs-1">
                         <i class="fas fa-users"></i>
@@ -295,58 +295,67 @@
             },
             columns: [
                 {
-                    data: 'fecha',
+                    data: 'fechaEmision',
                     render: function(data) {
-                        return data ? new Date(data).toLocaleDateString('es-CR') : '-';
+                        return data ? new Date(data).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-';
                     }
                 },
                 {
                     data: 'tipoDocumento',
                     render: function(data) {
                         const tipos = {
-                            'FE': '<span class="badge bg-primary">Factura</span>',
-                            'TE': '<span class="badge bg-info">Tiquete</span>',
-                            'NC': '<span class="badge bg-warning">N. Crédito</span>',
-                            'ND': '<span class="badge bg-danger">N. Débito</span>'
+                            'FacturaElectronica': '<span class="badge bg-primary">Factura</span>',
+                            'TiqueteElectronico': '<span class="badge bg-info">Tiquete</span>',
+                            'NotaCreditoElectronica': '<span class="badge bg-warning">N. Cr\u00e9dito</span>',
+                            'NotaDebitoElectronica': '<span class="badge bg-danger">N. D\u00e9bito</span>',
+                            'FacturaElectronicaExportacion': '<span class="badge bg-primary">F. Exportaci\u00f3n</span>',
+                            'FacturaElectronicaCompra': '<span class="badge bg-success">F. Compra</span>',
+                            'ReciboElectronicoPago': '<span class="badge bg-info">REP</span>'
                         };
-                        return tipos[data] || data;
+                        return tipos[data] || '<span class="badge bg-secondary">' + data + '</span>';
                     }
                 },
-                { data: 'numero' },
+                { data: 'numeroConsecutivo', defaultContent: '-' },
                 {
-                    data: 'cliente.nombre',
+                    data: 'clienteNombre',
+                    defaultContent: '-',
                     render: function(data) {
                         return data || '-';
                     }
                 },
                 {
-                    data: 'sucursal.nombre',
+                    data: 'sucursalNombre',
+                    defaultContent: '-',
                     render: function(data) {
                         return data || '-';
                     }
                 },
                 {
                     data: 'moneda',
+                    defaultContent: 'CRC',
                     render: function(data) {
                         return data || 'CRC';
                     }
                 },
                 {
                     data: 'subtotal',
+                    defaultContent: 0,
                     render: function(data, type, row) {
                         const symbol = row.moneda === 'USD' ? '$' : '₡';
                         return symbol + parseFloat(data || 0).toFixed(2);
                     }
                 },
                 {
-                    data: 'iva',
+                    data: 'totalImpuestos',
+                    defaultContent: 0,
                     render: function(data, type, row) {
                         const symbol = row.moneda === 'USD' ? '$' : '₡';
                         return symbol + parseFloat(data || 0).toFixed(2);
                     }
                 },
                 {
-                    data: 'total',
+                    data: 'totalVenta',
+                    defaultContent: 0,
                     render: function(data, type, row) {
                         const symbol = row.moneda === 'USD' ? '$' : '₡';
                         return '<strong>' + symbol + parseFloat(data || 0).toFixed(2) + '</strong>';
@@ -356,10 +365,14 @@
                     data: 'estado',
                     render: function(data) {
                         const badges = {
-                            'ACEPTADO': '<span class="badge bg-success">Aceptado</span>',
-                            'RECHAZADO': '<span class="badge bg-danger">Rechazado</span>',
-                            'PROCESANDO': '<span class="badge bg-warning">Procesando</span>',
-                            'ERROR': '<span class="badge bg-danger">Error</span>'
+                            'Aceptado': '<span class="badge bg-success">Aceptado</span>',
+                            'Rechazado': '<span class="badge bg-danger">Rechazado</span>',
+                            'Pendiente': '<span class="badge bg-warning">Pendiente</span>',
+                            'Procesando': '<span class="badge bg-info">Procesando</span>',
+                            'Borrador': '<span class="badge bg-secondary">Borrador</span>',
+                            'Contingencia': '<span class="badge bg-warning">Contingencia</span>',
+                            'Anulado': '<span class="badge bg-dark">Anulado</span>',
+                            'Error': '<span class="badge bg-danger">Error</span>'
                         };
                         return badges[data] || '<span class="badge bg-secondary">' + data + '</span>';
                     }
@@ -391,15 +404,34 @@
         let totalIVA = 0;
         let totalTotal = 0;
 
+        // Group by currency for stats cards
+        const porMoneda = {};
         data.forEach(item => {
             totalSubtotal += parseFloat(item.subtotal || 0);
-            totalIVA += parseFloat(item.iva || 0);
-            totalTotal += parseFloat(item.total || 0);
+            totalIVA += parseFloat(item.totalImpuestos || 0);
+            totalTotal += parseFloat(item.totalVenta || 0);
+
+            const moneda = item.moneda || 'CRC';
+            if (!porMoneda[moneda]) porMoneda[moneda] = { total: 0, count: 0 };
+            porMoneda[moneda].total += parseFloat(item.totalVenta || 0);
+            porMoneda[moneda].count++;
         });
 
         $('#footerSubtotal').text('₡' + totalSubtotal.toFixed(2));
         $('#footerIVA').text('₡' + totalIVA.toFixed(2));
         $('#footerTotal').text('₡' + totalTotal.toFixed(2));
+
+        // Update stats cards with per-currency breakdown
+        const ventasMoneda = Object.entries(porMoneda)
+            .map(([moneda, v]) => ({ moneda, monto: v.total }))
+            .sort((a, b) => b.monto - a.monto);
+        const promedioMoneda = Object.entries(porMoneda)
+            .map(([moneda, v]) => ({ moneda, monto: v.count > 0 ? v.total / v.count : 0 }))
+            .sort((a, b) => b.monto - a.monto);
+
+        $('#totalVentas').html(renderMontosPorMoneda(ventasMoneda, formatCurrency(0)));
+        $('#cantidadDocumentos').text(data.length);
+        $('#ticketPromedio').html(renderMontosPorMoneda(promedioMoneda, formatCurrency(0)));
     }
 
     async function loadResumen() {
@@ -417,10 +449,8 @@
 
             if (response.success && response.data) {
                 const data = response.data;
-                $('#totalVentas').text('₡' + parseFloat(data.totalVentas || 0).toFixed(2));
-                $('#cantidadDocumentos').text(data.cantidadDocumentos || 0);
-                $('#ticketPromedio').text('₡' + parseFloat(data.ticketPromedio || 0).toFixed(2));
-                $('#clientesUnicos').text(data.clientesUnicos || 0);
+                // Only set non-monetary stats here; monetary stats are set by calculateFooterTotals with per-currency breakdown
+                $('#docsAceptados').text(data.aceptados || 0);
             }
         } catch (error) {
             console.error('Error loading resumen:', error);

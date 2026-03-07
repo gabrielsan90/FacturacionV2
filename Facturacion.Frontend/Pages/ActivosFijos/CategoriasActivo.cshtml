@@ -12,9 +12,14 @@
             <h2><i class="fas fa-tags"></i> Categorías de Activos Fijos</h2>
             <p class="mb-0">Configuración de categorías con cuentas contables y parámetros de depreciación</p>
         </div>
-        <button class="btn btn-primary" onclick="openCreateModal()">
-            <i class="fas fa-plus me-2"></i>Nueva Categoría
-        </button>
+        <div class="btn-group">
+            <button class="btn btn-success" onclick="generarCatalogoGenerico()">
+                <i class="fas fa-magic me-2"></i>Generar Catálogo
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus me-2"></i>Nueva Categoría
+            </button>
+        </div>
     </div>
 </div>
 
@@ -502,10 +507,62 @@
         }
     }
 
+    function generarCatalogoGenerico() {
+        Swal.fire({
+            title: 'Generar Catálogo Genérico',
+            html: `Se crearán <strong>11 categorías</strong> estándar con sus parámetros de depreciación según normativa costarricense:<br><br>
+                <small class="text-muted">Edificios, Maquinaria, Vehículos, Mobiliario, Equipo de Cómputo, Herramientas, Equipo de Transporte, Equipo Médico, Software, Instalaciones, Equipo de Comunicación</small><br><br>
+                <span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Las categorías con código duplicado no se crearán.</span>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-magic me-1"></i>Generar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#198754',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'Generando catálogo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                $.ajax({
+                    url: '?handler=GenerarCatalogo',
+                    type: 'POST',
+                    headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            let msg = response.message;
+                            if (response.totalErrores > 0) {
+                                msg += `<br><br><strong>Errores:</strong> ${response.totalErrores}`;
+                                if (response.errores && response.errores.length > 0) {
+                                    msg += '<ul class="text-start small mt-2">';
+                                    response.errores.forEach(e => msg += `<li>${e}</li>`);
+                                    msg += '</ul>';
+                                }
+                            }
+                            Swal.fire({
+                                icon: response.totalErrores > 0 ? 'warning' : 'success',
+                                title: response.totalErrores > 0 ? 'Catálogo generado con advertencias' : 'Catálogo generado',
+                                html: msg
+                            });
+                            table.ajax.reload();
+                        } else {
+                            showError(response.message || 'Error al generar el catálogo');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        handleAjaxError(xhr);
+                    }
+                });
+            }
+        });
+    }
+
     window.openCreateModal = openCreateModal;
     window.edit = edit;
     window.save = save;
     window.deleteRecord = deleteRecord;
     window.refrescarTabla = refrescarTabla;
+    window.generarCatalogoGenerico = generarCatalogoGenerico;
 </script>
 }

@@ -235,7 +235,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-3">
                                             <div class="mb-3">
                                                 <div class="form-check form-switch">
                                                     <input asp-for="Empresa.Activa" class="form-check-input" type="checkbox" id="Empresa_Activa" />
@@ -243,6 +243,18 @@
                                                         Empresa Activa
                                                     </label>
                                                 </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="Empresa_RequiereFacturacionElectronica" name="Empresa.RequiereFacturacionElectronica" value="true" checked />
+                                                    <input type="hidden" name="Empresa.RequiereFacturacionElectronica" value="false" />
+                                                    <label class="form-check-label" for="Empresa_RequiereFacturacionElectronica">
+                                                        Facturación Electrónica
+                                                    </label>
+                                                </div>
+                                                <small class="form-text text-muted">Hacienda Costa Rica</small>
                                             </div>
                                         </div>
                                     </div>
@@ -759,8 +771,24 @@
 
         const ambientes = {
             1: { nombre: 'Pruebas', badge: 'bg-warning text-dark' },
-            2: { nombre: 'Producción', badge: 'bg-success' }
+            2: { nombre: 'Producción', badge: 'bg-success' },
+            'Pruebas': { nombre: 'Pruebas', badge: 'bg-warning text-dark' },
+            'Produccion': { nombre: 'Producción', badge: 'bg-success' }
         };
+
+        // Map ambiente string/number to select value
+        function ambienteToSelectValue(amb) {
+            if (amb === 'Pruebas' || amb === 1) return '1';
+            if (amb === 'Produccion' || amb === 2) return '2';
+            return amb?.toString() || '';
+        }
+
+        // Map select value to ambiente enum name for backend
+        function selectValueToAmbiente(val) {
+            if (val === '1') return 1;
+            if (val === '2') return 2;
+            return parseInt(val) || 0;
+        }
 
         $(document).ready(function () {
             loadDataTable();
@@ -771,7 +799,24 @@
             setupSucursalForm();
             setupTerminalForm();
             setupConsecutivoForm();
+
+            // Toggle Hacienda/Actividades tabs based on RequiereFacturacionElectronica
+            $('#Empresa_RequiereFacturacionElectronica').change(function () {
+                toggleHaciendaTabs($(this).is(':checked'));
+            });
         });
+
+        function toggleHaciendaTabs(requiere) {
+            if (requiere) {
+                $('#hacienda-tab, #actividades-tab').closest('li').show();
+            } else {
+                // If currently on hacienda or actividades tab, switch to general
+                if ($('#hacienda-tab').hasClass('active') || $('#actividades-tab').hasClass('active')) {
+                    $('#general-tab').tab('show');
+                }
+                $('#hacienda-tab, #actividades-tab').closest('li').hide();
+            }
+        }
 
         function loadDataTable() {
             table = $('#tableEmpresas').DataTable({
@@ -937,7 +982,7 @@
             });
         }
 
-        function loadCantones(provinciaId) {
+        function loadCantones(provinciaId, callback) {
             $.ajax({
                 url: '?handler=CantonesByProvincia&provinciaId=' + provinciaId,
                 type: 'GET',
@@ -954,15 +999,17 @@
                     });
                     select.prop('disabled', false);
                     $('#Empresa_Distrito').html('<option value="">Seleccione cantón primero...</option>').prop('disabled', true);
+                    if (typeof callback === 'function') callback();
                 },
                 error: function(xhr) {
                     console.error('Error loading cantones:', xhr);
                     $('#Empresa_Canton').html('<option value="">Error al cargar cantones</option>').prop('disabled', true);
+                    if (typeof callback === 'function') callback();
                 }
             });
         }
 
-        function loadDistritos(provinciaId, cantonId) {
+        function loadDistritos(provinciaId, cantonId, callback) {
             // Extraer solo los últimos 2 dígitos del código del cantón
             const cantonIdSoloDigitos = String(cantonId).padStart(4, '0').slice(-2);
             const cantonIdNumerico = parseInt(cantonIdSoloDigitos, 10);
@@ -982,10 +1029,12 @@
                         select.append(`<option value="${item.codigo}">${item.nombre}</option>`);
                     });
                     select.prop('disabled', false);
+                    if (typeof callback === 'function') callback();
                 },
                 error: function(xhr) {
                     console.error('Error loading distritos:', xhr);
                     $('#Empresa_Distrito').html('<option value="">Error al cargar distritos</option>').prop('disabled', true);
+                    if (typeof callback === 'function') callback();
                 }
             });
         }
@@ -997,6 +1046,8 @@
             $('#logoPreview').hide();
             $('#certificadoExistente').hide(); // Ocultar indicador de certificado en nueva empresa
             $('#Empresa_Activa').prop('checked', true);
+            $('#Empresa_RequiereFacturacionElectronica').prop('checked', true);
+            toggleHaciendaTabs(true);
             $('#AmbientePruebas').prop('checked', true);
 
             // Reset cascading dropdowns
@@ -1039,9 +1090,12 @@
                         currentEmpresaId = data.id;
                         isEditMode = true;
 
+                        // Enum string-to-int map (JsonStringEnumConverter sends strings, selects use int values)
+                        var tipoIdMap = { 'Fisica': 1, 'Juridica': 2, 'DIMEX': 3, 'NITE': 4, 'Pasaporte': 5, 'Extranjera': 6, 'NoContribuyente': 7 };
+
                         // Populate form fields
                         $('#Empresa_Id').val(data.id);
-                        $('#Empresa_TipoIdentificacion').val(data.tipoIdentificacion);
+                        $('#Empresa_TipoIdentificacion').val(tipoIdMap[data.tipoIdentificacion] || data.tipoIdentificacion);
                         $('#Empresa_NumeroIdentificacion').val(data.numeroIdentificacion);
                         $('#Empresa_NombreComercial').val(data.nombreComercial);
                         $('#Empresa_RazonSocial').val(data.razonSocial);
@@ -1053,15 +1107,20 @@
                         $('#Empresa_ClaveHacienda').val(data.claveHacienda);
                         $('#Empresa_Activa').prop('checked', data.activa);
 
+                        // Facturación Electrónica toggle
+                        var reqFE = data.requiereFacturacionElectronica !== false; // default true
+                        $('#Empresa_RequiereFacturacionElectronica').prop('checked', reqFE);
+                        toggleHaciendaTabs(reqFE);
+
                         // NUEVO v4.4: Cargar datos de Proveedor de Sistemas
                         if (data.proveedorSistemasTipoIdentificacion) {
-                            $('#Empresa_ProveedorSistemasTipoIdentificacion').val(data.proveedorSistemasTipoIdentificacion);
+                            $('#Empresa_ProveedorSistemasTipoIdentificacion').val(tipoIdMap[data.proveedorSistemasTipoIdentificacion] || data.proveedorSistemasTipoIdentificacion);
                         }
                         $('#Empresa_ProveedorSistemasIdentificacion').val(data.proveedorSistemasIdentificacion || '');
                         $('#Empresa_ProveedorSistemasNombre').val(data.proveedorSistemasNombre || '');
 
-                        // Set ambiente radio buttons
-                        if (data.ambiente === 1) {
+                        // Set ambiente radio buttons (JsonStringEnumConverter sends "Pruebas"/"Produccion")
+                        if (data.ambiente === 'Pruebas' || data.ambiente === 1) {
                             $('#AmbientePruebas').prop('checked', true);
                         } else {
                             $('#AmbienteProduccion').prop('checked', true);
@@ -1082,30 +1141,26 @@
                             $('#certificadoExistente').hide();
                         }
 
-                        // Load cascading dropdowns
+                        // Load cascading dropdowns with callbacks (not setTimeout)
                         currentProvinciaId = data.provincia;
-                        loadCantones(data.provincia);
-
-                        // Wait for cantones to load, then set canton and load distritos
-                        setTimeout(function () {
+                        loadCantones(data.provincia, function () {
                             $('#Empresa_Canton').val(data.canton);
                             currentCantonId = data.canton;
-                            loadDistritos(data.provincia, data.canton);
-
-                            // Wait for distritos to load, then set distrito
-                            setTimeout(function () {
+                            loadDistritos(data.provincia, data.canton, function () {
                                 $('#Empresa_Distrito').val(data.distrito);
-                            }, 300);
-                        }, 300);
+                            });
+                        });
 
                         $('#modalTitle').text('Editar Empresa');
                         $('#empresa-tab').tab('show');
                         $('#general-tab').tab('show');
 
                         // Load sucursales, terminales, consecutivos and actividades
+                        // Consecutivos depend on terminalesData, so load after terminales
                         loadSucursales(data.id);
-                        loadTerminales(data.id);
-                        loadConsecutivos(data.id);
+                        loadTerminales(data.id, function() {
+                            loadConsecutivos(data.id);
+                        });
                         loadActividadesEconomicas(data.id);
 
                         $('#modalEmpresa').modal('show');
@@ -1116,7 +1171,39 @@
             });
         }
 
+        function validarIdentificacionEmpresa() {
+            const tipo = parseInt($('#Empresa_TipoIdentificacion').val());
+            const numero = $('#Empresa_NumeroIdentificacion').val().trim();
+
+            if (!numero) return true; // required handled by HTML5
+
+            // Solo dígitos
+            if (!/^\d+$/.test(numero)) {
+                Swal.fire('Validación', 'El número de identificación debe contener solo dígitos.', 'warning');
+                $('#Empresa_NumeroIdentificacion').focus();
+                return false;
+            }
+
+            const reglas = {
+                1: { nombre: 'Cédula Física', longitud: [9], mensaje: 'La Cédula Física debe tener exactamente 9 dígitos.' },
+                2: { nombre: 'Cédula Jurídica', longitud: [10], mensaje: 'La Cédula Jurídica debe tener exactamente 10 dígitos (formato 3-XXX-XXXXXX).' },
+                3: { nombre: 'DIMEX', longitud: [11, 12], mensaje: 'El DIMEX debe tener 11 o 12 dígitos.' },
+                4: { nombre: 'NITE', longitud: [10], mensaje: 'El NITE debe tener exactamente 10 dígitos.' }
+            };
+
+            const regla = reglas[tipo];
+            if (regla && !regla.longitud.includes(numero.length)) {
+                Swal.fire('Validación', regla.mensaje, 'warning');
+                $('#Empresa_NumeroIdentificacion').focus();
+                return false;
+            }
+
+            return true;
+        }
+
         function saveEmpresa() {
+            if (!validarIdentificacionEmpresa()) return;
+
             var formData = new FormData($('#formEmpresa')[0]);
 
             $.ajax({
@@ -1434,7 +1521,7 @@
         // TERMINALES FUNCTIONS
         // ========================================
 
-        function loadTerminales(empresaId) {
+        function loadTerminales(empresaId, callback) {
             $.ajax({
                 url: '?handler=TerminalesByEmpresa&empresaId=' + empresaId,
                 type: 'GET',
@@ -1446,9 +1533,11 @@
                         terminalesData = response.data || [];
                         renderTerminalesTable();
                     }
+                    if (typeof callback === 'function') callback();
                 },
                 error: function(xhr) {
                     console.error('Error loading terminales:', xhr);
+                    if (typeof callback === 'function') callback();
                 }
             });
         }
@@ -1807,7 +1896,7 @@
             $('#Consecutivo_TerminalId').val(consecutivo.terminalId);
             $('#Consecutivo_TerminalIdSelect').val(consecutivo.terminalId);
             $('#Consecutivo_TipoDocumento').val(consecutivo.tipoDocumento);
-            $('#Consecutivo_Ambiente').val(consecutivo.ambiente);
+            $('#Consecutivo_Ambiente').val(ambienteToSelectValue(consecutivo.ambiente));
             $('#Consecutivo_NumeroActual').val(consecutivo.numeroActual);
             $('#Consecutivo_Activo').prop('checked', consecutivo.activo);
 

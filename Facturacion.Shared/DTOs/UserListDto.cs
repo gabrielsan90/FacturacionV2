@@ -13,6 +13,7 @@ public class UserListDto
     public bool IsLockedOut { get; set; }
     public DateTimeOffset? LockoutEnd { get; set; }
     public int AccessFailedCount { get; set; }
+    public DateTime? UltimaConexion { get; set; }
 }
 
 public class EmpresaBasicDto

@@ -239,45 +239,51 @@
                 ajax: {
                     url: '?handler=Data',
                     dataSrc: function(json) {
-                        cuentasData = json;
-                        return json;
+                        const data = json.data || json || [];
+                        cuentasData = data;
+                        return data;
                     }
                 },
                 columns: [
-                    { data: 'numeroCuenta' },
-                    { data: 'nombre' },
+                    { data: 'numeroCuenta', defaultContent: '' },
+                    { data: 'nombre', defaultContent: '' },
                     {
                         data: null,
                         render: function(data) {
-                            return data.banco?.nombre || data.nombreBanco || '-';
+                            return (data.banco && data.banco.nombre) || data.nombreBanco || '-';
                         }
                     },
                     {
                         data: 'tipoCuenta',
+                        defaultContent: '-',
                         render: function(data) {
                             const tipos = { 'CTE': 'Corriente', 'AHO': 'Ahorro', 'INV': 'Inversión' };
-                            return tipos[data] || data;
+                            return tipos[data] || data || '-';
                         }
                     },
                     {
                         data: 'moneda',
+                        defaultContent: '-',
                         render: function(data) {
                             const monedas = { 'CRC': '₡', 'USD': '$', 'EUR': '€' };
-                            return `<span class="badge bg-info">${monedas[data] || data}</span>`;
+                            return `<span class="badge bg-info">${monedas[data] || data || '-'}</span>`;
                         }
                     },
                     {
                         data: 'saldoActual',
+                        defaultContent: '0',
                         render: function(data, type, row) {
                             const monedas = { 'CRC': '₡', 'USD': '$', 'EUR': '€' };
                             const simbolo = monedas[row.moneda] || '';
-                            const valor = parseFloat(data).toLocaleString('es-CR', { minimumFractionDigits: 2 });
-                            const clase = data >= 0 ? 'text-success' : 'text-danger';
+                            const val = data != null ? data : 0;
+                            const valor = parseFloat(val).toLocaleString('es-CR', { minimumFractionDigits: 2 });
+                            const clase = val >= 0 ? 'text-success' : 'text-danger';
                             return `<span class="${clase}">${simbolo}${valor}</span>`;
                         }
                     },
                     {
                         data: 'activo',
+                        defaultContent: '<span class="badge bg-secondary">Inactiva</span>',
                         render: function(data) {
                             return data
                                 ? '<span class="badge bg-success">Activa</span>'
@@ -319,7 +325,7 @@
 
             // Cargar sucursales
             $.get('?handler=Sucursales', function(data) {
-                sucursalesData = data.result || data;
+                sucursalesData = Array.isArray(data) ? data : (data.result || data.data || []);
                 let options = '<option value="">Ninguna</option>';
                 if (Array.isArray(sucursalesData)) {
                     sucursalesData.forEach(s => {

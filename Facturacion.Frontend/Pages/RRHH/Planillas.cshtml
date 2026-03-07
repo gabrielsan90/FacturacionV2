@@ -50,6 +50,7 @@
                         <th>Total Bruto</th>
                         <th>Total Deducciones</th>
                         <th>Total Neto</th>
+                        <th>Cargas Patronales</th>
                         <th>Estado</th>
                         <th style="width: 150px;">Acciones</th>
                     </tr>
@@ -241,10 +242,9 @@
                     }
                 },
                 {
-                    data: 'detalles',
+                    data: 'cantidadEmpleados',
                     render: function(data) {
-                        const count = data ? data.length : 0;
-                        return `<span class="badge bg-info">${count}</span>`;
+                        return `<span class="badge bg-info">${data || 0}</span>`;
                     }
                 },
                 {
@@ -266,6 +266,12 @@
                     }
                 },
                 {
+                    data: 'totalCargasSociales',
+                    render: function(data) {
+                        return '₡' + parseFloat(data || 0).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                },
+                {
                     data: 'estado',
                     render: function(data) {
                         const estados = {
@@ -282,14 +288,40 @@
                     data: 'id',
                     orderable: false,
                     render: function(data, type, row) {
-                        return `
+                        let buttons = `
                             <button class="btn btn-sm btn-info" onclick="viewDetails('${data}')" title="Ver Detalle">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
-                                <i class="fas fa-trash"></i>
+                            <button class="btn btn-sm btn-outline-success" onclick="exportarCCSS('${data}')" title="Exportar CCSS (SICERE)">
+                                <i class="fas fa-file-excel"></i>
                             </button>
                         `;
+
+                        if (row.estado === 'BOR' || row.estado === 'CAL') {
+                            buttons += `
+                                <button class="btn btn-sm btn-success" onclick="aprobarPlanilla('${data}')" title="Aprobar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            `;
+                        }
+
+                        if (row.estado === 'APR') {
+                            buttons += `
+                                <button class="btn btn-sm btn-primary" onclick="pagarPlanilla('${data}')" title="Marcar como Pagada">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </button>
+                            `;
+                        }
+
+                        if (row.estado === 'BOR') {
+                            buttons += `
+                                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${data}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                        }
+
+                        return buttons;
                     }
                 }
             ],
@@ -370,6 +402,10 @@
         });
     }
 
+    function fmtMoney(val) {
+        return '₡' + parseFloat(val || 0).toLocaleString('es-CR', {minimumFractionDigits: 2});
+    }
+
     function renderDetallePlanilla(planilla) {
         const detalles = planilla.detalles || [];
         let html = `
@@ -381,25 +417,50 @@
                     <strong>Estado:</strong> ${planilla.estadoDescripcion || planilla.estado}
                 </div>
             </div>
+            <div class="table-responsive">
             <table class="table table-sm table-bordered">
                 <thead class="table-light">
                     <tr>
                         <th>Empleado</th>
-                        <th>Salario Bruto</th>
-                        <th>Deducciones</th>
-                        <th>Salario Neto</th>
+                        <th class="text-end">Sal. Bruto</th>
+                        <th class="text-end">CCSS (9.67%)</th>
+                        <th class="text-end">B. Popular (1%)</th>
+                        <th class="text-end">Renta</th>
+                        <th class="text-end">Otras Ded.</th>
+                        <th class="text-end">Total Ded.</th>
+                        <th class="text-end">Sal. Neto</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
 
+        let sumBruto = 0, sumCCSS = 0, sumBP = 0, sumRenta = 0, sumOtras = 0, sumTotalDed = 0, sumNeto = 0;
+
         detalles.forEach(d => {
+            const otrasDed = (d.deduccionPensionAlimenticia || 0) + (d.deduccionEmbargo || 0) +
+                             (d.deduccionPrestamo || 0) + (d.otrasDeducciones || 0);
+            sumBruto += d.salarioBruto || 0;
+            sumCCSS += d.deduccionCCSS || 0;
+            sumBP += d.deduccionBancoPopular || 0;
+            sumRenta += d.deduccionRenta || 0;
+            sumOtras += otrasDed;
+            sumTotalDed += d.totalDeducciones || 0;
+            sumNeto += d.salarioNeto || 0;
+
+            const otrasTitle = otrasDed > 0
+                ? `title="Pensión: ${fmtMoney(d.deduccionPensionAlimenticia)} | Embargo: ${fmtMoney(d.deduccionEmbargo)} | Préstamo: ${fmtMoney(d.deduccionPrestamo)} | Otras: ${fmtMoney(d.otrasDeducciones)}"`
+                : '';
+
             html += `
                 <tr>
-                    <td>${d.empleado ? d.empleado.nombreCompleto : '-'}</td>
-                    <td>₡${parseFloat(d.salarioBruto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</td>
-                    <td>₡${parseFloat(d.totalDeducciones).toLocaleString('es-CR', {minimumFractionDigits: 2})}</td>
-                    <td><strong>₡${parseFloat(d.salarioNeto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</strong></td>
+                    <td>${d.empleado ? d.empleado.nombreCompleto : (d.empleadoNombre || '-')}</td>
+                    <td class="text-end">${fmtMoney(d.salarioBruto)}</td>
+                    <td class="text-end">${fmtMoney(d.deduccionCCSS)}</td>
+                    <td class="text-end">${fmtMoney(d.deduccionBancoPopular)}</td>
+                    <td class="text-end">${fmtMoney(d.deduccionRenta)}</td>
+                    <td class="text-end" ${otrasTitle} style="cursor:${otrasDed > 0 ? 'help' : 'default'}">${fmtMoney(otrasDed)}</td>
+                    <td class="text-end"><strong>${fmtMoney(d.totalDeducciones)}</strong></td>
+                    <td class="text-end"><strong>${fmtMoney(d.salarioNeto)}</strong></td>
                 </tr>
             `;
         });
@@ -409,15 +470,161 @@
                 <tfoot class="table-light">
                     <tr>
                         <th>TOTALES</th>
-                        <th>₡${parseFloat(planilla.totalSalarioBruto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</th>
-                        <th>₡${parseFloat(planilla.totalDeducciones).toLocaleString('es-CR', {minimumFractionDigits: 2})}</th>
-                        <th><strong>₡${parseFloat(planilla.totalSalarioNeto).toLocaleString('es-CR', {minimumFractionDigits: 2})}</strong></th>
+                        <th class="text-end">${fmtMoney(sumBruto)}</th>
+                        <th class="text-end">${fmtMoney(sumCCSS)}</th>
+                        <th class="text-end">${fmtMoney(sumBP)}</th>
+                        <th class="text-end">${fmtMoney(sumRenta)}</th>
+                        <th class="text-end">${fmtMoney(sumOtras)}</th>
+                        <th class="text-end"><strong>${fmtMoney(sumTotalDed)}</strong></th>
+                        <th class="text-end"><strong>${fmtMoney(sumNeto)}</strong></th>
                     </tr>
                 </tfoot>
             </table>
+            </div>
+        `;
+
+        // Cargas Sociales Patronales
+        let sumCCSSPat = 0, sumOtrasInst = 0, sumINS = 0, sumAguinaldo = 0, sumVacaciones = 0, sumCesantia = 0, sumTotalCargas = 0;
+        detalles.forEach(d => {
+            sumCCSSPat += d.cargaCCSSPatronal || 0;
+            sumOtrasInst += d.cargaOtrasInstituciones || 0;
+            sumINS += d.cargaINS || 0;
+            sumAguinaldo += d.cargaAguinaldo || 0;
+            sumVacaciones += d.cargaVacaciones || 0;
+            sumCesantia += d.cargaCesantia || 0;
+            sumTotalCargas += d.totalCargasSociales || 0;
+        });
+
+        html += `
+            <h6 class="mt-4 mb-2"><i class="fas fa-building me-1"></i> Cargas Sociales Patronales</h6>
+            <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Empleado</th>
+                        <th class="text-end">CCSS Patr. (14.50%)</th>
+                        <th class="text-end">Otras Inst. (7.25%)</th>
+                        <th class="text-end">INS (1.21%)</th>
+                        <th class="text-end">Prov. Aguinaldo (8.33%)</th>
+                        <th class="text-end">Prov. Vacaciones (4.16%)</th>
+                        <th class="text-end">Prov. Cesantía (5.33%)</th>
+                        <th class="text-end">Total Cargas</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        detalles.forEach(d => {
+            html += `
+                <tr>
+                    <td>${d.empleado ? d.empleado.nombreCompleto : (d.empleadoNombre || '-')}</td>
+                    <td class="text-end">${fmtMoney(d.cargaCCSSPatronal)}</td>
+                    <td class="text-end">${fmtMoney(d.cargaOtrasInstituciones)}</td>
+                    <td class="text-end">${fmtMoney(d.cargaINS)}</td>
+                    <td class="text-end">${fmtMoney(d.cargaAguinaldo)}</td>
+                    <td class="text-end">${fmtMoney(d.cargaVacaciones)}</td>
+                    <td class="text-end">${fmtMoney(d.cargaCesantia)}</td>
+                    <td class="text-end"><strong>${fmtMoney(d.totalCargasSociales)}</strong></td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th>TOTALES</th>
+                        <th class="text-end">${fmtMoney(sumCCSSPat)}</th>
+                        <th class="text-end">${fmtMoney(sumOtrasInst)}</th>
+                        <th class="text-end">${fmtMoney(sumINS)}</th>
+                        <th class="text-end">${fmtMoney(sumAguinaldo)}</th>
+                        <th class="text-end">${fmtMoney(sumVacaciones)}</th>
+                        <th class="text-end">${fmtMoney(sumCesantia)}</th>
+                        <th class="text-end"><strong>${fmtMoney(sumTotalCargas)}</strong></th>
+                    </tr>
+                </tfoot>
+            </table>
+            </div>
+        `;
+
+        // Resumen de costo total
+        const costoTotal = sumBruto + sumTotalCargas;
+        html += `
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="card border-primary">
+                        <div class="card-body text-center py-2">
+                            <small class="text-muted">Total Salario Neto</small>
+                            <h5 class="text-primary mb-0">${fmtMoney(sumNeto)}</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-2">
+                            <small class="text-muted">Total Cargas Patronales</small>
+                            <h5 class="text-warning mb-0">${fmtMoney(sumTotalCargas)}</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-danger">
+                        <div class="card-body text-center py-2">
+                            <small class="text-muted">Costo Total Empleador</small>
+                            <h5 class="text-danger mb-0">${fmtMoney(costoTotal)}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         $('#detallesPlanillaContent').html(html);
+    }
+
+    function aprobarPlanilla(id) {
+        confirmDialog('Una vez aprobada, la planilla no podrá ser modificada.', '¿Aprobar Planilla?', function() {
+            $.ajax({
+                url: '?handler=Aprobar&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
+    }
+
+    function pagarPlanilla(id) {
+        confirmDialog('Esto marcará la planilla como pagada y generará el asiento contable correspondiente.', '¿Marcar como Pagada?', function() {
+            $.ajax({
+                url: '?handler=Pagar&id=' + id,
+                type: 'POST',
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        table.ajax.reload();
+                    } else {
+                        showError(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    handleAjaxError(xhr);
+                }
+            });
+        });
     }
 
     function deleteRecord(id) {
@@ -441,6 +648,10 @@
                 }
             });
         });
+    }
+
+    function exportarCCSS(planillaId) {
+        window.location.href = `?handler=ExportarCCSS&planillaId=${planillaId}`;
     }
 
     function refrescarTabla() {

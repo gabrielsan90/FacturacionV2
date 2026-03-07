@@ -50,18 +50,23 @@ public class CuentasPorPagarModel : PageModel
         var empresaId = User.FindFirstValue("EmpresaId");
         if (string.IsNullOrWhiteSpace(empresaId))
         {
-            return new JsonResult(new { data = new List<CuentaPorPagar>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
 
         var response = await client.GetAsync($"/api/cuentasporpagar/empresa/{empresaId}");
 
         if (response.IsSuccessStatusCode)
         {
-            var cuentas = await response.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions);
-            return new JsonResult(new { data = cuentas ?? new List<CuentaPorPagar>() });
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{content}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
-        return new JsonResult(new { data = new List<CuentaPorPagar>() });
+        return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
     }
 
     // Handler to get summary statistics
@@ -81,45 +86,50 @@ public class CuentasPorPagarModel : PageModel
             return new JsonResult(new { totalPendiente = 0, totalVencido = 0, pagosDelMes = 0 });
         }
 
-        decimal totalPendiente = 0;
-        decimal totalVencido = 0;
-        decimal pagosDelMes = 0;
+        var pendientes = new List<CuentaPorPagar>();
+        var vencidas = new List<CuentaPorPagar>();
+        var todas = new List<CuentaPorPagar>();
 
         // Get pending accounts
         var pendientesResponse = await client.GetAsync($"/api/cuentasporpagar/empresa/{empresaId}/pendientes");
         if (pendientesResponse.IsSuccessStatusCode)
         {
-            var pendientes = await pendientesResponse.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions);
-            totalPendiente = pendientes?.Sum(c => c.MontoSaldo) ?? 0;
+            pendientes = await pendientesResponse.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions) ?? new();
         }
 
         // Get overdue accounts
         var vencidasResponse = await client.GetAsync($"/api/cuentasporpagar/empresa/{empresaId}/vencidas");
         if (vencidasResponse.IsSuccessStatusCode)
         {
-            var vencidas = await vencidasResponse.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions);
-            totalVencido = vencidas?.Sum(c => c.MontoSaldo) ?? 0;
+            vencidas = await vencidasResponse.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions) ?? new();
         }
 
         // Calculate payments of current month
         var todasResponse = await client.GetAsync($"/api/cuentasporpagar/empresa/{empresaId}");
         if (todasResponse.IsSuccessStatusCode)
         {
-            var todas = await todasResponse.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions);
-            if (todas != null)
-            {
-                var primerDiaMes = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-                pagosDelMes = todas
-                    .Where(c => c.FechaModificacion.HasValue && c.FechaModificacion.Value >= primerDiaMes)
-                    .Sum(c => c.MontoAbonado);
-            }
+            todas = await todasResponse.Content.ReadFromJsonAsync<List<CuentaPorPagar>>(_jsonOptions) ?? new();
         }
+
+        var primerDiaMes = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var pagosDelMesList = todas
+            .Where(c => c.FechaModificacion.HasValue && c.FechaModificacion.Value >= primerDiaMes && c.MontoAbonado > 0)
+            .ToList();
 
         return new JsonResult(new
         {
-            totalPendiente,
-            totalVencido,
-            pagosDelMes
+            totalPendiente = pendientes.Sum(c => c.MontoSaldo),
+            totalVencido = vencidas.Sum(c => c.MontoSaldo),
+            pagosDelMes = pagosDelMesList.Sum(c => c.MontoAbonado),
+            pendientePorMoneda = pendientes.GroupBy(c => c.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoSaldo) })
+                .OrderByDescending(m => m.monto).ToList(),
+            vencidoPorMoneda = vencidas.GroupBy(c => c.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoSaldo) })
+                .OrderByDescending(m => m.monto).ToList(),
+            pagosDelMesPorMoneda = pagosDelMesList.GroupBy(c => c.Moneda ?? "CRC")
+                .Select(g => new { moneda = g.Key, monto = g.Sum(c => c.MontoAbonado) })
+                .OrderByDescending(m => m.monto).ToList()
         });
     }
 
@@ -148,18 +158,8 @@ public class CuentasPorPagarModel : PageModel
     // Handler to save (create or update) a cuenta por pagar
     public async Task<IActionResult> OnPostSaveAsync([FromBody] CuentaPorPagar cuentaData)
     {
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState
-                .Where(x => x.Value!.Errors.Count > 0)
-                .Select(x => new
-                {
-                    Field = x.Key,
-                    Message = x.Value!.Errors.First().ErrorMessage
-                });
-
-            return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-        }
+        // No validar ModelState aquí: EmpresaId no viene del JS y se inyecta abajo.
+        // La validación real la hace el API backend.
 
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 
@@ -217,18 +217,7 @@ public class CuentasPorPagarModel : PageModel
     // Handler to register a payment
     public async Task<IActionResult> OnPostRegistrarPagoAsync([FromBody] AbonoPago pagoData)
     {
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState
-                .Where(x => x.Value!.Errors.Count > 0)
-                .Select(x => new
-                {
-                    Field = x.Key,
-                    Message = x.Value!.Errors.First().ErrorMessage
-                });
-
-            return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-        }
+        // No validar ModelState aquí: la validación real la hace el API backend.
 
         var client = _httpClientFactory.CreateClient("FacturacionApi");
 

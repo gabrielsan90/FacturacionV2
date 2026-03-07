@@ -8,7 +8,7 @@ public interface IDocumentoRepository
     Task<Documento?> GetAsync(Guid id);
     Task<Documento?> GetWithDetallesAsync(Guid id);
     Task<IEnumerable<Documento>> GetByEmpresaAsync(Guid empresaId);
-    Task<(IEnumerable<Documento> Data, int TotalCount)> GetByEmpresaPagedAsync(
+    Task<(IEnumerable<object> Data, int TotalCount)> GetByEmpresaPagedAsync(
         Guid empresaId,
         int skip,
         int take,

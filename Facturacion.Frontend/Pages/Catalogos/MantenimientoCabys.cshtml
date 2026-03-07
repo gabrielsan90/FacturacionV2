@@ -8,11 +8,11 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
-            <i class="fas fa-tools me-2"></i>Mantenimiento de CÃ³digos CABYS
+            <i class="fas fa-tools me-2"></i>Mantenimiento de Códigos CABYS
         </h5>
         <div>
             <button class="btn btn-success btn-sm me-2" onclick="importarCabys()">
-                <i class="fas fa-file-import me-1"></i> Importar CatÃ¡logo
+                <i class="fas fa-file-import me-1"></i> Importar Catálogo
             </button>
             <button class="btn btn-primary btn-sm" onclick="openBuscarModal()">
                 <i class="fas fa-search me-1"></i> Buscar CABYS
@@ -22,16 +22,16 @@
     <div class="card-body">
         <div class="alert alert-info" role="alert">
             <i class="fas fa-info-circle me-2"></i>
-            CABYS (CÃ³digo de Bienes y Servicios) es un catÃ¡logo oficial del Ministerio de Hacienda de Costa Rica.
-            Todos los productos y servicios deben tener un cÃ³digo CABYS de 13 dÃ­gitos.
+            CABYS (Código de Bienes y Servicios) es un catálogo oficial del Ministerio de Hacienda de Costa Rica.
+            Todos los productos y servicios deben tener un código CABYS de 13 dígitos.
         </div>
 
         <table id="tableCabys" class="table table-hover">
             <thead>
                 <tr>
-                    <th>CÃ³digo CABYS</th>
-                    <th>DescripciÃ³n</th>
-                    <th>CategorÃ­a</th>
+                    <th>Código CABYS</th>
+                    <th>Descripción</th>
+                    <th>Categoría</th>
                     <th>Impuesto Sugerido</th>
                     <th style="width: 100px;">Acciones</th>
                 </tr>
@@ -46,12 +46,12 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Buscar CÃ³digo CABYS</h5>
+                <h5 class="modal-title">Buscar Código CABYS</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" id="searchCabysText" placeholder="Buscar por cÃ³digo o descripciÃ³n..." />
+                    <input type="text" class="form-control" id="searchCabysText" placeholder="Buscar por código o descripción..." />
                     <button class="btn btn-primary" onclick="buscarCabys()">
                         <i class="fas fa-search"></i> Buscar
                     </button>
@@ -143,7 +143,7 @@
                 }
             },
             error: function() {
-                showError('Error al buscar cÃ³digos CABYS');
+                showError('Error al buscar códigos CABYS');
             }
         });
     }
@@ -164,8 +164,8 @@
                     title: `CABYS: ${data.codigo}`,
                     html: `
                         <div class="text-start">
-                            <p><strong>DescripciÃ³n:</strong> ${data.descripcion}</p>
-                            <p><strong>CategorÃ­a:</strong> ${data.categoria || '-'}</p>
+                            <p><strong>Descripción:</strong> ${data.descripcion}</p>
+                            <p><strong>Categoría:</strong> ${data.categoria || '-'}</p>
                             <p><strong>Impuesto Sugerido:</strong> ${data.impuestoSugerido || '-'}</p>
                         </div>
                     `,

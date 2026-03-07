@@ -128,14 +128,14 @@
                         <div class="col-md-6">
                             <label class="form-label">Saldo Inicial <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text">₡</span>
+                                <span class="input-group-text" id="simboloSaldoInicial">$</span>
                                 <input type="number" class="form-control" id="saldoInicial" required step="0.01" value="0">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Saldo Final <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text">₡</span>
+                                <span class="input-group-text" id="simboloSaldoFinal">$</span>
                                 <input type="number" class="form-control" id="saldoFinal" required step="0.01" value="0">
                             </div>
                         </div>
@@ -146,14 +146,14 @@
                         <div class="col-md-4">
                             <label class="form-label">Total Créditos</label>
                             <div class="input-group">
-                                <span class="input-group-text">₡</span>
+                                <span class="input-group-text" id="simboloCreditos">$</span>
                                 <input type="number" class="form-control" id="totalCreditos" step="0.01" value="0">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Total Débitos</label>
                             <div class="input-group">
-                                <span class="input-group-text">₡</span>
+                                <span class="input-group-text" id="simboloDebitos">$</span>
                                 <input type="number" class="form-control" id="totalDebitos" step="0.01" value="0">
                             </div>
                         </div>
@@ -218,6 +218,10 @@
                 placeholder: 'Seleccione...',
                 allowClear: true,
                 language: 'es'
+            });
+
+            $('#cuentaBancariaId').on('change', function() {
+                actualizarSimbolosModal();
             });
         }
 
@@ -285,36 +289,39 @@
                     {
                         data: null,
                         render: function(data) {
-                            const inicio = new Date(data.fechaInicio).toLocaleDateString('es-CR');
-                            const fin = new Date(data.fechaFin).toLocaleDateString('es-CR');
+                            const inicio = new Date(data.fechaInicio).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                            const fin = new Date(data.fechaFin).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
                             return `${inicio}<br><small class="text-muted">al ${fin}</small>`;
                         }
                     },
                     {
                         data: 'saldoInicial',
-                        render: function(data) {
-                            const valor = parseFloat(data).toLocaleString('es-CR', { minimumFractionDigits: 2 });
+                        render: function(data, type, row) {
+                            const moneda = getMonedaCuenta(row);
+                            const valor = formatMoneda(data, moneda);
                             const clase = data >= 0 ? 'text-success' : 'text-danger';
-                            return `<span class="${clase}">₡${valor}</span>`;
+                            return `<span class="${clase}">${valor}</span>`;
                         }
                     },
                     {
                         data: 'saldoFinal',
-                        render: function(data) {
-                            const valor = parseFloat(data).toLocaleString('es-CR', { minimumFractionDigits: 2 });
+                        render: function(data, type, row) {
+                            const moneda = getMonedaCuenta(row);
+                            const valor = formatMoneda(data, moneda);
                             const clase = data >= 0 ? 'text-success' : 'text-danger';
-                            return `<span class="${clase}">₡${valor}</span>`;
+                            return `<span class="${clase}">${valor}</span>`;
                         }
                     },
                     {
                         data: null,
                         render: function(data) {
-                            const creditos = parseFloat(data.totalCreditos).toLocaleString('es-CR', { minimumFractionDigits: 2 });
-                            const debitos = parseFloat(data.totalDebitos).toLocaleString('es-CR', { minimumFractionDigits: 2 });
+                            const moneda = getMonedaCuenta(data);
+                            const creditos = formatMoneda(data.totalCreditos, moneda);
+                            const debitos = formatMoneda(data.totalDebitos, moneda);
                             return `
                                 <div class="small">
-                                    <div><span class="text-success">+₡${creditos}</span></div>
-                                    <div><span class="text-danger">-₡${debitos}</span></div>
+                                    <div><span class="text-success">+${creditos}</span></div>
+                                    <div><span class="text-danger">-${debitos}</span></div>
                                     <div class="text-muted">${data.cantidadTransacciones} transacciones</div>
                                 </div>
                             `;
@@ -364,6 +371,36 @@
                 responsive: true,
                 pageLength: 25
             });
+        }
+
+        function getSimboloMoneda(moneda) {
+            const simbolos = { 'CRC': '₡', 'USD': '$', 'EUR': '€' };
+            return simbolos[moneda] || moneda || '$';
+        }
+
+        function getMonedaCuenta(row) {
+            // Try from row's cuentaBancaria navigation property
+            if (row.cuentaBancaria && row.cuentaBancaria.moneda) return row.cuentaBancaria.moneda;
+            // Fallback: find in loaded cuentasData
+            var cId = row.cuentaBancariaId || (row.cuentaBancaria && row.cuentaBancaria.id);
+            if (cId) {
+                var cuenta = cuentasData.find(c => c.id === cId);
+                if (cuenta) return cuenta.moneda;
+            }
+            return 'CRC';
+        }
+
+        function formatMoneda(valor, moneda) {
+            var num = parseFloat(valor) || 0;
+            var formatted = num.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return getSimboloMoneda(moneda) + formatted;
+        }
+
+        function actualizarSimbolosModal() {
+            var cId = $('#cuentaBancariaId').val();
+            var cuenta = cuentasData.find(c => c.id === cId);
+            var simbolo = getSimboloMoneda(cuenta ? cuenta.moneda : null);
+            $('#simboloSaldoInicial, #simboloSaldoFinal, #simboloCreditos, #simboloDebitos').text(simbolo);
         }
 
         function filterByCuenta() {

@@ -58,6 +58,8 @@ public class CuentasPorPagarController : ControllerBase
         {
             Id = c.Id,
             NumeroFactura = c.NumeroFactura,
+            ProveedorId = c.ProveedorId,
+            ProveedorNombre = c.Proveedor?.Nombre ?? "",
             FechaFactura = c.FechaFactura,
             FechaVencimiento = c.FechaVencimiento,
             MontoOriginal = c.MontoOriginal,
@@ -65,7 +67,9 @@ public class CuentasPorPagarController : ControllerBase
             Estado = c.Estado,
             EstadoDescripcion = c.EstadoDescripcion,
             DiasVencido = c.DiasVencido,
-            MontoAbonado = c.MontoAbonado
+            MontoAbonado = c.MontoAbonado,
+            EstaVencida = c.EstaVencida,
+            Moneda = c.Moneda
         }).ToList();
 
         return Ok(cuentas);
@@ -96,6 +100,8 @@ public class CuentasPorPagarController : ControllerBase
         {
             Id = c.Id,
             NumeroFactura = c.NumeroFactura,
+            ProveedorId = c.ProveedorId,
+            ProveedorNombre = c.Proveedor?.Nombre ?? "",
             FechaFactura = c.FechaFactura,
             FechaVencimiento = c.FechaVencimiento,
             MontoOriginal = c.MontoOriginal,
@@ -103,7 +109,9 @@ public class CuentasPorPagarController : ControllerBase
             Estado = c.Estado,
             EstadoDescripcion = c.EstadoDescripcion,
             DiasVencido = c.DiasVencido,
-            MontoAbonado = c.MontoAbonado
+            MontoAbonado = c.MontoAbonado,
+            EstaVencida = c.EstaVencida,
+            Moneda = c.Moneda
         }).ToList();
 
         return Ok(cuentas);
@@ -134,6 +142,8 @@ public class CuentasPorPagarController : ControllerBase
         {
             Id = c.Id,
             NumeroFactura = c.NumeroFactura,
+            ProveedorId = c.ProveedorId,
+            ProveedorNombre = c.Proveedor?.Nombre ?? "",
             FechaFactura = c.FechaFactura,
             FechaVencimiento = c.FechaVencimiento,
             MontoOriginal = c.MontoOriginal,
@@ -141,7 +151,9 @@ public class CuentasPorPagarController : ControllerBase
             Estado = c.Estado,
             EstadoDescripcion = c.EstadoDescripcion,
             DiasVencido = c.DiasVencido,
-            MontoAbonado = c.MontoAbonado
+            MontoAbonado = c.MontoAbonado,
+            EstaVencida = c.EstaVencida,
+            Moneda = c.Moneda
         }).ToList();
 
         return Ok(cuentas);

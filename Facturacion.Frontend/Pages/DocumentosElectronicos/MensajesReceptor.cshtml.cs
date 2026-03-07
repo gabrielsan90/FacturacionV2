@@ -50,10 +50,20 @@ public class MensajesReceptorModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
 
+            // Use empresa from claims if not provided
+            if (string.IsNullOrEmpty(empresaId))
+            {
+                empresaId = User.FindFirst("EmpresaId")?.Value;
+            }
+
+            if (string.IsNullOrEmpty(empresaId))
+            {
+                return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
+            }
+
             // Build query string with filters
             var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(empresaId))
-                queryParams.Add($"empresaId={empresaId}");
+            queryParams.Add($"empresaId={empresaId}");
             if (!string.IsNullOrEmpty(fechaInicio))
                 queryParams.Add($"fechaInicio={fechaInicio}");
             if (!string.IsNullOrEmpty(fechaFin))
@@ -63,10 +73,7 @@ public class MensajesReceptorModel : PageModel
             if (!string.IsNullOrEmpty(estado))
                 queryParams.Add($"estado={estado}");
 
-            var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
-
-            // Note: This endpoint may need to be created in the backend
-            // For now, we'll use a generic approach
+            var queryString = "?" + string.Join("&", queryParams);
             var apiUrl = $"/api/MensajesReceptor{queryString}";
 
             _logger.LogInformation("Calling API: {ApiUrl}", apiUrl);
@@ -75,30 +82,43 @@ public class MensajesReceptorModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<List<object>>(_jsonOptions);
+                var content = await response.Content.ReadAsStringAsync();
 
-                _logger.LogInformation("Retrieved {Count} mensajes receptor", data?.Count ?? 0);
+                // API returns array directly — wrap for DataTable
+                using var doc = System.Text.Json.JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
 
-                return new JsonResult(new { data = data ?? new List<object>() });
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
-            // Handle error responses
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogError(
                 "API call failed with status {StatusCode}. URL: {ApiUrl}. Response: {ErrorContent}",
                 response.StatusCode, apiUrl, errorContent);
 
-            return new JsonResult(new { data = new List<object>() });
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "HTTP request exception in OnGetDataAsync");
-            return new JsonResult(new { data = new List<object>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error in OnGetDataAsync");
-            return new JsonResult(new { data = new List<object>() });
+            _logger.LogError(ex, "Error in OnGetDataAsync");
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -188,6 +208,32 @@ public class MensajesReceptorModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error resending message");
+            return new JsonResult(new { success = false, message = ex.Message });
+        }
+    }
+
+    public async Task<IActionResult> OnPostVerificarEstadoAsync(string id)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.PostAsync($"/api/MensajesReceptor/{id}/verificar-estado", null);
+            var content = await response.Content.ReadAsStringAsync();
+
+            return new ContentResult
+            {
+                Content = content,
+                ContentType = "application/json",
+                StatusCode = (int)response.StatusCode
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error verifying message status");
             return new JsonResult(new { success = false, message = ex.Message });
         }
     }

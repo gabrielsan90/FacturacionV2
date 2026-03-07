@@ -39,7 +39,7 @@ public class PlanillasModel : PageModel
         var empresaId = User.FindFirstValue("EmpresaId");
         if (string.IsNullOrEmpty(empresaId))
         {
-            return new JsonResult(new { data = new List<Planilla>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
 
         var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -54,11 +54,16 @@ public class PlanillasModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var planillas = await response.Content.ReadFromJsonAsync<List<Planilla>>(_jsonOptions);
-            return new JsonResult(new { data = planillas ?? new List<Planilla>() });
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                Content = $"{{\"data\":{content}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
-        return new JsonResult(new { data = new List<Planilla>() });
+        return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
     }
 
     public async Task<IActionResult> OnGetDetailsAsync(string id)
@@ -75,8 +80,13 @@ public class PlanillasModel : PageModel
 
         if (response.IsSuccessStatusCode)
         {
-            var planilla = await response.Content.ReadFromJsonAsync<Planilla>(_jsonOptions);
-            return new JsonResult(new { success = true, data = planilla });
+            var content = await response.Content.ReadAsStringAsync();
+            return new ContentResult
+            {
+                Content = $"{{\"success\":true,\"data\":{content}}}",
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
 
         return new JsonResult(new { success = false, message = "Planilla no encontrada" });
@@ -95,7 +105,7 @@ public class PlanillasModel : PageModel
         var json = JsonSerializer.Serialize(planillaData);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await client.PostAsync("/api/planillas", content);
+        var response = await client.PostAsync("/api/planillas/generar", content);
 
         if (response.IsSuccessStatusCode)
         {
@@ -108,6 +118,73 @@ public class PlanillasModel : PageModel
 
         var error = await response.Content.ReadAsStringAsync();
         return new JsonResult(new { success = false, message = error });
+    }
+
+    public async Task<IActionResult> OnPostAprobarAsync(string id)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await client.PostAsync($"/api/planillas/{id}/aprobar", null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new JsonResult(new { success = true, message = "Planilla aprobada exitosamente" });
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return new JsonResult(new { success = false, message = error });
+    }
+
+    public async Task<IActionResult> OnPostPagarAsync(string id)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var json = JsonSerializer.Serialize(new { FechaPago = DateTime.Now });
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync($"/api/planillas/{id}/pagar", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new JsonResult(new { success = true, message = "Planilla marcada como pagada exitosamente" });
+        }
+
+        var error = await response.Content.ReadAsStringAsync();
+        return new JsonResult(new { success = false, message = error });
+    }
+
+    public async Task<IActionResult> OnGetExportarCCSSAsync(Guid planillaId)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await client.GetAsync($"/api/planillas/{planillaId}/exportar-ccss");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "CCSS_Planilla.xlsx";
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+
+        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(string id)

@@ -127,7 +127,19 @@ public class OrdenesCompraController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> PostAsync([FromBody] OrdenCompra orden)
     {
-        if (!ModelState.IsValid)
+        // Set server-generated fields BEFORE validation
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        orden.Id = Guid.NewGuid();
+        orden.CreadoPorId = userId;
+        orden.Estado = string.IsNullOrWhiteSpace(orden.Estado) ? "BOR" : orden.Estado;
+
+        if (string.IsNullOrWhiteSpace(orden.Numero) || orden.Numero == "AUTO")
+        {
+            orden.Numero = await GenerarNumeroOrdenAsync(orden.EmpresaId);
+        }
+
+        ModelState.Remove("Numero");
+        if (!TryValidateModel(orden))
         {
             return BadRequest(ModelState);
         }
@@ -136,12 +148,6 @@ public class OrdenesCompraController : ControllerBase
         {
             return Forbid();
         }
-
-        // Establecer valores de auditoría
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        orden.Id = Guid.NewGuid();
-        orden.CreadoPorId = userId;
-        orden.Estado = string.IsNullOrWhiteSpace(orden.Estado) ? "BOR" : orden.Estado;
 
         // Asignar IDs a los detalles
         if (orden.Detalles != null)
@@ -199,6 +205,47 @@ public class OrdenesCompraController : ControllerBase
         }
 
         // Establecer usuario de modificación
+        orden.ModificadoPorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var response = await _unitOfWork.UpdateAsync(orden);
+
+        if (!response.WasSuccess)
+        {
+            return BadRequest(response.Message);
+        }
+
+        return Ok(response.Result);
+    }
+
+    /// <summary>
+    /// Envía una orden de compra para aprobación.
+    /// Cambia el estado de Borrador (BOR) a Pendiente (PEN).
+    /// </summary>
+    /// <param name="id">ID de la orden</param>
+    /// <returns>Orden enviada</returns>
+    [HttpPost("{id:guid}/enviar")]
+    public async Task<IActionResult> EnviarAsync(Guid id)
+    {
+        var ordenTemp = await _unitOfWork.GetAsync(id);
+        if (!ordenTemp.WasSuccess)
+        {
+            return NotFound(ordenTemp.Message);
+        }
+
+        if (!await TieneAccesoEmpresaAsync(ordenTemp.Result!.EmpresaId))
+        {
+            return Forbid();
+        }
+
+        var orden = ordenTemp.Result;
+
+        if (orden.Estado != "BOR" && orden.Estado != "PEN")
+        {
+            return BadRequest("Solo se pueden enviar órdenes en estado Borrador o Pendiente.");
+        }
+
+        orden.Estado = "PEN";
+        orden.FechaModificacion = DateTime.UtcNow;
         orden.ModificadoPorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var response = await _unitOfWork.UpdateAsync(orden);
@@ -335,5 +382,29 @@ public class OrdenesCompraController : ControllerBase
         // Verificar si el usuario tiene acceso a la empresa
         return await _context.UsuariosEmpresas
             .AnyAsync(ue => ue.UserId == userId && ue.EmpresaId == empresaId);
+    }
+
+    private async Task<string> GenerarNumeroOrdenAsync(Guid empresaId)
+    {
+        var year = DateTime.Now.Year;
+        var month = DateTime.Now.Month;
+        var prefix = $"OC-{year:D4}-{month:D2}-";
+
+        var lastNumero = await _context.OrdenesCompra
+            .IgnoreQueryFilters()
+            .Where(o => o.EmpresaId == empresaId && o.Numero.StartsWith(prefix))
+            .OrderByDescending(o => o.Numero)
+            .Select(o => o.Numero)
+            .FirstOrDefaultAsync();
+
+        int nextNumber = 1;
+        if (lastNumero != null)
+        {
+            var lastPart = lastNumero.Substring(prefix.Length);
+            if (int.TryParse(lastPart, out int last))
+                nextNumber = last + 1;
+        }
+
+        return $"{prefix}{nextNumber:D4}";
     }
 }

@@ -200,13 +200,23 @@ public class AjustesInventarioModel : PageModel
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
-            var json = ajusteData.GetRawText();
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             // Check if we're creating or updating
             var idProperty = ajusteData.GetProperty("id");
             var id = idProperty.GetString();
             var isNew = string.IsNullOrEmpty(id) || id == "00000000-0000-0000-0000-000000000000";
+
+            // Add Numero placeholder for new records to pass [Required] validation
+            var ajusteDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(ajusteData.GetRawText());
+            if (ajusteDict != null && isNew)
+            {
+                if (!ajusteDict.ContainsKey("numero") || ajusteDict["numero"].ValueKind == JsonValueKind.Null
+                    || (ajusteDict["numero"].ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(ajusteDict["numero"].GetString())))
+                {
+                    ajusteDict["numero"] = JsonDocument.Parse("\"AUTO\"").RootElement;
+                }
+            }
+            var json = JsonSerializer.Serialize(ajusteDict);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             HttpResponseMessage response;
             if (isNew)
@@ -267,6 +277,79 @@ public class AjustesInventarioModel : PageModel
         {
             _logger.LogError(ex, "Error applying ajuste inventario {Id}", id);
             return new JsonResult(new { success = false, message = "Ocurrió un error al aplicar el ajuste" });
+        }
+    }
+
+    /// <summary>
+    /// Handler to get stock for a product in a specific bodega
+    /// </summary>
+    public async Task<IActionResult> OnGetStockAsync(Guid productoId, Guid bodegaId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            // Get bodega to find its sucursalId
+            var bodegaResponse = await client.GetAsync($"/api/bodegas/{bodegaId}");
+            if (!bodegaResponse.IsSuccessStatusCode)
+            {
+                return new JsonResult(new { success = false, stock = 0m });
+            }
+
+            var bodegaContent = await bodegaResponse.Content.ReadAsStringAsync();
+            var bodega = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(bodegaContent, _jsonOptions);
+            var sucursalId = bodega.TryGetProperty("sucursalId", out var sId) ? sId.GetString() : null;
+            if (string.IsNullOrEmpty(sucursalId))
+            {
+                return new JsonResult(new { success = false, stock = 0m });
+            }
+
+            // Get inventory for the empresa
+            var empresaId = User.FindFirstValue("EmpresaId");
+            var invResponse = await client.GetAsync($"/api/inventarios/empresa/{empresaId}");
+            if (!invResponse.IsSuccessStatusCode)
+            {
+                return new JsonResult(new { success = false, stock = 0m });
+            }
+
+            var invContent = await invResponse.Content.ReadAsStringAsync();
+            var inventarios = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(invContent, _jsonOptions);
+
+            decimal stock = 0;
+            if (inventarios.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var inv in inventarios.EnumerateArray())
+                {
+                    var pId = inv.TryGetProperty("productoId", out var p) ? p.GetString() : null;
+                    var bId = inv.TryGetProperty("bodegaId", out var b) && b.ValueKind == System.Text.Json.JsonValueKind.String ? b.GetString() : null;
+                    var sIdInv = inv.TryGetProperty("sucursalId", out var s) ? s.GetString() : null;
+
+                    if (pId == productoId.ToString())
+                    {
+                        if (bId == bodegaId.ToString())
+                        {
+                            stock = inv.TryGetProperty("cantidadActual", out var c) ? c.GetDecimal() : 0;
+                            break;
+                        }
+                        if (bId == null && sIdInv == sucursalId)
+                        {
+                            stock = inv.TryGetProperty("cantidadActual", out var c) ? c.GetDecimal() : 0;
+                        }
+                    }
+                }
+            }
+
+            return new JsonResult(new { success = true, stock });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting stock for producto {ProductoId} bodega {BodegaId}", productoId, bodegaId);
+            return new JsonResult(new { success = false, stock = 0m });
         }
     }
 

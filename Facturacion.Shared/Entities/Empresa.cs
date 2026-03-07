@@ -97,6 +97,13 @@ public class Empresa
     [Display(Name = "Ambiente Hacienda")]
     public Ambiente Ambiente { get; set; } = Ambiente.Pruebas;
 
+    /// <summary>
+    /// Indica si la empresa requiere facturación electrónica (Hacienda Costa Rica).
+    /// Cuando es false, los documentos no generan Clave ni se envían a Hacienda.
+    /// </summary>
+    [Display(Name = "Requiere Facturación Electrónica")]
+    public bool RequiereFacturacionElectronica { get; set; } = true;
+
     // ========================================
     // PROVEEDOR DE SISTEMAS (v4.4 - OBLIGATORIO)
     // ========================================

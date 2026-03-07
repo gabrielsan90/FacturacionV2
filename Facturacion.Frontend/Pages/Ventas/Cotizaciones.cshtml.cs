@@ -243,13 +243,30 @@ public class CotizacionesModel : PageModel
         if (!obj.ContainsKey("medioPago") || string.IsNullOrEmpty(obj["medioPago"]?.ToString()))
             obj["medioPago"] = "01"; // Default: Efectivo
 
-        if (!obj.ContainsKey("moneda"))
+        if (!obj.ContainsKey("moneda") || string.IsNullOrEmpty(obj["moneda"]?.ToString()))
             obj["moneda"] = "CRC";
+
+        // Ensure empresaId is set
+        if (string.IsNullOrWhiteSpace(empresaId))
+        {
+            return new JsonResult(new { success = false, message = "No se encontró la empresa del usuario. Cierre sesión e inicie de nuevo." });
+        }
+        obj["empresaId"] = empresaId;
 
         // Fetch default sucursal/terminal if missing
         if (!obj.ContainsKey("sucursalId") || obj["sucursalId"]?.ToString() == "00000000-0000-0000-0000-000000000000")
         {
             var sucTerminal = await ObtenerSucursalTerminalDefaultAsync(client, empresaId);
+
+            if (sucTerminal.sucursalId == Guid.Empty.ToString())
+            {
+                return new JsonResult(new { success = false, message = "No hay sucursales configuradas para esta empresa. Configure al menos una sucursal en Configuración → Sucursales antes de crear cotizaciones." });
+            }
+            if (sucTerminal.terminalId == Guid.Empty.ToString())
+            {
+                return new JsonResult(new { success = false, message = "No hay terminales configuradas para la sucursal. Configure al menos una terminal en Configuración → Terminales antes de crear cotizaciones." });
+            }
+
             obj["sucursalId"] = sucTerminal.sucursalId;
             obj["terminalId"] = sucTerminal.terminalId;
         }
@@ -286,7 +303,8 @@ public class CotizacionesModel : PageModel
         }
 
         var error = await response.Content.ReadAsStringAsync();
-        return new JsonResult(new { success = false, message = error });
+        var mensajeError = ExtraerMensajeError(error, (int)response.StatusCode);
+        return new JsonResult(new { success = false, message = mensajeError });
     }
 
     // Handler to send quotation to customer
@@ -412,6 +430,109 @@ public class CotizacionesModel : PageModel
 
         var error = await response.Content.ReadAsStringAsync();
         return new JsonResult(new { success = false, message = error });
+    }
+
+    // Handler to view or download PDF
+    // download parameter: true = download (attachment), false = view inline
+    public async Task<IActionResult> OnGetPdfAsync(string id, bool download = false)
+    {
+        var client = _httpClientFactory.CreateClient("FacturacionApi");
+
+        var token = User.FindFirst("Token")?.Value;
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await client.GetAsync($"/api/cotizaciones/{id}/descargar-pdf");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+            var fileName = $"Cotizacion_{id}.pdf";
+
+            if (response.Content.Headers.ContentDisposition?.FileName != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            if (download)
+            {
+                return File(fileBytes, "application/pdf", fileName);
+            }
+            else
+            {
+                // Return without fileName to use Content-Disposition: inline
+                return File(fileBytes, "application/pdf");
+            }
+        }
+
+        return new JsonResult(new { success = false, message = "Error al generar el PDF de la cotización." });
+    }
+
+    /// <summary>
+    /// Extrae un mensaje de error legible de la respuesta del API
+    /// </summary>
+    private static string ExtraerMensajeError(string responseBody, int statusCode)
+    {
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return statusCode switch
+            {
+                400 => "Datos inválidos. Verifique los campos e intente de nuevo.",
+                401 => "No autorizado. Inicie sesión nuevamente.",
+                403 => "No tiene permisos para realizar esta acción.",
+                404 => "Recurso no encontrado.",
+                _ => $"Error del servidor (código {statusCode})."
+            };
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            // ValidationProblem format: { "errors": { "field": ["msg"] }, "title": "..." }
+            if (root.TryGetProperty("errors", out var errors))
+            {
+                var mensajes = new List<string>();
+                foreach (var field in errors.EnumerateObject())
+                {
+                    foreach (var msg in field.Value.EnumerateArray())
+                    {
+                        mensajes.Add(msg.GetString() ?? field.Name);
+                    }
+                }
+                return mensajes.Count > 0
+                    ? string.Join(" | ", mensajes)
+                    : root.TryGetProperty("title", out var title) ? title.GetString() ?? responseBody : responseBody;
+            }
+
+            // ActionResponse format: { "message": "..." }
+            if (root.TryGetProperty("message", out var message))
+            {
+                return message.GetString() ?? responseBody;
+            }
+
+            // Plain string
+            if (root.ValueKind == JsonValueKind.String)
+            {
+                return root.GetString() ?? responseBody;
+            }
+        }
+        catch
+        {
+            // Not JSON, return as-is
+        }
+
+        // If the raw message contains known English error patterns, translate them
+        if (responseBody.Contains("An error occurred while saving the entity changes"))
+        {
+            return "Error al guardar los datos. Verifique que todos los campos requeridos estén completos y que las referencias (cliente, sucursal, terminal) sean válidas.";
+        }
+
+        return responseBody;
     }
 
     /// <summary>

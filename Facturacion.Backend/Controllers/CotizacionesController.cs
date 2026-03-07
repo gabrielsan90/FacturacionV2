@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 using System.Security.Claims;
 
 namespace Facturacion.Backend.Controllers;
@@ -101,11 +102,6 @@ public class CotizacionesController : ControllerBase
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                return ValidationProblem(ModelState);
-            }
-
             // Verificar acceso a la empresa
             if (!await TieneAccesoEmpresaAsync(cotizacion.EmpresaId))
             {
@@ -121,10 +117,16 @@ public class CotizacionesController : ControllerBase
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             cotizacion.UsuarioCreacionId = userId;
 
-            // Generate quotation number if not provided or placeholder
-            if (string.IsNullOrEmpty(cotizacion.Numero) || cotizacion.Numero == "PENDIENTE")
+            // Generate quotation number before validation ([ApiController] auto-validates [Required])
+            if (string.IsNullOrWhiteSpace(cotizacion.Numero) || cotizacion.Numero == "PENDIENTE" || cotizacion.Numero == "AUTO")
             {
                 cotizacion.Numero = await GenerateQuotationNumberAsync(cotizacion.EmpresaId);
+            }
+
+            ModelState.Remove("Numero");
+            if (!TryValidateModel(cotizacion))
+            {
+                return ValidationProblem(ModelState);
             }
 
             // Copy client data for historical record
@@ -155,7 +157,8 @@ public class CotizacionesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error inesperado al crear cotización");
-            return StatusCode(500, "Error interno del servidor");
+            var innerMsg = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al crear la cotización: {innerMsg}");
         }
     }
 
@@ -224,7 +227,8 @@ public class CotizacionesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error inesperado al actualizar cotización {Id}", id);
-            return StatusCode(500, "Error interno del servidor");
+            var innerMsg = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, $"Error al actualizar la cotización: {innerMsg}");
         }
     }
 
@@ -592,6 +596,42 @@ public class CotizacionesController : ControllerBase
     }
 
     /// <summary>
+    /// Genera y descarga el PDF de una cotización
+    /// </summary>
+    [HttpGet("{id:guid}/descargar-pdf")]
+    public async Task<IActionResult> DescargarPdfAsync(Guid id)
+    {
+        try
+        {
+            var cotizacion = await _context.Cotizaciones
+                .Include(c => c.Empresa)
+                    .ThenInclude(e => e!.Emails)
+                .Include(c => c.Empresa)
+                    .ThenInclude(e => e!.Telefonos)
+                .Include(c => c.Cliente)
+                .Include(c => c.Detalles.OrderBy(d => d.NumeroLinea))
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+
+            if (cotizacion == null)
+                return NotFound("Cotización no encontrada.");
+
+            if (!await TieneAccesoEmpresaAsync(cotizacion.EmpresaId))
+                return Forbid();
+
+            var pdfDocument = new Facturacion.Backend.Services.Implementations.PdfDocuments.CotizacionPdfDocument(cotizacion);
+            var pdfBytes = pdfDocument.GeneratePdf();
+
+            var fileName = $"Cotizacion_{cotizacion.Numero}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al generar PDF de cotización {Id}", id);
+            return StatusCode(500, "Error al generar el PDF de la cotización.");
+        }
+    }
+
+    /// <summary>
     /// Generate a unique quotation number
     /// Format: COT-YYYY-MM-NNNN
     /// </summary>
@@ -601,7 +641,10 @@ public class CotizacionesController : ControllerBase
         var month = DateTime.Now.Month;
         var prefix = $"COT-{year:D4}-{month:D2}-";
 
+        // IgnoreQueryFilters to include soft-deleted records and avoid
+        // duplicate number collisions with the unique IX_Cotizacion_Numero index
         var lastQuotation = await _context.Cotizaciones
+            .IgnoreQueryFilters()
             .Where(c => c.EmpresaId == empresaId && c.Numero.StartsWith(prefix))
             .OrderByDescending(c => c.Numero)
             .Select(c => c.Numero)

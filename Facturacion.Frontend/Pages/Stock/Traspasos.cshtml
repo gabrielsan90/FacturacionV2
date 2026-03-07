@@ -411,6 +411,47 @@
                     $(this).val('');
                 }
             });
+
+            // Al cambiar bodega origen, actualizar stock de todos los productos
+            $('#Traspaso_BodegaOrigenId').on('change', function() {
+                $('#detallesBody .detalle-producto').each(function() {
+                    if ($(this).val()) {
+                        actualizarStockOrigen($(this));
+                    }
+                });
+            });
+
+            // Al seleccionar producto, consultar stock en bodega origen
+            $(document).on('change', '.detalle-producto', function() {
+                actualizarStockOrigen($(this));
+            });
+        }
+
+        function actualizarStockOrigen(selectElement) {
+            const productoId = selectElement.val();
+            const bodegaOrigenId = $('#Traspaso_BodegaOrigenId').val();
+            const index = selectElement.data('index');
+            const stockInput = $(`.detalle-stock[data-index="${index}"]`);
+
+            if (!productoId || !bodegaOrigenId) {
+                stockInput.val(0);
+                return;
+            }
+
+            $.ajax({
+                url: `?handler=Stock&productoId=${productoId}&bodegaId=${bodegaOrigenId}`,
+                type: 'GET',
+                headers: {
+                    "RequestVerificationToken": getAntiForgeryToken()
+                },
+                success: function(response) {
+                    const stock = response.stock || 0;
+                    stockInput.val(parseFloat(stock).toFixed(2));
+                },
+                error: function() {
+                    stockInput.val(0);
+                }
+            });
         }
 
         function loadProductos() {
@@ -846,7 +887,7 @@
         function formatDate(dateString) {
             if (!dateString) return '-';
             const date = new Date(dateString);
-            return date.toLocaleDateString('es-CR');
+            return date.toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'});
         }
     </script>
 }

@@ -111,6 +111,14 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 return resultado;
             }
 
+            // Empresas sin facturación electrónica no se envían a Hacienda
+            if (!empresa.RequiereFacturacionElectronica)
+            {
+                resultado.Exitoso = true;
+                resultado.Mensaje = "La empresa no requiere facturación electrónica. Use el endpoint /finalizar.";
+                return resultado;
+            }
+
             // Validar credenciales de Hacienda
             if (string.IsNullOrWhiteSpace(empresa.UsuarioHacienda) ||
                 string.IsNullOrWhiteSpace(empresa.ClaveHacienda))
@@ -310,15 +318,8 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
                 // Procesar inventario según tipo de documento
                 await ProcesarInventarioDocumentoAsync(documento);
 
-                // Generar asiento contable automático (si está habilitado)
-                try
-                {
-                    await _contabilidadIntegracion.GenerarAsientoVentaAsync(documento, documento.UsuarioCreacionId ?? "sistema");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error generando asiento contable para documento {DocumentoId} - operación continúa", documentoId);
-                }
+                // Procesar integración contable completa
+                await ProcesarIntegracionContableAsync(documento);
 
                 _logger.LogInformation("Documento {DocumentoId} aceptado por Hacienda", documentoId);
             }
@@ -542,6 +543,9 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
 
                 // Procesar inventario según tipo de documento
                 await ProcesarInventarioDocumentoAsync(documento);
+
+                // Procesar integración contable completa
+                await ProcesarIntegracionContableAsync(documento);
 
                 await _context.SaveChangesAsync();
             }
@@ -783,6 +787,191 @@ public class DocumentoHaciendaService : IDocumentoHaciendaService
             .Include(d => d.OtraInformacion)
             .Include(d => d.Exportacion)
             .FirstOrDefaultAsync(d => d.Id == documentoId);
+    }
+
+    /// <inheritdoc />
+    public async Task ProcesarPostAceptacionAsync(Guid documentoId)
+    {
+        var documento = await ObtenerDocumentoCompletoAsync(documentoId);
+        if (documento == null) return;
+        if (documento.Estado != EstadoDocumento.Aceptado) return;
+
+        await ProcesarInventarioDocumentoAsync(documento);
+        await ProcesarIntegracionContableAsync(documento);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Procesa la integración contable completa para un documento aceptado por Hacienda:
+    /// 1. Genera asiento de venta/NC/ND según tipo de documento
+    /// 2. Genera asiento de costo de ventas (si aplica)
+    /// 3. Crea CuentaPorCobrar automáticamente para ventas a crédito
+    /// </summary>
+    private async Task ProcesarIntegracionContableAsync(Documento documento)
+    {
+        var userId = documento.UsuarioCreacionId ?? "sistema";
+
+        // Solo documentos emitidos (no recibidos)
+        if (documento.EsDocumentoRecibido) return;
+
+        // 1. Generar asiento contable según tipo de documento
+        try
+        {
+            AsientoContable? asiento = null;
+
+            switch (documento.TipoDocumento)
+            {
+                case DocumentoTipo.FacturaElectronica:
+                case DocumentoTipo.TiqueteElectronico:
+                case DocumentoTipo.FacturaElectronicaExportacion:
+                    asiento = await _contabilidadIntegracion.GenerarAsientoVentaAsync(documento, userId);
+                    break;
+
+                case DocumentoTipo.NotaCreditoElectronica:
+                    asiento = await _contabilidadIntegracion.GenerarAsientoNotaCreditoVentaAsync(documento, userId);
+                    break;
+
+                case DocumentoTipo.NotaDebitoElectronica:
+                    asiento = await _contabilidadIntegracion.GenerarAsientoNotaDebitoVentaAsync(documento, userId);
+                    break;
+            }
+
+            // Vincular asiento al documento
+            if (asiento != null)
+            {
+                documento.AsientoContableId = asiento.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error generando asiento contable para documento {DocumentoId} - operación continúa", documento.Id);
+        }
+
+        // 2. Generar asiento de Costo de Ventas (solo para facturas/tiquetes que reducen inventario)
+        try
+        {
+            if (documento.TipoDocumento == DocumentoTipo.FacturaElectronica ||
+                documento.TipoDocumento == DocumentoTipo.TiqueteElectronico ||
+                documento.TipoDocumento == DocumentoTipo.FacturaElectronicaExportacion)
+            {
+                decimal costoTotal = await CalcularCostoTotalDocumentoAsync(documento);
+                if (costoTotal > 0)
+                {
+                    await _contabilidadIntegracion.GenerarAsientoCostoVentaAsync(documento, costoTotal, userId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error generando asiento de costo de ventas para documento {DocumentoId} - operación continúa", documento.Id);
+        }
+
+        // 3. Crear CuentaPorCobrar automáticamente para ventas a crédito
+        try
+        {
+            if (documento.CondicionVenta == "02" &&
+                (documento.TipoDocumento == DocumentoTipo.FacturaElectronica ||
+                 documento.TipoDocumento == DocumentoTipo.TiqueteElectronico ||
+                 documento.TipoDocumento == DocumentoTipo.FacturaElectronicaExportacion))
+            {
+                await CrearCuentaPorCobrarAsync(documento, userId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error creando CxC para documento {DocumentoId} - operación continúa", documento.Id);
+        }
+    }
+
+    /// <summary>
+    /// Calcula el costo total de las líneas de un documento usando el CostoPromedio del inventario.
+    /// Solo incluye productos con ControlarInventario = true.
+    /// </summary>
+    private async Task<decimal> CalcularCostoTotalDocumentoAsync(Documento documento)
+    {
+        decimal costoTotal = 0;
+
+        // Cargar detalles con productos si no están cargados
+        var detalles = documento.Detalles ?? await _context.DocumentoDetalles
+            .Include(d => d.Producto)
+            .Where(d => d.DocumentoId == documento.Id)
+            .ToListAsync();
+
+        foreach (var detalle in detalles)
+        {
+            if (detalle.ProductoId == null) continue;
+
+            var producto = detalle.Producto ?? await _context.Productos
+                .FirstOrDefaultAsync(p => p.Id == detalle.ProductoId);
+
+            if (producto == null || !producto.ControlarInventario) continue;
+
+            // Buscar el inventario para obtener el CostoPromedio
+            var inventario = await _context.Inventarios
+                .FirstOrDefaultAsync(i => i.ProductoId == detalle.ProductoId.Value
+                                       && i.SucursalId == documento.SucursalId
+                                       && !i.IsDeleted);
+
+            decimal costoUnitario = inventario?.CostoPromedio ?? producto.Costo ?? 0;
+            costoTotal += costoUnitario * detalle.Cantidad;
+        }
+
+        return costoTotal;
+    }
+
+    /// <summary>
+    /// Crea una CuentaPorCobrar automáticamente para un documento de venta a crédito.
+    /// Verifica que no exista una CxC duplicada para el mismo documento.
+    /// </summary>
+    private async Task CrearCuentaPorCobrarAsync(Documento documento, string userId)
+    {
+        // Verificar que no exista ya una CxC para este documento
+        var existeCxC = await _context.CuentasPorCobrar
+            .AnyAsync(c => c.DocumentoId == documento.Id && !c.IsDeleted);
+
+        if (existeCxC)
+        {
+            _logger.LogDebug("Ya existe CxC para documento {DocumentoId}", documento.Id);
+            return;
+        }
+
+        // Verificar que tenga cliente asignado
+        if (documento.ClienteId == null)
+        {
+            _logger.LogWarning("Documento de crédito {DocumentoId} no tiene ClienteId asignado, no se puede crear CxC", documento.Id);
+            return;
+        }
+
+        int diasCredito = documento.PlazoCreditoDias ?? 30; // Default 30 días si no se especifica
+        var fechaVencimiento = documento.FechaEmision.AddDays(diasCredito);
+
+        var cuentaPorCobrar = new CuentaPorCobrar
+        {
+            Id = Guid.NewGuid(),
+            EmpresaId = documento.EmpresaId,
+            DocumentoId = documento.Id,
+            ClienteId = documento.ClienteId.Value,
+            MontoOriginal = documento.TotalVenta,
+            MontoSaldo = documento.TotalVenta,
+            Moneda = documento.Moneda,
+            TipoCambio = documento.TipoCambio,
+            FechaEmision = documento.FechaEmision,
+            FechaVencimiento = fechaVencimiento,
+            Estado = fechaVencimiento < FechaCostaRicaHelper.Ahora.Date
+                ? EstadoCuentaPorCobrar.Vencida
+                : EstadoCuentaPorCobrar.Pendiente,
+            NumeroConsecutivo = documento.NumeroConsecutivo,
+            NombreCliente = documento.ReceptorNombre,
+            DiasCredito = diasCredito,
+            FechaCreacion = FechaCostaRicaHelper.Ahora,
+            UsuarioCreacionId = userId
+        };
+
+        _context.CuentasPorCobrar.Add(cuentaPorCobrar);
+
+        _logger.LogInformation(
+            "CxC creada automáticamente para documento {DocumentoId} - Cliente: {Cliente}, Monto: {Monto}, Vencimiento: {Vencimiento}",
+            documento.Id, documento.ReceptorNombre, documento.TotalVenta, fechaVencimiento.ToShortDateString());
     }
 
     /// <summary>

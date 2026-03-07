@@ -139,6 +139,10 @@ public class Proveedor
     [EmailAddress]
     public string? EmailContacto { get; set; }
 
+    // Régimen Tributario
+    [Display(Name = "Régimen Simplificado")]
+    public bool EsRegimenSimplificado { get; set; }
+
     // Retenciones
     [Display(Name = "Retención IVA %")]
     public decimal RetencionIVA { get; set; }

@@ -58,6 +58,7 @@ public class AsientoContableRepository : IAsientoContableRepository
     public async Task<IEnumerable<AsientoContable>> GetByPeriodoAsync(Guid periodoContableId)
     {
         return await _context.AsientosContables
+            .Include(a => a.PeriodoContable)
             .Include(a => a.CreadoPor)
             .Include(a => a.AprobadoPor)
             .Where(a => a.PeriodoContableId == periodoContableId && !a.IsDeleted)

@@ -126,18 +126,8 @@ public class CategoriasGastoModel : PageModel
             // Asegurar que la categoría tenga el EmpresaId correcto
             categoriaData.EmpresaId = Guid.Parse(empresaId);
 
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value!.Errors.Count > 0)
-                    .Select(x => new
-                    {
-                        Field = x.Key,
-                        Message = x.Value!.Errors.First().ErrorMessage
-                    });
-
-                return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-            }
+            // No validar ModelState aquí: campos como EmpresaId se inyectan server-side
+            // y no vienen del JS. La validación real la hace el API backend.
 
             var client = CreateAuthenticatedClient();
 

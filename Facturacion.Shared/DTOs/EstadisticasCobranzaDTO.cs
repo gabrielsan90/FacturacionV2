@@ -13,6 +13,19 @@ public class EstadisticasCobranzaDTO
     public decimal MontoAlDia { get; set; }
     public decimal PromedioVencimiento { get; set; }  // En días
     public List<CobranzaPorClienteDTO> TopClientesDeudores { get; set; } = new List<CobranzaPorClienteDTO>();
+    public List<EstadisticasPorMonedaDTO> PorMoneda { get; set; } = new List<EstadisticasPorMonedaDTO>();
+}
+
+/// <summary>
+/// Estadísticas de cobranza desglosadas por moneda
+/// </summary>
+public class EstadisticasPorMonedaDTO
+{
+    public string Moneda { get; set; } = null!;
+    public decimal TotalPorCobrar { get; set; }
+    public decimal MontoVencido { get; set; }
+    public int DocumentosPendientes { get; set; }
+    public int DocumentosVencidos { get; set; }
 }
 
 /// <summary>

@@ -42,6 +42,13 @@ public class DashboardService : IDashboardService
             .Where(d => d.FechaEmision.Date == hoy)
             .Sum(d => d.TotalVenta);
 
+        var ventasHoyPorMoneda = documentosVenta
+            .Where(d => d.FechaEmision.Date == hoy)
+            .GroupBy(d => d.Moneda.ToString())
+            .Select(g => new MontoPorMonedaDTO { Moneda = g.Key, Monto = g.Sum(d => d.TotalVenta) })
+            .OrderByDescending(m => m.Monto)
+            .ToList();
+
         var ventasMes = documentosVenta
             .Where(d => d.FechaEmision >= inicioMes)
             .Sum(d => d.TotalVenta);
@@ -138,6 +145,19 @@ public class DashboardService : IDashboardService
         var pagosPendientes = documentosCredito.Sum(d => d.TotalVenta)
             - pagosRecibidos.Sum(p => p.TotalPagado);
 
+        // Pagos pendientes por moneda
+        var pagosRecibidosDict = pagosRecibidos.ToDictionary(p => p.DocumentoId, p => p.TotalPagado);
+        var pagosPendientesPorMoneda = documentosCredito
+            .GroupBy(d => d.Moneda.ToString())
+            .Select(g => new MontoPorMonedaDTO
+            {
+                Moneda = g.Key,
+                Monto = g.Sum(d => d.TotalVenta - (pagosRecibidosDict.ContainsKey(d.Id) ? pagosRecibidosDict[d.Id] : 0))
+            })
+            .Where(m => m.Monto > 0)
+            .OrderByDescending(m => m.Monto)
+            .ToList();
+
         // Gastos pendientes de pago
         var gastosPendientesPago = await _context.Gastos
             .Where(g => g.EmpresaId == empresaId
@@ -163,7 +183,9 @@ public class DashboardService : IDashboardService
             ClientesActivos = clientesActivos,
             ProveedoresActivos = proveedoresActivos,
             PagosPendientes = pagosPendientes,
-            GastosPendientesPago = gastosPendientesPago
+            GastosPendientesPago = gastosPendientesPago,
+            VentasHoyPorMoneda = ventasHoyPorMoneda,
+            PagosPendientesPorMoneda = pagosPendientesPorMoneda
         };
     }
 

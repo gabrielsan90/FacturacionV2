@@ -27,6 +27,7 @@ public class AsientosContablesModel : PageModel
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
@@ -71,17 +72,56 @@ public class AsientosContablesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var asientos = await response.Content.ReadFromJsonAsync<List<AsientoListDTO>>(_jsonOptions);
-                return new JsonResult(new { data = asientos ?? new List<AsientoListDTO>() });
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+
+                // API returns ActionResponse<T> with { wasSuccess, result }
+                if (doc.RootElement.TryGetProperty("result", out var resultElement))
+                {
+                    var asientos = JsonSerializer.Deserialize<List<AsientoListDTO>>(resultElement.GetRawText(), _jsonOptions);
+                    return new ContentResult
+                    {
+                        Content = JsonSerializer.Serialize(new { data = asientos ?? new List<AsientoListDTO>() }, _jsonOptions),
+                        ContentType = "application/json",
+                        StatusCode = 200
+                    };
+                }
+                else if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    var asientos = JsonSerializer.Deserialize<List<AsientoListDTO>>(content, _jsonOptions);
+                    return new ContentResult
+                    {
+                        Content = JsonSerializer.Serialize(new { data = asientos ?? new List<AsientoListDTO>() }, _jsonOptions),
+                        ContentType = "application/json",
+                        StatusCode = 200
+                    };
+                }
+
+                return new ContentResult
+                {
+                    Content = JsonSerializer.Serialize(new { data = new List<AsientoListDTO>() }, _jsonOptions),
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load asientos contables. Status: {StatusCode}", response.StatusCode);
-            return new JsonResult(new { data = new List<AsientoListDTO>() });
+            return new ContentResult
+            {
+                Content = JsonSerializer.Serialize(new { data = new List<AsientoListDTO>() }, _jsonOptions),
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading asientos contables");
-            return new JsonResult(new { data = new List<AsientoListDTO>() });
+            return new ContentResult
+            {
+                Content = JsonSerializer.Serialize(new { data = new List<AsientoListDTO>() }, _jsonOptions),
+                ContentType = "application/json",
+                StatusCode = 200
+            };
         }
     }
 
@@ -102,8 +142,21 @@ public class AsientosContablesModel : PageModel
 
             if (response.IsSuccessStatusCode)
             {
-                var asiento = await response.Content.ReadFromJsonAsync<AsientoDTO>(_jsonOptions);
-                return new JsonResult(new { success = true, data = asiento });
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+
+                // API returns ActionResponse<T> with { wasSuccess, result }
+                if (doc.RootElement.TryGetProperty("result", out var resultElement))
+                {
+                    return new ContentResult
+                    {
+                        Content = $"{{\"success\":true,\"data\":{resultElement.GetRawText()}}}",
+                        ContentType = "application/json",
+                        StatusCode = 200
+                    };
+                }
+
+                return new JsonResult(new { success = false, message = "Respuesta inesperada del API" });
             }
 
             _logger.LogWarning("Asiento contable not found with ID: {Id}", id);
@@ -172,19 +225,23 @@ public class AsientosContablesModel : PageModel
                 return new JsonResult(new { results = new List<object>() });
             }
 
-            var queryString = $"empresaId={empresaId}&aceptaMovimientos=true";
-            if (!string.IsNullOrEmpty(q))
-            {
-                queryString += $"&search={Uri.EscapeDataString(q)}";
-            }
-
-            var response = await client.GetAsync($"/api/cuentascontables?{queryString}");
+            var response = await client.GetAsync($"/api/cuentascontables/empresa/{empresaId}/movimiento");
 
             if (response.IsSuccessStatusCode)
             {
                 var cuentas = await response.Content.ReadFromJsonAsync<List<CuentaDTO>>(_jsonOptions);
 
-                var results = cuentas?.Select(c => new
+                var filtered = cuentas;
+                if (!string.IsNullOrEmpty(q))
+                {
+                    var searchLower = q.ToLower();
+                    filtered = cuentas?.Where(c =>
+                        c.Codigo.ToLower().Contains(searchLower) ||
+                        c.Nombre.ToLower().Contains(searchLower)
+                    ).ToList();
+                }
+
+                var results = filtered?.Select(c => new
                 {
                     id = c.Id.ToString(),
                     text = $"{c.Codigo} - {c.Nombre}",
@@ -212,18 +269,7 @@ public class AsientosContablesModel : PageModel
     {
         try
         {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState
-                    .Where(x => x.Value!.Errors.Count > 0)
-                    .Select(x => new
-                    {
-                        Field = x.Key,
-                        Message = x.Value!.Errors.First().ErrorMessage
-                    });
-
-                return new JsonResult(new { success = false, message = "Datos inválidos", errors });
-            }
+            // No validar ModelState aquí: la validación real la hace el API backend.
 
             // Validate that movements balance (Debe = Haber)
             if (asientoData.Movimientos != null && asientoData.Movimientos.Any())
@@ -294,7 +340,18 @@ public class AsientosContablesModel : PageModel
 
             var error = await response.Content.ReadAsStringAsync();
             _logger.LogWarning("Failed to save asiento contable. Status: {StatusCode}, Error: {Error}", response.StatusCode, error);
-            return new JsonResult(new { success = false, message = error });
+
+            // Parse ActionResponse message if API returned JSON
+            var errorMessage = error;
+            try
+            {
+                using var doc = JsonDocument.Parse(error);
+                if (doc.RootElement.TryGetProperty("message", out var msgProp))
+                    errorMessage = msgProp.GetString() ?? error;
+            }
+            catch { /* Not JSON, use raw string */ }
+
+            return new JsonResult(new { success = false, message = errorMessage });
         }
         catch (Exception ex)
         {
@@ -367,6 +424,49 @@ public class AsientosContablesModel : PageModel
         }
     }
 
+    // Handler to approve multiple asientos contables at once
+    public async Task<IActionResult> OnPostAprobarMasivoAsync([FromBody] List<string> ids)
+    {
+        try
+        {
+            if (ids == null || ids.Count == 0)
+                return new JsonResult(new { success = false, message = "No se seleccionaron asientos para aprobar" });
+
+            var client = _httpClientFactory.CreateClient("FacturacionApi");
+            var token = User.FindFirst("Token")?.Value;
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            int aprobados = 0;
+            var errores = new List<string>();
+
+            foreach (var id in ids)
+            {
+                var response = await client.PostAsync($"/api/asientoscontables/{id}/aprobar", null);
+                if (response.IsSuccessStatusCode)
+                {
+                    aprobados++;
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    errores.Add($"ID {id}: {error}");
+                }
+            }
+
+            var message = $"{aprobados} de {ids.Count} asientos aprobados exitosamente.";
+            if (errores.Count > 0)
+                message += $" {errores.Count} con errores.";
+
+            return new JsonResult(new { success = aprobados > 0, message, aprobados, erroresCount = errores.Count, errores });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in mass approval of asientos contables");
+            return new JsonResult(new { success = false, message = "Error al aprobar masivamente: " + ex.Message });
+        }
+    }
+
     // Handler to delete an asiento contable (only if in Borrador state)
     public async Task<IActionResult> OnPostDeleteAsync(string id)
     {
@@ -424,10 +524,10 @@ public class AsientosContablesModel : PageModel
             {
                 var periodos = await response.Content.ReadFromJsonAsync<List<PeriodoDTO>>(_jsonOptions);
 
-                Periodos = periodos?.Where(p => p.Activo).Select(p => new SelectListItem
+                Periodos = periodos?.Where(p => p.EstaAbierto).Select(p => new SelectListItem
                 {
                     Value = p.Id.ToString(),
-                    Text = p.Nombre
+                    Text = p.PeriodoNombre ?? p.Nombre
                 }).ToList() ?? new List<SelectListItem>();
             }
             else
@@ -472,11 +572,19 @@ public class AsientoListDTO
     public int Numero { get; set; }
     public DateTime Fecha { get; set; }
     public string? PeriodoNombre { get; set; }
-    public string? TipoAsiento { get; set; }
-    public string? Concepto { get; set; }
+    public string TipoAsiento { get; set; } = "";
+    public string TipoAsientoDescripcion { get; set; } = "";
+    public string Concepto { get; set; } = "";
+    public string? Referencia { get; set; }
     public decimal TotalDebe { get; set; }
     public decimal TotalHaber { get; set; }
-    public string? Estado { get; set; }
+    public string Estado { get; set; } = "";
+    public string EstadoDescripcion { get; set; } = "";
+    public bool EstaBalanceado { get; set; }
+    public string? ModuloOrigen { get; set; }
+    public string ModuloOrigenDescripcion { get; set; } = "";
+    public DateTime FechaCreacion { get; set; }
+    public string? CreadoPorNombre { get; set; }
 }
 
 public class PeriodoDTO
@@ -484,6 +592,8 @@ public class PeriodoDTO
     public Guid Id { get; set; }
     public string Nombre { get; set; } = "";
     public bool Activo { get; set; }
+    public bool EstaAbierto { get; set; }
+    public string? PeriodoNombre { get; set; }
 }
 
 public class CuentaDTO

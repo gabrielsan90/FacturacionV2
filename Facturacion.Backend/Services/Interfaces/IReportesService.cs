@@ -115,4 +115,20 @@ public interface IReportesService
         Guid empresaId,
         int mes,
         int ano);
+
+    /// <summary>
+    /// Genera reporte de retenciones de renta (D-103) por período
+    /// </summary>
+    Task<ActionResponse<ReporteRetencionesDTO>> GetReporteRetencionesAsync(
+        Guid empresaId,
+        DateTime fechaInicio,
+        DateTime fechaFin);
+
+    /// <summary>
+    /// Exporta reporte de retenciones a Excel
+    /// </summary>
+    Task<ActionResponse<byte[]>> ExportarRetencionesExcelAsync(
+        Guid empresaId,
+        DateTime fechaInicio,
+        DateTime fechaFin);
 }

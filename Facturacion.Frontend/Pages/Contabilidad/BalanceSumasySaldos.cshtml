@@ -1,0 +1,199 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.BalanceSumasySaldosModel
+@{
+    ViewData["Title"] = "Balance de Sumas y Saldos";
+}
+
+<style>
+    .report-table th { white-space: nowrap; font-size: 0.85rem; }
+    .report-table td { font-size: 0.85rem; padding: 0.35rem 0.5rem !important; }
+    .report-table .nivel-1 { font-weight: 700; background-color: #e8f0fe; }
+    .report-table .nivel-2 { font-weight: 600; background-color: #f3f6fb; }
+    .report-table .nivel-3 { padding-left: 1.5rem !important; }
+    .report-table .nivel-4 { padding-left: 2.5rem !important; }
+    .totals-row { font-weight: 700; background-color: #fff3cd !important; border-top: 2px solid #333; }
+    .col-sumas { background-color: #f0f4ff; }
+    .col-saldos { background-color: #f0fff4; }
+    .summary-card .value { font-size: 1.3rem; font-weight: 700; }
+    @@media print { .no-print { display: none !important; } .card { border: none !important; } }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <div>
+        <h4 class="mb-0"><i class="fas fa-table me-2"></i>Balance de Sumas y Saldos</h4>
+        <small class="text-muted">Total de movimientos y saldos resultantes por cuenta</small>
+    </div>
+</div>
+
+<div class="card mb-3 no-print">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label mb-1">Fecha Desde</label>
+                <input type="date" id="fechaDesde" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">Fecha Hasta</label>
+                <input type="date" id="fechaHasta" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">Nivel</label>
+                <select id="nivel" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="1">1 - Grupo</option>
+                    <option value="2">2 - Subgrupo</option>
+                    <option value="3">3 - Cuenta</option>
+                    <option value="4">4 - Subcuenta</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="incluirSinMov">
+                    <label class="form-check-label" for="incluirSinMov">Incluir sin movimiento</label>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary btn-sm" onclick="generarReporte()"><i class="fas fa-play me-1"></i>Generar</button>
+                <button class="btn btn-success btn-sm" onclick="exportarExcel()" id="btnExcel" disabled><i class="fas fa-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="window.print()"><i class="fas fa-print me-1"></i>Imprimir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row g-2 mb-3" id="summaryCards" style="display:none;">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body py-2 px-3 summary-card" style="border-left:4px solid #0d6efd;">
+                <small class="text-muted">Sumas Debe</small>
+                <div class="value text-primary" id="totalSumasDebe">0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body py-2 px-3 summary-card" style="border-left:4px solid #dc3545;">
+                <small class="text-muted">Sumas Haber</small>
+                <div class="value text-danger" id="totalSumasHaber">0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body py-2 px-3 summary-card" style="border-left:4px solid #198754;">
+                <small class="text-muted">Saldos Debe</small>
+                <div class="value text-success" id="totalSaldosDebe">0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body py-2 px-3 summary-card" style="border-left:4px solid #fd7e14;">
+                <small class="text-muted">Saldos Haber</small>
+                <div class="value text-warning" id="totalSaldosHaber">0.00</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm report-table mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th rowspan="2">Código</th>
+                        <th rowspan="2">Cuenta</th>
+                        <th colspan="2" class="text-center" style="border-bottom:1px solid #6c757d;">SUMAS</th>
+                        <th colspan="2" class="text-center" style="border-bottom:1px solid #6c757d;">SALDOS</th>
+                    </tr>
+                    <tr>
+                        <th class="text-end">Debe</th>
+                        <th class="text-end">Haber</th>
+                        <th class="text-end">Debe</th>
+                        <th class="text-end">Haber</th>
+                    </tr>
+                </thead>
+                <tbody id="reportBody">
+                    <tr><td colspan="6" class="text-center text-muted py-4">Seleccione las fechas y haga clic en Generar</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const fmt = n => new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+    $(function () {
+        const hoy = new Date();
+        $('#fechaDesde').val(new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]);
+        $('#fechaHasta').val(hoy.toISOString().split('T')[0]);
+    });
+
+    function generarReporte() {
+        const fechaDesde = $('#fechaDesde').val();
+        const fechaHasta = $('#fechaHasta').val();
+        if (!fechaDesde || !fechaHasta) { showError('Seleccione ambas fechas.'); return; }
+
+        let url = `?handler=Generar&fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}&incluirSinMovimiento=${$('#incluirSinMov').is(':checked')}`;
+        const nivel = $('#nivel').val();
+        if (nivel) url += `&nivel=${nivel}`;
+
+        $('#reportBody').html('<tr><td colspan="6" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Generando...</td></tr>');
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function (data) {
+                renderReport(data);
+                $('#summaryCards').show();
+                $('#btnExcel').prop('disabled', false);
+            },
+            error: function (xhr) { handleAjaxError(xhr); }
+        });
+    }
+
+    function renderReport(data) {
+        $('#totalSumasDebe').text(fmt(data.totalSumasDebe));
+        $('#totalSumasHaber').text(fmt(data.totalSumasHaber));
+        $('#totalSaldosDebe').text(fmt(data.totalSaldosDebe));
+        $('#totalSaldosHaber').text(fmt(data.totalSaldosHaber));
+
+        let html = '';
+        if (!data.cuentas || data.cuentas.length === 0) {
+            html = '<tr><td colspan="6" class="text-center text-muted py-4">No se encontraron datos</td></tr>';
+        } else {
+            data.cuentas.forEach(c => {
+                html += `<tr class="nivel-${c.nivel}">
+                    <td>${c.codigo}</td>
+                    <td>${c.nombre}</td>
+                    <td class="text-end col-sumas">${c.sumasDebe ? fmt(c.sumasDebe) : ''}</td>
+                    <td class="text-end col-sumas">${c.sumasHaber ? fmt(c.sumasHaber) : ''}</td>
+                    <td class="text-end col-saldos">${c.saldoDebe ? fmt(c.saldoDebe) : ''}</td>
+                    <td class="text-end col-saldos">${c.saldoHaber ? fmt(c.saldoHaber) : ''}</td>
+                </tr>`;
+            });
+            html += `<tr class="totals-row">
+                <td></td><td>TOTALES</td>
+                <td class="text-end">${fmt(data.totalSumasDebe)}</td>
+                <td class="text-end">${fmt(data.totalSumasHaber)}</td>
+                <td class="text-end">${fmt(data.totalSaldosDebe)}</td>
+                <td class="text-end">${fmt(data.totalSaldosHaber)}</td>
+            </tr>`;
+        }
+        $('#reportBody').html(html);
+    }
+
+    function exportarExcel() {
+        const fechaDesde = $('#fechaDesde').val();
+        const fechaHasta = $('#fechaHasta').val();
+        let url = `?handler=ExportarExcel&fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}&incluirSinMovimiento=${$('#incluirSinMov').is(':checked')}`;
+        const nivel = $('#nivel').val();
+        if (nivel) url += `&nivel=${nivel}`;
+        window.location.href = url;
+    }
+</script>
+}

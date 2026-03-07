@@ -586,32 +586,7 @@ public class CatalogosController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Obtiene los codigos de tarifas IVA
-    /// </summary>
-    [HttpGet("codigos-tarifas-iva")]
-    public async Task<IActionResult> GetCodigosTarifasIva()
-    {
-        try
-        {
-            var tarifas = await _context.Set<TarifaIVA>()
-                .Where(t => t.Activo)
-                .OrderBy(t => t.Codigo)
-                .Select(t => new
-                {
-                    codigo = t.Codigo,
-                    tarifa = t.Porcentaje
-                })
-                .ToListAsync();
-
-            return Ok(tarifas);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al obtener codigos de tarifas IVA");
-            return StatusCode(500, new { success = false, message = "Error al obtener codigos de tarifas IVA" });
-        }
-    }
+    // Endpoint duplicado eliminado — usar GetCodigosTarifasIVA() más abajo que incluye Id y Descripcion
 
     /// <summary>
     /// Obtiene las formas farmaceuticas
@@ -965,6 +940,54 @@ public class CatalogosController : ControllerBase
         {
             _logger.LogError(ex, "Error al obtener códigos de tarifas IVA");
             return StatusCode(500, new { success = false, message = "Error al obtener códigos de tarifas IVA" });
+        }
+    }
+
+    /// <summary>
+    /// Poblar catálogo de tarifas IVA con datos oficiales de Hacienda v4.4
+    /// </summary>
+    [HttpPost("codigos-tarifas-iva/poblar")]
+    public async Task<IActionResult> PoblarTarifasIVA()
+    {
+        try
+        {
+            var tarifasOficiales = new List<(string Codigo, string Descripcion, decimal Porcentaje)>
+            {
+                ("01", "Tarifa 0% (Exento)", 0.00m),
+                ("02", "Tarifa reducida 1%", 1.00m),
+                ("03", "Tarifa reducida 2%", 2.00m),
+                ("04", "Tarifa reducida 4%", 4.00m),
+                ("05", "Transitorio 0%", 0.00m),
+                ("06", "Transitorio 4%", 4.00m),
+                ("07", "Transitorio 8%", 8.00m),
+                ("08", "Tarifa general 13%", 13.00m),
+                ("11", "Tarifa 0% sin derecho a crédito", 0.00m)
+            };
+
+            var existentes = await _context.Set<TarifaIVA>().Select(t => t.Codigo).ToListAsync();
+            var nuevas = tarifasOficiales
+                .Where(t => !existentes.Contains(t.Codigo))
+                .Select(t => new TarifaIVA
+                {
+                    Codigo = t.Codigo,
+                    Descripcion = t.Descripcion,
+                    Porcentaje = t.Porcentaje,
+                    Activo = true
+                }).ToList();
+
+            if (nuevas.Any())
+            {
+                _context.Set<TarifaIVA>().AddRange(nuevas);
+                await _context.SaveChangesAsync();
+            }
+
+            var total = await _context.Set<TarifaIVA>().CountAsync(t => t.Activo);
+            return Ok(new { success = true, message = $"Catálogo poblado correctamente. {nuevas.Count} tarifas nuevas agregadas. Total: {total} tarifas." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al poblar catálogo de tarifas IVA");
+            return StatusCode(500, new { success = false, message = "Error al poblar catálogo de tarifas IVA" });
         }
     }
 

@@ -1,0 +1,387 @@
+@page
+@model Facturacion.Frontend.Pages.Contabilidad.MayorizacionModel
+@{
+    ViewData["Title"] = "Mayorización";
+    ViewData["Breadcrumb"] = "Mayorización";
+}
+
+@Html.AntiForgeryToken()
+
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2><i class="fas fa-layer-group"></i> Mayorización de Asientos Contables</h2>
+            <p class="mb-0">Genere asientos contables para documentos y gastos pendientes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="cargarPendientes()">
+                <i class="fas fa-sync-alt me-2"></i>Actualizar
+            </button>
+            <button class="btn btn-success" id="btnGenerar" onclick="generarAsientos()" disabled>
+                <i class="fas fa-calculator me-2"></i>Generar Asientos (<span id="contadorSeleccionados">0</span>)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Mayorización:</strong> Esta pantalla muestra los documentos y gastos aprobados/aceptados que aún no tienen un asiento contable generado.
+    Seleccione los que desea mayorizar y haga clic en <strong>"Generar Asientos"</strong> para crear los asientos contables correspondientes.
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-custom border-start border-primary border-4">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Documentos Pendientes</div>
+                        <div class="h3 mb-0" id="totalDocumentos">0</div>
+                    </div>
+                    <div class="fs-1 text-primary opacity-50"><i class="fas fa-file-invoice"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-custom border-start border-warning border-4">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Gastos Pendientes</div>
+                        <div class="h3 mb-0" id="totalGastos">0</div>
+                    </div>
+                    <div class="fs-1 text-warning opacity-50"><i class="fas fa-receipt"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-custom border-start border-success border-4">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Total Pendientes</div>
+                        <div class="h3 mb-0" id="totalPendientes">0</div>
+                    </div>
+                    <div class="fs-1 text-success opacity-50"><i class="fas fa-layer-group"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-custom mb-4">
+    <div class="card-header">
+        <i class="fas fa-filter me-2 text-primary"></i>
+        <strong>Filtros</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Tipo</label>
+                <select id="filtroTipo" class="form-select" onchange="aplicarFiltro()">
+                    <option value="todos">Todos</option>
+                    <option value="Documento">Documentos (Ventas)</option>
+                    <option value="Gasto">Gastos (Compras)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="chkSeleccionarTodos" onchange="seleccionarTodos(this)">
+                    <label class="form-check-label" for="chkSeleccionarTodos">
+                        Seleccionar todos los visibles
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card shadow-custom">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="tablaPendientes" class="table table-striped table-hover w-100">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width: 40px;">
+                            <i class="fas fa-check-square"></i>
+                        </th>
+                        <th>Tipo</th>
+                        <th># Documento</th>
+                        <th>Fecha</th>
+                        <th>Receptor / Proveedor</th>
+                        <th class="text-end">Total</th>
+                        <th>Moneda</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyPendientes">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let todosLosPendientes = [];
+    const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
+
+    $(document).ready(function () {
+        cargarPendientes();
+    });
+
+    function cargarPendientes() {
+        $('#tbodyPendientes').html('<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Cargando documentos pendientes...</td></tr>');
+        $('#btnGenerar').prop('disabled', true);
+        $('#contadorSeleccionados').text('0');
+        $('#chkSeleccionarTodos').prop('checked', false);
+
+        $.ajax({
+            url: '?handler=Pendientes',
+            type: 'GET',
+            headers: { 'RequestVerificationToken': antiForgeryToken },
+            success: function (data) {
+                todosLosPendientes = [];
+
+                if (data.documentos) {
+                    data.documentos.forEach(function (d) {
+                        todosLosPendientes.push({
+                            id: d.id,
+                            tipo: 'Documento',
+                            tipoDocumento: d.tipoDocumento,
+                            numeroConsecutivo: d.numeroConsecutivo,
+                            fechaEmision: d.fechaEmision,
+                            receptor: d.receptor,
+                            total: d.total,
+                            moneda: d.moneda,
+                            modulo: d.modulo
+                        });
+                    });
+                }
+
+                if (data.gastos) {
+                    data.gastos.forEach(function (g) {
+                        todosLosPendientes.push({
+                            id: g.id,
+                            tipo: 'Gasto',
+                            tipoDocumento: g.tipoDocumento,
+                            numeroConsecutivo: g.numeroConsecutivo,
+                            fechaEmision: g.fechaEmision,
+                            receptor: g.receptor,
+                            total: g.total,
+                            moneda: g.moneda,
+                            modulo: g.modulo
+                        });
+                    });
+                }
+
+                $('#totalDocumentos').text(data.totalDocumentos || 0);
+                $('#totalGastos').text(data.totalGastos || 0);
+                $('#totalPendientes').text((data.totalDocumentos || 0) + (data.totalGastos || 0));
+
+                renderTabla();
+            },
+            error: function (xhr) {
+                handleAjaxError(xhr);
+                $('#tbodyPendientes').html('<tr><td colspan="7" class="text-center text-danger">Error al cargar datos</td></tr>');
+            }
+        });
+    }
+
+    function renderTabla() {
+        var filtroTipo = $('#filtroTipo').val();
+        var items = todosLosPendientes;
+
+        if (filtroTipo !== 'todos') {
+            items = items.filter(function (i) { return i.tipo === filtroTipo; });
+        }
+
+        // Destroy existing DataTable if initialized
+        if ($.fn.DataTable.isDataTable('#tablaPendientes')) {
+            $('#tablaPendientes').DataTable().destroy();
+        }
+
+        var html = '';
+        if (items.length === 0) {
+            html = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-check-circle me-2 text-success"></i>No hay documentos pendientes de mayorización</td></tr>';
+        } else {
+            items.forEach(function (item) {
+                var badgeClass = item.tipo === 'Documento' ? 'bg-primary' : 'bg-warning text-dark';
+                var tipoLabel = formatTipoDocumento(item.tipoDocumento);
+                var fechaFormatted = item.fechaEmision ? new Date(item.fechaEmision).toLocaleDateString('es-CR', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-';
+                var totalFormatted = item.total != null ? Number(item.total).toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+
+                html += '<tr data-id="' + item.id + '" data-tipo="' + item.tipo + '">';
+                var checkedAttr = item.seleccionado ? ' checked' : '';
+                html += '<td class="text-center"><input type="checkbox" class="form-check-input chk-item" data-id="' + item.id + '" data-tipo="' + item.tipo + '"' + checkedAttr + ' onchange="onCheckboxChange(this)"></td>';
+                html += '<td><span class="badge ' + badgeClass + '">' + tipoLabel + '</span></td>';
+                html += '<td>' + (item.numeroConsecutivo || '-') + '</td>';
+                html += '<td>' + fechaFormatted + '</td>';
+                html += '<td>' + escapeHtml(item.receptor || '-') + '</td>';
+                html += '<td class="text-end">' + totalFormatted + '</td>';
+                html += '<td>' + (item.moneda || 'CRC') + '</td>';
+                html += '</tr>';
+            });
+        }
+        $('#tbodyPendientes').html(html);
+
+        // Re-initialize DataTable
+        if (items.length > 0) {
+            $('#tablaPendientes').DataTable({
+                paging: true,
+                pageLength: 25,
+                searching: true,
+                ordering: true,
+                order: [[3, 'desc']],
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                columnDefs: [
+                    { orderable: false, targets: 0 }
+                ]
+            });
+        }
+    }
+
+    function formatTipoDocumento(tipo) {
+        var map = {
+            'FacturaElectronica': 'Factura',
+            'TiqueteElectronico': 'Tiquete',
+            'NotaCreditoElectronica': 'Nota Crédito',
+            'NotaDebitoElectronica': 'Nota Débito',
+            'FacturaElectronicaExportacion': 'Fact. Exportación',
+            'FacturaElectronicaCompra': 'Fact. Compra',
+            'Compra': 'Compra/Gasto'
+        };
+        return map[tipo] || tipo;
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+
+    function aplicarFiltro() {
+        $('#chkSeleccionarTodos').prop('checked', false);
+        renderTabla();
+        actualizarContador();
+    }
+
+    function onCheckboxChange(checkbox) {
+        var id = $(checkbox).data('id');
+        var checked = $(checkbox).is(':checked');
+        var item = todosLosPendientes.find(function (i) { return i.id === id; });
+        if (item) item.seleccionado = checked;
+        actualizarContador();
+    }
+
+    function seleccionarTodos(checkbox) {
+        var checked = $(checkbox).is(':checked');
+        var filtroTipo = $('#filtroTipo').val();
+
+        todosLosPendientes.forEach(function (item) {
+            if (filtroTipo === 'todos' || item.tipo === filtroTipo) {
+                item.seleccionado = checked;
+            }
+        });
+
+        $('.chk-item').prop('checked', checked);
+        actualizarContador();
+    }
+
+    function actualizarContador() {
+        var count = todosLosPendientes.filter(function (i) { return i.seleccionado; }).length;
+        $('#contadorSeleccionados').text(count);
+        $('#btnGenerar').prop('disabled', count === 0);
+    }
+
+    function generarAsientos() {
+        var seleccionados = todosLosPendientes
+            .filter(function (i) { return i.seleccionado; })
+            .map(function (i) { return { id: i.id, tipo: i.tipo }; });
+
+        if (seleccionados.length === 0) {
+            showWarning('Seleccione al menos un documento para mayorizar.');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirmar Mayorización',
+            html: 'Se generarán asientos contables para <strong>' + seleccionados.length + '</strong> documento(s).<br><br>¿Desea continuar?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-calculator me-2"></i>Generar Asientos',
+            cancelButtonText: 'Cancelar'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                ejecutarMayorizacion(seleccionados);
+            }
+        });
+    }
+
+    function ejecutarMayorizacion(items) {
+        Swal.fire({
+            title: 'Generando Asientos...',
+            html: 'Procesando <strong>' + items.length + '</strong> documento(s).<br>Por favor espere...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: function () {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '?handler=Generar',
+            type: 'POST',
+            contentType: 'application/json',
+            headers: { 'RequestVerificationToken': antiForgeryToken },
+            data: JSON.stringify({ items: items }),
+            success: function (data) {
+                Swal.close();
+
+                var iconType = data.errores > 0 ? (data.exitosos > 0 ? 'warning' : 'error') : 'success';
+                var titulo = data.errores > 0 ? (data.exitosos > 0 ? 'Mayorización Parcial' : 'Error en Mayorización') : 'Mayorización Exitosa';
+
+                var html = '<div class="text-start">';
+                html += '<p><strong>Procesados:</strong> ' + data.total + '</p>';
+                html += '<p class="text-success"><strong>Exitosos:</strong> ' + data.exitosos + '</p>';
+
+                if (data.errores > 0) {
+                    html += '<p class="text-danger"><strong>Errores:</strong> ' + data.errores + '</p>';
+                    if (data.detallesErrores && data.detallesErrores.length > 0) {
+                        html += '<hr><div class="small" style="max-height: 200px; overflow-y: auto;">';
+                        data.detallesErrores.forEach(function (err) {
+                            html += '<div class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i>' + escapeHtml(err) + '</div>';
+                        });
+                        html += '</div>';
+                    }
+                }
+                html += '</div>';
+
+                Swal.fire({
+                    title: titulo,
+                    html: html,
+                    icon: iconType,
+                    confirmButtonText: 'Aceptar'
+                }).then(function () {
+                    cargarPendientes();
+                });
+            },
+            error: function (xhr) {
+                Swal.close();
+                handleAjaxError(xhr);
+            }
+        });
+    }
+</script>
+}

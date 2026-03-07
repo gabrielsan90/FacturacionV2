@@ -34,6 +34,48 @@ public class CotizacionesProveedorController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene las cotizaciones de una empresa con filtros opcionales.
+    /// </summary>
+    [HttpGet("empresa/{empresaId:guid}")]
+    public async Task<IActionResult> GetByEmpresaAsync(
+        Guid empresaId,
+        [FromQuery] string? estado = null,
+        [FromQuery] Guid? requisicionId = null)
+    {
+        if (!await TieneAccesoEmpresaAsync(empresaId))
+        {
+            return Forbid();
+        }
+
+        // If filtering by estado, use the existing method
+        if (!string.IsNullOrWhiteSpace(estado))
+        {
+            var estadoResponse = await _unitOfWork.GetByEstadoAsync(empresaId, estado);
+            if (!estadoResponse.WasSuccess) return BadRequest(estadoResponse.Message);
+            var result = estadoResponse.Result ?? Enumerable.Empty<CotizacionProveedor>();
+            if (requisicionId.HasValue)
+                result = result.Where(c => c.RequisicionId == requisicionId.Value);
+            return Ok(result);
+        }
+
+        // Query all cotizaciones for the empresa from DataContext
+        var query = _context.CotizacionesProveedor
+            .Where(c => c.EmpresaId == empresaId)
+            .Include(c => c.Proveedor)
+            .Include(c => c.Requisicion)
+            .AsQueryable();
+
+        if (requisicionId.HasValue)
+            query = query.Where(c => c.RequisicionId == requisicionId.Value);
+
+        var cotizaciones = await query
+            .OrderByDescending(c => c.FechaCreacion)
+            .ToListAsync();
+
+        return Ok(cotizaciones);
+    }
+
+    /// <summary>
     /// Obtiene las cotizaciones relacionadas a una requisición específica.
     /// </summary>
     /// <param name="requisicionId">ID de la requisición</param>
@@ -167,7 +209,20 @@ public class CotizacionesProveedorController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> PostAsync([FromBody] CotizacionProveedor cotizacion)
     {
-        if (!ModelState.IsValid)
+        // Set server-generated fields BEFORE validation
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        cotizacion.Id = Guid.NewGuid();
+        cotizacion.RegistradoPorId = userId;
+        cotizacion.FechaCreacion = DateTime.Now;
+        cotizacion.Estado = string.IsNullOrWhiteSpace(cotizacion.Estado) ? "ENV" : cotizacion.Estado;
+
+        if (string.IsNullOrWhiteSpace(cotizacion.Numero) || cotizacion.Numero == "AUTO")
+        {
+            cotizacion.Numero = await GenerarNumeroCotizacionAsync(cotizacion.EmpresaId);
+        }
+
+        ModelState.Remove("Numero");
+        if (!TryValidateModel(cotizacion))
         {
             return BadRequest(ModelState);
         }
@@ -176,13 +231,6 @@ public class CotizacionesProveedorController : ControllerBase
         {
             return Forbid();
         }
-
-        // Establecer valores de auditoría
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        cotizacion.Id = Guid.NewGuid();
-        cotizacion.RegistradoPorId = userId;
-        cotizacion.FechaCreacion = DateTime.Now;
-        cotizacion.Estado = string.IsNullOrWhiteSpace(cotizacion.Estado) ? "ENV" : cotizacion.Estado;
 
         // Asignar IDs a los detalles
         if (cotizacion.Detalles != null)
@@ -344,5 +392,29 @@ public class CotizacionesProveedorController : ControllerBase
         // Verificar si el usuario tiene acceso a la empresa
         return await _context.UsuariosEmpresas
             .AnyAsync(ue => ue.UserId == userId && ue.EmpresaId == empresaId);
+    }
+
+    private async Task<string> GenerarNumeroCotizacionAsync(Guid empresaId)
+    {
+        var year = DateTime.Now.Year;
+        var month = DateTime.Now.Month;
+        var prefix = $"CP-{year:D4}-{month:D2}-";
+
+        var lastNumero = await _context.CotizacionesProveedor
+            .IgnoreQueryFilters()
+            .Where(c => c.EmpresaId == empresaId && c.Numero.StartsWith(prefix))
+            .OrderByDescending(c => c.Numero)
+            .Select(c => c.Numero)
+            .FirstOrDefaultAsync();
+
+        int nextNumber = 1;
+        if (lastNumero != null)
+        {
+            var lastPart = lastNumero.Substring(prefix.Length);
+            if (int.TryParse(lastPart, out int last))
+                nextNumber = last + 1;
+        }
+
+        return $"{prefix}{nextNumber:D4}";
     }
 }

@@ -235,10 +235,11 @@ public class CotizacionRepository : ICotizacionRepository
         try
         {
             // Verificar que no exista una cotización con el mismo número
+            // IgnoreQueryFilters to check soft-deleted records too (unique index is global)
             var existente = await _context.Cotizaciones
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(c => c.Numero == cotizacion.Numero &&
-                                         c.EmpresaId == cotizacion.EmpresaId &&
-                                         !c.IsDeleted);
+                                         c.EmpresaId == cotizacion.EmpresaId);
 
             if (existente != null)
             {
@@ -265,13 +266,40 @@ public class CotizacionRepository : ICotizacionRepository
                 Result = cotizacion
             };
         }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Error de base de datos al crear cotización {Numero}", cotizacion.Numero);
+            // Walk exception chain to find the actual SQL error
+            var innerEx = dbEx.InnerException;
+            while (innerEx?.InnerException != null) innerEx = innerEx.InnerException;
+            var innerMsg = innerEx?.Message ?? dbEx.InnerException?.Message ?? dbEx.Message;
+
+            // Detectar FK violations comunes y dar mensajes claros
+            string mensajeUsuario;
+            if (innerMsg.Contains("FK_") && innerMsg.Contains("Sucursal"))
+                mensajeUsuario = "La sucursal especificada no existe. Configure una sucursal válida.";
+            else if (innerMsg.Contains("FK_") && innerMsg.Contains("Terminal"))
+                mensajeUsuario = "La terminal especificada no existe. Configure una terminal válida.";
+            else if (innerMsg.Contains("FK_") && innerMsg.Contains("Cliente"))
+                mensajeUsuario = "El cliente especificado no existe o fue eliminado.";
+            else if (innerMsg.Contains("FK_") && innerMsg.Contains("Empresa"))
+                mensajeUsuario = "La empresa especificada no es válida.";
+            else
+                mensajeUsuario = $"Error al guardar la cotización: {innerMsg}";
+
+            return new ActionResponse<Cotizacion>
+            {
+                WasSuccess = false,
+                Message = mensajeUsuario
+            };
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear cotización {Numero}", cotizacion.Numero);
             return new ActionResponse<Cotizacion>
             {
                 WasSuccess = false,
-                Message = ex.Message
+                Message = $"Error inesperado: {ex.Message}"
             };
         }
     }

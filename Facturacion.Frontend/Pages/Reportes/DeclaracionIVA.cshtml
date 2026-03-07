@@ -1,0 +1,346 @@
+@page
+@model Facturacion.Frontend.Pages.Reportes.DeclaracionIVAModel
+@{
+    ViewData["Title"] = "Declaraci\u00f3n D-104 IVA";
+    ViewData["Breadcrumb"] = "Declaraci\u00f3n D-104 IVA";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-file-invoice-dollar me-2"></i>Declaraci&oacute;n D-104: Impuesto al Valor Agregado
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Filtros de Per&iacute;odo -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Per&iacute;odo Fiscal - Mes</label>
+                <input type="month" class="form-control" id="periodoMes" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary" onclick="generarReporte()">
+                    <i class="fas fa-calculator me-1"></i> Generar
+                </button>
+            </div>
+            <div class="col-md-7 d-flex align-items-end justify-content-end">
+                <button class="btn btn-outline-success me-2" onclick="exportarExcel()" id="btnExportar" disabled>
+                    <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                </button>
+                <button class="btn btn-outline-secondary" onclick="window.print()" id="btnImprimir" disabled>
+                    <i class="fas fa-print me-1"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Calculando declaraci&oacute;n...</p>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultados" class="d-none">
+            <!-- Resumen General -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-arrow-up me-1"></i>IVA Ventas (D&eacute;bito)</h6>
+                            <h4 class="mb-0" id="totalIvaVentas">&#8353;0.00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-arrow-down me-1"></i>IVA Compras (Cr&eacute;dito)</h6>
+                            <h4 class="mb-0" id="totalIvaCompras">&#8353;0.00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white" id="cardSaldo">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-balance-scale me-1"></i>Saldo a Pagar</h6>
+                            <h4 class="mb-0" id="totalSaldo">&#8353;0.00</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body py-3">
+                            <h6 class="mb-1"><i class="fas fa-file-alt me-1"></i>Documentos</h6>
+                            <h4 class="mb-0"><span id="docsVenta">0</span> ventas / <span id="docsCompra">0</span> compras</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle Ventas por Tarifa -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-receipt me-2"></i>Detalle de Ventas por Tarifa IVA</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Tarifa</th>
+                                <th class="text-end">Base Imponible</th>
+                                <th class="text-end">IVA D&eacute;bito</th>
+                                <th class="text-end">Documentos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyVentas">
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td>Total Ventas</td>
+                                <td class="text-end" id="totalBaseVentas">&#8353;0.00</td>
+                                <td class="text-end" id="totalIvaVentasDetalle">&#8353;0.00</td>
+                                <td class="text-end" id="totalDocsVentas">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Detalle Compras -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Detalle de Compras (IVA Cr&eacute;dito Fiscal)</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Concepto</th>
+                                <th class="text-end">Base Imponible</th>
+                                <th class="text-end">IVA Cr&eacute;dito</th>
+                                <th class="text-end">Documentos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyCompras">
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td>Total Compras</td>
+                                <td class="text-end" id="totalBaseCompras">&#8353;0.00</td>
+                                <td class="text-end" id="totalIvaComprasDetalle">&#8353;0.00</td>
+                                <td class="text-end" id="totalDocsCompras">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Liquidaci&oacute;n -->
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Liquidaci&oacute;n del Per&iacute;odo</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold">Total Ventas Gravadas</td>
+                                <td class="text-end" id="liqVentasGravadas">&#8353;0.00</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Total Ventas Exentas</td>
+                                <td class="text-end" id="liqVentasExentas">&#8353;0.00</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">IVA D&eacute;bito Fiscal (por ventas)</td>
+                                <td class="text-end" id="liqIvaDebito">&#8353;0.00</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">(-) IVA Cr&eacute;dito Fiscal (por compras)</td>
+                                <td class="text-end text-danger" id="liqIvaCredito">&#8353;0.00</td>
+                            </tr>
+                            <tr class="table-primary fs-5">
+                                <td class="fw-bold" id="liqSaldoLabel">Saldo a Pagar</td>
+                                <td class="text-end fw-bold" id="liqSaldo">&#8353;0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado vac&iacute;o -->
+        <div id="emptyState" class="text-center py-5">
+            <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Seleccione un per&iacute;odo fiscal y presione "Generar" para calcular la declaraci&oacute;n D-104.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        // Default: current month
+        const now = new Date();
+        const mes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        $('#periodoMes').val(mes);
+    });
+
+    function formatMoney(amount) {
+        return '\u20A1' + new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
+    }
+
+    function generarReporte() {
+        const periodoMes = $('#periodoMes').val();
+        if (!periodoMes) {
+            showWarning('Seleccione un per\u00edodo fiscal.');
+            return;
+        }
+
+        const [year, month] = periodoMes.split('-').map(Number);
+        const fechaInicio = `${year}-${String(month).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        const fechaFin = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+        $('#emptyState').addClass('d-none');
+        $('#resultados').addClass('d-none');
+        $('#loader').removeClass('d-none');
+
+        $.ajax({
+            url: `?handler=Reporte&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+            type: 'GET',
+            headers: {
+                "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                $('#loader').addClass('d-none');
+
+                if (!response.success) {
+                    showError(response.message || 'Error al generar el reporte');
+                    $('#emptyState').removeClass('d-none');
+                    return;
+                }
+
+                renderReporte(response.data);
+                $('#resultados').removeClass('d-none');
+                $('#btnExportar, #btnImprimir').prop('disabled', false);
+            },
+            error: function (xhr) {
+                $('#loader').addClass('d-none');
+                $('#emptyState').removeClass('d-none');
+                handleAjaxError(xhr);
+            }
+        });
+    }
+
+    function renderReporte(data) {
+        // Summary cards
+        $('#totalIvaVentas').text(formatMoney(data.ivaVentas || data.iVAVentas));
+        $('#totalIvaCompras').text(formatMoney(data.ivaCompras || data.iVACompras));
+
+        const saldo = (data.ivaPorPagar || data.iVAPorPagar || 0);
+        $('#totalSaldo').text(formatMoney(Math.abs(saldo)));
+        if (saldo < 0) {
+            $('#cardSaldo').removeClass('bg-success').addClass('bg-warning');
+            $('#totalSaldo').text(formatMoney(Math.abs(saldo)));
+            $('td#liqSaldoLabel').text('Saldo a Favor');
+        } else {
+            $('#cardSaldo').removeClass('bg-warning').addClass('bg-success');
+            $('td#liqSaldoLabel').text('Saldo a Pagar');
+        }
+
+        $('#docsVenta').text(data.cantidadDocumentosVenta || 0);
+        $('#docsCompra').text(data.cantidadDocumentosCompra || 0);
+
+        // Detalle Ventas por Tarifa
+        const detalles = data.detallesPorTarifa || [];
+        const ventasRows = detalles.filter(d => d.tipo === 'Ventas');
+        const comprasRows = detalles.filter(d => d.tipo === 'Compras');
+
+        let tbodyVentas = '';
+        let totalBaseV = 0, totalIvaV = 0, totalDocsV = 0;
+        ventasRows.forEach(row => {
+            totalBaseV += row.baseImponible;
+            totalIvaV += row.montoImpuesto;
+            totalDocsV += row.cantidadDocumentos;
+            tbodyVentas += `<tr>
+                <td><span class="badge bg-${row.tarifa > 0 ? 'primary' : 'secondary'}">${row.tipoImpuesto}</span></td>
+                <td class="text-end">${formatMoney(row.baseImponible)}</td>
+                <td class="text-end">${formatMoney(row.montoImpuesto)}</td>
+                <td class="text-end">${row.cantidadDocumentos}</td>
+            </tr>`;
+        });
+        if (ventasRows.length === 0) {
+            tbodyVentas = '<tr><td colspan="4" class="text-center text-muted">Sin ventas en el per\u00edodo</td></tr>';
+        }
+        $('#tbodyVentas').html(tbodyVentas);
+        $('#totalBaseVentas').text(formatMoney(totalBaseV));
+        $('#totalIvaVentasDetalle').text(formatMoney(totalIvaV));
+        $('#totalDocsVentas').text(totalDocsV);
+
+        // Detalle Compras
+        let tbodyCompras = '';
+        let totalBaseC = 0, totalIvaC = 0, totalDocsC = 0;
+        comprasRows.forEach(row => {
+            totalBaseC += row.baseImponible;
+            totalIvaC += row.montoImpuesto;
+            totalDocsC += row.cantidadDocumentos;
+            tbodyCompras += `<tr>
+                <td>${row.tipoImpuesto}</td>
+                <td class="text-end">${formatMoney(row.baseImponible)}</td>
+                <td class="text-end">${formatMoney(row.montoImpuesto)}</td>
+                <td class="text-end">${row.cantidadDocumentos}</td>
+            </tr>`;
+        });
+        if (comprasRows.length === 0) {
+            tbodyCompras = '<tr><td colspan="4" class="text-center text-muted">Sin compras con IVA en el per\u00edodo</td></tr>';
+        }
+        $('#tbodyCompras').html(tbodyCompras);
+        $('#totalBaseCompras').text(formatMoney(totalBaseC));
+        $('#totalIvaComprasDetalle').text(formatMoney(totalIvaC));
+        $('#totalDocsCompras').text(totalDocsC);
+
+        // Liquidaci&oacute;n
+        $('#liqVentasGravadas').text(formatMoney(data.totalVentasGravadas));
+        $('#liqVentasExentas').text(formatMoney(data.totalVentasExentas));
+        $('#liqIvaDebito').text(formatMoney(data.ivaVentas || data.iVAVentas));
+        $('#liqIvaCredito').text('-' + formatMoney(data.ivaCompras || data.iVACompras));
+        $('#liqSaldo').text(formatMoney(Math.abs(saldo)));
+    }
+
+    function exportarExcel() {
+        // Build CSV from the visible data
+        let csv = 'Concepto,Base Imponible,IVA,Documentos\n';
+
+        // Ventas
+        $('#tbodyVentas tr').each(function () {
+            const cells = $(this).find('td');
+            if (cells.length >= 4) {
+                csv += `"${cells.eq(0).text()}",${cells.eq(1).text().replace(/[^\d.,-]/g, '')},${cells.eq(2).text().replace(/[^\d.,-]/g, '')},${cells.eq(3).text()}\n`;
+            }
+        });
+
+        csv += '\n';
+
+        // Compras
+        $('#tbodyCompras tr').each(function () {
+            const cells = $(this).find('td');
+            if (cells.length >= 4) {
+                csv += `"${cells.eq(0).text()}",${cells.eq(1).text().replace(/[^\d.,-]/g, '')},${cells.eq(2).text().replace(/[^\d.,-]/g, '')},${cells.eq(3).text()}\n`;
+            }
+        });
+
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `D-104_${$('#periodoMes').val()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+}

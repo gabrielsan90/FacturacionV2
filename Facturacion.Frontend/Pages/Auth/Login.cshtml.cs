@@ -80,7 +80,7 @@ public class LoginModel : PageModel
             return new JsonResult(new ValidateCredentialsResponseDto
             {
                 IsValid = false,
-                Message = "Error al validar las credenciales"
+                Message = "Email o contraseña incorrectos"
             });
         }
         catch (Exception ex)
@@ -132,10 +132,9 @@ public class LoginModel : PageModel
             {
                 _logger.LogWarning("Intento de inicio de sesión fallido para {Email}: {Message}", Input.Email, result.Message);
 
-                // Show actual error message from backend
-                TempData["ErrorMessage"] = result.Message ?? "Correo electrónico o contraseña incorrectos. " + result.Message;
+                TempData["ErrorMessage"] = result.Message ?? "Correo electrónico o contraseña incorrectos";
 
-                return Page();
+                return RedirectToPage();
             }
         }
         catch (Exception ex)
@@ -144,7 +143,7 @@ public class LoginModel : PageModel
 
             TempData["ErrorMessage"] = "Ocurrió un error al procesar su solicitud. Por favor, intente nuevamente más tarde.";
 
-            return Page();
+            return RedirectToPage();
         }
     }
 }

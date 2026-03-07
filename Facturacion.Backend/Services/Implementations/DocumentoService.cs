@@ -354,14 +354,20 @@ public class DocumentoService : IDocumentoService
             errores.Add("El documento debe tener al menos una línea de detalle");
         }
 
-        // Validar actividad económica del emisor
-        if (string.IsNullOrWhiteSpace(documento.ActividadEconomica))
+        // Validar actividad económica del emisor (solo para empresas con facturación electrónica)
+        var empresa = await _context.Empresas.AsNoTracking().FirstOrDefaultAsync(e => e.Id == documento.EmpresaId);
+        var requiereFE = empresa?.RequiereFacturacionElectronica ?? true;
+
+        if (requiereFE)
         {
-            errores.Add("La actividad económica del emisor es obligatoria");
-        }
-        else if (documento.ActividadEconomica.Length != 6)
-        {
-            errores.Add("La actividad económica debe tener 6 dígitos (CIIU4)");
+            if (string.IsNullOrWhiteSpace(documento.ActividadEconomica))
+            {
+                errores.Add("La actividad económica del emisor es obligatoria");
+            }
+            else if (documento.ActividadEconomica.Length != 6)
+            {
+                errores.Add("La actividad económica debe tener 6 dígitos (CIIU4)");
+            }
         }
 
         // Validar receptor según tipo de documento
@@ -546,10 +552,12 @@ public class DocumentoService : IDocumentoService
             dto.TipoDocumento,
             empresa.Ambiente);
 
-        // Generar clave numérica de 50 dígitos
-        // Situación: 1=Normal, 2=Contingencia, 3=Sin Internet
-        int situacion = dto.EsContingencia ? 2 : 1;
-        documento.Clave = await _claveGenerador.GenerarClaveAsync(documento, situacion);
+        // Generar clave numérica de 50 dígitos solo para empresas con facturación electrónica
+        if (empresa.RequiereFacturacionElectronica)
+        {
+            int situacion = dto.EsContingencia ? 2 : 1;
+            documento.Clave = await _claveGenerador.GenerarClaveAsync(documento, situacion);
+        }
 
         // Agregar detalles
         int numeroLinea = 1;

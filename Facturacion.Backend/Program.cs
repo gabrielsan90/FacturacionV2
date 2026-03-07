@@ -263,6 +263,7 @@ builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.ICuentaIn
 builder.Services.AddScoped<Facturacion.Backend.Repositories.Interfaces.IConfiguracionContableRepository, Facturacion.Backend.Repositories.Implementations.ConfiguracionContableRepository>();
 builder.Services.AddScoped<Facturacion.Backend.UnitsOfWork.Interfaces.IContabilidadUnitOfWork, Facturacion.Backend.UnitsOfWork.Implementations.ContabilidadUnitOfWork>();
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IContabilidadIntegracionService, Facturacion.Backend.Services.Implementations.ContabilidadIntegracionService>();
+builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IReportesContablesService, Facturacion.Backend.Services.Implementations.ReportesContablesService>();
 
 // Dependency Injection - Servicios v4.4 (Validación, Tipo de Cambio, Encriptación, Errores)
 builder.Services.AddScoped<Facturacion.Backend.Services.Interfaces.IValidacionDocumentoService, Facturacion.Backend.Services.Implementations.ValidacionDocumentoService>();
@@ -308,7 +309,7 @@ builder.Services.AddTransient<SeedDb>();
 
 var app = builder.Build();
 
-// Seed data
+//Seed data
 //SeedData(app);
 
 //void SeedData(WebApplication app)

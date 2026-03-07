@@ -39,7 +39,7 @@ public class InventarioModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrEmpty(empresaId))
             {
-                return new JsonResult(new { data = new List<object>() });
+                return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
             }
 
             var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -55,17 +55,38 @@ public class InventarioModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var inventarios = JsonSerializer.Deserialize<List<object>>(content, _jsonOptions);
-                return new JsonResult(new { data = inventarios });
+
+                // Unwrap ActionResponse if needed
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult
+                {
+                    Content = $"{{\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             _logger.LogWarning("Failed to load inventarios. Status: {StatusCode}", response.StatusCode);
-            return new JsonResult(new { data = new List<object>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading inventarios");
-            return new JsonResult(new { data = new List<object>() });
+            return new ContentResult { Content = "{\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -79,7 +100,7 @@ public class InventarioModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrEmpty(empresaId))
             {
-                return new JsonResult(new { success = false, data = new List<object>() });
+                return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
             }
 
             var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -95,16 +116,36 @@ public class InventarioModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var productos = JsonSerializer.Deserialize<List<object>>(content, _jsonOptions);
-                return new JsonResult(new { success = true, data = productos });
+
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
-            return new JsonResult(new { success = false, data = new List<object>() });
+            return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading productos");
-            return new JsonResult(new { success = false, data = new List<object>() });
+            return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -118,7 +159,7 @@ public class InventarioModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrEmpty(empresaId))
             {
-                return new JsonResult(new { success = false, data = new List<object>() });
+                return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
             }
 
             var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -134,16 +175,36 @@ public class InventarioModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var sucursales = JsonSerializer.Deserialize<List<object>>(content, _jsonOptions);
-                return new JsonResult(new { success = true, data = sucursales });
+
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
-            return new JsonResult(new { success = false, data = new List<object>() });
+            return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading sucursales");
-            return new JsonResult(new { success = false, data = new List<object>() });
+            return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -157,7 +218,7 @@ public class InventarioModel : PageModel
             var empresaId = User.FindFirstValue("EmpresaId");
             if (string.IsNullOrEmpty(empresaId))
             {
-                return new JsonResult(new { success = false, data = new List<object>() });
+                return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
             }
 
             var client = _httpClientFactory.CreateClient("FacturacionApi");
@@ -173,16 +234,36 @@ public class InventarioModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var lowStockItems = JsonSerializer.Deserialize<List<object>>(content, _jsonOptions);
-                return new JsonResult(new { success = true, data = lowStockItems });
+
+                using var doc = JsonDocument.Parse(content);
+                string dataJson;
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    dataJson = content;
+                }
+                else if (doc.RootElement.TryGetProperty("result", out var resultProp))
+                {
+                    dataJson = resultProp.GetRawText();
+                }
+                else
+                {
+                    dataJson = "[]";
+                }
+
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{dataJson}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
-            return new JsonResult(new { success = false, data = new List<object>() });
+            return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading low stock items");
-            return new JsonResult(new { success = false, data = new List<object>() });
+            return new ContentResult { Content = "{\"success\":false,\"data\":[]}", ContentType = "application/json", StatusCode = 200 };
         }
     }
 
@@ -211,8 +292,12 @@ public class InventarioModel : PageModel
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var inventario = JsonSerializer.Deserialize<object>(content, _jsonOptions);
-                return new JsonResult(new { success = true, data = inventario });
+                return new ContentResult
+                {
+                    Content = $"{{\"success\":true,\"data\":{content}}}",
+                    ContentType = "application/json",
+                    StatusCode = 200
+                };
             }
 
             return new JsonResult(new { success = false, message = "Inventario no encontrado" });
@@ -475,14 +560,35 @@ public class InventarioModel : PageModel
             using var fileStream = file.OpenReadStream();
             using var streamContent = new StreamContent(fileStream);
             streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-            content.Add(streamContent, "file", file.FileName);
+            content.Add(streamContent, "archivo", file.FileName);
 
-            var response = await client.PostAsync($"/api/inventarios/importar/{empresaId}/{sucursalId}", content);
+            var response = await client.PostAsync($"/api/inventarios/empresa/{empresaId}/importar?sucursalId={sucursalId}", content);
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<object>(_jsonOptions);
-                return new JsonResult(result);
+                var result = await response.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+                var wasSuccess = result.TryGetProperty("wasSuccess", out var ws) && ws.GetBoolean();
+                var message = result.TryGetProperty("message", out var msg) ? msg.GetString() : "";
+                var successCount = result.TryGetProperty("successCount", out var sc) ? sc.GetInt32() : 0;
+                var errorCount = result.TryGetProperty("errorCount", out var ec) ? ec.GetInt32() : 0;
+                var errors = new List<string>();
+                if (result.TryGetProperty("errors", out var errs) && errs.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var err in errs.EnumerateArray())
+                    {
+                        var errMsg = err.TryGetProperty("message", out var em) ? em.GetString() : "";
+                        var row = err.TryGetProperty("row", out var r) ? r.GetInt32() : 0;
+                        errors.Add(row > 0 ? $"Fila {row}: {errMsg}" : errMsg ?? "");
+                    }
+                }
+                return new JsonResult(new
+                {
+                    success = wasSuccess,
+                    message,
+                    totalImportados = successCount,
+                    totalErrores = errorCount,
+                    errores = errors
+                });
             }
 
             var error = await response.Content.ReadAsStringAsync();
